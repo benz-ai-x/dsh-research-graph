@@ -1,20 +1,23 @@
 ---
-description: "Visual DeepSeek Harness Web plugin for exploring session lineage, arranging branches, merging snapshots, and generating digests on an interactive graph canvas."
+description: "DeepSeek Harness (dsh) plugin for AI agent session visualization and management: explore lineage, arrange branches, merge snapshots, and generate digests."
 kind: "package-bundle"
 ---
 
-# Session Graph for DeepSeek Harness
+# Session Graph: DeepSeek Harness Plugin
 
 [![CI](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-client-ui-session-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph)
+[![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
 [![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-session-graph?logo=github)](https://github.com/benz-ai-x/dsh-session-graph/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 English | [中文](README.zh.md)
 
-**Visualize, navigate, branch, merge, and summarize related AI agent sessions without leaving DeepSeek Harness.**
+**A DeepSeek Harness (dsh) plugin for visualizing and managing AI agent sessions.**
 
-`@benz-ai-x/dsh-client-ui-session-graph` adds an interactive **Graph** tab to the DeepSeek Harness Web conversation view. It turns Session Lineage into a free canvas: Branch-connected Canvas Sessions form movable clusters, Merge Sessions retain snapshot provenance, Subagent Sessions fold into compact summaries, and on-demand Session Digests surface outcomes and open work. Browsing, arranging, and digesting never mutate a Session log.
+Session Graph (`@benz-ai-x/dsh-client-ui-session-graph`) adds an interactive **Graph** tab to the DeepSeek Harness Web conversation view. Explore Session Lineage, navigate conversations, create Branches, merge session snapshots, and generate Session Digests on one canvas.
+
+Branch-connected Canvas Sessions form movable clusters, Merge Sessions retain snapshot provenance, and Subagent Sessions fold into compact summaries. On-demand Session Digests surface outcomes and open work. Browsing, arranging, and digesting never mutate a Session log.
 
 <p align="center">
   <a href="docs/assets/session-graph-overview.png">

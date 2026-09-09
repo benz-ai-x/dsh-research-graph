@@ -1,20 +1,23 @@
 ---
-description: "DeepSeek Harness 可视化 Web 插件：在交互式图谱画布中浏览会话谱系、排列分支、汇聚快照并生成摘要。"
+description: "DeepSeek Harness（dsh）AI Agent 会话可视化与管理插件：在交互式图谱画布中浏览会话谱系、排列分支、汇聚快照并生成摘要。"
 kind: "package-bundle"
 ---
 
-# DeepSeek Harness Session Graph
+# Session Graph：DeepSeek Harness 会话可视化插件
 
 [![CI](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-client-ui-session-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph)
+[![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
 [![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-session-graph?logo=github)](https://github.com/benz-ai-x/dsh-session-graph/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [English](README.md) | 中文
 
-**无需离开 DeepSeek Harness，即可可视化、浏览、分支、汇聚并总结相关 AI Agent 会话。**
+**面向 DeepSeek Harness（dsh）的 AI Agent 会话可视化与管理插件。**
 
-`@benz-ai-x/dsh-client-ui-session-graph` 为 DeepSeek Harness Web 对话视图添加交互式 **Graph** 标签，把 Session Lineage（会话谱系）变成自由画布：Branch 连接的 Canvas Session 组成可移动会话簇，Merge Session 保留快照溯源，Subagent Session 折叠为紧凑摘要，并可按需生成 Session Digest。浏览、排列与生成摘要都不会修改 Session 日志。
+Session Graph（`@benz-ai-x/dsh-client-ui-session-graph`）为 DeepSeek Harness Web 对话视图添加交互式 **Graph** 标签。在同一画布中浏览 Session Lineage（会话谱系）、跳转对话、创建 Branch（分支）、汇聚会话快照，并生成 Session Digest（会话摘要）。
+
+Branch 连接的 Canvas Session 组成可移动会话簇，Merge Session 保留快照溯源，Subagent Session 折叠为紧凑摘要。按需生成的 Session Digest 帮助回顾关键结论与待办。浏览、排列与生成摘要都不会修改 Session 日志。
 
 <p align="center">
   <a href="docs/assets/session-graph-overview.png">
