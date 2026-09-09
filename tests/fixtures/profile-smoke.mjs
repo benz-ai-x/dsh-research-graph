@@ -42,7 +42,7 @@ export function apply(ctx) {
     return sessionId
   }
   async function verify() {
-    const secondPrompt = 'Second fixture. 通过知识卡片整理研究资料。 Café notes use foo-bar labels. 修复 foo-bar 设置。'
+    const secondPrompt = '通过知识卡片整理研究资料。 Café uses foo-bar. 修复 foo-bar 设置。'
     const sourceIds = [await create('First fixture.'), await create(secondPrompt)]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
     const callsBeforeHistory = calls
