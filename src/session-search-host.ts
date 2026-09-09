@@ -13,6 +13,16 @@ interface SearchSnapshot {
   readonly hits: readonly DiscussionSearchHit[]
 }
 
+/** Copy live Workspace entities so a search uses one scope revision. */
+function scopeFacts(ctx: Context) {
+  return {
+    workspaces: ctx.workspaceRegistry.list().map(item => ({
+      id: item.id, title: item.title, path: item.path, sessionIds: [...item.sessionIds].sort(),
+    })),
+    archived: [...ctx.workspaceRegistry.archivedSessionIds].sort(),
+  }
+}
+
 function snippetAround(text: string, needle: string): string {
   const normalized = text.replace(/\s+/gu, ' ')
   const index = normalized.toLowerCase().indexOf(needle)
@@ -71,11 +81,15 @@ export class SessionGraphSearchService extends TypertRemoteService {
   private async searchDiscussion(request: DiscussionSearchRequest, signal: AbortSignal): Promise<DiscussionSearchResult> {
     signal.throwIfAborted()
     const query = this.ctx.sessionQuery
-    const workspaces = this.ctx.workspaceRegistry.list()
-    const archived = new Set(this.ctx.workspaceRegistry.archivedSessionIds)
+    const listed = await query.listSessions(signal)
+    signal.throwIfAborted()
+    const facts = scopeFacts(this.ctx)
+    const scopeRevision = JSON.stringify(facts)
+    const workspaces = facts.workspaces
+    const archived = new Set(facts.archived)
     const scope = request.scope
     const workspace = scope.kind === 'workspace' ? workspaces.find(item => item.id === scope.workspaceId) : undefined
-    const sessions = (await query.listSessions(signal)).filter(({ header }) =>
+    const sessions = listed.filter(({ header }) =>
       header.origin !== 'subagent'
       && (request.includeArchived || !archived.has(header.id))
       && (scope.kind === 'all' || (scope.kind === 'directory' ? header.cwd === scope.cwd
@@ -130,8 +144,8 @@ export class SessionGraphSearchService extends TypertRemoteService {
         ?? workspaces.find(item => item.path === candidate.header.cwd)
       hits.push({
         sessionId: candidate.header.id,
-        title: (await query.readTitle(candidate.header.id, signal))?.title ?? candidate.header.id,
-        ...(owner === undefined ? {} : { workspace: { id: owner.id, title: owner.title } }),
+        title: (await query.readTitle(candidate.header.id, signal))?.title.trim() || candidate.header.id,
+        ...(owner === undefined ? {} : { workspace: { id: owner.id, title: owner.title.trim() || owner.path } }),
         ...(candidate.header.cwd === undefined ? {} : { cwd: candidate.header.cwd }),
         archived: archived.has(candidate.header.id),
         eventSeq: match.message.seq, turnStartSeq: match.turn.startSeq,
@@ -140,6 +154,7 @@ export class SessionGraphSearchService extends TypertRemoteService {
       })
     }
     signal.throwIfAborted()
+    if (JSON.stringify(scopeFacts(this.ctx)) !== scopeRevision) return { kind: 'stale' }
     hits.sort((left, right) => right.time - left.time || left.sessionId.localeCompare(right.sessionId))
     const key = randomUUID()
     const snapshot = { fingerprint, createdAt: Date.now(), hits }

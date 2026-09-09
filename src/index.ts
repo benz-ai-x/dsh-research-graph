@@ -303,14 +303,16 @@ export class SessionGraphMergeService extends TypertRemoteService implements Qui
   }
 }
 
-/** Install read-only History/Digest services, the Merge projection, and Merge submission. */
+/** Install read-only Search/History/Digest services, the Merge projection, and Merge submission. */
 export async function apply(ctx: Context, config: Config = {}): Promise<void> {
   const resolvedConfig = resolveConfig(config)
-  await provideQuiescentRemoteService(
-    ctx,
-    serviceCtx => new SessionGraphSearchService(serviceCtx),
-    'session-graph.search-service',
-  )
+  void ctx.inject(['sessionQuery', 'workspaceRegistry'], async searchCtx => {
+    await provideQuiescentRemoteService(
+      searchCtx,
+      serviceCtx => new SessionGraphSearchService(serviceCtx),
+      'session-graph.search-service',
+    )
+  })
   await provideQuiescentRemoteService(
     ctx,
     serviceCtx => new SessionGraphHistoryService(serviceCtx),

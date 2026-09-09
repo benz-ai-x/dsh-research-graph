@@ -67,6 +67,52 @@ function addTurn(session: Session, turn: number, prompt: string, answer = 'Recor
 const request = { query: 'needle', scope: { kind: 'workspace' as const, workspaceId: 'a' }, includeArchived: false }
 
 describe('Discussion Search public Host interface', () => {
+  it('provides readable fallback labels for empty Harness session and Workspace titles', async () => {
+    const { ctx, workspaces } = await searchHost()
+    workspaces[0]!.title = ''
+    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    addTurn(source, 1, 'An indexed needle.')
+    source.append('session/title', { title: '', messageSeqs: [], source: { kind: 'user' } })
+    ctx.effect(() => ctx.sessions.enter(source))
+    const result = await ctx.typertGateway.invoke({
+      namespace: 'sessionGraphSearch', method: 'search', args: { request }, signal: new AbortController().signal,
+    })
+    expect(result.hits[0]).toMatchObject({ title: source.id, workspace: { id: 'a', title: '/a' } })
+  })
+
+  it.each(['initial', 'continuation'])('rejects a %s result when archive scope changes during awaited work', async phase => {
+    const { ctx, archivedSessionIds } = await searchHost()
+    const ids = []
+    for (let index = 0; index < 3; index++) {
+      const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+      addTurn(source, 1, '通过知识卡片整理研究资料。')
+      ctx.effect(() => ctx.sessions.enter(source))
+      ids.push(source.id)
+    }
+    const service = ctx.get('sessionGraphSearch')
+    const search = { ...request, query: '知识卡片', limit: 1 }
+    let cursor: string | undefined
+    if (phase === 'initial') {
+      const inspect = ctx.sessionController.inspect.bind(ctx.sessionController)
+      vi.spyOn(ctx.sessionController, 'inspect').mockImplementationOnce(async (id, signal) => {
+        const source = await inspect(id, signal)
+        archivedSessionIds.push(id)
+        return source
+      })
+    } else {
+      const first = await service.search(search, new AbortController().signal)
+      cursor = first.nextCursor
+      const list = ctx.sessionQuery.listSessions.bind(ctx.sessionQuery)
+      vi.spyOn(ctx.sessionQuery, 'listSessions').mockImplementationOnce(async signal => {
+        const sources = await list(signal)
+        archivedSessionIds.push(ids.find(id => id !== first.hits[0].sessionId)!)
+        return sources
+      })
+    }
+    expect(await service.search({ ...search, ...(cursor === undefined ? {} : { cursor }) }, new AbortController().signal))
+      .toEqual({ kind: 'stale' })
+  })
+
   it.each(['caller', 'Host disposal'])('abandons a late source read on %s and joins accepted work', async action => {
     const { ctx } = await searchHost()
     const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
