@@ -50,6 +50,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphDigest: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphDigest']
       sessionGraphMerge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphMerge']
       sessionGraphHistory: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphHistory']
+      sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
     }
     readonly invariants: {
       register: (packageName: string, installer: unknown) => () => void
@@ -97,6 +98,38 @@ declare module '@deepseek-ai/cordis' {
     }
     readonly workspaceRegistry: {
       readonly archivedSessionIds: readonly import('@deepseek-ai/dsh-session/types').SessionId[]
+      list: () => readonly {
+        readonly id: import('@deepseek-ai/dsh-workspace/types').WorkspaceId
+        readonly title: string
+        readonly path: string
+        readonly sessionIds: readonly import('@deepseek-ai/dsh-session/types').SessionId[]
+      }[]
+    }
+    readonly sessionQuery: {
+      listSessions: (signal?: AbortSignal) => Promise<readonly {
+        readonly header: {
+          readonly id: import('@deepseek-ai/dsh-session/types').SessionId
+          readonly cwd?: string
+          readonly origin?: 'subagent'
+        }
+      }[]>
+      searchSessions: (request: {
+        readonly query: string
+        readonly sessionFilters: readonly { readonly kind: 'id'; readonly values: readonly import('@deepseek-ai/dsh-session/types').SessionId[] }[]
+        readonly eventFilters: readonly { readonly kind: 'type'; readonly values: readonly string[] }[]
+        readonly limit: number
+        readonly cursor?: string
+      }, exec?: { readonly signal?: AbortSignal }) => Promise<{
+        readonly items: readonly {
+          readonly header: {
+            readonly id: import('@deepseek-ai/dsh-session/types').SessionId
+            readonly cwd?: string
+            readonly origin?: 'subagent'
+          }
+        }[]
+        readonly nextCursor?: string
+      }>
+      readTitle: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId, signal?: AbortSignal) => Promise<{ readonly title: string } | undefined>
     }
   }
 }

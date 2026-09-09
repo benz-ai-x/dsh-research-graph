@@ -6,6 +6,7 @@ declare module '@deepseek-ai/dsh-session/types' {
 // packages. scripts/check-harness-types.mjs excludes this file and checks both
 // compiler faces against the matching Harness's public declarations instead.
 declare module '@deepseek-ai/dsh-api-session-controller' {}
+declare module '@deepseek-ai/dsh-session-query' {}
 declare module '@deepseek-ai/dsh-session-reference' {}
 declare module '@deepseek-ai/dsh-session-projection' {}
 declare module '@deepseek-ai/dsh-session-projection-cache' {}

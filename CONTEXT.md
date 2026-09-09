@@ -119,7 +119,7 @@ A case-insensitive title match that emphasizes matching Canvas Sessions without 
 _Avoid_: Search, session filter
 
 **Session Inspector**:
-The persistent detail panel for the Selected Session. It remains authoritative while another Canvas Session is only being previewed.
+The persistent detail panel for the Selected Session, or the addressed result while Discussion Search is open. Canvas selection and search result inspection remain independent. It remains authoritative while another Canvas Session is only being previewed.
 _Avoid_: Hover card, current-session panel
 
 **Session Digest**:
@@ -131,12 +131,16 @@ A transient, delayed summary shown while dwelling on a Canvas Session other than
 _Avoid_: Inspector, tooltip
 
 **Session History**:
-The read-only user/assistant discussion text of one Selected Session, inspected on demand through Harness and presented in the Inspector's Original tab. It is neither generated nor persisted by the plugin. Its source state distinguishes available original text, a retained excerpt, and an unavailable source.
+The read-only user/assistant discussion text of one Selected Session or addressed search result, inspected on demand through Harness and presented in the Inspector. It is neither generated nor persisted by the plugin. Its source state distinguishes available original text, a retained excerpt, and an unavailable source.
 _Avoid_: Session Digest, chat replica, stored graph
 
 **Discussion Turn**:
 A discussion unit identified by its Session and `turn/start` event sequence, with a fixed `turn/end` boundary when completed. Only completed turns expose text as selectable source material; an unfinished turn exposes status until refreshed after completion. Titles and matching text are not identities.
 _Avoid_: Message, model step, text match
+
+**Discussion Search**:
+An explicit, read-only keyword search over completed direct user/assistant discussion on the connected Host. Workspace or directory scope and archive inclusion constrain candidates before ranking and pagination. A result addresses its Session, matching message event, and Discussion Turn start; inspecting it does not select a Canvas Session or change the Viewed Session. Archived and cross-workspace results can be read without becoming eligible for the current graph.
+_Avoid_: Title Filter, semantic search, global graph
 
 **Discussion Source**:
 A continuous selection of completed Discussion Turns from one Session, addressed by exact start/end event sequences and accompanied by a fallback excerpt. The Original reader retains it only in memory while open. Rechecking prefers the original; an unavailable original never turns the excerpt into verified source text.
