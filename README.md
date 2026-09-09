@@ -65,6 +65,8 @@ This prerelease uses npm tag `next`; the commands below pin the exact matching v
 | Original discussion | Read user/assistant text by turn in the Inspector, select a completed range, and check its exact source |
 | Read-only Session Digests | Generate concise overviews, key outcomes, and open items on demand without changing Session logs |
 
+See the [Original discussion browser acceptance record and screenshots](docs/reviews/pr-14-ui-acceptance.md) for paging, source recovery, running turns, and navigation.
+
 ### Data and model behavior
 
 | Action | Durable effect | Model use |
