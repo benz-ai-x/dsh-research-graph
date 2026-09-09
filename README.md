@@ -145,6 +145,8 @@ The search uses Harness's keyword/phrase index. Queries containing Chinese chara
 
 Use **Load more results** to continue the same result snapshot. Changing keywords, scope, or archive inclusion clears it and cancels pending work. A failed search or page can be retried; expired results ask you to search again. Result excerpts retain search-time text while the Inspector rechecks the original. Search does not call a model or write source sessions.
 
+See the [discussion search browser acceptance record and screenshots](docs/reviews/pr-15-ui-acceptance.md) for Chinese matches, exact turns, archived sources, paging, retry, and cancellation.
+
 <a id="enable-discussion-search"></a>
 ### Enable discussion search
 
