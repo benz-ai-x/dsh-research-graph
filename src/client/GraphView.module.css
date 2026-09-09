@@ -604,6 +604,7 @@
   right: 16px;
   top: 60px;
   width: 420px;
+  max-width: calc(100% - 24px);
   max-height: calc(100% - 76px);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1264,4 +1265,138 @@
   .digestSpinner {
     animation: none;
   }
+}
+
+.historyTabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.historyTabs button {
+  flex: 1;
+  min-height: 32px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.historyTabs button[aria-selected="true"] {
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+.history {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-primary);
+}
+
+.historyIdentity {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+  user-select: text;
+}
+
+.historyHint {
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.historyPager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.history button {
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.history button:hover:not(:disabled),
+.historyTabs button:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.history button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.history button:focus-visible,
+.history input:focus-visible,
+.historyTabs button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.historySelection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--dsw-alias-state-business-tertiary);
+}
+
+.historySelection > strong,
+.historySelection > .historyIdentity {
+  flex-basis: 100%;
+}
+
+.history article {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.history h3 {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.history label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.history input {
+  margin: 0;
+  accent-color: var(--dsw-alias-state-business-primary);
+}
+
+.history [role="alert"] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.historyText {
+  margin: 4px 0 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
 }

@@ -10,6 +10,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionDigestResult } from '../session-digest.ts'
+import type { SessionHistoryRequest, SessionHistoryResult } from '../session-history.ts'
 import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-info.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
@@ -18,6 +19,8 @@ import styles from './GraphView.module.css'
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  /** Read addressed discussion text without activating an Agent. */
+  readSessionHistory: (request: SessionHistoryRequest, signal: AbortSignal) => Promise<SessionHistoryResult>
   /** Open one session on its own last view (double-click and panel verb). */
   openSession: (id: SessionId) => void
   /** Create a Branch from one session (the panel's New-branch verb). */
@@ -56,7 +59,7 @@ export type GraphViewProps =
  */
 export function GraphView({
   sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
-  openSession, branchSession, generateSessionDigest, mergeSessions, retrySessionMerge, t,
+  openSession, branchSession, generateSessionDigest, readSessionHistory, mergeSessions, retrySessionMerge, t,
 }: GraphViewProps): ReactElement {
   const sessions = useSessions(state => state)
   const pendingInteractions = useSessionPendingInteraction(state => state)
@@ -112,6 +115,7 @@ export function GraphView({
         onOpen={openSession}
         onBranch={branchSession}
         onGenerateDigest={generateSessionDigest}
+        onReadHistory={readSessionHistory}
         onMerge={mergeSessions}
         onRetryMerge={retrySessionMerge}
       />

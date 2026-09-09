@@ -10,10 +10,11 @@
  */
 import clsx from 'clsx'
 import {
-  useCallback, useEffect, useMemo, useRef, useState, type ReactElement,
+  useCallback, useEffect, useId, useMemo, useRef, useState, type ReactElement,
 } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionDigest } from '../session-digest.ts'
+import { SessionHistory } from './SessionHistory.tsx'
 import { containsSessionReferenceUri } from '../session-merge.ts'
 import { CLUSTER_COLORS } from './clusters.ts'
 import type { ClusterInfo, DisplayStatus, GraphNode } from './graph-model.ts'
@@ -456,7 +457,7 @@ function DigestSection({
 }
 
 function SelectedSessionPanel({
-  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onClose,
+  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose,
 }: {
   node: GraphNode | undefined
   branchedFrom: string | undefined
@@ -466,8 +467,13 @@ function SelectedSessionPanel({
   onOpen: GraphViewInjected['openSession']
   onBranch: GraphViewInjected['branchSession']
   onGenerateDigest: GraphViewInjected['generateSessionDigest']
+  onReadHistory: GraphViewInjected['readSessionHistory']
   onClose: () => void
 }): ReactElement | null {
+  const [tab, setTab] = useState<'digest' | 'history'>('digest')
+  const tabId = useId()
+  const digestTab = useRef<HTMLButtonElement>(null)
+  const historyTab = useRef<HTMLButtonElement>(null)
   const [branchErrorFor, setBranchErrorFor] = useState<SessionId | null>(null)
   const [digestBySession, setDigestBySession] = useState<Record<string, DigestEntry>>({})
   const activeDigestRequests = useRef(new Map<string, {
@@ -614,13 +620,60 @@ function SelectedSessionPanel({
             </ol>
           </section>
         )}
-      <DigestSection
-        node={node}
-        entry={digestBySession[node.id]}
-        now={now}
-        t={t}
-        onGenerate={generateDigest}
-      />
+      <div
+        role="tablist"
+        aria-label={t('panel.title')}
+        className={styles.historyTabs}
+        onKeyDown={event => {
+          let next: typeof tab
+          if (event.key === 'Home') next = 'digest'
+          else if (event.key === 'End') next = 'history'
+          else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+            next = tab === 'digest' ? 'history' : 'digest'
+          } else return
+          event.preventDefault()
+          event.stopPropagation()
+          setTab(next)
+          const nextTab = next === 'digest' ? digestTab : historyTab
+          nextTab.current?.focus()
+        }}
+      >
+        <button
+          ref={digestTab}
+          id={`${tabId}-digest`}
+          type="button"
+          role="tab"
+          aria-selected={tab === 'digest'}
+          aria-controls={`${tabId}-content`}
+          tabIndex={tab === 'digest' ? 0 : -1}
+          onClick={() => { setTab('digest') }}
+        >
+          {t('digest.title')}
+        </button>
+        <button
+          ref={historyTab}
+          id={`${tabId}-history`}
+          type="button"
+          role="tab"
+          aria-selected={tab === 'history'}
+          aria-controls={`${tabId}-content`}
+          tabIndex={tab === 'history' ? 0 : -1}
+          onClick={() => { setTab('history') }}
+        >
+          {t('history.tab')}
+        </button>
+      </div>
+      <div id={`${tabId}-content`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
+        {tab === 'history'
+          ? <SessionHistory key={node.id} sessionId={node.id} read={onReadHistory} t={t} />
+          : <DigestSection
+            node={node}
+            entry={digestBySession[node.id]}
+            now={now}
+            t={t}
+            onGenerate={generateDigest}
+          />}
+      </div>
       <div className={styles.panelActions}>
         <button
           type="button"
@@ -767,7 +820,7 @@ const CARD_H_MAP = 4
  * @returns the canvas element.
  */
 export function GraphCanvas({
-  laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest,
+  laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory,
   onMerge, onRetryMerge,
 }: {
   laid: LaidOutGraph
@@ -778,6 +831,7 @@ export function GraphCanvas({
   onOpen: GraphViewInjected['openSession']
   onBranch: GraphViewInjected['branchSession']
   onGenerateDigest: GraphViewInjected['generateSessionDigest']
+  onReadHistory: GraphViewInjected['readSessionHistory']
   onMerge: GraphViewInjected['mergeSessions']
   onRetryMerge: GraphViewInjected['retrySessionMerge']
 }): ReactElement {
@@ -1814,6 +1868,7 @@ export function GraphCanvas({
         onOpen={onOpen}
         onBranch={onBranch}
         onGenerateDigest={onGenerateDigest}
+        onReadHistory={onReadHistory}
         onClose={() => { setSelected(null) }}
       />
       {showMinimap

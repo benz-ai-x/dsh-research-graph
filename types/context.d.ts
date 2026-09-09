@@ -49,6 +49,7 @@ declare module '@deepseek-ai/cordis' {
       ) => Promise<() => Promise<void>>
       sessionGraphDigest: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphDigest']
       sessionGraphMerge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphMerge']
+      sessionGraphHistory: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphHistory']
     }
     readonly invariants: {
       register: (packageName: string, installer: unknown) => () => void

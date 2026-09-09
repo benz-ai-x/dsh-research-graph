@@ -62,13 +62,17 @@ This prerelease uses npm tag `next`; the commands below pin the exact matching v
 | Visual Session Graph | Branch Lineage, Merge provenance, Session Clusters, and folded Subagent activity in one view |
 | Interactive canvas | Drag, snap, collapse, filter, zoom, pan, fit, relayout, reset, locate, and minimap controls |
 | Cross-session workflows | Open or branch any Canvas Session and merge immutable snapshots from two or three sources |
+| Original discussion | Read user/assistant text by turn in the Inspector, select a completed range, and check its exact source |
 | Read-only Session Digests | Generate concise overviews, key outcomes, and open items on demand without changing Session logs |
+
+See the [Original discussion browser acceptance record and screenshots](docs/reviews/pr-14-ui-acceptance.md) for paging, source recovery, running turns, and navigation.
 
 ### Data and model behavior
 
 | Action | Durable effect | Model use |
 |---|---|---|
 | Browse or arrange | Does not change Session logs; arrangements stay in browser storage | None |
+| Read or select discussion | Retains the selection and fallback excerpt only while the reader is open; does not change Session logs | None |
 | Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback |
 | Create a branch | Uses the normal Harness branch operation | No additional request from this plugin |
 | Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | The target processes the queued instruction on its normal route |
@@ -128,6 +132,20 @@ Open a non-blank session and choose **Graph** beside the standard conversation t
 - Read the header badge to identify the package version and exact local Build ID; hover it for the full package identity.
 
 Keyboard shortcuts work while the canvas is focused: `+` and `-` zoom, `0` restores 100%, and `1` fits the graph.
+
+## Read original discussion
+
+Select a Canvas Session and choose **Original** in the Session Inspector. It opens the latest ten discussion turns. Use **Load earlier discussion** and **Load later discussion** to read adjacent pages; unavailable directions are disabled. Arrow keys and Home/End switch the Inspector tabs.
+
+- Completed turns show direct user and assistant text with their roles. An unfinished turn shows its status and becomes selectable after completion and **Refresh discussion**. Attachments, tool results, reasoning, and plugin-injected context are excluded.
+- Select one turn, then another to include the continuous range, including turns on previously loaded pages. If there is a gap, load the intervening turns first. Selecting a checked turn again or **Clear selection** clears the range.
+- **Check selected original** reads that exact range again. Session identity and event boundaries identify the source, even when titles or sentences repeat or later turns arrive. Available original text takes precedence over the retained excerpt.
+- **Excerpt only** means the original cannot currently be read and only the text retained with this selection is available. The label remains visible while retrying and after a connection failure, until original text is available again. **Source unavailable** means no original or retained excerpt can be shown. Source identity stays visible, and **Retry reading** checks again. An empty readable Session has a separate empty state.
+- Reading can be canceled. Closing the Inspector, changing Session, or leaving the reader aborts the pending request; late responses cannot replace a newer selection. Reading never changes the Viewed Session. Choose **Open session** explicitly to continue in Harness; this does not scroll the native chat to a turn.
+
+Selections and excerpts are temporary: closing the reader, switching to the digest or another Session, or reloading discards them. They are not saved knowledge cards. Reading, selection, refresh, and retry do not call a model or write to the source Session.
+
+Paging limits browser content, but the Host currently inspects one complete Session snapshot for each request. It does not page the underlying log file. Very large individual Sessions can therefore still take time to read.
 
 ## Merge Sessions
 
@@ -216,7 +234,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 Read [`CONTEXT.md`](CONTEXT.md) for the domain model and [`docs/adr/`](docs/adr/) for durable design decisions before changing Session, Merge, Digest, or persistence behavior. Setup or behavior changes must update both this file and [`README.zh.md`](README.zh.md). Start user-visible work from a [GitHub issue](https://github.com/benz-ai-x/dsh-session-graph/issues).
 
-`check:harness` requires matching Host and plugin versions. It checks both source and published declarations for Host and Client against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<version>` from `package.json`. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest behavior, then removes the plugin. Only model transport uses fixed responses.
+`check:harness` requires matching Host and plugin versions. It checks both source and published declarations for Host and Client against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<version>` from `package.json`. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
 
 Build an installable archive with:
 
@@ -258,6 +276,8 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 | [`src/session-digest.ts`](src/session-digest.ts) and [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | Event filtering, input budgeting, route reconstruction, output validation, revision cache, and concurrency control |
 | [`src/session-merge.ts`](src/session-merge.ts), [`src/session-merge-host.ts`](src/session-merge-host.ts), and [`src/session-merge-harness.ts`](src/session-merge-harness.ts) | Browser workflow, Host validation, canonical reference submission, bounded capture, idempotent retry, and durability barrier |
 | [`src/session-merge-projection.ts`](src/session-merge-projection.ts) | Versioned Merge marker/reference projection and strict persisted-state validation |
+| [`src/session-history-host.ts`](src/session-history-host.ts) and [`src/session-history-codec.ts`](src/session-history-codec.ts) | Read-only discussion paging, exact event boundaries, and shared strict wire validation |
+| [`src/client/SessionHistory.tsx`](src/client/SessionHistory.tsx) | Original discussion reader, completed-turn selection, source states, and request cancellation |
 | [`src/client/session-digest-remote.ts`](src/client/session-digest-remote.ts) | Strict browser Remote request/result contract |
 | [`src/client/session-merge-remote.ts`](src/client/session-merge-remote.ts) | Strict browser Session Merge Remote request/result contract |
 | [`src/client/graph-model.ts`](src/client/graph-model.ts) | Graph Scope resolution, Branch and Merge edges, Session Cluster ordering, Subagent Summaries, Title Filter matches, and Branch Lineages |
