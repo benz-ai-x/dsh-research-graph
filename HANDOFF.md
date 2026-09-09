@@ -2,9 +2,16 @@
 
 Updated: 2026-09-09 (Asia/Shanghai)
 
-## 当前发布：v0.1.5-alpha.1
+## 当前发布：v0.1.5-alpha.1 已完成
 
-用户已明确要求“发布”，授权提交、推送及通过既有工作流发布 GitHub Release/npm。发布前确认远端 main 为 `3eba84d`，目标 Git tag 与 npm 版本均不存在，GitHub `npm-publish` environment 没有人工审批要求。按既有规则使用 GitHub prerelease 与 npm `next`，插件版本与 DSH `0.1.5-alpha.1` 一致。正在提交适配、运行远端 CI；成功后创建不可变 tag、Release 并核对 npm 产物。本节覆盖下文“尚未提交/发布”的历史状态。
+用户已明确要求“发布”。适配提交 `b9025944d3eff161e779479383f3451a078d3622` 已推送到 main，不可变 annotated tag `v0.1.5-alpha.1` 指向该提交；GitHub prerelease 与 npm `next` 均已发布。插件完整版本与目标 DSH `0.1.5-alpha.1` 一致。
+
+- [GitHub Release](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-alpha.1)，包含中英文说明、与 npm 相同的安装包及 SHA-256 文件。
+- [npm 0.1.5-alpha.1](https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph/v/0.1.5-alpha.1)，发布时间 `2026-09-09T04:22:39.710Z`。`next` 为 `0.1.5-alpha.1`，`latest` 保持历史稳定版 `0.1.6`；安装时固定新版本。
+- [发布前 CI](https://github.com/benz-ai-x/dsh-session-graph/actions/runs/34310355327) 全部通过：Node 22.19/24/26，以及匹配 DSH 的源码/产物类型检查、110 项集成测试和隔离 profile 验收。[Publish 工作流](https://github.com/benz-ai-x/dsh-session-graph/actions/runs/34310684897) 成功，使用既有 GitHub OIDC trusted publishing。
+- 已从 npm 下载并验证实际归档的 SHA-512 integrity、包版本、恢复命令入口和浏览器版本徽标；npm 提供 provenance attestation。最终发布归档 `224,231` 字节，SHA-256 `30c3ae874262898c6cc501b1e2a3967cb7e144cd09f86ff04470a0820c8aa0c6`，本地材料在 `.artifacts/published-v0.1.5-alpha.1/`。下文适配阶段的本地归档校验值保留作历史记录，发布物以本节为准。
+
+安装命令：`dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1`。本次发布没有替换用户实际 profile 或迁移真实会话数据。本节覆盖下文“尚未提交/发布”的历史状态。
 
 ## 当前任务：适配 DSH 0.1.5-alpha.1 并对齐版本命名
 
