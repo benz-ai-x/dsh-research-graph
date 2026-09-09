@@ -42,7 +42,7 @@ export function apply(ctx) {
     return sessionId
   }
   async function verify() {
-    const secondPrompt = 'Second fixture. 通过知识卡片整理研究资料。 Café notes use foo-bar labels.'
+    const secondPrompt = 'Second fixture. 通过知识卡片整理研究资料。 Café notes use foo-bar labels. 修复 foo-bar 设置。'
     const sourceIds = [await create('First fixture.'), await create(secondPrompt)]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
     const callsBeforeHistory = calls
@@ -56,7 +56,7 @@ export function apply(ctx) {
     assert.deepEqual(history.turns[0].messages.map(message => [message.role, message.text]), [
       ['user', secondPrompt], ['assistant', 'Fixture response.'],
     ])
-    for (const query of ['知识卡片', 'cafe', 'foo bar']) {
+    for (const query of ['知识卡片', 'cafe', 'foo bar', '修复 foo bar']) {
       const search = await ctx.typertGateway.invoke({
         namespace: 'sessionGraphSearch', method: 'search',
         args: { request: { query, scope: { kind: 'directory', cwd: process.cwd() }, includeArchived: false } }, signal,

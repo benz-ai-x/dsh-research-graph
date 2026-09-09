@@ -132,7 +132,7 @@ export class SessionGraphSearchService extends TypertRemoteService {
     // unicode61 treats uninterrupted Chinese as a single token. Verify that
     // query against scoped originals as well, after the real index succeeds.
     const candidates = literal ? sessions : indexed
-    const matcher = literal ? undefined : new DiscussionTextMatcher(request.query)
+    const matcher = new DiscussionTextMatcher(request.query)
     try {
       for (const candidate of candidates) {
         const source = await this.ctx.sessionController.inspect(candidate.header.id, signal)
@@ -142,7 +142,8 @@ export class SessionGraphSearchService extends TypertRemoteService {
         let snippet: string | undefined
         const match = matches.reverse().find(({ message }) => {
           const text = message.text.replace(/\s+/gu, ' ')
-          const position = matcher === undefined ? text.toLowerCase().indexOf(needle) : matcher.find(text)
+          const literalPosition = literal ? text.toLowerCase().indexOf(needle) : -1
+          const position = literalPosition < 0 ? matcher.find(text) : literalPosition
           if (position === undefined || position < 0) return false
           snippet = snippetAround(text, position)
           return true
@@ -162,7 +163,7 @@ export class SessionGraphSearchService extends TypertRemoteService {
         })
       }
     } finally {
-      matcher?.dispose()
+      matcher.dispose()
     }
     signal.throwIfAborted()
     if (JSON.stringify(scopeFacts(this.ctx)) !== scopeRevision) return { kind: 'stale' }

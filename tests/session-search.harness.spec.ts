@@ -70,12 +70,21 @@ describe('Discussion Search public Host interface', () => {
   it.each([
     ['foo bar', 'Discuss foo-bar settings.'],
     ['cafe', 'Meet at café tomorrow.'],
+    ['修复 foo bar', '修复 foo-bar 设置。'],
+    ['咖啡 cafe', '咖啡 café 讨论。'],
+    ['知识 卡片', '知识-卡片 整理。'],
   ])('preserves the Harness phrase match for %s and addresses its original event', async (query, text) => {
     const { ctx } = await searchHost()
     const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, text)
     ctx.effect(() => ctx.sessions.enter(source))
     const before = await ctx.sessionController.inspect(source.id)
+    const indexed = await ctx.sessionQuery.searchSessions({
+      query,
+      sessionFilters: [{ kind: 'id', values: [source.id] }],
+      eventFilters: [{ kind: 'type', values: ['user/message', 'assistant/message'] }],
+    }, { signal: new AbortController().signal })
+    expect(indexed.items).toHaveLength(1)
     const result = await ctx.typertGateway.invoke({
       namespace: 'sessionGraphSearch', method: 'search',
       args: { request: { ...request, query } }, signal: new AbortController().signal,
