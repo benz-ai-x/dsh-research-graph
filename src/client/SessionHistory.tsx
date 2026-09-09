@@ -79,7 +79,7 @@ export function SessionHistory({ sessionId, read, t }: {
       {canceled ? <p role="status">{t('history.canceled')}</p> : null}
       {failed ? <p role="alert">{t('history.error')}</p> : null}
       {!loading && !failed && result?.kind === 'unavailable' ? <p role="alert">{t('history.unavailable')}</p> : null}
-      {!loading && !failed && result?.kind === 'excerpt' ? (
+      {result?.kind === 'excerpt' ? (
         <div role="status"><strong>{t('history.excerpt')}</strong><p>{t('history.excerptHint')}</p></div>
       ) : null}
       {!loading && !failed && result?.kind === 'original' && result.turns.length === 0 ? <p>{t('history.empty')}</p> : null}

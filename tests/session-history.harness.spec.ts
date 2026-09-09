@@ -1,7 +1,8 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { type Session } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { AttachmentId } from '@deepseek-ai/dsh-attachment'
+import { createAssistantMessage, createToolResultMessage, createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { createSessionTestController } from 'harness-session-controller-test-support'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -57,6 +58,78 @@ function addTurn(session: Session, turn: number, prompt: string, answer: string)
 }
 
 describe('Session History public Host interface', () => {
+  it('preserves discussion text and roles while excluding injected context, attachments, reasoning, and tool output', async () => {
+    const ctx = await historyHost()
+    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    const image = {
+      attachmentId: AttachmentId('fixture-image'), mediaType: 'image/png' as const,
+      bytes: 1, width: 1, height: 1, name: 'private-image.png',
+    }
+    const callId = ToolCallId('fixture-call')
+    session.append('turn/start', { turn: 1 })
+    session.append('step/start', { turn: 1, step: 1 })
+    session.append('user/message', createUserMessage({
+      source: { kind: 'user' },
+      content: [
+        { type: 'text', text: 'First question.' },
+        { type: 'image', attachment: image },
+        { type: 'file', attachment: { attachmentId: AttachmentId('fixture-file'), name: 'private-notes.txt', bytes: 4 } },
+        { type: 'text', text: 'More context.' },
+      ],
+    }), { surfaceOp: 'append' })
+    session.append('user/message', createUserMessage({
+      source: { kind: 'user' }, content: [{ type: 'image', attachment: image }],
+    }), { surfaceOp: 'append' })
+    session.append('user/message', createUserMessage({
+      source: { kind: 'plugin', plugin: 'fixture' },
+      content: [{ type: 'text', text: 'Injected context must stay out.' }],
+    }), { surfaceOp: 'append' })
+    session.append('assistant/message', {
+      turn: 1, step: 1, stream: [],
+      message: createAssistantMessage({
+        source: { provider: 'fixture', model: 'fixture' },
+        content: [
+          { type: 'reasoning', text: 'Private reasoning must stay out.' },
+          { type: 'text', text: 'Visible analysis.' },
+          { type: 'tool-call', id: callId, name: 'echo', arguments: '{"private":"argument"}' },
+          { type: 'text', text: 'Visible continuation.' },
+        ],
+      }),
+    }, { surfaceOp: 'append' })
+    session.append('tool/call', { turn: 1, step: 1, callId, name: 'echo', arguments: '{"private":"argument"}' })
+    session.append('tool/result', {
+      turn: 1, step: 1,
+      message: createToolResultMessage({
+        callId, content: [{ type: 'text', text: 'Tool output must stay out.' }], isError: false,
+      }),
+    }, { surfaceOp: 'append' })
+    session.append('step/end', { turn: 1, step: 1 })
+    session.append('step/start', { turn: 1, step: 2 })
+    session.append('assistant/message', {
+      turn: 1, step: 2, stream: [],
+      message: createAssistantMessage({
+        source: { provider: 'fixture', model: 'fixture' },
+        content: [{ type: 'text', text: 'Recorded conclusion.' }],
+      }),
+    }, { surfaceOp: 'append' })
+    session.append('step/end', { turn: 1, step: 2 })
+    session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+    ctx.effect(() => ctx.sessions.enter(session))
+    const before = await ctx.sessionController.inspect(session.id)
+
+    const result = await ctx.get('sessionGraphHistory').read({ sessionId: session.id }, new AbortController().signal)
+
+    expect(result.kind).toBe('original')
+    expect(result.turns).toHaveLength(1)
+    expect(result.turns[0]?.messages).toEqual([
+      { role: 'user', seq: 2, text: 'First question.\nMore context.' },
+      { role: 'assistant', seq: 5, text: 'Visible analysis.\nVisible continuation.' },
+      { role: 'assistant', seq: 10, text: 'Recorded conclusion.' },
+    ])
+    expect(await ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(ctx.llm.stream).not.toHaveBeenCalled()
+  })
+
   it('exposes unfinished turn status without presenting its changing text as completed discussion', async () => {
     const ctx = await historyHost()
     const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })

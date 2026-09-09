@@ -1440,6 +1440,51 @@ describe('node selection, double-click, and keyboard navigation', () => {
     expect(screen.getByText('Newer discussion')).toBeTruthy()
   })
 
+  it('keeps a retained excerpt labelled while retrying and after a transport failure', async () => {
+    const b = await bench(FIXTURE)
+    const pending = deferred<Awaited<ReturnType<typeof b.readHistory>>>()
+    const turns = [{ turn: 1, startSeq: 0, endSeq: 5, startedAt: 1000,
+      messages: [{ role: 'user' as const, seq: 2, text: 'Retained discussion evidence.' }],
+    }]
+    const original = { ok: true as const, value: {
+      kind: 'original' as const, sessionId: 'root', hasEarlier: false, hasLater: false, turns,
+    } }
+    b.readHistory.mockResolvedValueOnce(original)
+    b.readHistory.mockResolvedValueOnce({ ...original, value: { ...original.value, kind: 'excerpt' } })
+    b.readHistory.mockReturnValueOnce(pending.promise)
+    b.readHistory.mockResolvedValueOnce(original)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('Retained discussion evidence.')
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '复核所选原文' }))
+    await screen.findByText('仅存摘录')
+
+    const expectExcerpt = (): void => {
+      expect(screen.getByText('Retained discussion evidence.')).toBeTruthy()
+      expect.soft(screen.queryByText('仅存摘录')).not.toBeNull()
+      expect(screen.getByRole('region', { name: '讨论原文' }).textContent).toContain('事件 0–5')
+      expect((screen.getByRole('checkbox', { name: '选择第 1 轮' }) as HTMLInputElement).disabled).toBe(true)
+    }
+    fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+    expect(screen.getByText('正在读取原文…')).toBeTruthy()
+    expectExcerpt()
+    await act(async () => {
+      pending.resolve({ ok: false, error: { code: 'offline', message: 'Host disconnected' } } as never)
+      await pending.promise
+    })
+    await screen.findByText('读取失败，请重试。')
+    expectExcerpt()
+
+    fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+    await waitFor(() => expect((screen.getByRole('checkbox', { name: '选择第 1 轮' }) as HTMLInputElement).disabled).toBe(false))
+    expect(screen.queryByText('仅存摘录')).toBeNull()
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+  })
+
   it('labels a retained selection as excerpt-only when its original disappears and can retry that exact source', async () => {
     const b = await bench(FIXTURE)
     const turns = [{ turn: 1, startSeq: 0, endSeq: 5, startedAt: 1000,
