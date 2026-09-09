@@ -6,6 +6,9 @@ declare module '@deepseek-ai/cordis' {
     'agent/error'(payload: { readonly agent: import('@deepseek-ai/dsh-agent').Agent; readonly error: unknown }): void
   }
   interface Context {
+    readonly storageDomain: {
+      open: <Spec extends import('@deepseek-ai/dsh-storage-domain').DomainSpec>(spec: Spec) => Promise<import('@deepseek-ai/dsh-storage-domain').Domain<Spec>>
+    }
     readonly locale: {
       register: (namespace: string, dictionaries: Readonly<Record<string, object>>) => () => void
       bind: (namespace: string) => (key: string, params?: Record<string, unknown>) => string
@@ -51,6 +54,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphMerge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphMerge']
       sessionGraphHistory: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphHistory']
       sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
+      sessionGraphTopics: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTopics']
     }
     readonly invariants: {
       register: (packageName: string, installer: unknown) => () => void
@@ -78,6 +82,7 @@ declare module '@deepseek-ai/cordis' {
           readonly id: import('@deepseek-ai/dsh-session/types').SessionId
           readonly cwd?: string
           readonly origin?: 'subagent'
+          readonly parentSession?: import('@deepseek-ai/dsh-session/types').SessionId
         }
         readonly events: readonly { readonly type: string; readonly seq: number; readonly time: number; readonly data: unknown }[]
       }>
@@ -111,6 +116,7 @@ declare module '@deepseek-ai/cordis' {
           readonly id: import('@deepseek-ai/dsh-session/types').SessionId
           readonly cwd?: string
           readonly origin?: 'subagent'
+          readonly parentSession?: import('@deepseek-ai/dsh-session/types').SessionId
         }
       }[]>
       searchSessions: (request: {

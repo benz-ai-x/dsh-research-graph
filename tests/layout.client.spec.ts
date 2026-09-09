@@ -55,6 +55,18 @@ function graphFor(byId: Record<string, SessionSummary>) {
 }
 
 describe('layoutSessionGraph', () => {
+  it('derives and lays out a 10,000-node Branch chain without using the call stack', () => {
+    const rows = Object.fromEntries(Array.from({ length: 10_000 }, (_, index) => {
+      const key = `chain-${index}`
+      return [key, session(key, index === 0 ? {} : { parentId: id(`chain-${index - 1}`) })]
+    }))
+    const graph = graphFor(rows)
+    const laid = layoutSessionGraph(graph)
+    expect(laid.nodes).toHaveLength(10_000)
+    expect(laid.edges).toHaveLength(9_999)
+    expect(laid.nodes.find(node => node.key === 'chain-9999')!.y).toBeGreaterThan(laid.nodes.find(node => node.key === 'chain-0')!.y)
+  })
+
   it('places a single node at the origin sized to one card', () => {
     const laid = layoutSessionGraph(graphFor({ solo: session('solo') }))
     expect(laid.nodes).toHaveLength(1)

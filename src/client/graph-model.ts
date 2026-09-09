@@ -11,6 +11,7 @@ import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-sess
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionMergeProjectionSource } from '../session-merge-projection.ts'
+import type { ResearchTopicSnapshot, ResearchTopicSource } from '../research-topic.ts'
 import type { SessionArrangementIdentity } from './layout-store.ts'
 
 /**
@@ -64,6 +65,8 @@ export interface GraphNode {
   readonly branchFrom: SessionId | undefined
   /** Captured source snapshots when this node is an explicit Merge Session. */
   readonly mergeSources: readonly SessionMergeProjectionSource[]
+  /** Present only for an explicit Research Topic reference. */
+  readonly topicSource?: ResearchTopicSource
 }
 
 /** The one activity label presented when source activity facts overlap. */
@@ -126,11 +129,12 @@ export function resolveGraphScope(
   const path = workspace?.path ?? viewed?.cwd
   if (path === undefined) return undefined
   const archived = new Set(workspaces.archivedSessionIds)
+  const accounted = new Set(workspace?.sessionIds)
   const members = new Set<SessionId>()
   for (const row of Object.values(list.byId)) {
     if (archived.has(row.id)) continue
     if (workspace !== undefined
-      ? workspace.sessionIds.includes(row.id) || row.cwd === workspace.path
+      ? accounted.has(row.id) || row.cwd === workspace.path
       : row.cwd === path) {
       members.add(row.id)
     }
@@ -234,6 +238,41 @@ export function deriveSessionGraph(
     }
   }
 
+  return deriveRowsGraph(visible, viewedId, pendingInteractions)
+}
+
+/** Project explicit references without widening the scope-bound Canvas rules. */
+export function deriveTopicGraph(
+  snapshot: ResearchTopicSnapshot,
+  list: SessionListState,
+  viewedId: SessionId | undefined,
+  pendingInteractions: ReadonlyMap<SessionId, unknown>,
+): SessionGraph {
+  const sources = new Map(snapshot.sources.map(source => [source.sessionId, source]))
+  const visible = new Map<SessionId, SessionSummary>()
+  for (const reference of snapshot.topic.references) {
+    const source = sources.get(reference.sessionId)
+    const row = source?.status === 'listed' ? list.byId[reference.sessionId as SessionId] : undefined
+    const parent = source?.parentSessionId
+    visible.set(reference.sessionId as SessionId, {
+      id: reference.sessionId as SessionId,
+      displayTitle: row?.displayTitle.trim() || reference.title,
+      blank: false, running: row?.running ?? false, updatedAt: row?.updatedAt ?? 0,
+      ...(row?.completed === undefined ? {} : { completed: row.completed }),
+      ...(parent === undefined || sources.get(parent)?.status !== 'listed' ? {} : { parentId: parent as SessionId }),
+      ...(row?.projectionValues === undefined ? {} : { projectionValues: row.projectionValues }),
+    })
+  }
+  return deriveRowsGraph(visible, viewedId, pendingInteractions, sources)
+}
+
+function deriveRowsGraph(
+  visible: ReadonlyMap<SessionId, SessionSummary>,
+  viewedId: SessionId | undefined,
+  pendingInteractions: ReadonlyMap<SessionId, unknown>,
+  sources?: ReadonlyMap<string, ResearchTopicSource>,
+): SessionGraph {
+
   const badges = indexBadges(visible)
   const nodes = new Map<string, GraphNode>()
   const children = new Map<string, string[]>()
@@ -252,7 +291,7 @@ export function deriveSessionGraph(
   }
   for (const siblings of branchChildren.values()) siblings.sort(byRecency)
 
-  /** Recursively place one cluster member and collect the member ids beneath it. */
+  /** Place one member; the caller walks descendants with an explicit stack. */
   const placeMember = (row: SessionSummary, clusterRootId: SessionId, members: SessionId[]): void => {
     const badge = badges.get(row.id)
     const pending = pendingInteractions.has(row.id)
@@ -270,6 +309,7 @@ export function deriveSessionGraph(
       runningSubagents: badge?.runningCount ?? 0,
       branchFrom: branchParent.get(row.id),
       mergeSources: row.projectionValues?.sessionGraphMerge?.sources ?? [],
+      ...(sources?.get(row.id) === undefined ? {} : { topicSource: sources.get(row.id)! }),
     })
     members.push(row.id)
     const childKeys: string[] = []
@@ -284,7 +324,6 @@ export function deriveSessionGraph(
       })
     }
     if (childKeys.length > 0) children.set(row.id, childKeys)
-    for (const child of branchRows) placeMember(child, clusterRootId, members)
   }
 
   const roots = [...visible.values()]
@@ -292,7 +331,14 @@ export function deriveSessionGraph(
     .sort(byRecency)
   for (const root of roots) {
     const members: SessionId[] = []
-    placeMember(root, root.id, members)
+    const pending = [root]
+    let row = pending.pop()
+    while (row !== undefined) {
+      placeMember(row, root.id, members)
+      const descendants = branchChildren.get(row.id) ?? []
+      for (let index = descendants.length - 1; index >= 0; index -= 1) pending.push(descendants[index]!)
+      row = pending.pop()
+    }
     clusters.push({ rootId: root.id, label: root.displayTitle, memberIds: members })
   }
 

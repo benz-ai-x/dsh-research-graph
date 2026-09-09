@@ -1,0 +1,15 @@
+# Persist Research Topics through Host Storage
+
+Issue [#5](https://github.com/benz-ai-x/dsh-session-graph/issues/5) introduces named collections of Session references across Workspaces on one Host. The plugin owns topic identity, membership, and arrangement. Harness remains authoritative for Session identities, original discussion, archive state, Workspace membership, and Branch/Merge facts.
+
+The `session_graph_topics` storage domain contains one atomic record per topic, using the Host's configured storage backend. It is authoritative user data: malformed durable records fail visibly instead of being discarded as a disposable cache. Opening and closing the domain follow the topic Remote's lifetime. Admitted operations are drained before the domain closes.
+
+Browser commands use topic identities, never names or directory paths as keys. Adding a reference resolves the Session and its labels through the Host; it neither copies discussion text nor moves the Session. Removing membership affects only the addressed topic. Read views retain archived and unavailable references and use retained labels as fallbacks, without treating a fallback as verified original text. Original reading continues through the existing History Remote.
+
+Topic arrangements belong to the topic record and are independent of membership. This extends ADR 0001's identity rule: ordinary Workspace/Directory arrangements remain browser presentation data, while a Research Topic's arrangement follows its Host-owned identity. Reset and relayout do not remove references.
+
+Topic arrangements use an explicit Save action. Drafts are retained per topic while the collection view is open, including after a failed save. A successful save only clears the exact submitted draft, so a later drag made during the request remains unsaved. Same-topic arrangement writes from different clients are serialized with last-successful-save semantics. Every command reads the current record inside that queue, preserving unrelated name, membership, or arrangement changes. Repeated creation with the same identity returns the saved topic, allowing an uncertain response to be retried without erasing references.
+
+One shared, browser-safe parser validates Remote data and durable records. A Host-only Zod adapter satisfies the Storage Domain contract without bundling Zod into the lazy browser module. Topic reads scan the Session header corpus once and index Workspace membership once; existing client projections supply confirmed Merge provenance and current titles. Original logs are read only when adding a source requires its title, or when the person opens the original reader. Branch derivation and tree layout use explicit stacks for deep chains, and frame/edge lookup uses indexes rather than repeated whole-graph scans.
+
+Public Host/Gateway tests use real storage and reopen it after Host disposal. Registered Graph UI tests cover selecting material, saving, reading, and abandoning late responses. Fixed fixtures cover 1,000 references and a 10,000-node chain; recorded timings are descriptive baselines, without an invented performance threshold.

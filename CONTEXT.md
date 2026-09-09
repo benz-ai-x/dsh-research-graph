@@ -2,6 +2,8 @@
 
 Session Graph helps a person understand, navigate, arrange, and branch the lineage of DeepSeek Harness sessions related to the session they are viewing. It is a derived projection; DeepSeek Harness remains authoritative for sessions, workspaces, lineage, and activity.
 
+Research Topics are separate Host-owned collections of references. The plugin owns their names, membership, and arrangements; it does not take ownership of the Sessions those references address.
+
 ## Language
 
 ### Scope
@@ -98,8 +100,20 @@ _Avoid_: Session Cluster, neighborhood
 
 ### Arrangement and discovery
 
+**Research Topic**:
+A named collection with a stable identity on one Host, containing references to Sessions across Workspaces. One Session can belong to several topics. Topic membership and arrangement survive Host restart without changing Session ownership, archive state, lineage, or model context.
+_Avoid_: Workspace, Session Cluster, merged context
+
+**Topic Reference**:
+A durable Session identity within a Research Topic, with display labels retained for unavailable sources. Archiving or losing access to the source does not remove this reference. Original discussion remains in Harness and is read on demand.
+_Avoid_: Session Snapshot, copied discussion, knowledge card
+
+**Topic Graph**:
+The projection of a Research Topic's references, including archived and unavailable sources. It shows only Branch and Merge relations supported by Harness facts. Being visible here does not make a source a Canvas Session in a Workspace Scope.
+_Avoid_: Global graph, Workspace Scope, Session Cluster
+
 **Session Arrangement**:
-The placement and collapse choices a person applies to one graph scope; they change presentation only, never Session Lineage or activity. Each Workspace Scope owns a separate Session Arrangement even when Workspaces share a directory, while a Directory Scope owns the arrangement for its directory.
+The placement and collapse choices a person applies to one graph scope; they change presentation only, never Session Lineage or activity. Each Workspace Scope owns a separate Session Arrangement even when Workspaces share a directory, while a Directory Scope owns the arrangement for its directory. Each Research Topic owns a separately saved arrangement in Host storage; Reset and Relayout affect presentation, not its Topic References.
 _Avoid_: Session state, graph data
 
 **Collapsed Cluster**:
@@ -119,7 +133,7 @@ A case-insensitive title match that emphasizes matching Canvas Sessions without 
 _Avoid_: Search, session filter
 
 **Session Inspector**:
-The persistent detail panel for the Selected Session, or the addressed result while Discussion Search is open. Canvas selection and search result inspection remain independent. It remains authoritative while another Canvas Session is only being previewed.
+The persistent detail panel for the Selected Session, or the addressed source while Discussion Search or a Research Topic is open. Selection and reading remain local to their view. A Topic's source inspector exposes original reading, explicit navigation, and reference removal. It remains authoritative while another Session is only being previewed.
 _Avoid_: Hover card, current-session panel
 
 **Session Digest**:

@@ -12,15 +12,22 @@ import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionDigestResult } from '../session-digest.ts'
 import type { SessionHistoryRequest, SessionHistoryResult } from '../session-history.ts'
 import type { DiscussionSearchRequest, DiscussionSearchResult } from '../session-search.ts'
+import type { ResearchTopic, ResearchTopicSnapshot, ResearchTopicWrite } from '../research-topic.ts'
 import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-info.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { DiscussionSearch } from './DiscussionSearch.tsx'
+import { ResearchTopics } from './ResearchTopics.tsx'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
 import { layoutSessionGraph } from './layout.ts'
 import styles from './GraphView.module.css'
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  topics: {
+    readonly list: (signal: AbortSignal) => Promise<readonly ResearchTopic[]>
+    readonly read: (request: { readonly topicId: string }, signal: AbortSignal) => Promise<ResearchTopicSnapshot>
+    readonly write: (request: ResearchTopicWrite, signal: AbortSignal) => Promise<ResearchTopic>
+  }
   searchDiscussion: (request: DiscussionSearchRequest, signal: AbortSignal) => Promise<DiscussionSearchResult>
   /** Read addressed discussion text without activating an Agent. */
   readSessionHistory: (request: SessionHistoryRequest, signal: AbortSignal) => Promise<SessionHistoryResult>
@@ -62,12 +69,24 @@ export type GraphViewProps =
  */
 export function GraphView({
   sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
-  openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, t,
+  openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, t,
 }: GraphViewProps): ReactElement {
   const sessions = useSessions(state => state)
   const pendingInteractions = useSessionPendingInteraction(state => state)
   const workspaces = useWorkspaces(state => state)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [topicMode, setTopicMode] = useState(false)
+  const [adding, setAdding] = useState<SessionId>()
+  const [topicRevision, setTopicRevision] = useState(0)
+  const addTrigger = useRef<HTMLElement>()
+  const addToTopic = (id: SessionId): void => {
+    if (document.activeElement instanceof HTMLElement) addTrigger.current = document.activeElement
+    setAdding(id)
+  }
+  const closePicker = (): void => {
+    setAdding(undefined)
+    queueMicrotask(() => { addTrigger.current?.focus() })
+  }
   const searchButton = useRef<HTMLButtonElement>(null)
 
   const scope = useMemo(
@@ -86,17 +105,19 @@ export function GraphView({
     // The free canvas owns its viewport. Extend the view behind the floating
     // composer so GraphCanvas's live clearance reserves the seat exactly once.
     <div className={styles.root} data-conversation-composer-overlay="">
-      <div className={styles.graphBody} aria-hidden={searchOpen || undefined} ref={element => { if (element !== null) element.inert = searchOpen }}>
+      <div className={styles.graphBody} aria-hidden={searchOpen || adding !== undefined || undefined}
+        ref={element => { if (element !== null) element.inert = searchOpen || adding !== undefined }}>
         <div className={styles.header}>
           <button className={styles.searchEntry} type="button" ref={searchButton} onClick={() => { setSearchOpen(true) }}>{t('search.open')}</button>
+          <button className={styles.searchEntry} type="button" aria-pressed={topicMode}
+            onClick={() => { setTopicMode(value => !value) }}>{t(topicMode ? 'topic.back' : 'topic.title')}</button>
           <span className={styles.count}>
-            {scope === undefined ? null : scope.kind === 'workspace'
+            {topicMode ? t('topic.title') : scope === undefined ? null : scope.kind === 'workspace'
               ? t('scope.workspaceCount', { name: scope.label, count: graph.sessionCount })
               : t('scope.directoryCount', { count: graph.sessionCount })}
           </span>
           <span className={styles.legend} aria-hidden="true">
-            <span className={styles.legendLineDerivation} />
-            {t('legend.derivation')}
+            {topicMode ? null : <><span className={styles.legendLineDerivation} />{t('legend.derivation')}</>}
             <span className={styles.legendLineBranch} />
             {t('legend.branch')}
             <span className={styles.legendLineMerge} />
@@ -106,7 +127,9 @@ export function GraphView({
             {SESSION_GRAPH_BUILD_LABEL}
           </span>
         </div>
-        {scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
+        {topicMode ? <ResearchTopics api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
+          actions: { topics, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
+        }} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas
           laid={laid}
           clusters={graph.clusters}
@@ -119,12 +142,30 @@ export function GraphView({
           onReadHistory={readSessionHistory}
           onMerge={mergeSessions}
           onRetryMerge={retrySessionMerge}
+          onAddToTopic={addToTopic}
         />}
       </div>
-      {searchOpen ? <DiscussionSearch key={sessionId}
+      {searchOpen ? <div className={styles.searchLayer} aria-hidden={adding !== undefined || undefined}
+        ref={element => { if (element !== null) element.inert = adding !== undefined }}><DiscussionSearch key={sessionId}
         initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
         workspaces={workspaces.items} search={searchDiscussion} read={readSessionHistory} open={openSession} t={t}
-        onClose={() => { setSearchOpen(false); queueMicrotask(() => { searchButton.current?.focus() }) }} /> : null}
+        onAddToTopic={addToTopic}
+        onClose={() => { setSearchOpen(false); queueMicrotask(() => { searchButton.current?.focus() }) }} /></div> : null}
+      {adding === undefined ? null : <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t('topic.add')}
+        onKeyDown={event => {
+          if (event.key === 'Escape') { event.stopPropagation(); closePicker() }
+          if (event.key !== 'Tab') return
+          const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button, input, select, [tabindex="0"]')]
+            .filter(element => !element.hasAttribute('disabled'))
+          const first = controls[0]
+          const last = controls[controls.length - 1]
+          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+        }}>
+        <div className={styles.searchHeader}><div><h2>{t('topic.add')}</h2><p className={styles.topicSourceId}>{adding}</p></div>
+          <button type="button" autoFocus onClick={closePicker}>{t('topic.close')}</button></div>
+        <ResearchTopics api={topics} add={{ sessionId: adding, done: () => { setTopicRevision(value => value + 1); closePicker() } }} t={t} />
+      </section>}
     </div>
   )
 }

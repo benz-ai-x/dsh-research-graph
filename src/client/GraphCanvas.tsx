@@ -24,7 +24,7 @@ import {
 } from './layout.ts'
 import {
   type ClusterOffset, loadArrangement, saveLayout, type NodePosition,
-  type SessionArrangementIdentity,
+  type SessionArrangementIdentity, type LayoutState,
 } from './layout-store.ts'
 import type { SessionGraphKey } from './locales.ts'
 import { placePreview } from './preview-placement.ts'
@@ -205,7 +205,11 @@ function NodeCard({
             {node.blank ? t('node.newSession') : node.title}
           </span>
           <span className={styles.nodeMeta}>
-            <span className={styles.time}>{timeLabel(node.updatedAt, now, t)}</span>
+            <span className={clsx(styles.time, node.topicSource === undefined ? null : styles.topicSourceLabel)}
+              title={node.topicSource?.workspace?.title || node.topicSource?.cwd}>{node.topicSource === undefined ? timeLabel(node.updatedAt, now, t)
+              : node.topicSource.workspace?.title || node.topicSource.cwd || t('topic.noWorkspace')}</span>
+            {node.topicSource?.archived ? <span className={styles.badge}>{t('search.archived')}</span> : null}
+            {node.topicSource?.status === 'unavailable' ? <span className={styles.badge}>{t('topic.unavailable')}</span> : null}
             {badge !== ''
               ? (
                 <span
@@ -457,7 +461,7 @@ function DigestSection({
 }
 
 function SelectedSessionPanel({
-  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose,
+  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose, onAddToTopic,
 }: {
   node: GraphNode | undefined
   branchedFrom: string | undefined
@@ -469,6 +473,7 @@ function SelectedSessionPanel({
   onGenerateDigest: GraphViewInjected['generateSessionDigest']
   onReadHistory: GraphViewInjected['readSessionHistory']
   onClose: () => void
+  onAddToTopic: ((id: SessionId) => void) | undefined
 }): ReactElement | null {
   const [tab, setTab] = useState<'digest' | 'history'>('digest')
   const tabId = useId()
@@ -675,6 +680,8 @@ function SelectedSessionPanel({
           />}
       </div>
       <div className={styles.panelActions}>
+        {onAddToTopic === undefined ? null : <button type="button" className={styles.panelSecondaryAction}
+          onClick={() => { onAddToTopic(node.id) }}>{t('topic.add')}</button>}
         <button
           type="button"
           className={styles.panelPrimaryAction}
@@ -821,7 +828,7 @@ const CARD_H_MAP = 4
  */
 export function GraphCanvas({
   laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory,
-  onMerge, onRetryMerge,
+  onMerge, onRetryMerge, topic, onAddToTopic,
 }: {
   laid: LaidOutGraph
   clusters: readonly ClusterInfo[]
@@ -834,6 +841,12 @@ export function GraphCanvas({
   onReadHistory: GraphViewInjected['readSessionHistory']
   onMerge: GraphViewInjected['mergeSessions']
   onRetryMerge: GraphViewInjected['retrySessionMerge']
+  onAddToTopic?: (id: SessionId) => void
+  topic?: {
+    readonly arrangement: LayoutState
+    readonly onArrange: (state: LayoutState) => void
+    readonly renderInspector: (node: GraphNode | undefined, onClose: () => void) => ReactElement | null
+  }
 }): ReactElement {
   const surfaceRef = useRef<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState(initialViewport)
@@ -960,7 +973,7 @@ export function GraphCanvas({
   // Restore the Session Arrangement on scope entry; a corrupt or absent
   // record leaves the automatic arrangement in place.
   useEffect(() => {
-    const stored = loadArrangement(arrangement)
+    const stored = topic?.arrangement ?? loadArrangement(arrangement)
     setPositions(stored?.positions ?? {})
     setCollapsed(stored?.collapsed ?? [])
     setOffsets(stored?.offsets ?? {})
@@ -1009,6 +1022,7 @@ export function GraphCanvas({
     }),
     [laid, positions, clusters, collapsedSet, offsets],
   )
+  const shownByKey = useMemo(() => new Map(shown.nodes.map(node => [node.key, node])), [shown])
   useEffect(() => {
     if (restoredArrangementKey !== arrangement.key || fittedRef.current) return
     // The conversation shell measures its composer after the first paint.
@@ -1076,12 +1090,14 @@ export function GraphCanvas({
     return set.size === 0 ? null : { keys: set, mode: 'context' }
   }, [filterMatches, hoverEdge, hoverNode, selected, shown])
   const dimStyle = emphasis?.mode === 'filter' ? styles.dimFilter : styles.dimContext
+  const emphasizedClusters = useMemo(() => new Set(shown.nodes
+    .filter(entry => emphasis?.keys.has(entry.key))
+    .map(entry => entry.node.clusterId)), [shown, emphasis])
   const dimmed = (key: string): boolean => emphasis !== null && !emphasis.keys.has(key)
   const edgeDimmed = (from: string, to: string): boolean =>
     emphasis !== null && !(emphasis.keys.has(from) && emphasis.keys.has(to))
   const frameDimmed = (clusterId: string): boolean =>
-    emphasis !== null
-    && !shown.nodes.some(entry => entry.node.clusterId === clusterId && emphasis.keys.has(entry.key))
+    emphasis !== null && !emphasizedClusters.has(clusterId as SessionId)
 
   /** Persist one layout revision, pruned to the live node and cluster ids. */
   const persist = (
@@ -1091,7 +1107,7 @@ export function GraphCanvas({
   ): void => {
     const knownNodes = new Set(shown.nodes.map(node => node.key))
     const knownClusters = new Set<string>(clusters.map(cluster => cluster.rootId))
-    saveLayout(arrangement.key, {
+    const state: LayoutState = {
       positions: Object.fromEntries(
         Object.entries(nextPositions).filter(([key]) => knownNodes.has(key)),
       ),
@@ -1099,7 +1115,9 @@ export function GraphCanvas({
       offsets: Object.fromEntries(
         Object.entries(nextOffsets).filter(([key]) => knownClusters.has(key)),
       ),
-    })
+    }
+    if (topic === undefined) saveLayout(arrangement.key, state)
+    else topic.onArrange(state)
   }
 
   const toContent = (screenX: number, screenY: number): { x: number; y: number } => {
@@ -1284,7 +1302,7 @@ export function GraphCanvas({
     setPositions({})
     setCollapsed([])
     setOffsets({})
-    saveLayout(arrangement.key, { positions: {}, collapsed: [], offsets: {} })
+    persist({}, [], {})
     fitBounds(automaticBounds)
   }
 
@@ -1556,7 +1574,7 @@ export function GraphCanvas({
           aria-hidden="true"
         >
           {shown.edges.map(({ edge, path }) => {
-            const to = shown.nodes.find(entry => entry.key === edge.to)
+            const to = shownByKey.get(edge.to)
             if (to === undefined) return null
             const cx = to.x + NODE_W / 2
             const merge = edge.kind === 'merge'
@@ -1708,7 +1726,7 @@ export function GraphCanvas({
           {t('toolbar.locate')}
         </button>
         <span className={styles.controlDivider} aria-hidden="true" />
-        <button
+        {topic === undefined ? <button
           type="button"
           className={styles.mergeToolbarAction}
           aria-label={t('toolbar.merge')}
@@ -1728,7 +1746,7 @@ export function GraphCanvas({
           }}
         >
           {t('toolbar.merge')}
-        </button>
+        </button> : null}
       </div>
       {mergeMode
         ? (
@@ -1859,7 +1877,8 @@ export function GraphCanvas({
           </div>
         )
         : null}
-      <SelectedSessionPanel
+      {topic === undefined ? <SelectedSessionPanel
+        onAddToTopic={onAddToTopic}
         node={mergeMode ? undefined : selectedNode}
         branchedFrom={selected === null ? undefined : branchSource.get(selected)}
         mergeSourceTitles={new Map(shown.nodes.map(entry => [entry.key, entry.node.title]))}
@@ -1870,7 +1889,7 @@ export function GraphCanvas({
         onGenerateDigest={onGenerateDigest}
         onReadHistory={onReadHistory}
         onClose={() => { setSelected(null) }}
-      />
+      /> : topic.renderInspector(selectedNode, () => { setSelected(null) })}
       {showMinimap
         ? (
           <Minimap

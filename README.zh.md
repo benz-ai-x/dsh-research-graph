@@ -63,6 +63,7 @@ dsh web
 | 交互式画布 | 拖动、吸附、折叠、过滤、缩放、平移、适应、重新布局、重置、定位与 minimap |
 | 跨会话工作流 | 打开任意 Canvas Session、创建 Branch，并汇聚两到三个来源的不可变快照 |
 | 讨论原文 | 在 Inspector 按轮次阅读用户/助手文本，选择连续完成轮次，并复核精确来源 |
+| 研究主题 | 跨工作区收集会话引用、保留归档资料，并为每个主题保存独立排列 |
 | 只读 Session Digest | 按需生成简短概览、关键结论和待办，且不改变 Session 日志 |
 
 原文分页、来源恢复、运行中轮次与会话导航的实际操作见[浏览器验收记录与截图](docs/reviews/pr-14-ui-acceptance.md)。
@@ -71,7 +72,8 @@ dsh web
 
 | 操作 | 持久化影响 | 模型调用 |
 |---|---|---|
-| 浏览或排列 | 不改变 Session 日志；排列保存在浏览器存储中 | 无 |
+| 浏览或排列工作区／目录图 | 不改变 Session 日志；排列保存在浏览器存储中 | 无 |
+| 整理研究主题 | 名称、会话引用和显式保存的排列写入 Host 存储；源会话保持不变 | 无 |
 | 阅读或选择原文 | 仅在阅读面板打开期间保留选择与备用摘录；不改变 Session 日志 | 无 |
 | 生成摘要 | 仅保留按 revision 区分的 Host 内存缓存；不追加消息 | 在 Session 路由或配置的兜底路由上发起一次辅助请求 |
 | 创建分支 | 使用 Harness 的常规 Branch 操作 | 本插件不额外发起请求 |
@@ -132,6 +134,16 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 - 查看页头徽标可确认包版本与当前本地 Build ID；悬停可查看完整包身份。
 
 画布获得焦点时可使用键盘快捷键：`+` 和 `-` 缩放，`0` 恢复 100%，`1` 适应图谱。
+
+## 整理研究主题
+
+在 Graph 页头选择**研究主题**，创建并命名主题。在选中会话的详情或搜索结果的原文面板中，选择**加入研究主题**，再选择主题并加入资料；也可以在选择面板中新建主题。同一 Host 内可跨工作区收集会话，同一会话可加入多个主题。
+
+主题图显示标题和来源工作区，保留归档资料和已不可用来源的引用。只有已确认的 Branch 和 Merge 才会生成关系线。单击节点查看来源信息，点击**阅读原文**才加载讨论，点击**打开会话**才执行导航。移出资料只影响当前主题，不删除、移动、归档、分支或汇聚源会话，也不向模型发送上下文。
+
+拖动节点或簇、折叠、重新布局或重置后，点击**保存排列**。每个主题在 Host 中独立保存排列；重置不会删除资料关联。未保存编辑在研究主题视图内切换主题时保留，离开该视图前请保存。保存失败会保留输入，支持重试。名称、关联和已保存排列会在 Host 重启后恢复，并由连接到该 Host 的客户端共享；多端同时修改同一主题排列时，以最后一次成功保存为准。
+
+切换主题只读取会话头和已有元数据，不会加载全部原文。已列出的来源仍可能在打开原文时读取失败；阅读器会提示失败或不可用，并提供重试。切换主题、关闭视图或取消读取后，迟到响应不会覆盖当前结果。普通工作区／目录图的 Canvas Session 资格保持原有规则。
 
 ## 搜索历史讨论
 
@@ -297,6 +309,8 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 
 | 文件 | 职责 |
 |---|---|
+| [`src/research-topics-host.ts`](src/research-topics-host.ts) | Host 存储、串行主题写入、轻量来源元数据与生命周期取消 |
+| [`src/client/ResearchTopics.tsx`](src/client/ResearchTopics.tsx) 与 [`src/client/TopicGraph.tsx`](src/client/TopicGraph.tsx) | 主题创建、选择、引用、排列草稿与来源检查 |
 | [`src/client/GraphView.tsx`](src/client/GraphView.tsx) | Workspace/Directory Scope 解析、图谱推导与视图头部 |
 | [`src/client/GraphCanvas.tsx`](src/client/GraphCanvas.tsx) | 画布渲染、端子、检查器、控件、手势、悬停状态与 minimap |
 | [`src/config.ts`](src/config.ts) | 对外 Standard Schema、默认值与规范化 Host 配置 |
@@ -317,7 +331,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 ## 当前限制
 
 - 无会话主页与全新空白会话没有对话视图环，因此无法使用 Graph。
-- 图谱一次只跟随一个 Workspace Scope 或 Directory Scope，不搜索消息内容或工作目录路径。
+- 范围图一次跟随一个工作区或目录；研究主题可跨同一 Host 内的工作区，正文搜索使用独立视图。
 - 切换标签或刷新会重置平移与缩放；节点位置、簇偏移与折叠状态会持久化。
 - Session Digest 只按需生成并缓存在 Host 内存中，不作为长期产物持久化；Host 重启会清空缓存。
 - 没有日志模型路由的 Session 必须配置兜底路由后才能生成摘要。

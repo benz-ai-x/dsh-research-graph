@@ -8,13 +8,14 @@ import { SessionHistory } from './SessionHistory.tsx'
 import styles from './GraphView.module.css'
 
 /** Search chooses a read-only source independently of the scope-bound canvas. */
-export function DiscussionSearch({ initialScope, workspaces, search, read, open, onClose, t }: {
+export function DiscussionSearch({ initialScope, workspaces, search, read, open, onClose, onAddToTopic, t }: {
   readonly initialScope: DiscussionSearchScope
   readonly workspaces: readonly WorkspaceView[]
   readonly search: GraphViewInjected['searchDiscussion']
   readonly read: GraphViewInjected['readSessionHistory']
   readonly open: GraphViewInjected['openSession']
   readonly onClose: () => void
+  readonly onAddToTopic?: (id: SessionId) => void
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const [query, setQuery] = useState('')
@@ -151,6 +152,7 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
         <aside className={styles.searchInspector} aria-label={t('search.original')}>
           {selected === undefined ? <p className={styles.searchHint}>{t('search.select')}</p> : <>
             <div className={styles.searchSourceHeader}><h3>{selected.title}</h3>
+              {onAddToTopic === undefined ? null : <button type="button" onClick={() => { onAddToTopic(selected.sessionId as SessionId) }}>{t('topic.add')}</button>}
               <button type="button" onClick={() => { open(selected.sessionId as SessionId) }}>{t('panel.open')}</button>
             </div>
             <p className={styles.searchMeta}>{t('search.snapshot')}</p>

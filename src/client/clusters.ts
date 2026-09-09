@@ -55,9 +55,15 @@ export function clusterFrames(
   collapsed: ReadonlySet<string> = new Set(),
 ): LaidOutFrame[] {
   const frames: LaidOutFrame[] = []
+  const byCluster = new Map<string, LaidOutNode[]>()
+  for (const node of laid.nodes) {
+    const members = byCluster.get(node.node.clusterId)
+    if (members === undefined) byCluster.set(node.node.clusterId, [node])
+    else members.push(node)
+  }
   let colorIndex = 0
   for (const cluster of clusters) {
-    const members = laid.nodes.filter(node => node.node.clusterId === cluster.rootId)
+    const members = byCluster.get(cluster.rootId) ?? []
     if (members.length === 0) continue
     const minX = Math.min(...members.map(node => node.x))
     const maxX = Math.max(...members.map(node => node.x + NODE_W))

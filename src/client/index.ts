@@ -28,6 +28,7 @@ import { SESSION_DIGEST_REMOTE } from './session-digest-remote.ts'
 import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
 import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
+import { RESEARCH_TOPICS_REMOTE } from './research-topics-remote.ts'
 
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
@@ -41,6 +42,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...SESSION_MERGE_REMOTE.descriptors,
     ...SESSION_HISTORY_REMOTE.descriptors,
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
+    ...RESEARCH_TOPICS_REMOTE.descriptors,
   ],
 }
 
@@ -112,6 +114,23 @@ function registerUi(ctx: Context): void {
     locale: NS,
     label: () => t('view.graph'),
     inject: (): GraphViewInjected => ({
+      topics: {
+        list: async signal => {
+          const result = await ctx.remote.sessionGraphTopics.list(signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        read: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphTopics.read(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        write: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphTopics.write(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+      },
       searchDiscussion: async (request, signal) => {
         const result = await ctx.remote.sessionGraphSearch.search(request, signal)
         if (!result.ok) throw new Error(result.error.message)
@@ -171,6 +190,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphMerge',
       'remote.sessionGraphHistory',
       'remote.sessionGraphSearch',
+      'remote.sessionGraphTopics',
     ],
     registerUi,
   )

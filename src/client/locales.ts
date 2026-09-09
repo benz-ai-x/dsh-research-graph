@@ -5,6 +5,14 @@ export const NS = 'sessionGraph'
 
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
+  | 'topic.title' | 'topic.back' | 'topic.description' | 'topic.loading' | 'topic.readError' | 'topic.retry'
+  | 'topic.newName' | 'topic.create' | 'topic.empty' | 'topic.choose' | 'topic.name' | 'topic.rename'
+  | 'topic.saving' | 'topic.saveError'
+  | 'topic.noWorkspace' | 'topic.unavailable' | 'topic.noReferences' | 'topic.source'
+  | 'topic.readOriginal' | 'topic.closeOriginal' | 'topic.remove'
+  | 'topic.add' | 'topic.addSelected' | 'topic.close'
+  | 'topic.saveArrangement' | 'topic.arrangementHint' | 'topic.unsaved'
+  | 'topic.refresh'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -159,6 +167,34 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh: Record<SessionGraphKey, string> = {
+  'topic.refresh': '刷新来源',
+  'topic.saveArrangement': '保存排列',
+  'topic.arrangementHint': '拖动或折叠后，点击“保存排列”保存到此主题。',
+  'topic.unsaved': '排列尚未保存。切换主题会保留本次编辑，离开研究主题前请保存。',
+  'topic.add': '加入研究主题',
+  'topic.addSelected': '加入所选主题',
+  'topic.close': '关闭主题选择',
+  'topic.noWorkspace': '未分配工作区',
+  'topic.unavailable': '来源不可用',
+  'topic.noReferences': '主题中还没有资料。在会话详情或搜索结果中选择“加入研究主题”。',
+  'topic.source': '主题来源',
+  'topic.readOriginal': '阅读原文',
+  'topic.closeOriginal': '关闭原文',
+  'topic.remove': '从主题移除',
+  'topic.title': '研究主题',
+  'topic.back': '工作区图',
+  'topic.description': '将同一 Host 中不同工作区的会话整理到主题中。关联只用于组织资料，不会改变源会话或发送模型上下文。',
+  'topic.loading': '正在读取主题…',
+  'topic.readError': '读取主题失败。请重试。',
+  'topic.retry': '重试',
+  'topic.newName': '新主题名称',
+  'topic.create': '创建主题',
+  'topic.empty': '尚无研究主题。创建一个主题开始整理资料。',
+  'topic.choose': '选择研究主题',
+  'topic.name': '主题名称',
+  'topic.rename': '保存名称',
+  'topic.saving': '正在保存主题…',
+  'topic.saveError': '保存失败，输入已保留，请重试。',
   'search.disabled': '全文索引尚未启用。',
   'search.setup': '在当前 profile 的 cordis.patch.yml 覆盖 session-query-sqlite 配置，将 openAt 设为 first-search。重启 Host 后重新搜索。',
   'search.setupUrl': 'https://github.com/benz-ai-x/dsh-session-graph/blob/main/README.zh.md#enable-discussion-search',
@@ -307,6 +343,34 @@ export const zh: Record<SessionGraphKey, string> = {
 
 /** English dictionary. */
 export const en: Record<SessionGraphKey, string> = {
+  'topic.refresh': 'Refresh sources',
+  'topic.saveArrangement': 'Save arrangement',
+  'topic.arrangementHint': 'After dragging or collapsing, save the arrangement to this topic.',
+  'topic.unsaved': 'Unsaved arrangement. Switching topics keeps this draft; save before leaving Research Topics.',
+  'topic.add': 'Add to Research Topic',
+  'topic.addSelected': 'Add to selected topic',
+  'topic.close': 'Close topic picker',
+  'topic.noWorkspace': 'No Workspace',
+  'topic.unavailable': 'Source unavailable',
+  'topic.noReferences': 'No sources yet. Choose “Add to Research Topic” in Session details or a search result.',
+  'topic.source': 'Topic source',
+  'topic.readOriginal': 'Read original',
+  'topic.closeOriginal': 'Close original',
+  'topic.remove': 'Remove from topic',
+  'topic.title': 'Research Topics',
+  'topic.back': 'Workspace graph',
+  'topic.description': 'Organize Sessions from different Workspaces in the same Host. References do not change source Sessions or send model context.',
+  'topic.loading': 'Loading topics…',
+  'topic.readError': 'Could not read topics. Please retry.',
+  'topic.retry': 'Retry',
+  'topic.newName': 'New topic name',
+  'topic.create': 'Create topic',
+  'topic.empty': 'No Research Topics yet. Create a topic to start collecting sources.',
+  'topic.choose': 'Choose Research Topic',
+  'topic.name': 'Topic name',
+  'topic.rename': 'Save name',
+  'topic.saving': 'Saving topic…',
+  'topic.saveError': 'Could not save. Your input is preserved; please retry.',
   'search.disabled': 'Full-text indexing is not enabled.',
   'search.setup': 'In this profile’s cordis.patch.yml, override session-query-sqlite with openAt: first-search. Restart the Host, then search again.',
   'search.setupUrl': 'https://github.com/benz-ai-x/dsh-session-graph/blob/main/README.md#enable-discussion-search',
