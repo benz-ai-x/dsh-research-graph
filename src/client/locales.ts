@@ -5,6 +5,39 @@ export const NS = 'sessionGraph'
 
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
+  | 'search.disabled'
+  | 'search.setup'
+  | 'search.setupUrl'
+  | 'search.setupLink'
+  | 'search.restart'
+  | 'search.retry'
+  | 'search.cancel'
+  | 'search.canceled'
+  | 'search.more'
+  | 'search.stale'
+  | 'search.open'
+  | 'search.title'
+  | 'search.description'
+  | 'search.close'
+  | 'search.query'
+  | 'search.placeholder'
+  | 'search.scope'
+  | 'search.directory'
+  | 'search.all'
+  | 'search.includeArchived'
+  | 'search.submit'
+  | 'search.loading'
+  | 'search.empty'
+  | 'search.count'
+  | 'search.start'
+  | 'search.error'
+  | 'search.results'
+  | 'search.read'
+  | 'search.noWorkspace'
+  | 'search.archived'
+  | 'search.original'
+  | 'search.select'
+  | 'search.snapshot'
   | 'history.refresh'
   | 'history.cancel'
   | 'history.canceled'
@@ -126,6 +159,39 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh: Record<SessionGraphKey, string> = {
+  'search.disabled': '全文索引尚未启用。',
+  'search.setup': '在当前 profile 的 cordis.patch.yml 覆盖 session-query-sqlite 配置，将 openAt 设为 first-search。重启 Host 后重新搜索。',
+  'search.setupUrl': 'https://github.com/benz-ai-x/dsh-session-graph/blob/main/README.zh.md#enable-discussion-search',
+  'search.setupLink': '查看启用步骤',
+  'search.restart': '重新搜索',
+  'search.retry': '重试搜索',
+  'search.cancel': '取消搜索',
+  'search.canceled': '搜索已取消。',
+  'search.more': '加载更多结果',
+  'search.stale': '结果已过期或范围已变化，请重新搜索。',
+  'search.open': '搜索正文',
+  'search.title': '搜索历史讨论',
+  'search.description': '查找已完成轮次中的用户与助手正文。每个会话显示最近一处命中。',
+  'search.close': '关闭搜索',
+  'search.query': '正文关键词',
+  'search.placeholder': '输入记得的词句…',
+  'search.scope': '搜索范围',
+  'search.directory': '当前目录',
+  'search.all': '当前 Host 的全部会话',
+  'search.includeArchived': '包含归档',
+  'search.submit': '搜索',
+  'search.loading': '正在准备索引并检索讨论…',
+  'search.empty': '所选范围内没有匹配的讨论。',
+  'search.count': '已找到 {count} 个会话',
+  'search.start': '选择范围并输入关键词，然后搜索。',
+  'search.error': '搜索失败，请重试。',
+  'search.results': '搜索结果',
+  'search.read': '查看原文：{title}',
+  'search.noWorkspace': '未归属工作区',
+  'search.archived': '已归档',
+  'search.original': '搜索原文',
+  'search.select': '选择命中片段，在这里核对原文。',
+  'search.snapshot': '左侧片段保留检索时的内容；下方按来源身份重新读取原文。',
   'history.refresh': '刷新原文',
   'history.cancel': '取消读取',
   'history.canceled': '已取消读取',
@@ -241,6 +307,39 @@ export const zh: Record<SessionGraphKey, string> = {
 
 /** English dictionary. */
 export const en: Record<SessionGraphKey, string> = {
+  'search.disabled': 'Full-text indexing is not enabled.',
+  'search.setup': 'In this profile’s cordis.patch.yml, override session-query-sqlite with openAt: first-search. Restart the Host, then search again.',
+  'search.setupUrl': 'https://github.com/benz-ai-x/dsh-session-graph/blob/main/README.md#enable-discussion-search',
+  'search.setupLink': 'View setup steps',
+  'search.restart': 'Search again',
+  'search.retry': 'Retry search',
+  'search.cancel': 'Cancel search',
+  'search.canceled': 'Search canceled.',
+  'search.more': 'Load more results',
+  'search.stale': 'Results expired or the scope changed. Search again.',
+  'search.open': 'Search discussions',
+  'search.title': 'Search discussion history',
+  'search.description': 'Find user and assistant text in completed turns. Each session shows its latest matching passage.',
+  'search.close': 'Close search',
+  'search.query': 'Discussion keywords',
+  'search.placeholder': 'Words or phrases you remember…',
+  'search.scope': 'Search scope',
+  'search.directory': 'This directory',
+  'search.all': 'All sessions on this Host',
+  'search.includeArchived': 'Include archived',
+  'search.submit': 'Search',
+  'search.loading': 'Preparing the index and searching discussions…',
+  'search.empty': 'No matching discussions in this scope.',
+  'search.count': 'Found {count} sessions',
+  'search.start': 'Choose a scope, enter keywords, and search.',
+  'search.error': 'Search failed. Please try again.',
+  'search.results': 'Search results',
+  'search.read': 'Read original: {title}',
+  'search.noWorkspace': 'No workspace',
+  'search.archived': 'Archived',
+  'search.original': 'Search original',
+  'search.select': 'Select a passage to check the original here.',
+  'search.snapshot': 'The result excerpt is from the search. The reader below rechecks the addressed original.',
   'history.refresh': 'Refresh discussion',
   'history.cancel': 'Cancel reading',
   'history.canceled': 'Reading canceled',

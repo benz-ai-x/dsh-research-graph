@@ -5,7 +5,7 @@ import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphMerge', 'sessionPersistence', 'typertGateway']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionPersistence', 'typertGateway']
 
 export function apply(ctx) {
   let calls = 0
@@ -42,7 +42,8 @@ export function apply(ctx) {
     return sessionId
   }
   async function verify() {
-    const sourceIds = [await create('First fixture.'), await create('Second fixture.')]
+    const secondPrompt = '通过知识卡片整理研究资料。 Café uses foo-bar. 修复 foo-bar 设置。'
+    const sourceIds = [await create('First fixture.'), await create(secondPrompt)]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
     const callsBeforeHistory = calls
     const history = await ctx.typertGateway.invoke({
@@ -53,8 +54,19 @@ export function apply(ctx) {
     assert.equal(history.sessionId, sourceIds[1])
     assert.equal(history.turns.length, 1)
     assert.deepEqual(history.turns[0].messages.map(message => [message.role, message.text]), [
-      ['user', 'Second fixture.'], ['assistant', 'Fixture response.'],
+      ['user', secondPrompt], ['assistant', 'Fixture response.'],
     ])
+    for (const query of ['知识卡片', 'cafe', 'foo bar', '修复 foo bar']) {
+      const search = await ctx.typertGateway.invoke({
+        namespace: 'sessionGraphSearch', method: 'search',
+        args: { request: { query, scope: { kind: 'directory', cwd: process.cwd() }, includeArchived: false } }, signal,
+      })
+      assert.equal(search.kind, 'results')
+      assert.deepEqual(search.hits.map(hit => hit.sessionId), [sourceIds[1]])
+      assert.equal(search.hits[0].turnStartSeq, history.turns[0].startSeq)
+      assert.equal(search.hits[0].eventSeq, history.turns[0].messages[0].seq)
+      assert.equal(search.hits[0].snippet, secondPrompt)
+    }
     assert.equal(calls, callsBeforeHistory)
     const targetSessionId = await create()
     const merge = await ctx.sessionGraphMerge.submit({
@@ -78,7 +90,7 @@ export function apply(ctx) {
       await reader.close()
     }
     assert.ok(calls >= 4)
-    return { ok: true, sources: sourceIds.length, durableMerge: true, readonlyDigest: true, readonlyHistory: true, fixtureModelCalls: calls }
+    return { ok: true, sources: sourceIds.length, durableMerge: true, readonlyDigest: true, readonlyHistory: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {

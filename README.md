@@ -63,6 +63,7 @@ This prerelease uses npm tag `next`; the commands below pin the exact matching v
 | Interactive canvas | Drag, snap, collapse, filter, zoom, pan, fit, relayout, reset, locate, and minimap controls |
 | Cross-session workflows | Open or branch any Canvas Session and merge immutable snapshots from two or three sources |
 | Original discussion | Read user/assistant text by turn in the Inspector, select a completed range, and check its exact source |
+| Discussion search | Find body keywords across workspaces, optionally include archived sources, and inspect the exact matching turn |
 | Read-only Session Digests | Generate concise overviews, key outcomes, and open items on demand without changing Session logs |
 
 See the [Original discussion browser acceptance record and screenshots](docs/reviews/pr-14-ui-acceptance.md) for paging, source recovery, running turns, and navigation.
@@ -73,6 +74,7 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 |---|---|---|
 | Browse or arrange | Does not change Session logs; arrangements stay in browser storage | None |
 | Read or select discussion | Retains the selection and fallback excerpt only while the reader is open; does not change Session logs | None |
+| Search discussion | Uses the Host index and verifies original text; retains temporary result snapshots without changing sources or archive state | None |
 | Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback |
 | Create a branch | Uses the normal Harness branch operation | No additional request from this plugin |
 | Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | The target processes the queued instruction on its normal route |
@@ -132,6 +134,34 @@ Open a non-blank session and choose **Graph** beside the standard conversation t
 - Read the header badge to identify the package version and exact local Build ID; hover it for the full package identity.
 
 Keyboard shortcuts work while the canvas is focused: `+` and `-` zoom, `0` restores 100%, and `1` fits the graph.
+
+## Search discussion history
+
+Choose **Search discussions** in the Graph header, enter words or a phrase, and select a Workspace, the Viewed Session's directory, or all sessions on this Host. **Include archived** adds archived sources for reading. It does not restore them or add them to the canvas. The existing title filter continues to emphasize Canvas Sessions independently.
+
+Results show the session title, workspace or directory, message time, and a short passage. Each session contributes its latest matching passage from completed direct user/assistant discussion, ordered newest first. Select a result to read its exact turn in the search Inspector; the matching message is marked, and earlier/later discussion remains available. Only **Open session** changes the Viewed Session; native chat scroll positioning is not implied.
+
+The search uses Harness's keyword/phrase index, retaining its punctuation and accent matching: **foo bar** finds **foo-bar**, and **cafe** finds **café**. These rules also apply to Chinese phrases: **修复 foo bar** finds **修复 foo-bar**. Queries containing Chinese characters also check scoped originals for literal substrings, so **知识卡片** can find **通过知识卡片整理研究资料** even when the title differs. Attachments, tools, reasoning, plugin context, and unfinished discussion are excluded. The first index build and Chinese verification across many sessions can take time; cancel or narrow the scope as needed.
+
+Use **Load more results** to continue the same result snapshot. Changing keywords, scope, or archive inclusion clears it and cancels pending work. A failed search or page can be retried; expired results ask you to search again. Result excerpts retain search-time text while the Inspector rechecks the original. Search does not call a model or write source sessions.
+
+If the selected Workspace disappears or a directory becomes a named Workspace while search is open, Graph cancels that search and clears its results. The scope resets to the Viewed Session's available scope, or all Host sessions when unscoped; your keywords remain for the next search.
+
+See the [discussion search browser acceptance record and screenshots](docs/reviews/pr-15-ui-acceptance.md) for Chinese matches, exact turns, archived sources, paging, retry, and cancellation.
+
+<a id="enable-discussion-search"></a>
+### Enable discussion search
+
+DSH `0.1.5-alpha.1` disables full-text indexing by default. If Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
+
+```yaml
+- id: session-query-sqlite
+  config:
+    path: ':memory:'
+    openAt: first-search
+```
+
+Keep any other profile entries. This replaces that row's whole configuration, so include both keys. Restart the Host and search again. This in-memory index rebuilds after each restart; a durable index requires a writable absolute file path in `path`. To try the same override without changing profile files, save the snippet as `search.patch.yml` and launch `dsh --profile web --patch /absolute/path/search.patch.yml`. Preparing, disabled, failed, and no matches are separate search states.
 
 ## Read original discussion
 

@@ -7,13 +7,15 @@ import type { SessionGraphKey } from './locales.ts'
 import styles from './GraphView.module.css'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sessionId, read, t }: {
+export function SessionHistory({ sessionId, anchorSeq, highlightSeq, read, t }: {
   readonly sessionId: string
+  readonly anchorSeq?: number
+  readonly highlightSeq?: number
   readonly read: GraphViewInjected['readSessionHistory']
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const [result, setResult] = useState<SessionHistoryResult>()
-  const [request, setRequest] = useState<SessionHistoryRequest>({ sessionId })
+  const [request, setRequest] = useState<SessionHistoryRequest>({ sessionId, ...(anchorSeq === undefined ? {} : { anchorSeq }) })
   const [loading, setLoading] = useState(true)
   const [selection, setSelection] = useState<SessionDiscussionSource>()
   const [failed, setFailed] = useState(false)
@@ -120,7 +122,7 @@ export function SessionHistory({ sessionId, read, t }: {
           </label>
           {turn.endSeq === null ? <p>{t('history.unfinished')}</p> : null}
           {turn.messages.map(message => (
-            <div key={message.seq}>
+            <div key={message.seq} className={message.seq === highlightSeq ? styles.historyMatch : undefined}>
               <strong>{t(message.role === 'user' ? 'history.user' : 'history.assistant')}</strong>
               <p className={styles.historyText}>{message.text}</p>
             </div>

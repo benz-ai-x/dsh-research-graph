@@ -59,7 +59,7 @@ try {
   assert.ok((await command(['plugin', '--profile', 'web', 'exec', 'dsh-session-graph-migrate', '--help']))
     .includes('Without --output, validates only.'))
   const patch = join(root, 'smoke.patch.yml')
-  await writeFile(patch, `- insert:\n    - id: session-graph-smoke\n      name: ${JSON.stringify(join(repo, 'tests/fixtures/profile-smoke.mjs'))}\n`)
+  await writeFile(patch, `- id: session-query-sqlite\n  config:\n    path: ':memory:'\n    openAt: first-search\n- insert:\n    - id: session-graph-smoke\n      name: ${JSON.stringify(join(repo, 'tests/fixtures/profile-smoke.mjs'))}\n`)
   app = launch(['--profile', 'web', '--patch', patch, '--port', '0', '--no-open'])
   const signal = AbortSignal.timeout(90_000)
   let report

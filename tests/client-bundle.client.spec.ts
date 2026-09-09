@@ -262,6 +262,7 @@ describe('tsdown client artifact', () => {
     expect(injectedServices).toEqual([[
       'slots', 'sessions', 'workspaces', 'locale',
       'remote.sessionGraphDigest', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
+      'remote.sessionGraphSearch',
     ]])
     expect(views).toHaveLength(1)
     expect(views[0]).toMatchObject({ name: 'conversation.view', id: 'graph' })
