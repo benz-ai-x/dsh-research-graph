@@ -5,7 +5,7 @@ import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphMerge', 'sessionPersistence']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphMerge', 'sessionPersistence', 'typertGateway']
 
 export function apply(ctx) {
   let calls = 0
@@ -45,7 +45,10 @@ export function apply(ctx) {
     const sourceIds = [await create('First fixture.'), await create('Second fixture.')]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
     const callsBeforeHistory = calls
-    const history = await ctx.sessionGraphHistory.read({ sessionId: sourceIds[1] }, signal)
+    const history = await ctx.typertGateway.invoke({
+      namespace: 'sessionGraphHistory', method: 'read',
+      args: { request: { sessionId: sourceIds[1] } }, signal,
+    })
     assert.equal(history.kind, 'original')
     assert.equal(history.sessionId, sourceIds[1])
     assert.equal(history.turns.length, 1)

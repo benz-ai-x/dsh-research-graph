@@ -1,6 +1,8 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { type Session } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import { createAssistantMessage, createToolResultMessage, createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { createSessionTestController } from 'harness-session-controller-test-support'
@@ -24,9 +26,10 @@ async function historyHost(): Promise<Context> {
   })
   await ctx.plugin(SessionStore)
   await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
+  await ctx.plugin(TypertRegistry)
   ctx.provide('llm', { stream: vi.fn(() => { throw new Error('Reading must not call a model') }) })
   await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'llm'],
+    inject: ['sessions', 'sessionPersistence', 'llm', 'typert'],
     apply(controllerCtx) {
       createSessionTestController(controllerCtx, {
         cwd: '/test', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
@@ -58,6 +61,32 @@ function addTurn(session: Session, turn: number, prompt: string, answer: string)
 }
 
 describe('Session History public Host interface', () => {
+  it('reads original discussion through the real browser Gateway with carrier cancellation', async () => {
+    const ctx = await historyHost()
+    await ctx.plugin(TypertGatewayService)
+    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    addTurn(session, 1, 'Read through the browser endpoint.', 'Keep the original discussion accessible.')
+    ctx.effect(() => ctx.sessions.enter(session))
+    const before = await ctx.sessionController.inspect(session.id)
+
+    await expect(ctx.typertGateway.invoke({
+      namespace: 'sessionGraphHistory', method: 'read',
+      args: { request: { sessionId: session.id } },
+      signal: new AbortController().signal,
+    })).resolves.toEqual({
+      kind: 'original', sessionId: session.id, hasEarlier: false, hasLater: false,
+      turns: [{
+        turn: 1, startSeq: 0, endSeq: 5, startedAt: expect.any(Number),
+        messages: [
+          { role: 'user', seq: 2, text: 'Read through the browser endpoint.' },
+          { role: 'assistant', seq: 3, text: 'Keep the original discussion accessible.' },
+        ],
+      }],
+    })
+    expect(await ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(ctx.llm.stream).not.toHaveBeenCalled()
+  })
+
   it('preserves discussion text and roles while excluding injected context, attachments, reasoning, and tool output', async () => {
     const ctx = await historyHost()
     const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })

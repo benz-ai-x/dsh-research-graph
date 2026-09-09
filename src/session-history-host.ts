@@ -41,9 +41,9 @@ export class SessionGraphHistoryService extends TypertRemoteService {
   }
 
   @Remote('read')
-  read(request: SessionHistoryRequest, callerSignal: AbortSignal): Promise<SessionHistoryResult> {
-    const signal = AbortSignal.any([callerSignal, this.lifecycle.signal])
-    const operation = this.readHistory(request, signal)
+  read(request: SessionHistoryRequest, signal: AbortSignal): Promise<SessionHistoryResult> {
+    const readSignal = AbortSignal.any([signal, this.lifecycle.signal])
+    const operation = this.readHistory(request, readSignal)
     this.activeReads.add(operation)
     const release = (): void => { this.activeReads.delete(operation) }
     void operation.then(release, release)
