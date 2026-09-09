@@ -19,10 +19,13 @@
     "typescript",
     "react"
   ],
-  "version": "0.1.6",
+  "version": "0.1.5-alpha.1",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
+  "bin": {
+    "dsh-session-graph-migrate": "lib/migrate-merge-history.js"
+  },
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
@@ -45,7 +48,9 @@
     "lib/client.js",
     "lib/client.js.map",
     "lib/types/**/*.d.ts",
-    "cordis.patch.yml"
+    "cordis.patch.yml",
+    "lib/migrate-merge-history.js",
+    "THIRD-PARTY-NOTICES.md"
   ],
   "sideEffects": [
     "lib/client.js"
@@ -87,7 +92,10 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/check-version.mjs && tsc --noEmit",
+    "typecheck:harness": "node scripts/check-harness-types.mjs",
+    "check:harness": "pnpm run typecheck:harness && pnpm run test:harness",
+    "smoke:harness": "node scripts/smoke-profile.mjs",
     "pretest": "pnpm run build",
     "test": "vitest run",
     "test:harness": "vitest run --config vitest.harness.config.ts",
@@ -96,13 +104,20 @@
     "prepublishOnly": "pnpm run check"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "^3.18.1",
-    "clsx": "^2.1.1"
+    "@deepseek-ai/dsh-typert-protocol": "0.1.5-alpha.1",
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "clsx": "^2.1.1",
+    "zod": "4.4.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-llm": "0.1.2-rc.1"
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-llm": "0.1.5-alpha.1"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-attachment": "0.1.5-alpha.1",
+    "@deepseek-ai/dsh-llm": "0.1.5-alpha.1",
+    "@deepseek-ai/dsh-session-format-catalog": "0.1.5-alpha.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.20.0",
     "@types/react": "~18.3.1",

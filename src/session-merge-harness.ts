@@ -1,6 +1,12 @@
 /** Harness adapters for the package-owned Session Merge Host workflow. */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-api-session-controller'
+import type {} from '@deepseek-ai/dsh-session-reference'
+import type {} from '@deepseek-ai/dsh-session-projection'
+import type {} from '@deepseek-ai/dsh-session-projection-cache'
+import type {} from '@deepseek-ai/dsh-workspace'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import {
@@ -12,25 +18,6 @@ import type {
   SessionMergeProjection,
   SessionMergeProjectionState,
 } from './session-merge-projection.ts'
-
-interface HarnessSession {
-  readonly header: {
-    readonly cwd?: string
-    readonly parentSession?: SessionId
-    readonly origin?: 'subagent'
-  }
-  readonly events: readonly {
-    readonly type: string
-    readonly data: unknown
-  }[]
-}
-
-interface HarnessAgent {
-  readonly id: SessionId
-  readonly session: HarnessSession
-  inject(message: Readonly<Record<string, unknown>>): void
-  steer(message: Readonly<Record<string, unknown>>): void
-}
 
 /** Adapter policy for one bounded wait on the target Session's projection. */
 export interface SessionMergeHarnessOptions {
@@ -49,8 +36,8 @@ export class SessionMergeCaptureTimeoutError extends Error {
 
 const DEFAULT_CAPTURE_TIMEOUT_MS = 120_000
 
-function agentOf(target: SessionMergeHostTarget): HarnessAgent {
-  return target.handle as HarnessAgent
+function agentOf(target: SessionMergeHostTarget): Agent {
+  return target.handle as Agent
 }
 
 function matchesCaptureSources(
@@ -83,7 +70,7 @@ export function sessionMergeDependenciesFromHarness(
     resolveTarget: async (targetSessionId) => {
       const resolved = await ctx.sessionController.resolveAgent(targetSessionId as SessionId)
       if ('error' in resolved) throw new Error(resolved.error.message)
-      const agent = resolved.agent as HarnessAgent
+      const agent = resolved.agent
       const cwd = agent.session.header.cwd
       if (cwd === undefined || cwd === '') {
         throw new Error(`target Session ${JSON.stringify(targetSessionId)} has no working directory`)
@@ -98,7 +85,7 @@ export function sessionMergeDependenciesFromHarness(
           ? {}
           : { origin: agent.session.header.origin }),
         archived: ctx.workspaceRegistry.archivedSessionIds.includes(targetSessionId as SessionId),
-        events: [...agent.session.events],
+        events: agent.session.snapshotEvents(),
         handle: agent,
       }
     },
@@ -128,9 +115,18 @@ export function sessionMergeDependenciesFromHarness(
     },
     enqueue: (target, input) => {
       const agent = agentOf(target)
+      const source = {
+        kind: 'plugin' as const,
+        plugin: 'dsh-session-graph',
+        form: 'notice' as const,
+        summary: 'Session Merge source snapshot request.',
+      }
       const marker = createUserMessage({
-        source: { ...input.marker, form: 'notice' },
-        content: [{ type: 'text', text: 'Session Merge source snapshot request.' }],
+        source,
+        content: [
+          { type: 'text', text: 'Session Merge source snapshot request.' },
+          { type: 'text', text: JSON.stringify(input.marker) },
+        ],
       })
       const direct = createUserMessage({
         source: { kind: 'user' },
@@ -174,7 +170,7 @@ export function sessionMergeDependenciesFromHarness(
           if (matchesCaptureSources(projection, sourceIds)) finish({ value: projection })
         })
         disposeError = ctx.on('agent/error', ((payload: {
-          readonly agent: HarnessAgent
+          readonly agent: Agent
           readonly error: unknown
         }) => {
           if (payload.agent === agent) finish({ error: payload.error })

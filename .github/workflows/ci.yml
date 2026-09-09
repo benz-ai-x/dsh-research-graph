@@ -36,21 +36,20 @@ jobs:
         run: pnpm pack --pack-destination .artifacts
 
   harness:
-    name: DSH ${{ matrix.version }}
+    name: Matching DSH release
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ['0.1.2-alpha.1', '0.1.2-alpha.2', '0.1.2-alpha.3']
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
+      - name: Select the matching DSH release
+        run: node -e 'require("fs").appendFileSync(process.env.GITHUB_ENV, "DSH_VERSION=" + require("./package.json").version + "\n")'
+
       - uses: actions/checkout@v7
         with:
           repository: ${{ env.DSH_REPOSITORY }}
-          ref: dsh-v${{ matrix.version }}
+          ref: dsh-v${{ env.DSH_VERSION }}
           path: harness
           persist-credentials: false
 
@@ -69,31 +68,24 @@ jobs:
       - name: Install Harness dependencies
         run: pnpm --dir harness install --frozen-lockfile
 
-      - name: Test against the real Harness UI stack
+      - name: Build Harness native persistence support
+        run: pnpm --dir harness run build:native-system
+
+      - name: Build Harness public declarations and runtime
+        run: pnpm --dir harness run build:lib
+
+      - name: Check Host and Client against the matching Harness
         env:
           DSH_HARNESS_ROOT: ${{ github.workspace }}/harness
-        run: pnpm test:harness
+        run: pnpm check:harness
 
       - name: Pack the plugin
         run: pnpm pack --pack-destination .artifacts
 
-      - name: Install and remove the packed profile layer
+      - name: Build the Harness Web frontend
+        run: pnpm --dir harness run build:web
+
+      - name: Exercise the packed plugin in an isolated web profile
         env:
-          DSH_HOME: ${{ runner.temp }}/dsh-session-graph-home
-        run: |
-          plugin_version=$(node -p 'require("./package.json").version')
-          plugin_archive="$GITHUB_WORKSPACE/.artifacts/benz-ai-x-dsh-client-ui-session-graph-$plugin_version.tgz"
-          config_dump="$RUNNER_TEMP/dsh-session-graph-config.yml"
-          pnpm --dir harness dsh plugin --profile web add "$plugin_archive"
-          pnpm --dir harness dsh --profile web --dump-config > "$config_dump"
-          grep -F "name: '@benz-ai-x/dsh-client-ui-session-graph'" "$config_dump"
-          pnpm --dir harness dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-          pnpm --dir harness dsh --profile web --dump-config > "$config_dump"
-          if grep -Fq "name: '@benz-ai-x/dsh-client-ui-session-graph'" "$config_dump"; then
-            echo 'packed plugin remained in the resolved config after removal' >&2
-            exit 1
-          fi
-          if grep -Fq '@benz-ai-x/dsh-client-ui-session-graph' "$DSH_HOME/profiles/web/package.json"; then
-            echo 'packed plugin remained in the profile after removal' >&2
-            exit 1
-          fi
+          DSH_HARNESS_ROOT: ${{ github.workspace }}/harness
+        run: pnpm smoke:harness

@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module'
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import ts from 'typescript'
 import { defineConfig } from 'vitest/config'
 
@@ -30,12 +30,13 @@ const harnessPaths = {
   name: 'dsh-harness-paths',
   enforce: 'pre' as const,
   resolveId(source: string, importer: string | undefined): string | null {
-    if (source.startsWith('@deepseek-ai/dsh-client-ui-conversation/src/')) {
-      return resolve(
-        harnessRoot,
-        'packages/client/ui-conversation/src',
-        source.slice('@deepseek-ai/dsh-client-ui-conversation/src/'.length),
-      )
+    if (source === 'harness-session-controller-test-support') {
+      return resolve(harnessRoot, 'packages/api/session-controller/tests/test-remote.ts')
+    }
+    if (source.startsWith('@deepseek-ai/') && source.includes('/src/')) {
+      const [packageName, path] = source.split('/src/')
+      const entry = ts.resolveModuleName(packageName!, resolve('package.json'), parsed.options, ts.sys).resolvedModule
+      if (entry !== undefined) return resolve(dirname(entry.resolvedFileName), path!)
     }
     if (!source.startsWith('@deepseek-ai/')) return null
     const result = ts.resolveModuleName(
@@ -96,7 +97,7 @@ export default defineConfig({
   },
   test: {
     execArgv,
-    include: ['tests/views.client.spec.tsx', 'tests/host.harness.spec.ts'],
+    include: ['tests/views.client.spec.tsx', 'tests/**/*.harness.spec.ts'],
     pool: 'forks',
     server: {
       deps: {

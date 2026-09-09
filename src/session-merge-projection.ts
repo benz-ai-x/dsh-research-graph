@@ -1,5 +1,7 @@
 /** Pure projection of one explicit Session Merge from durable Session events. */
 
+import { z } from 'zod'
+
 /** Structurally readable Session event consumed by the projection. */
 export interface SessionMergeProjectionEvent {
   readonly type: string
@@ -143,9 +145,25 @@ export function sessionMergeMarkerOfEvent(
   event: Pick<SessionMergeProjectionEvent, 'type' | 'data'>,
 ): SessionMergeMarker | undefined {
   if (event.type !== 'user/message') return undefined
-  const source = recordOf(recordOf(event.data)?.source)
-  if (source?.kind !== 'session-graph-merge' || source.version !== 1) return undefined
-  return mergeMarkerFields(source)
+  const message = recordOf(event.data)
+  const source = recordOf(message?.source)
+  if (source?.kind === 'session-graph-merge' && source.version === 1) {
+    return mergeMarkerFields(source)
+  }
+  if (source?.kind !== 'plugin' || source.plugin !== 'dsh-session-graph'
+    || !Array.isArray(message?.content)) return undefined
+  const block = recordOf(message.content.at(-1))
+  if (block?.type !== 'text' || typeof block.text !== 'string') return undefined
+  let marker: Readonly<Record<string, unknown>> | undefined
+  try {
+    marker = recordOf(JSON.parse(block.text))
+  } catch {
+    // Other plugin messages need not carry a JSON Merge marker.
+    return undefined
+  }
+  return marker?.kind === 'session-graph-merge' && marker.version === 1
+    ? mergeMarkerFields(marker)
+    : undefined
 }
 
 function referenceSources(
@@ -212,13 +230,23 @@ function applySessionMergeProjection(
   }
 }
 
+/** Expose the strict parser through the Harness's public Zod schema API. */
+function projectionSchema<T>(parse: (value: unknown) => T): z.ZodType<T> {
+  return z.unknown().transform((value, ctx) => {
+    try {
+      return parse(value)
+    } catch (error) {
+      ctx.addIssue({ code: 'custom', message: error instanceof Error ? error.message : 'Invalid Merge projection' })
+      return z.NEVER
+    }
+  })
+}
+
 /** Harness-compatible incremental projection definition. */
 export const SESSION_MERGE_PROJECTION_DEFINITION = {
   key: 'sessionGraphMerge' as const,
   stateVersion: 1,
-  stateSchema: {
-    parse: parseProjectionState,
-  },
+  stateSchema: projectionSchema(parseProjectionState),
   init: (_header: unknown): SessionMergeProjectionState => ({
     inStep: false,
     marker: null,
@@ -226,9 +254,7 @@ export const SESSION_MERGE_PROJECTION_DEFINITION = {
   }),
   apply: applySessionMergeProjection,
   wire: {
-    viewSchema: {
-      parse: parseProjection,
-    },
+    viewSchema: projectionSchema(parseProjection),
     view: (state: SessionMergeProjectionState): SessionMergeProjection | null => state.value,
   },
 }

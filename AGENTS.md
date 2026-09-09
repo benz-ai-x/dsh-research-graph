@@ -12,6 +12,8 @@
 - `pnpm test` builds first, then runs the standalone Vitest suite.
 - `pnpm run check` runs type checking, building, and standalone tests; use it before every PR.
 - `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm test:harness` runs `views.client.spec.tsx` against a prepared Harness checkout.
+- `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness` checks both compiler faces against the matching checkout's built public declarations, then runs the full Harness suite. Prepare that checkout with `pnpm run build:lib` first.
+- After packing to `.artifacts/`, `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness` installs, boots, exercises, and removes the archive in an isolated web profile. The Harness checkout also needs `build:native-system` and `build:web` outputs.
 - `pnpm pack` creates the installable package archive for smoke testing.
 
 Use Node.js `^22.19.0 || >=24.0.0`.
@@ -30,7 +32,13 @@ Recent history uses concise Conventional Commit-style subjects such as `feat: ..
 
 ### Releases
 
+Starting with the DSH-aligned release line, the plugin's `package.json` version must exactly equal its target DSH version, including prerelease names and numbers (for example, `0.1.5-alpha.1`). Direct `@deepseek-ai/dsh-*` dependencies use that same version. The matching upstream tag is `dsh-v<version>`; this plugin keeps `v<version>`. CI derives its Harness checkout from `package.json`. Historical independent `v0.1.0`–`v0.1.6` tags remain unchanged. Local iteration uses the generated Build ID without inventing another version string.
+
 Every GitHub Release must update the `version` field in `package.json` before tagging. The release tag must be `v<version>`, and the Graph header version badge must show the same version after `pnpm run build`. The badge reads the version from `package.json` at build time; never hard-code or maintain a second version string in source. Run `pnpm run check` before publishing the release.
+
+Also pass `check:harness` and packed-profile acceptance against the matching DSH tag before release. Keep the standalone Host adapters out of the Harness compiler programs; they must never hide upstream API drift.
+
+Keep the offline history recovery executable self-contained so it runs before a profile's first Host boot. Update `THIRD-PARTY-NOTICES.md` when its bundled dependencies change.
 
 ## Agent skills
 

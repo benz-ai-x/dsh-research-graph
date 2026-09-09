@@ -46,7 +46,7 @@ jobs:
 
       - name: Verify tag and package version
         run: |
-          node -e 'const metadata = require("./package.json"); const expected = "v" + metadata.version; if (process.env.RELEASE_TAG !== expected) throw new Error("release tag " + process.env.RELEASE_TAG + " does not match package version " + expected)'
+          node scripts/check-version.mjs
           tagged_commit=$(git rev-list -n 1 "$RELEASE_TAG")
           checked_out_commit=$(git rev-parse HEAD)
           if test "$tagged_commit" != "$checked_out_commit"; then

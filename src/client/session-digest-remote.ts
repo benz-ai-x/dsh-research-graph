@@ -1,11 +1,23 @@
 /** Strict Client contribution for the package-owned Session Digest Remote. */
 
-import type { TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
+import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type {
   SessionDigest,
   SessionDigestRequest,
   SessionDigestResult,
 } from '../session-digest.ts'
+
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface TypertRemoteMap {
+    'sessionGraphDigest/generate': (
+      request: SessionDigestRequest,
+      signal?: AbortSignal,
+    ) => Promise<RemoteResult<SessionDigestResult>>
+  }
+  interface TypertRemoteNamespaceMap {
+    sessionGraphDigest: { generate: TypertRemoteMap['sessionGraphDigest/generate'] }
+  }
+}
 
 const PACKAGE_NAME = '@benz-ai-x/dsh-client-ui-session-graph'
 

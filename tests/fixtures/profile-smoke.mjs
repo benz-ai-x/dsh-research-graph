@@ -1,0 +1,78 @@
+/** Real profile acceptance: replace only model transport, retain the complete Host. */
+import assert from 'node:assert/strict'
+import { writeFile, rename } from 'node:fs/promises'
+import { setTimeout } from 'node:timers/promises'
+import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+
+export const name = 'session-graph-profile-smoke'
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphMerge', 'sessionPersistence']
+
+export function apply(ctx) {
+  let calls = 0
+  class FixtureAdapter extends LlmAdapter {
+    async *stream(options) {
+      options.signal?.throwIfAborted()
+      calls += 1
+      const text = options.system?.startsWith('Create a concise digest')
+        ? JSON.stringify({ overview: 'Fixture digest.', keyOutcomes: ['Fixture completed.'], openItems: [] })
+        : 'Fixture response.'
+      yield { type: 'text-delta', index: 0, text }
+      yield { type: 'finish', reason: { kind: 'stop' } }
+    }
+  }
+  ctx.llm.registerAdapter(['graph-fixture'], new FixtureAdapter())
+  const signal = AbortSignal.timeout(45_000)
+  const waitForTurn = async id => {
+    for (;;) {
+      signal.throwIfAborted()
+      const agent = ctx.agents.get(id)
+      if (agent?.status === 'idle' && agent.session.snapshotEvents().some(event => event.type === 'turn/end')) return agent.session
+      await setTimeout(20, undefined, { signal })
+    }
+  }
+  const create = async text => {
+    const { sessionId } = await ctx.sessionController.create({ cwd: process.cwd() })
+    await ctx.sessionController.selectModel({ sessionId, provider: 'graph-fixture', model: 'fixture' })
+    if (text) {
+      await ctx.sessionController.prompt({
+        requestId: `graph-${sessionId}`, sessionId, mode: 'queue', content: [{ type: 'text', text }],
+      }, signal)
+      await waitForTurn(sessionId)
+    }
+    return sessionId
+  }
+  async function verify() {
+    const sourceIds = [await create('First fixture.'), await create('Second fixture.')]
+    const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
+    const targetSessionId = await create()
+    const merge = await ctx.sessionGraphMerge.submit({
+      targetSessionId, sourceIds, operationId: 'profile-smoke', instruction: 'Compare the two fixtures.',
+    }, signal)
+    assert.deepEqual(merge.sources.map(source => source.sessionId), sourceIds)
+    const target = await waitForTurn(targetSessionId)
+    const marker = target.snapshotEvents().find(event => event.type === 'user/message'
+      && event.data.source.kind === 'plugin' && event.data.source.plugin === 'dsh-session-graph')
+    assert.ok(marker)
+    const digest = await ctx.sessionGraphDigest.generate({ sessionId: sourceIds[0], refresh: true }, signal)
+    assert.equal(digest.kind, 'ready')
+    assert.equal(digest.digest.overview, 'Fixture digest.')
+    sourceIds.forEach((id, index) => assert.deepEqual(ctx.agents.get(id).session.snapshotEvents(), before[index]))
+    const reader = await ctx.sessionPersistence.open(targetSessionId, 'read')
+    assert.ok(reader)
+    try {
+      const restored = await reader.read()
+      assert.ok(restored.events.some(event => event.type === 'user/message' && event.data.id === marker.data.id))
+    } finally {
+      await reader.close()
+    }
+    assert.ok(calls >= 4)
+    return { ok: true, sources: sourceIds.length, durableMerge: true, readonlyDigest: true, fixtureModelCalls: calls }
+  }
+  ctx.effect(() => ctx.appReady.onReady(() => {
+    void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {
+      const path = process.env.SESSION_GRAPH_SMOKE_REPORT
+      await writeFile(`${path}.tmp`, JSON.stringify(report))
+      await rename(`${path}.tmp`, path)
+    })
+  }), 'session-graph.profile-smoke')
+}

@@ -1,8 +1,20 @@
 /** Strict Client contribution for the package-owned Session Merge Remote. */
 
-import type { TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
+import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionMergeProjection } from '../session-merge-projection.ts'
 import type { SessionMergeSubmission } from '../session-merge.ts'
+
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface TypertRemoteMap {
+    'sessionGraphMerge/submit': (
+      request: SessionMergeSubmission,
+      signal?: AbortSignal,
+    ) => Promise<RemoteResult<SessionMergeProjection>>
+  }
+  interface TypertRemoteNamespaceMap {
+    sessionGraphMerge: { submit: TypertRemoteMap['sessionGraphMerge/submit'] }
+  }
+}
 
 const PACKAGE_NAME = '@benz-ai-x/dsh-client-ui-session-graph'
 

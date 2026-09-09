@@ -1,6 +1,33 @@
 declare module '@deepseek-ai/dsh-session/types' {
-  const sessionIdBrand: unique symbol
-  export type SessionId = string & { readonly [sessionIdBrand]: true }
+  export type SessionId = NonNullable<import('@deepseek-ai/dsh-llm').GenerateOptions['sessionId']>
+}
+
+// Standalone builds use structural adapters for Host services and browser-only
+// packages. scripts/check-harness-types.mjs excludes this file and checks both
+// compiler faces against the matching Harness's public declarations instead.
+declare module '@deepseek-ai/dsh-api-session-controller' {}
+declare module '@deepseek-ai/dsh-session-reference' {}
+declare module '@deepseek-ai/dsh-session-projection' {}
+declare module '@deepseek-ai/dsh-session-projection-cache' {}
+declare module '@deepseek-ai/dsh-workspace' {}
+declare module '@deepseek-ai/dsh-workspace/types' {
+  const workspaceIdBrand: unique symbol
+  export type WorkspaceId = string & { readonly [workspaceIdBrand]: true }
+}
+declare module '@deepseek-ai/dsh-agent' {
+  export interface Agent {
+    readonly id: import('@deepseek-ai/dsh-session/types').SessionId
+    readonly session: {
+      readonly header: {
+        readonly cwd?: string
+        readonly parentSession?: import('@deepseek-ai/dsh-session/types').SessionId
+        readonly origin?: 'subagent'
+      }
+      snapshotEvents(): readonly { readonly type: string; readonly data: unknown }[]
+    }
+    inject(message: import('@deepseek-ai/dsh-llm').UserMessage): void
+    steer(message: import('@deepseek-ai/dsh-llm').UserMessage): void
+  }
 }
 
 declare module '@deepseek-ai/dsh-session-projection/types' {
@@ -33,70 +60,6 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
     readonly jobsBySession: Readonly<Record<string, unknown>>
     readonly currentAddress: unknown
   }
-}
-
-declare module '@deepseek-ai/dsh-typert-protocol' {
-  export interface RemoteFailure {
-    readonly code: string
-    readonly message: string
-    readonly details: object
-  }
-  export type RemoteResult<T> =
-    | { readonly ok: true; readonly value: T }
-    | { readonly ok: false; readonly error: RemoteFailure }
-  export interface TypertSchema<Output = unknown> {
-    parse(value: unknown): Output
-  }
-  export interface TypertRemoteContribution {
-    readonly package: string
-    readonly descriptors: readonly Readonly<Record<string, unknown>>[]
-  }
-  export interface TypertRemoteMap {
-    'sessionGraphDigest/generate': (
-      request: import('../src/session-digest.ts').SessionDigestRequest,
-      signal?: AbortSignal,
-    ) => Promise<RemoteResult<import('../src/session-digest.ts').SessionDigestResult>>
-    'sessionGraphMerge/submit': (
-      request: import('../src/session-merge.ts').SessionMergeSubmission,
-      signal?: AbortSignal,
-    ) => Promise<RemoteResult<import('../src/session-merge-projection.ts').SessionMergeProjection>>
-  }
-  export interface TypertRemoteNamespaceMap {
-    sessionGraphDigest: {
-      generate: TypertRemoteMap['sessionGraphDigest/generate']
-    }
-    sessionGraphMerge: {
-      submit: TypertRemoteMap['sessionGraphMerge/submit']
-    }
-  }
-  export class RemoteError extends Error {
-    readonly code: string
-    readonly details: object
-    constructor(code: string, message: string, details: object)
-  }
-  export abstract class TypertRemoteService {
-    protected constructor(ctx: import('@deepseek-ai/cordis').Context, serviceKey: string)
-  }
-  export function Remote(name: string): (
-    method: (...args: never[]) => unknown,
-    context: ClassMethodDecoratorContext,
-  ) => void
-}
-
-declare module '@deepseek-ai/dsh-llm' {
-  export interface DigestContentBlock {
-    readonly type: string
-    readonly text?: string
-  }
-  export class BlockAssembler {
-    push(chunk: unknown): void
-    readonly finish: { readonly kind: string }
-    blocks(): DigestContentBlock[]
-  }
-  export function createUserMessage(input: {
-    readonly content: readonly { readonly type: 'text'; readonly text: string }[]
-    readonly source: Readonly<Record<string, unknown>>
-  }): Readonly<Record<string, unknown>>
 }
 
 declare module '@deepseek-ai/dsh-api-remotes/client' {}
@@ -148,122 +111,6 @@ declare module '@deepseek-ai/dsh-client-ui-renderer/client' {}
 declare module '@deepseek-ai/dsh-client-ui-session/client' {}
 declare module '@deepseek-ai/dsh-client-ui-workspace/client' {}
 
-declare module '@deepseek-ai/cordis' {
-  export interface Context {
-    plugin(
-      plugin: {
-        readonly name?: string
-        apply(ctx: Context): void | Promise<void>
-      },
-    ): Promise<void> & { dispose: () => Promise<void> }
-    inject(
-      services: readonly string[],
-      apply: (ctx: Context) => void | Promise<void>,
-    ): Promise<void> & { dispose: () => Promise<void> }
-    readonly locale: {
-      register: (namespace: string, dictionaries: Readonly<Record<string, object>>) => () => void
-      bind: (namespace: string) => (key: string, params?: Record<string, unknown>) => string
-    }
-    readonly slots: {
-      inject: (name: string, install: () => unknown) => void
-      register: (
-        definition: Readonly<Record<string, unknown>>,
-        component: unknown,
-      ) => () => void
-    }
-    readonly sessions: {
-      readonly list: {
-        getSnapshot: () => import('@deepseek-ai/dsh-api-session-controller/client').SessionListState
-      }
-      create: (options: { readonly workspaceId?: string; readonly cwd?: string }) => Promise<
-        import('@deepseek-ai/dsh-session/types').SessionId
-      >
-      open: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => void
-      fork: (request: {
-        readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId
-        readonly increaseTitle: boolean
-      }) => Promise<unknown>
-      binding: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => {
-        readonly session: {
-          rename: (title: string) => Promise<
-            | { readonly ok: true; readonly value: { readonly title: string; readonly seq: number } }
-            | { readonly ok: false; readonly error: { readonly code: string; readonly message: string } }
-          >
-        }
-      } | undefined
-    }
-    readonly workspaces: {
-      readonly list: {
-        getSnapshot: () => import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
-      }
-    }
-    readonly remote: {
-      $mount: (
-        contribution: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteContribution,
-      ) => Promise<() => Promise<void>>
-      sessionGraphDigest: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphDigest']
-      sessionGraphMerge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphMerge']
-    }
-    readonly invariants: {
-      register: (packageName: string, installer: unknown) => () => void
-    }
-    readonly sessionPersistence: {
-      inspect: (
-        sessionId: import('@deepseek-ai/dsh-session/types').SessionId,
-        signal?: AbortSignal,
-      ) => Promise<import('../src/session-digest-harness.ts').HarnessSessionDigestSource>
-    }
-    readonly llm: {
-      stream: (options: Readonly<Record<string, unknown>>) => AsyncIterable<unknown>
-    }
-    readonly sessionProjections: {
-      register: (definition: unknown) => () => void
-      stateOf: (session: unknown, key: string) => unknown
-      onChanged: (listener: (
-        session: unknown,
-        key: string,
-        value: unknown,
-        seq: number,
-      ) => void) => () => void
-    }
-    readonly sessionController: {
-      resolveAgent: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<
-        | { readonly agent: unknown }
-        | { readonly error: { readonly message: string } }
-      >
-      inspect: (
-        sessionId: import('@deepseek-ai/dsh-session/types').SessionId,
-        signal?: AbortSignal,
-      ) => Promise<{
-        readonly meta: {
-          readonly id: import('@deepseek-ai/dsh-session/types').SessionId
-          readonly cwd?: string
-          readonly origin?: 'subagent'
-        }
-        readonly events: readonly { readonly type: string; readonly data: unknown }[]
-      }>
-    }
-    readonly sessionReferenceResolver: {
-      remoteExportCandidates: (
-        agent: unknown,
-        query: string,
-        signal: AbortSignal,
-      ) => Promise<readonly {
-        readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId
-        readonly cwd?: string
-        readonly mention: string
-      }[]>
-    }
-    readonly sessionProjectionCache: {
-      write: (session: unknown) => Promise<void>
-    }
-    readonly workspaceRegistry: {
-      readonly archivedSessionIds: readonly import('@deepseek-ai/dsh-session/types').SessionId[]
-    }
-    effect: (install: () => unknown, label: string) => void
-    on: (name: string, listener: (...args: never[]) => void) => () => void
-  }
-}
 
 declare module '@deepseek-ai/dsh-invariants' {
   export type InvariantInstaller = (ctx: import('@deepseek-ai/cordis').Context) => void

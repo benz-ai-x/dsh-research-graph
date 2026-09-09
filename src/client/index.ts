@@ -4,6 +4,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 // Type-only: pulls the Session Controller's Context merge (ctx.sessions).
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
@@ -69,7 +70,7 @@ function registerUi(ctx: Context): void {
       signal.throwIfAborted()
       const target = await ctx.sessions.create(location.workspaceId === undefined
         ? { cwd: location.cwd }
-        : { workspaceId: location.workspaceId })
+        : { workspaceId: location.workspaceId as WorkspaceId })
       signal.throwIfAborted()
       return target
     },

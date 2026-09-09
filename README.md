@@ -37,7 +37,7 @@ Branch-connected Canvas Sessions form movable clusters, Merge Sessions retain sn
 ## Quick start
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1
 dsh web
 ```
 
@@ -47,10 +47,13 @@ If `dsh web` is already running, stop it before restarting. Open the one-time au
 
 | Session Graph | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
+| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 
-Use the current npm release when running Harness `0.1.2-alpha.3`; older immutable tags are not covered by the current compatibility matrix. `v0.1.6` ships no runtime change: the `0.1.2-alpha.3` audit found only additive API drift, so it extends the verified matrix through CI and the multi-alpha integration bench.
+From this adaptation onward, the plugin version exactly matches its target DSH version, including prerelease suffixes: DSH `0.1.5-alpha.1` uses plugin `0.1.5-alpha.1`. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+
+This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
 ## What it adds
 
@@ -75,7 +78,7 @@ Use the current npm release when running Harness `0.1.2-alpha.3`; older immutabl
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -90,7 +93,7 @@ The output should contain `name: '@benz-ai-x/dsh-client-ui-session-graph'`.
 <summary>Install a pinned GitHub source tag</summary>
 
 ```sh
-dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5
+dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5-alpha.1
 ```
 
 pnpm blocks a git dependency's `prepare` script until the profile explicitly permits it. The first GitHub install exits with `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`; copy the exact key printed by dsh into `$DSH_HOME/profiles/web/pnpm-workspace.yaml` under `allowBuilds`, then rerun the command. This permission executes package code outside the agent sandbox, so inspect the source and keep the tag or commit pinned.
@@ -107,7 +110,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
 
-The plugin intentionally does not install the supported Harness checkouts' unpublished `@deepseek-ai/*` packages into its own dependency tree. Session persistence, LLM, Remote, and browser runtime services belong to the selected dsh profile.
+Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the plugin version.
 
 ## Use the graph
 
@@ -141,6 +144,21 @@ Choose **Merge sessions** in the canvas toolbar, then select two or three Canvas
 
 Source selection can be cancelled before submission. Once submission starts, the controls stay locked until it succeeds or produces a recoverable error; leaving the view still aborts its browser request. Host capture waiting is also bounded, and a timeout is reported as a retryable snapshot-submission failure.
 
+## Recover historical Merge Sessions
+
+DSH `0.1.5-alpha.1` rejects the historical `session-graph-merge` message source during V0/V1/V2 log migration, preventing the affected Session body from loading. New Merges use the standard `plugin` source. Upgrading the plugin does not automatically repair existing files.
+
+After installing dependencies in this checkout, run the recovery tool on an explicitly selected historical file. The first command validates only; the second creates a separate V3 artifact in an existing output directory:
+
+```sh
+node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd
+node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --output /separate/recovered/session.v3.jsonl.zstd
+```
+
+The tool supports plain JSONL, `.zst`, and `.zstd`. It converts only recognized legacy plugin markers, runs the official complete DSH format migration, and validates the current-format output. The source remains unchanged and existing outputs are never overwritten. Input and decompressed data default to a 128 MiB limit, configurable with `--max-bytes`; unknown fields, corrupt data, and truncated lines are rejected. Use normal DSH reading/migration for V3 logs or Sessions without a legacy marker.
+
+To let the Host use a recovered artifact, stop DSH first, then place the validated file as `session.v3.jsonl` or `session.v3.jsonl.zstd` in **that Session's original directory**, preserving the source. If a V3 file already exists, investigate the conflict before proceeding. The tool generates files without scanning or replacing live Sessions. The installed package also exposes `dsh-session-graph-migrate`.
+
 ## Generate a Session Digest
 
 Select any non-blank Canvas Session and choose **Generate digest** in the Session Inspector. Generation is never automatic and never blocks **Open session** or **New branch**.
@@ -172,7 +190,7 @@ Most sessions need no configuration because their logs record the model route. F
 | Symptom | Check first |
 |---|---|
 | **Graph** tab is missing | Restart `dsh web`, open a non-blank Session, and verify the package appears in `dsh --profile web --dump-config` |
-| Host startup fails around a Remote error export | Install `v0.1.5` or newer and confirm the resolved profile is not retaining an older package version |
+| Host startup fails around a Remote error export | Install the plugin matching DSH in the compatibility table and check the resolved profile version |
 | GitHub source install reports `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | Inspect the pinned source, add the exact key printed by dsh to that profile's `allowBuilds`, and retry |
 | Digest generation reports no model route | Use a Session with a logged route or configure the `provider` and `model` fallback pair |
 | The Web URL rejects access | Open the complete authenticated URL printed by `dsh web`; do not reuse or share a stripped token |
@@ -191,17 +209,21 @@ pnpm run check
 `pnpm run check` type-checks the standalone package, builds the Host and browser entries, and runs the package-owned test suite. To run the Host and full-interaction integration suite against a prepared DeepSeek Harness checkout:
 
 ```sh
-DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm test:harness
+pnpm --dir /path/to/deepseek-harness run build:native-system
+pnpm --dir /path/to/deepseek-harness run build:lib
+DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 ```
 
 Read [`CONTEXT.md`](CONTEXT.md) for the domain model and [`docs/adr/`](docs/adr/) for durable design decisions before changing Session, Merge, Digest, or persistence behavior. Setup or behavior changes must update both this file and [`README.zh.md`](README.zh.md). Start user-visible work from a [GitHub issue](https://github.com/benz-ai-x/dsh-session-graph/issues).
 
-CI runs the standalone check on Node.js 22.19, 24, and 26. Its compatibility matrix checks out `deepseek-ai/deepseek-harness` at `dsh-v0.1.2-alpha.1`, `dsh-v0.1.2-alpha.2`, and `dsh-v0.1.2-alpha.3`, runs the Harness integration suite, and verifies that the packed archive enters and leaves a scratch `web` profile cleanly.
+`check:harness` requires matching Host and plugin versions. It checks both source and published declarations for Host and Client against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<version>` from `package.json`. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest behavior, then removes the plugin. Only model transport uses fixed responses.
 
 Build an installable archive with:
 
 ```sh
-pnpm pack
+pnpm pack --pack-destination .artifacts
+pnpm --dir /path/to/deepseek-harness run build:web
+DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 ```
 
 Local builds derive a stable `local-<hash>` Build ID from `package.json`, `tsdown.config.ts`, and `src/`. Release automation can replace it by setting `DSH_SESSION_GRAPH_BUILD_ID` while building.
@@ -212,7 +234,7 @@ The [Publish workflow](.github/workflows/publish.yml) accepts a published GitHub
 
 The package uses an [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/) for organization `benz-ai-x`, repository `dsh-session-graph`, workflow `publish.yml`, environment `npm-publish`, and the `npm publish` action. The workflow authenticates with GitHub OIDC and must not receive a long-lived `NPM_TOKEN`; keep the GitHub environment as the deployment boundary. When bootstrapping a different package or scope, use a narrowly scoped, short-lived token only for the first publication, configure trusted publishing immediately, and then revoke the token.
 
-Every GitHub Release must first update `package.json`. Build and verify that the Graph header badge shows the same version, merge the change, create the matching immutable `v<version>` tag, and then publish the Release. To publish an existing tag such as `v0.1.2`, run the Publish workflow manually and pass that tag.
+For every adaptation release, set `package.json.version` and direct DSH dependencies to the full target DSH version. The plugin tag is `v<version>` and the upstream tag is `dsh-v<version>`. `check-version.mjs` rejects mismatched dependencies or release tags; `check:harness` rejects a mismatched Host version. Before release, pass `pnpm run check`, `check:harness`, and packed-profile acceptance, verify the Graph badge reads the same version, then merge and create the immutable tag and Release. Use Build IDs for local iterations against the same DSH version; never overwrite published versions or rename historical tags.
 
 The package exports two Node-facing entries and one lazy browser module. Every JavaScript entry ships a matching TypeScript declaration in the packed archive:
 

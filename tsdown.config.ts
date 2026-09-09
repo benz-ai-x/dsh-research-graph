@@ -148,6 +148,19 @@ export default defineConfig([
   { ...nodeEntry('src/index.ts'), clean: true },
   nodeEntry('src/invariant.ts'),
   {
+    name: `${PACKAGE_NAME}/history-recovery`,
+    entry: ['scripts/migrate-merge-history.mjs'],
+    outDir: 'lib',
+    format: 'esm',
+    platform: 'node',
+    target: 'es2024',
+    fixedExtension: false,
+    dts: false,
+    clean: false,
+    // Recovery must run before the Host can boot or provide any of its peer packages.
+    deps: { alwaysBundle: () => true, onlyBundle: false },
+  },
+  {
     name: `${PACKAGE_NAME}/client`,
     entry: { client: 'src/client/index.ts' },
     outDir: 'lib',
@@ -192,5 +205,8 @@ export default defineConfig([
     target: 'es2024',
     dts: { emitDtsOnly: true },
     clean: false,
+    deps: {
+      neverBundle: (specifier: string) => specifier.startsWith('@deepseek-ai/'),
+    },
   },
 ])

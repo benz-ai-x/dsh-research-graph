@@ -22,6 +22,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply } from '../src/index.ts'
 import { sessionMergeDependenciesFromHarness } from '../src/session-merge-harness.ts'
+import { sessionMergeMarkerOfEvent } from '../src/session-merge-projection.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
@@ -62,7 +63,6 @@ describe('Session Graph Host integration', () => {
     }, { backend: 'json' })
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    ctx.provide('sessionPersistence', { inspect: async () => ({ meta: {}, events: [] }) })
     ctx.provide('llm', { async *stream() {} })
     await apply(ctx)
     await new Promise(resolve => setImmediate(resolve))
@@ -97,7 +97,7 @@ describe('Session Graph Host integration', () => {
       events,
     }))
     const calls: Readonly<Record<string, unknown>>[] = []
-    ctx.provide('sessionPersistence', { inspect })
+    ctx.provide('sessionController', { inspect })
     ctx.provide('llm', {
       async *stream(options: Readonly<Record<string, unknown>>) {
         calls.push(options)
@@ -135,7 +135,6 @@ describe('Session Graph Host integration', () => {
     expect(calls[0]).toMatchObject({
       provider: 'session-provider',
       model: 'session-model',
-      purpose: 'session-graph-summary',
       maxTokens: 800,
     })
     expect(calls[0]).not.toHaveProperty('tools')
@@ -154,7 +153,7 @@ describe('Session Graph Host integration', () => {
     let releaseModel: (() => void) | undefined
     const modelBarrier = new Promise<void>((resolve) => { releaseModel = resolve })
     let modelSignal: AbortSignal | undefined
-    ctx.provide('sessionPersistence', {
+    ctx.provide('sessionController', {
       inspect: async (sessionId: SessionId) => ({
         meta: { id: sessionId },
         events: [{
@@ -215,7 +214,6 @@ describe('Session Graph Host integration', () => {
     contexts.push(ctx)
     await ctx.plugin(SessionStore)
     await ctx.plugin(SessionProjectionRegistry)
-    ctx.provide('sessionPersistence', { inspect: async () => ({ meta: {}, events: [] }) })
     ctx.provide('llm', { async *stream() {} })
 
     await apply(ctx)
@@ -285,16 +283,16 @@ describe('Session Graph Host integration', () => {
       content: [{ type: 'text', text: 'snapshots' }],
     } as never, { surfaceOp: 'append' })
     const header = structuredClone(target.header)
-    const events = structuredClone(target.events)
+    const events = structuredClone(target.snapshotEvents())
     await first.sessionProjectionCache.write(target)
-    expect(first.sessionProjectionCache.cachedSnapshot(header)?.values.sessionGraphMerge)
+    expect(first.sessionProjectionCache.cachedSnapshot(header, target.inheritedEventCount)?.values.sessionGraphMerge)
       .toMatchObject({ operationId: 'operation-1', contextEventSeq: 2 })
 
     await first.fiber.dispose()
     contexts.splice(contexts.indexOf(first), 1)
 
     const restarted = await durableContext(root)
-    expect(restarted.sessionProjectionCache.cachedSnapshot(header)?.values.sessionGraphMerge)
+    expect(restarted.sessionProjectionCache.cachedSnapshot(header, target.inheritedEventCount)?.values.sessionGraphMerge)
       .toEqual({
         operationId: 'operation-1',
         contextEventSeq: 2,
@@ -303,7 +301,7 @@ describe('Session Graph Host integration', () => {
           { sessionId: 'source-b', capturedThroughSeq: 4 },
         ],
       })
-    expect(restarted.sessionProjectionCache.coldSnapshot(header, events).values.sessionGraphMerge)
+    expect(restarted.sessionProjectionCache.coldSnapshot(header, target.inheritedEventCount, events).values.sessionGraphMerge)
       .toEqual({
         operationId: 'operation-1',
         contextEventSeq: 2,
@@ -327,7 +325,7 @@ describe('Session Graph Host integration', () => {
       ],
     }
     let projection: typeof capture | null = null
-    const targetSession = { header: { cwd: '/workspace' }, events: [] }
+    const targetSession = { header: { cwd: '/workspace' }, snapshotEvents: () => [] }
     const agent = {
       id: id('target-session'),
       session: targetSession,
@@ -340,7 +338,6 @@ describe('Session Graph Host integration', () => {
       },
     }
     const write = vi.fn(async () => {})
-    ctx.provide('sessionPersistence', { inspect: async () => ({ meta: {}, events: [] }) })
     ctx.provide('llm', { async *stream() {} })
     ctx.provide('sessionController', {
       resolveAgent: async () => ({ agent }),
@@ -386,11 +383,14 @@ describe('Session Graph Host integration', () => {
     expect(queued[0]).toMatchObject({
       role: 'user',
       source: {
-        kind: 'session-graph-merge',
-        version: 1,
-        operationId: 'operation-1',
-        sourceIds: ['source-a', 'source-b'],
+        kind: 'plugin',
+        plugin: 'dsh-session-graph',
+        form: 'notice',
+        summary: 'Session Merge source snapshot request.',
       },
+    })
+    expect(sessionMergeMarkerOfEvent({ type: 'user/message', data: queued[0] })).toEqual({
+      operationId: 'operation-1', sourceIds: ['source-a', 'source-b'],
     })
     expect(queued[1]).toMatchObject({
       role: 'user',
@@ -415,8 +415,8 @@ describe('Session Graph Host integration', () => {
       ],
     }
     let projection: typeof capture | null = null
-    const targetSession = { header: { cwd: '/workspace' }, events: [] }
-    const waitingTargetSession = { header: { cwd: '/workspace' }, events: [] }
+    const targetSession = { header: { cwd: '/workspace' }, snapshotEvents: () => [] }
+    const waitingTargetSession = { header: { cwd: '/workspace' }, snapshotEvents: () => [] }
     const agent = {
       id: id('target-session'),
       session: targetSession,
@@ -436,7 +436,6 @@ describe('Session Graph Host integration', () => {
     const commitStarted = new Promise<void>((resolve) => { startCommit = resolve })
     let releaseCommit: (() => void) | undefined
     const commitBarrier = new Promise<void>((resolve) => { releaseCommit = resolve })
-    ctx.provide('sessionPersistence', { inspect: async () => ({ meta: {}, events: [] }) })
     ctx.provide('llm', { async *stream() {} })
     ctx.provide('sessionController', {
       resolveAgent: async (sessionId: SessionId) => ({
@@ -564,7 +563,7 @@ describe('Session Graph Host integration', () => {
       events: [],
       handle: {
         id: id('target-session'),
-        session: { header: { cwd: '/workspace' }, events: [] },
+        session: { header: { cwd: '/workspace' }, snapshotEvents: () => [] },
         inject: () => {},
         steer: () => {},
       },
@@ -588,7 +587,7 @@ describe('Session Graph Host integration', () => {
         cwd: '/workspace',
         parentSession: id('parent-session'),
       },
-      events: [{ type: 'turn/start', data: { turn: 1 } }],
+      snapshotEvents: () => [{ type: 'turn/start', data: { turn: 1 } }],
     }
     const agent = {
       id: id('target-session'),
@@ -612,7 +611,7 @@ describe('Session Graph Host integration', () => {
       cwd: '/workspace',
       parentSessionId: 'parent-session',
       archived: false,
-      events: targetSession.events,
+      events: targetSession.snapshotEvents(),
     })
     expect(target.handle).toBe(agent)
   })
@@ -635,7 +634,7 @@ describe('Session Graph Host integration', () => {
       events: [],
       handle: {
         id: id('target-session'),
-        session: { header: { cwd: '/workspace' }, events: [] },
+        session: { header: { cwd: '/workspace' }, snapshotEvents: () => [] },
         inject: () => {},
         steer: () => {},
       },

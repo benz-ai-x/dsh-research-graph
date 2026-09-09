@@ -37,7 +37,7 @@ Branch 连接的 Canvas Session 组成可移动会话簇，Merge Session 保留�
 ## 快速开始
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1
 dsh web
 ```
 
@@ -47,10 +47,13 @@ dsh web
 
 | Session Graph | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
+| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 
-运行 Harness `0.1.2-alpha.3` 时请使用当前 npm 版本；更早的不可变 tag 不在当前兼容矩阵内。`v0.1.6` 无运行时变更：`0.1.2-alpha.3` 审计只发现增量式 API 演进，本版本通过 CI 与多 alpha 集成台架扩展验证矩阵。
+从当前适配开始，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-alpha.1` 对应插件 `0.1.5-alpha.1`。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
+
+本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
 ## 核心能力
 
@@ -75,7 +78,7 @@ dsh web
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -90,7 +93,7 @@ dsh --profile web --dump-config
 <summary>从固定 GitHub tag 安装源码</summary>
 
 ```sh
-dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5
+dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5-alpha.1
 ```
 
 profile 显式授权前，pnpm 会阻止 git 依赖执行 `prepare` 脚本。首次 GitHub 安装会以 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` 退出；把 dsh 打印的完整键复制到 `$DSH_HOME/profiles/web/pnpm-workspace.yaml` 的 `allowBuilds` 下，再次执行命令。这项权限允许包代码在 agent 沙箱之外执行，因此应先检查源码，并继续锁定该 tag 或 commit。
@@ -107,7 +110,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
 
-插件不会把受支持 Harness checkout 中尚未单独发布的 `@deepseek-ai/*` 包安装进自己的依赖树；Session 持久化、LLM、Remote 与浏览器运行时服务统一由所选 dsh profile 持有。
+Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到插件版本。
 
 ## 使用图谱
 
@@ -141,6 +144,21 @@ dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
 
 提交前可以取消来源选择。提交开始后，控件会锁定到成功或产生可恢复错误为止；离开该视图仍会中止浏览器请求。Host 等待快照也有时间上限，超时会作为可重试的快照提交失败呈现。
 
+## 恢复旧版 Merge 会话
+
+旧插件写入的 `session-graph-merge` 消息来源会被 DSH `0.1.5-alpha.1` 的 V0/V1/V2 日志迁移拒绝，导致该会话正文无法读取。新 Merge 使用宿主标准 `plugin` 来源，升级插件不会自动修复已有文件。
+
+在本仓库安装依赖后，对明确选定的历史文件运行恢复工具。第一条仅校验，第二条在已存在的输出目录生成独立 V3 文件：
+
+```sh
+node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd
+node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --output /separate/recovered/session.v3.jsonl.zstd
+```
+
+工具支持明文 JSONL、`.zst` 和 `.zstd`；仅转换本插件可识别的旧标记，并通过 DSH 官方完整格式迁移及当前格式校验。原文件保持不变，已有输出文件不会被覆盖。默认输入及解压后数据上限为 128 MiB，可用 `--max-bytes` 调整；无法识别的字段、损坏或截断数据会被拒绝。已是 V3 或没有旧标记的会话应使用 DSH 正常读取/迁移流程。
+
+若要让宿主使用恢复文件，先停止 DSH，再将验证后的文件以 `session.v3.jsonl` 或 `session.v3.jsonl.zstd` 放入**该会话原有目录**并保留原文件；若已有 V3 文件，先核查冲突，不能直接覆盖。工具只生成文件，不扫描或替换真实会话。安装包也提供同名命令 `dsh-session-graph-migrate`。
+
 ## 生成会话摘要
 
 选择任意非空 Canvas Session，在 Session Inspector（会话检查器）中点击“生成摘要”。摘要绝不会自动生成，生成期间也不会禁用“打开会话”或“开新分支”。
@@ -172,7 +190,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
 | 现象 | 首先检查 |
 |---|---|
 | 找不到 **Graph** 标签 | 重启 `dsh web`，打开非空 Session，并确认 `dsh --profile web --dump-config` 中存在本包 |
-| Host 在 Remote error 导出附近启动失败 | 安装 `v0.1.5` 或更高版本，并确认解析后的 profile 没有保留旧包版本 |
+| Host 在 Remote error 导出附近启动失败 | 按兼容表安装与 DSH 匹配的插件，并确认解析后的 profile 没有保留旧包版本 |
 | GitHub 源码安装报告 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | 检查固定版本源码，把 dsh 打印的完整键加入该 profile 的 `allowBuilds`，然后重试 |
 | 生成摘要时报告没有模型路由 | 使用日志中带路由的 Session，或配置 `provider` 与 `model` 兜底字段对 |
 | Web URL 拒绝访问 | 打开 `dsh web` 打印的完整认证 URL；不要复用或分享被截掉 token 的地址 |
@@ -191,17 +209,21 @@ pnpm run check
 `pnpm run check` 会检查独立包的类型、构建 Host 与浏览器入口，并运行包内测试套件。若要对已准备好的 DeepSeek Harness checkout 运行 Host 与完整交互集成测试套件：
 
 ```sh
-DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm test:harness
+pnpm --dir /path/to/deepseek-harness run build:native-system
+pnpm --dir /path/to/deepseek-harness run build:lib
+DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 ```
 
 修改 Session、Merge、Digest 或持久化行为前，请先阅读 [`CONTEXT.md`](CONTEXT.md) 的领域模型与 [`docs/adr/`](docs/adr/) 的持久设计决策。安装方式或产品行为变化时必须同时更新本文与 [`README.md`](README.md)。面向用户的工作应从 [GitHub Issue](https://github.com/benz-ai-x/dsh-session-graph/issues) 开始。
 
-CI 会在 Node.js 22.19、24 与 26 上运行独立检查。兼容性矩阵会分别在 `dsh-v0.1.2-alpha.1`、`dsh-v0.1.2-alpha.2` 与 `dsh-v0.1.2-alpha.3` 检出 `deepseek-ai/deepseek-harness`，运行 Harness 集成测试，并验证打包归档能够干净地加入和移出临时 `web` profile。
+`check:harness` 要求宿主与插件版本相同。它用该 checkout 构建的真实公开声明检查 Host/Client 源码及打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并从 `package.json` 自动选择 `dsh-v<version>`。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化与 Digest 只读行为，再移除插件；仅模型传输使用固定响应。
 
 使用以下命令构建可安装归档：
 
 ```sh
-pnpm pack
+pnpm pack --pack-destination .artifacts
+pnpm --dir /path/to/deepseek-harness run build:web
+DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 ```
 
 本地构建会根据 `package.json`、`tsdown.config.ts` 与 `src/` 内容生成稳定的 `local-<hash>` Build ID；发布流水线可在构建时设置 `DSH_SESSION_GRAPH_BUILD_ID` 来替换它。
@@ -212,7 +234,7 @@ pnpm pack
 
 本包使用 [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/)：organization 为 `benz-ai-x`、repository 为 `dsh-session-graph`、workflow 为 `publish.yml`、environment 为 `npm-publish`，仅允许 `npm publish` action。工作流通过 GitHub OIDC 认证，不应再接收长期 `NPM_TOKEN`；保留 GitHub environment 作为发布边界。若为其他包名或 scope 做首次发布，只在首次引导时使用权限范围尽量小、有效期尽量短的令牌，随后立即配置 trusted publishing 并吊销该令牌。
 
-每次发布 GitHub Release 前都必须先更新 `package.json`，构建并确认 Graph 页头徽标显示相同版本，再合入变更、创建匹配且不可移动的 `v<version>` tag，最后发布 Release。若要发布 `v0.1.2` 这类现有 tag，请手工运行 Publish workflow 并传入该 tag。
+每次适配发布都必须把 `package.json.version` 及直接引用的 DSH 依赖更新为目标 DSH 的完整版本；插件 tag 为 `v<version>`，上游 tag 为 `dsh-v<version>`。`check-version.mjs` 会拒绝依赖或发布 tag 不一致，`check:harness` 会拒绝宿主版本不一致。发布前完成 `pnpm run check`、`check:harness` 和打包 profile 验收，并确认 Graph 页头徽标读取同一版本，再合入变更、创建不可移动的 tag 和 Release。相同 DSH 版本下的本地迭代使用 Build ID 区分，不覆盖已发布版本或重命名历史标签。
 
 本包导出两个 Node 侧入口和一个惰性加载的浏览器模块；实际打包归档中的每个 JavaScript 入口都带有匹配的 TypeScript 声明：
 

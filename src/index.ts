@@ -1,6 +1,8 @@
 /** Host loader entry for Session Graph, Session Digest, and durable Session Merge. */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-session-controller'
+import type {} from '@deepseek-ai/dsh-session-projection'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
 import * as TypertProtocol from '@deepseek-ai/dsh-typert-protocol'
@@ -34,10 +36,17 @@ import { createSessionMergeHarnessModule } from './session-merge-harness.ts'
 import type { SessionMergeSubmission } from './session-merge.ts'
 import type { SessionMergeProjection } from './session-merge-projection.ts'
 
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    sessionGraphDigest: SessionGraphDigestService
+    sessionGraphMerge: SessionGraphMergeService
+  }
+}
+
 export { Config, resolveConfig } from './config.ts'
 
 /** Eager Host services required by the read-only digest capability. */
-export const inject = ['sessionPersistence', 'llm']
+export const inject = ['sessionController', 'llm']
 
 interface RemoteFailurePayload {
   readonly code: string
@@ -124,7 +133,6 @@ async function callDigestModel(
     system: DIGEST_SYSTEM_PROMPT,
     maxTokens: config.maxOutputTokens,
     sessionId: request.sessionId as SessionId,
-    purpose: 'session-graph-summary',
     signal: callSignal,
   })) {
     callSignal.throwIfAborted()
@@ -189,7 +197,7 @@ export class SessionGraphDigestService extends TypertRemoteService implements Qu
     super(ctx, 'sessionGraphDigest')
     this.digests = createSessionDigestModule({
       inspect: async (sessionId, signal) => {
-        const source = await ctx.sessionPersistence.inspect(sessionId as SessionId, signal)
+        const source = await ctx.sessionController.inspect(sessionId as SessionId, signal)
         return sessionDigestInspectionFromHarness(source, config.route)
       },
       generate: async (request, signal) => await callDigestModel(ctx, config, request, signal),
