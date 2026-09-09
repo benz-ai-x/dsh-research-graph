@@ -18,6 +18,7 @@ import type {
   WorkspaceSnapshot, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { TypertRemoteMap } from '@deepseek-ai/dsh-typert-protocol'
 import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -127,6 +128,10 @@ async function bench(byId: Record<string, SessionSummary>) {
     ok: true as const,
     value: { kind: 'empty' as const },
   }))
+  const readHistory = vi.fn<TypertRemoteMap['sessionGraphHistory/read']>(async request => ({
+    ok: true,
+    value: { kind: 'original', sessionId: request.sessionId, turns: [], hasEarlier: false, hasLater: false },
+  }))
   const submitMerge = vi.fn(async (request: {
     readonly operationId: string
     readonly sourceIds: readonly SessionId[]
@@ -168,13 +173,14 @@ async function bench(byId: Record<string, SessionSummary>) {
   // root Remote stub.
   ctx.provide('remote.sessionGraphDigest', { generate: generateDigest } as never)
   ctx.provide('remote.sessionGraphMerge', { submit: submitMerge } as never)
+  ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber
   return {
-    ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge,
+    ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory,
   }
 }
 
@@ -1313,6 +1319,258 @@ describe('reset and minimap', () => {
 })
 
 describe('node selection, double-click, and keyboard navigation', () => {
+  it('keeps the existing selection when a refresh skips discussion turns that have not been loaded', async () => {
+    const b = await bench(FIXTURE)
+    const page = (number: number) => ({ ok: true, value: {
+      kind: 'original', sessionId: 'root', hasEarlier: number > 1, hasLater: false,
+      turns: [{
+        turn: number, startSeq: (number - 1) * 6, endSeq: number * 6 - 1,
+        startedAt: 1000, messages: [{ role: 'user', seq: (number - 1) * 6 + 2, text: `Discussion ${number}` }],
+      }],
+    } })
+    b.readHistory.mockResolvedValueOnce(page(1) as never)
+    b.readHistory.mockResolvedValueOnce(page(3) as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('Discussion 1')
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '刷新原文' }))
+    await screen.findByText('Discussion 3')
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择第 3 轮' }))
+    expect(screen.getByText('已选择第 1–1 轮')).toBeTruthy()
+    expect(screen.getByRole('status').textContent).toContain('中间还有未加载或未完成的轮次')
+    expect((screen.getByRole('checkbox', { name: '选择第 3 轮' }) as HTMLInputElement).checked).toBe(false)
+  })
+
+  it('switches Inspector tabs with the keyboard without moving the Selected Session', async () => {
+    const b = await bench(FIXTURE)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    const digest = screen.getByRole('tab', { name: '会话摘要' })
+    digest.focus()
+    fireEvent.keyDown(digest, { key: 'ArrowRight' })
+    const original = screen.getByRole('tab', { name: '原文' })
+    expect(original.getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(original)
+    expect(nodeButton('root').getAttribute('aria-selected')).toBe('true')
+    fireEvent.keyDown(original, { key: 'Home' })
+    expect(digest.getAttribute('aria-selected')).toBe('true')
+    expect(document.activeElement).toBe(digest)
+  })
+
+  it('refreshes an unfinished discussion so its completed original becomes selectable', async () => {
+    const b = await bench(FIXTURE)
+    const page = (endSeq: number | null) => ({ ok: true, value: { kind: 'original', sessionId: 'root', hasEarlier: false, hasLater: false,
+      turns: [{ turn: 1, startSeq: 0, endSeq, startedAt: 1000,
+        messages: endSeq === null ? [] : [{ role: 'user', seq: 2, text: 'A discussion in progress' }],
+      }],
+    } })
+    b.readHistory.mockResolvedValueOnce(page(null) as never)
+    b.readHistory.mockResolvedValueOnce(page(5) as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('尚未完成，不可选作固定来源')
+    expect((screen.getByRole('checkbox', { name: '选择第 1 轮' }) as HTMLInputElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '刷新原文' }))
+    await waitFor(() => expect((screen.getByRole('checkbox', { name: '选择第 1 轮' }) as HTMLInputElement).disabled).toBe(false))
+    expect(screen.queryByText('尚未完成，不可选作固定来源')).toBeNull()
+  })
+
+  it('keeps every completed turn when a selected discussion range crosses a loaded page boundary', async () => {
+    const b = await bench(FIXTURE)
+    const turns = [
+      { turn: 1, startSeq: 0, endSeq: 5, startedAt: 1000, messages: [{ role: 'user', seq: 2, text: 'One' }] },
+      { turn: 2, startSeq: 6, endSeq: 11, startedAt: 2000, messages: [{ role: 'user', seq: 8, text: 'Two' }] },
+      { turn: 3, startSeq: 12, endSeq: 17, startedAt: 3000, messages: [{ role: 'user', seq: 14, text: 'Three' }] },
+    ]
+    const page = (items: typeof turns, hasEarlier: boolean, hasLater: boolean) => ({ ok: true, value: { kind: 'original', sessionId: 'root', turns: items, hasEarlier, hasLater } })
+    b.readHistory.mockResolvedValueOnce(page(turns.slice(1), true, false) as never)
+    b.readHistory.mockResolvedValueOnce(page(turns.slice(0, 1), false, true) as never)
+    b.readHistory.mockResolvedValueOnce(page(turns, false, false) as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('Three')
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择第 3 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '加载更早的讨论' }))
+    await screen.findByText('One')
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择第 1 轮' }))
+    expect(screen.getByText('已选择第 1–3 轮')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '复核所选原文' }))
+    await waitFor(() => expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'root', source: { startSeq: 0, endSeq: 17, turns } }, expect.any(AbortSignal)))
+    expect(await screen.findByText('Two')).toBeTruthy()
+  })
+
+  it.each(['cancel', 'close', 'switch'] as const)('abandons a discussion read on %s and ignores its late reply after a newer read', async action => {
+    const b = await bench(FIXTURE)
+    const pending = deferred<Awaited<ReturnType<typeof b.readHistory>>>()
+    const reply = (sessionId: string, text: string) => ({ ok: true, value: {
+      kind: 'original', sessionId, hasEarlier: false, hasLater: false,
+      turns: [{ turn: 1, startSeq: 0, endSeq: 5, startedAt: 1000, messages: [{ role: 'user', seq: 2, text }] }],
+    } })
+    b.readHistory.mockReturnValueOnce(pending.promise)
+    b.readHistory.mockResolvedValueOnce(reply(action === 'switch' ? 'branchChild' : 'root', 'Newer discussion') as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    const signal = b.readHistory.mock.calls[0]![1] as AbortSignal
+    if (action === 'cancel') {
+      fireEvent.click(screen.getByRole('button', { name: '取消读取' }))
+      expect(screen.getByText('已取消读取')).toBeTruthy()
+      fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+    } else if (action === 'close') {
+      fireEvent.click(screen.getByRole('button', { name: '关闭会话详情' }))
+      expect(screen.queryByRole('region', { name: '讨论原文' })).toBeNull()
+      fireEvent.click(nodeButton('root'))
+    } else fireEvent.click(nodeButton('branchChild'))
+    expect(signal.aborted).toBe(true)
+    expect(await screen.findByText('Newer discussion')).toBeTruthy()
+    await act(async () => {
+      pending.resolve(reply('root', 'Obsolete late discussion') as never)
+      await pending.promise
+    })
+    expect(screen.queryByText('Obsolete late discussion')).toBeNull()
+    expect(screen.getByText('Newer discussion')).toBeTruthy()
+  })
+
+  it('labels a retained selection as excerpt-only when its original disappears and can retry that exact source', async () => {
+    const b = await bench(FIXTURE)
+    const turns = [{ turn: 1, startSeq: 0, endSeq: 5, startedAt: 1000,
+      messages: [{ role: 'user', seq: 2, text: 'Keep this evidence.' }],
+    }]
+    const original = { ok: true, value: { kind: 'original', sessionId: 'root', hasEarlier: false, hasLater: false, turns } }
+    b.readHistory.mockResolvedValueOnce(original as never)
+    b.readHistory.mockResolvedValueOnce({ ...original, value: { ...original.value, kind: 'excerpt' } } as never)
+    b.readHistory.mockResolvedValueOnce(original as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('Keep this evidence.')
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '复核所选原文' }))
+    expect(await screen.findByText('仅存摘录')).toBeTruthy()
+    expect(screen.getByText('Keep this evidence.')).toBeTruthy()
+    expect(screen.getByRole('region', { name: '讨论原文' }).textContent).toContain('事件 0–5')
+    expect((screen.getByRole('checkbox', { name: '选择第 1 轮' }) as HTMLInputElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+    await waitFor(() => expect(screen.queryByText('仅存摘录')).toBeNull())
+    expect((screen.getByRole('checkbox', { name: '选择第 1 轮' }) as HTMLInputElement).disabled).toBe(false)
+    expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'root', source: { startSeq: 0, endSeq: 5, turns } }, expect.any(AbortSignal))
+  })
+
+  it('offers retry for an unreadable discussion and distinguishes an empty original', async () => {
+    const b = await bench(FIXTURE)
+    b.readHistory.mockResolvedValueOnce({ ok: false, error: { code: 'offline', message: 'Host disconnected' } } as never)
+    b.readHistory.mockResolvedValueOnce({ ok: true, value: { kind: 'unavailable', sessionId: 'root', turns: [], hasEarlier: false, hasLater: false } } as never)
+    b.readHistory.mockResolvedValueOnce({ ok: true, value: { kind: 'original', sessionId: 'root', turns: [], hasEarlier: false, hasLater: false } } as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('读取失败')
+    fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+    expect(await screen.findByText('来源不可用')).toBeTruthy()
+    expect(screen.getByRole('region', { name: '讨论原文' }).textContent).toContain('root')
+    fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+    expect(await screen.findByText('此会话暂无讨论轮次')).toBeTruthy()
+    expect(screen.queryByText('来源不可用')).toBeNull()
+  })
+
+  it('selects a continuous completed discussion range while the unfinished turn remains ineligible', async () => {
+    const b = await bench(FIXTURE)
+    const turns = [
+      { turn: 1, startSeq: 0, endSeq: 5, startedAt: 1000, messages: [{ role: 'user', seq: 2, text: 'First turn' }] },
+      { turn: 2, startSeq: 6, endSeq: 11, startedAt: 2000, messages: [{ role: 'user', seq: 8, text: 'Second turn' }] },
+      { turn: 3, startSeq: 12, endSeq: 17, startedAt: 3000, messages: [{ role: 'user', seq: 14, text: 'Third turn' }] },
+      { turn: 4, startSeq: 18, endSeq: null, startedAt: 4000, messages: [] },
+    ]
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'root', hasEarlier: false, hasLater: false, turns } } as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('First turn')
+    const choice = (turn: number) => screen.getByRole('checkbox', { name: `选择第 ${turn} 轮` }) as HTMLInputElement
+    fireEvent.click(choice(1))
+    expect(choice(1).checked).toBe(true)
+    fireEvent.click(choice(3))
+    expect([choice(1).checked, choice(2).checked, choice(3).checked, choice(4).disabled]).toEqual([true, true, true, true])
+    expect(screen.getByText('尚未完成，不可选作固定来源')).toBeTruthy()
+    expect(screen.getByText('已选择第 1–3 轮')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '复核所选原文' }))
+    await waitFor(() => expect(b.readHistory).toHaveBeenLastCalledWith({
+      sessionId: 'root', source: { startSeq: 0, endSeq: 17, turns: turns.slice(0, 3) },
+    }, expect.any(AbortSignal)))
+    fireEvent.click(screen.getByRole('button', { name: '清除选择' }))
+    expect([choice(1).checked, choice(2).checked, choice(3).checked]).toEqual([false, false, false])
+    expect(b.generateDigest).not.toHaveBeenCalled()
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
+  it('pages discussion turns on demand and shows loading and earlier/later availability', async () => {
+    const b = await bench(FIXTURE)
+    const pending = deferred<Awaited<ReturnType<typeof b.readHistory>>>()
+    const turn = (number: number, startSeq: number, text: string) => ({
+      turn: number, startSeq, endSeq: startSeq + 5, startedAt: 1000,
+      messages: [{ role: 'user', seq: startSeq + 2, text }],
+    })
+    const latest = { ok: true, value: { kind: 'original', sessionId: 'root', hasEarlier: true, hasLater: false, turns: [turn(2, 6, 'Later discussion')] } }
+    b.readHistory.mockReturnValueOnce(pending.promise)
+    b.readHistory.mockResolvedValueOnce({ ok: true, value: {
+      kind: 'original', sessionId: 'root', hasEarlier: false, hasLater: true, turns: [turn(1, 0, 'Earlier discussion')],
+    } } as never)
+    b.readHistory.mockResolvedValueOnce(latest as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    expect(screen.getByRole('status').textContent).toContain('正在读取原文')
+    pending.resolve(latest as never)
+    expect(await screen.findByText('Later discussion')).toBeTruthy()
+    expect((screen.getByRole('button', { name: '加载更晚的讨论' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '加载更早的讨论' }))
+    expect(await screen.findByText('Earlier discussion')).toBeTruthy()
+    expect((screen.getByRole('button', { name: '加载更早的讨论' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '加载更晚的讨论' }))
+    expect(await screen.findByText('Later discussion')).toBeTruthy()
+    expect(b.readHistory.mock.calls.map(call => call[0])).toEqual([
+      { sessionId: 'root' }, { sessionId: 'root', beforeSeq: 6 }, { sessionId: 'root', afterSeq: 0 },
+    ])
+  })
+
+  it('reads a Selected Session completed discussion in the Inspector without navigating or generating a digest', async () => {
+    const b = await bench(FIXTURE)
+    b.readHistory.mockResolvedValueOnce({ ok: true, value: {
+      kind: 'original', sessionId: 'branchChild', hasEarlier: false, hasLater: false, turns: [{
+        turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000,
+        messages: [
+          { role: 'user', seq: 11, text: 'Why preserve the original discussion?' },
+          { role: 'assistant', seq: 13, text: 'So that a conclusion remains traceable.' },
+        ],
+      }],
+    } } as never)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('branchChild'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+
+    expect(await screen.findByText('Why preserve the original discussion?')).toBeTruthy()
+    expect(screen.getByText('So that a conclusion remains traceable.')).toBeTruthy()
+    expect(screen.getByRole('region', { name: '讨论原文' }).textContent).toContain('branchChild')
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '打开会话' }))
+    expect(b.open).toHaveBeenCalledExactlyOnceWith(id('branchChild'))
+  })
+
   it('pressing Escape clears the Selected Session and closes its inspector', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')

@@ -5,6 +5,32 @@ export const NS = 'sessionGraph'
 
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
+  | 'history.refresh'
+  | 'history.cancel'
+  | 'history.canceled'
+  | 'history.excerpt'
+  | 'history.excerptHint'
+  | 'history.error'
+  | 'history.unavailable'
+  | 'history.empty'
+  | 'history.retry'
+  | 'history.scope'
+  | 'history.selectHint'
+  | 'history.incompleteRange'
+  | 'history.selectTurn'
+  | 'history.selected'
+  | 'history.boundary'
+  | 'history.review'
+  | 'history.clear'
+  | 'history.unfinished'
+  | 'history.loading'
+  | 'history.earlier'
+  | 'history.later'
+  | 'history.tab'
+  | 'history.title'
+  | 'history.turn'
+  | 'history.user'
+  | 'history.assistant'
   | 'view.graph'
   | 'scope.workspaceCount'
   | 'scope.directoryCount'
@@ -100,6 +126,32 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh: Record<SessionGraphKey, string> = {
+  'history.refresh': '刷新原文',
+  'history.cancel': '取消读取',
+  'history.canceled': '已取消读取',
+  'history.excerpt': '仅存摘录',
+  'history.excerptHint': '原文当前无法读取，下面为本次选择时保留的摘录。',
+  'history.error': '读取失败，请重试。',
+  'history.unavailable': '来源不可用',
+  'history.empty': '此会话暂无讨论轮次',
+  'history.retry': '重试读取',
+  'history.scope': '仅展示用户和助手的讨论文本；不包含附件、工具结果或思考过程。',
+  'history.selectHint': '选择一轮，再点另一轮可选中连续范围；再次点击已选轮次可清除。',
+  'history.incompleteRange': '中间还有未加载或未完成的轮次，请先加载或刷新后再选择。',
+  'history.selectTurn': '选择第 {turn} 轮',
+  'history.selected': '已选择第 {first}–{last} 轮',
+  'history.boundary': '事件 {start}–{end}',
+  'history.review': '复核所选原文',
+  'history.clear': '清除选择',
+  'history.unfinished': '尚未完成，不可选作固定来源',
+  'history.loading': '正在读取原文…',
+  'history.earlier': '加载更早的讨论',
+  'history.later': '加载更晚的讨论',
+  'history.tab': '原文',
+  'history.title': '讨论原文',
+  'history.turn': '第 {turn} 轮',
+  'history.user': '用户',
+  'history.assistant': '助手',
   'view.graph': '图谱',
   'scope.workspaceCount': '{name} · {count} 个会话',
   'scope.directoryCount': '目录范围 · {count} 个会话',
@@ -189,6 +241,32 @@ export const zh: Record<SessionGraphKey, string> = {
 
 /** English dictionary. */
 export const en: Record<SessionGraphKey, string> = {
+  'history.refresh': 'Refresh discussion',
+  'history.cancel': 'Cancel reading',
+  'history.canceled': 'Reading canceled',
+  'history.excerpt': 'Excerpt only',
+  'history.excerptHint': 'The original is unavailable. This is the excerpt retained when you selected it.',
+  'history.error': 'Reading failed. Please retry.',
+  'history.unavailable': 'Source unavailable',
+  'history.empty': 'This Session has no discussion turns yet',
+  'history.retry': 'Retry reading',
+  'history.scope': 'User and assistant discussion text only; attachments, tool results and reasoning are excluded.',
+  'history.selectHint': 'Select a turn, then another to include the range. Select a checked turn again to clear.',
+  'history.incompleteRange': 'Some turns in this range are not loaded or completed. Load or refresh them before selecting.',
+  'history.selectTurn': 'Select turn {turn}',
+  'history.selected': 'Selected turns {first}–{last}',
+  'history.boundary': 'Events {start}–{end}',
+  'history.review': 'Check selected original',
+  'history.clear': 'Clear selection',
+  'history.unfinished': 'Unfinished; cannot be selected as a fixed source',
+  'history.loading': 'Reading discussion…',
+  'history.earlier': 'Load earlier discussion',
+  'history.later': 'Load later discussion',
+  'history.tab': 'Original',
+  'history.title': 'Discussion text',
+  'history.turn': 'Turn {turn}',
+  'history.user': 'User',
+  'history.assistant': 'Assistant',
   'view.graph': 'Graph',
   'scope.workspaceCount': '{name} · {count} sessions',
   'scope.directoryCount': 'Directory scope · {count} sessions',

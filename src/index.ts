@@ -35,11 +35,13 @@ import {
 import { createSessionMergeHarnessModule } from './session-merge-harness.ts'
 import type { SessionMergeSubmission } from './session-merge.ts'
 import type { SessionMergeProjection } from './session-merge-projection.ts'
+import { SessionGraphHistoryService } from './session-history-host.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
     sessionGraphDigest: SessionGraphDigestService
     sessionGraphMerge: SessionGraphMergeService
+    sessionGraphHistory: SessionGraphHistoryService
   }
 }
 
@@ -299,9 +301,14 @@ export class SessionGraphMergeService extends TypertRemoteService implements Qui
   }
 }
 
-/** Install the digest service, Merge projection, and deferred Merge submission service. */
+/** Install read-only History/Digest services, the Merge projection, and Merge submission. */
 export async function apply(ctx: Context, config: Config = {}): Promise<void> {
   const resolvedConfig = resolveConfig(config)
+  await provideQuiescentRemoteService(
+    ctx,
+    serviceCtx => new SessionGraphHistoryService(serviceCtx),
+    'session-graph.history-service',
+  )
   const digestReady = provideQuiescentRemoteService(
     ctx,
     serviceCtx => new SessionGraphDigestService(serviceCtx, resolvedConfig),

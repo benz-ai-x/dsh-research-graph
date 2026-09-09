@@ -26,6 +26,7 @@ import { GraphView, type GraphViewInjected } from './GraphView.tsx'
 import { NS, en, zh } from './locales.ts'
 import { SESSION_DIGEST_REMOTE } from './session-digest-remote.ts'
 import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
+import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
@@ -37,6 +38,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
   descriptors: [
     ...SESSION_DIGEST_REMOTE.descriptors,
     ...SESSION_MERGE_REMOTE.descriptors,
+    ...SESSION_HISTORY_REMOTE.descriptors,
   ],
 }
 
@@ -108,6 +110,11 @@ function registerUi(ctx: Context): void {
     locale: NS,
     label: () => t('view.graph'),
     inject: (): GraphViewInjected => ({
+      readSessionHistory: async (request, signal) => {
+        const result = await ctx.remote.sessionGraphHistory.read(request, signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value
+      },
       // Canvas Sessions exclude Subagent Sessions by construction, so
       // navigation is a plain open.
       openSession: (id: SessionId) => {
@@ -140,8 +147,8 @@ function registerUi(ctx: Context): void {
 }
 
 /**
- * Client plugin body: mount Session Digest, then register the Graph UI inside
- * a child Context that explicitly owns the new Remote namespace.
+ * Mount the Digest, Merge, and History Remotes, then register the Graph UI
+ * inside a child Context that explicitly depends on those namespaces.
  * @param ctx - client root context.
  * @returns disposer that removes the UI before unmounting its Remote.
  */
@@ -155,6 +162,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'locale',
       'remote.sessionGraphDigest',
       'remote.sessionGraphMerge',
+      'remote.sessionGraphHistory',
     ],
     registerUi,
   )

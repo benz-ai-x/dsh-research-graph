@@ -130,6 +130,18 @@ _Avoid_: Session Summary, Subagent Summary, compaction summary, generated messag
 A transient, delayed summary shown while dwelling on a Canvas Session other than the Selected Session. It never changes selection.
 _Avoid_: Inspector, tooltip
 
+**Session History**:
+The read-only user/assistant discussion text of one Selected Session, inspected on demand through Harness and presented in the Inspector's Original tab. It is neither generated nor persisted by the plugin. Its source state distinguishes available original text, a retained excerpt, and an unavailable source.
+_Avoid_: Session Digest, chat replica, stored graph
+
+**Discussion Turn**:
+A discussion unit identified by its Session and `turn/start` event sequence, with a fixed `turn/end` boundary when completed. Only completed turns expose text as selectable source material; an unfinished turn exposes status until refreshed after completion. Titles and matching text are not identities.
+_Avoid_: Message, model step, text match
+
+**Discussion Source**:
+A continuous selection of completed Discussion Turns from one Session, addressed by exact start/end event sequences and accompanied by a fallback excerpt. The Original reader retains it only in memory while open. Rechecking prefers the original; an unavailable original never turns the excerpt into verified source text.
+_Avoid_: Session Snapshot, saved knowledge card, live reference
+
 **Session Terminal**:
 A stable visual connection seat exposed above and below every Canvas Session card. The top seat is the Input Terminal and the bottom seat is the Output Terminal. Terminals are currently non-interactive and do not themselves create or change Session Lineage.
 _Avoid_: Branch, Subagent Derivation, connector node

@@ -5,7 +5,7 @@ import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphMerge', 'sessionPersistence']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphMerge', 'sessionPersistence']
 
 export function apply(ctx) {
   let calls = 0
@@ -44,6 +44,15 @@ export function apply(ctx) {
   async function verify() {
     const sourceIds = [await create('First fixture.'), await create('Second fixture.')]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
+    const callsBeforeHistory = calls
+    const history = await ctx.sessionGraphHistory.read({ sessionId: sourceIds[1] }, signal)
+    assert.equal(history.kind, 'original')
+    assert.equal(history.sessionId, sourceIds[1])
+    assert.equal(history.turns.length, 1)
+    assert.deepEqual(history.turns[0].messages.map(message => [message.role, message.text]), [
+      ['user', 'Second fixture.'], ['assistant', 'Fixture response.'],
+    ])
+    assert.equal(calls, callsBeforeHistory)
     const targetSessionId = await create()
     const merge = await ctx.sessionGraphMerge.submit({
       targetSessionId, sourceIds, operationId: 'profile-smoke', instruction: 'Compare the two fixtures.',
@@ -66,7 +75,7 @@ export function apply(ctx) {
       await reader.close()
     }
     assert.ok(calls >= 4)
-    return { ok: true, sources: sourceIds.length, durableMerge: true, readonlyDigest: true, fixtureModelCalls: calls }
+    return { ok: true, sources: sourceIds.length, durableMerge: true, readonlyDigest: true, readonlyHistory: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {

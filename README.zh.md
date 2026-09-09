@@ -62,6 +62,7 @@ dsh web
 | 可视化 Session Graph | 在同一视图查看 Branch Lineage、Merge 溯源、Session Cluster 与折叠的 Subagent 活动 |
 | 交互式画布 | 拖动、吸附、折叠、过滤、缩放、平移、适应、重新布局、重置、定位与 minimap |
 | 跨会话工作流 | 打开任意 Canvas Session、创建 Branch，并汇聚两到三个来源的不可变快照 |
+| 讨论原文 | 在 Inspector 按轮次阅读用户/助手文本，选择连续完成轮次，并复核精确来源 |
 | 只读 Session Digest | 按需生成简短概览、关键结论和待办，且不改变 Session 日志 |
 
 ### 数据与模型行为
@@ -69,6 +70,7 @@ dsh web
 | 操作 | 持久化影响 | 模型调用 |
 |---|---|---|
 | 浏览或排列 | 不改变 Session 日志；排列保存在浏览器存储中 | 无 |
+| 阅读或选择原文 | 仅在阅读面板打开期间保留选择与备用摘录；不改变 Session 日志 | 无 |
 | 生成摘要 | 仅保留按 revision 区分的 Host 内存缓存；不追加消息 | 在 Session 路由或配置的兜底路由上发起一次辅助请求 |
 | 创建分支 | 使用 Harness 的常规 Branch 操作 | 本插件不额外发起请求 |
 | 汇聚会话 | 创建独立目标和持久快照溯源；来源保持不变 | 目标会话在正常路由上处理排队指令 |
@@ -128,6 +130,20 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 - 查看页头徽标可确认包版本与当前本地 Build ID；悬停可查看完整包身份。
 
 画布获得焦点时可使用键盘快捷键：`+` 和 `-` 缩放，`0` 恢复 100%，`1` 适应图谱。
+
+## 阅读讨论原文
+
+点选 Canvas Session，在会话详情中切换到「原文」，默认展示最近十轮讨论。通过「加载更早的讨论」「加载更晚的讨论」翻到相邻页；没有对应内容时按钮禁用。方向键和 Home/End 也可切换详情标签。
+
+- 已完成轮次展示直接用户文本与助手文本，并标明角色。未完成轮次显示状态，完成后点击「刷新原文」即可选择。不包含附件、工具结果、思考过程或插件注入的上下文。
+- 勾选一轮，再勾选另一轮可选择连续范围，包括已加载的前后页。中间有缺口时，先加载缺失轮次；再次点击已选轮次或「清除选择」可清空范围。
+- 「复核所选原文」重新读取该精确范围。来源由 Session 身份和事件边界确定，重复标题、相同句子以及后续新增轮次不会改变它。原文可读时优先展示实际原文。
+- 「仅存摘录」表示暂时无法读取原文，展示本次选择时保留的文本；「来源不可用」表示原文与备用摘录均不可展示。来源身份始终可核对，可「重试读取」。可读但没有讨论的会话另有空状态。
+- 可取消读取。关闭详情、切换会话或离开原文标签会取消未完成请求，迟到响应不会覆盖新选择。阅读不会改变 Viewed Session；点击「打开会话」才进入 Harness 继续工作，该操作暂不滚动到原生聊天的指定轮次。
+
+选择和摘录仅临时保留：关闭面板、切换到摘要或其他会话、刷新页面都会清除，尚不会保存为知识卡片。阅读、选择、刷新和重试不调用模型，也不写入源会话。
+
+分页限制的是浏览器展示内容；Host 每次仍通过宿主读取单个会话的完整快照，暂不支持底层日志文件分页，因此特别大的单个会话仍可能读取较慢。
 
 ## 汇聚会话
 
@@ -216,7 +232,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 修改 Session、Merge、Digest 或持久化行为前，请先阅读 [`CONTEXT.md`](CONTEXT.md) 的领域模型与 [`docs/adr/`](docs/adr/) 的持久设计决策。安装方式或产品行为变化时必须同时更新本文与 [`README.md`](README.md)。面向用户的工作应从 [GitHub Issue](https://github.com/benz-ai-x/dsh-session-graph/issues) 开始。
 
-`check:harness` 要求宿主与插件版本相同。它用该 checkout 构建的真实公开声明检查 Host/Client 源码及打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并从 `package.json` 自动选择 `dsh-v<version>`。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化与 Digest 只读行为，再移除插件；仅模型传输使用固定响应。
+`check:harness` 要求宿主与插件版本相同。它用该 checkout 构建的真实公开声明检查 Host/Client 源码及打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并从 `package.json` 自动选择 `dsh-v<version>`。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件；仅模型传输使用固定响应。
 
 使用以下命令构建可安装归档：
 
@@ -258,6 +274,8 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 | [`src/session-digest.ts`](src/session-digest.ts) 与 [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | 事件过滤、输入预算、路由重建、输出校验、revision 缓存与并发控制 |
 | [`src/session-merge.ts`](src/session-merge.ts)、[`src/session-merge-host.ts`](src/session-merge-host.ts) 与 [`src/session-merge-harness.ts`](src/session-merge-harness.ts) | 浏览器流程、Host 校验、规范引用提交、有界捕获、幂等重试与持久性屏障 |
 | [`src/session-merge-projection.ts`](src/session-merge-projection.ts) | 版本化 Merge marker/reference 投影与严格持久状态校验 |
+| [`src/session-history-host.ts`](src/session-history-host.ts) 与 [`src/session-history-codec.ts`](src/session-history-codec.ts) | 只读讨论分页、精确事件边界与共享的严格通信校验 |
+| [`src/client/SessionHistory.tsx`](src/client/SessionHistory.tsx) | 原文阅读、完成轮次选择、来源状态与请求取消 |
 | [`src/client/session-digest-remote.ts`](src/client/session-digest-remote.ts) | 严格的浏览器 Remote 请求/结果契约 |
 | [`src/client/session-merge-remote.ts`](src/client/session-merge-remote.ts) | 严格的浏览器 Session Merge Remote 请求/结果契约 |
 | [`src/client/graph-model.ts`](src/client/graph-model.ts) | 图谱范围解析、Branch 与 Merge 边、Session Cluster 排序、Subagent Summary、Title Filter 匹配与 Branch Lineage |
