@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { DiscussionSearchHit, DiscussionSearchResult, DiscussionSearchScope } from '../session-search.ts'
@@ -38,6 +38,16 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
     setSelected(undefined)
     retryCursor.current = undefined
   }
+
+  const scopeAvailable = scope.kind === 'all' || (scope.kind === 'workspace'
+    ? workspaces.some(workspace => workspace.workspaceId === scope.workspaceId)
+    : initialScope.kind === 'directory' && initialScope.cwd === scope.cwd)
+  useLayoutEffect(() => {
+    if (scopeAvailable) return
+    invalidate()
+    setScope(initialScope.kind === 'workspace' && !workspaces.some(workspace => workspace.workspaceId === initialScope.workspaceId)
+      ? { kind: 'all' } : initialScope)
+  }, [scopeAvailable, initialScope, workspaces])
 
   const run = async (cursor?: string): Promise<void> => {
     if (query.trim() === '') return

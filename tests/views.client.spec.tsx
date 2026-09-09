@@ -201,7 +201,7 @@ function mount(
   slots: SlotRegistry,
   sessionsStore: SnapshotStore<SessionListState>,
   viewed: string,
-  workspaces: WorkspaceSnapshot = workspacesState(),
+  workspaces: WorkspaceSnapshot | SnapshotStore<WorkspaceSnapshot> = workspacesState(),
   pendingInteractions: SessionPendingInteractionSnapshot = new Map(),
 ) {
   const SID = id(viewed)
@@ -209,7 +209,7 @@ function mount(
   const useSessionPendingInteraction = bindSnapshotSelector(
     createSnapshotStore<SessionPendingInteractionSnapshot>(pendingInteractions),
   )
-  const useWorkspaces = bindSnapshotSelector(createSnapshotStore(workspaces))
+  const useWorkspaces = bindSnapshotSelector('getSnapshot' in workspaces ? workspaces : createSnapshotStore(workspaces))
   const useSession = bindSnapshotSelector(createSnapshotStore({ blank: false } as never))
   const useConversation = bindSnapshotSelector(createSnapshotStore(EMPTY_CONVERSATION_SNAPSHOT))
   const useConversationViews = bindSnapshotSelector(createSnapshotStore(tabsOf(slots)))
@@ -1321,6 +1321,42 @@ describe('reset and minimap', () => {
 })
 
 describe('discussion search through the registered Graph view', () => {
+  it('resets a deleted search Workspace and abandons its pending page and inspected original', async () => {
+    const b = await bench(FIXTURE)
+    const a = workspace('a', '/w', ['root'])
+    const workspaceStore = createSnapshotStore(workspacesState([a, workspace('b', '/b', [])]))
+    const hit = (title: string) => ({ sessionId: title, title, archived: false, eventSeq: 2, turnStartSeq: 0, time: 1000, snippet: title })
+    b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('B 资料')], nextCursor: '1f627a35-bb71-4ce5-9c56-1ca4bca83cc6:20' } })
+    let release!: () => void
+    b.searchDiscussion.mockImplementationOnce(async () => {
+      await new Promise<void>(resolve => { release = resolve })
+      return { ok: true, value: { kind: 'results', hits: [hit('B 迟到结果')] } }
+    })
+    b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('A 资料')] } })
+    mount(b.slots, b.sessionsStore, 'root', workspaceStore)
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
+    fireEvent.change(screen.getByRole('combobox', { name: '搜索范围' }), { target: { value: 'workspace:b' } })
+    fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
+    fireEvent.click(await screen.findByRole('button', { name: '查看原文：B 资料' }))
+    fireEvent.click(screen.getByRole('button', { name: '加载更多结果' }))
+    const oldSignal = b.searchDiscussion.mock.calls[1]![1]!
+    await act(async () => { workspaceStore.set(workspacesState([a])) })
+    const abandoned = oldSignal.aborted
+    await act(async () => { release() })
+    expect(abandoned).toBe(true)
+    expect(screen.queryByRole('button', { name: '查看原文：B 资料' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '查看原文：B 迟到结果' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '打开会话', exact: true })).toBeNull()
+    expect((screen.getByRole('combobox', { name: '搜索范围' }) as HTMLSelectElement).value).toBe('workspace:a')
+    expect((screen.getByRole('textbox', { name: '正文关键词' }) as HTMLInputElement).value).toBe('needle')
+    fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
+    await screen.findByRole('button', { name: '查看原文：A 资料' })
+    expect(b.searchDiscussion.mock.lastCall![0]).toEqual({ query: 'needle', scope: { kind: 'workspace', workspaceId: 'a' }, includeArchived: false })
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
   it('offers all-Host discussion search even when the Viewed Session has no graph scope', async () => {
     const b = await bench({ loose: session('loose', { cwd: undefined }) })
     mount(b.slots, b.sessionsStore, 'loose')
@@ -1330,6 +1366,22 @@ describe('discussion search through the registered Graph view', () => {
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     await screen.findByText('所选范围内没有匹配的讨论。')
     expect(b.searchDiscussion).toHaveBeenCalledWith({ query: 'needle', scope: { kind: 'all' }, includeArchived: false }, expect.any(AbortSignal))
+  })
+
+  it.each(['register', 'remove'])('keeps the visible scope and request aligned when Workspaces %s the Viewed Session scope', async action => {
+    const b = await bench({ root: session('root', { cwd: action === 'remove' ? undefined : '/w' }) })
+    const a = workspace('a', '/w', ['root'])
+    const workspaceStore = createSnapshotStore(workspacesState(action === 'remove' ? [a] : []))
+    mount(b.slots, b.sessionsStore, 'root', workspaceStore)
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
+    await act(async () => { workspaceStore.set(workspacesState(action === 'register' ? [a] : [])) })
+    const expected = action === 'register' ? { kind: 'workspace', workspaceId: 'a' } : { kind: 'all' }
+    expect((screen.getByRole('combobox', { name: '搜索范围' }) as HTMLSelectElement).value).toBe(action === 'register' ? 'workspace:a' : 'all')
+    fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
+    await screen.findByText('所选范围内没有匹配的讨论。')
+    expect(b.searchDiscussion).toHaveBeenCalledWith({ query: 'needle', scope: expected, includeArchived: false }, expect.any(AbortSignal))
   })
 
   it('keeps keyboard focus within search and restores the entry after Escape', async () => {

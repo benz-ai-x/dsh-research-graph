@@ -141,9 +141,11 @@ Choose **Search discussions** in the Graph header, enter words or a phrase, and 
 
 Results show the session title, workspace or directory, message time, and a short passage. Each session contributes its latest matching passage from completed direct user/assistant discussion, ordered newest first. Select a result to read its exact turn in the search Inspector; the matching message is marked, and earlier/later discussion remains available. Only **Open session** changes the Viewed Session; native chat scroll positioning is not implied.
 
-The search uses Harness's keyword/phrase index. Queries containing Chinese characters also check scoped originals for literal substrings, so **知识卡片** can find **通过知识卡片整理研究资料** even when the title differs. Attachments, tools, reasoning, plugin context, and unfinished discussion are excluded. The first index build and Chinese verification across many sessions can take time; cancel or narrow the scope as needed.
+The search uses Harness's keyword/phrase index, retaining its punctuation and accent matching: **foo bar** finds **foo-bar**, and **cafe** finds **café**. Queries containing Chinese characters also check scoped originals for literal substrings, so **知识卡片** can find **通过知识卡片整理研究资料** even when the title differs. Attachments, tools, reasoning, plugin context, and unfinished discussion are excluded. The first index build and Chinese verification across many sessions can take time; cancel or narrow the scope as needed.
 
 Use **Load more results** to continue the same result snapshot. Changing keywords, scope, or archive inclusion clears it and cancels pending work. A failed search or page can be retried; expired results ask you to search again. Result excerpts retain search-time text while the Inspector rechecks the original. Search does not call a model or write source sessions.
+
+If the selected Workspace disappears or a directory becomes a named Workspace while search is open, Graph cancels that search and clears its results. The scope resets to the Viewed Session's available scope, or all Host sessions when unscoped; your keywords remain for the next search.
 
 See the [discussion search browser acceptance record and screenshots](docs/reviews/pr-15-ui-acceptance.md) for Chinese matches, exact turns, archived sources, paging, retry, and cancellation.
 

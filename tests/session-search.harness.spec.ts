@@ -4,7 +4,7 @@ import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
-import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createAssistantMessage, createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import { createSessionTestController } from 'harness-session-controller-test-support'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -67,6 +67,26 @@ function addTurn(session: Session, turn: number, prompt: string, answer = 'Recor
 const request = { query: 'needle', scope: { kind: 'workspace' as const, workspaceId: 'a' }, includeArchived: false }
 
 describe('Discussion Search public Host interface', () => {
+  it.each([
+    ['foo bar', 'Discuss foo-bar settings.'],
+    ['cafe', 'Meet at café tomorrow.'],
+  ])('preserves the Harness phrase match for %s and addresses its original event', async (query, text) => {
+    const { ctx } = await searchHost()
+    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    addTurn(source, 1, text)
+    ctx.effect(() => ctx.sessions.enter(source))
+    const before = await ctx.sessionController.inspect(source.id)
+    const result = await ctx.typertGateway.invoke({
+      namespace: 'sessionGraphSearch', method: 'search',
+      args: { request: { ...request, query } }, signal: new AbortController().signal,
+    })
+    expect(result).toMatchObject({ kind: 'results', hits: [{
+      sessionId: source.id, eventSeq: 2, turnStartSeq: 0, snippet: text,
+    }] })
+    expect(await ctx.sessionController.inspect(source.id)).toEqual(before)
+    expect(ctx.llm.stream).not.toHaveBeenCalled()
+  })
+
   it('provides readable fallback labels for empty Harness session and Workspace titles', async () => {
     const { ctx, workspaces } = await searchHost()
     workspaces[0]!.title = ''
@@ -78,6 +98,48 @@ describe('Discussion Search public Host interface', () => {
       namespace: 'sessionGraphSearch', method: 'search', args: { request }, signal: new AbortController().signal,
     })
     expect(result.hits[0]).toMatchObject({ title: source.id, workspace: { id: 'a', title: '/a' } })
+  })
+
+  it('finds the latest completed direct phrase and excludes indexed tool and injected text', async () => {
+    const { ctx } = await searchHost()
+    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    addTurn(source, 1, 'An earlier cafe reference.')
+    source.append('turn/start', { turn: 2 })
+    source.append('step/start', { turn: 2, step: 1 })
+    source.append('user/message', createUserMessage({
+      source: { kind: 'plugin', plugin: 'fixture' }, content: [{ type: 'text', text: 'injected-only café' }],
+    }), { surfaceOp: 'append' })
+    source.append('assistant/message', {
+      turn: 2, step: 1, stream: [], message: createAssistantMessage({
+        source: { provider: 'fixture', model: 'fixture' }, content: [
+          { type: 'text', text: `${'Earlier context. '.repeat(40)}Meet at café tomorrow. ${'Later context. '.repeat(40)}` },
+          { type: 'tool-call', id: ToolCallId('fixture-call'), name: 'tool-payload', arguments: '{}' },
+          { type: 'reasoning', text: 'reasoning-only café' },
+        ],
+      }),
+    }, { surfaceOp: 'append' })
+    source.append('step/end', { turn: 2, step: 1 })
+    source.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+    source.append('turn/start', { turn: 3 })
+    source.append('step/start', { turn: 3, step: 1 })
+    source.append('user/message', createUserMessage({
+      source: { kind: 'user' }, content: [{ type: 'text', text: 'unfinished-only cafe cafe cafe' }],
+    }), { surfaceOp: 'append' })
+    ctx.effect(() => ctx.sessions.enter(source))
+    const before = await ctx.sessionController.inspect(source.id)
+    const search = (query: string) => ctx.typertGateway.invoke({
+      namespace: 'sessionGraphSearch', method: 'search',
+      args: { request: { ...request, query } }, signal: new AbortController().signal,
+    })
+    const result = await search('cafe')
+    expect(result).toMatchObject({ kind: 'results', hits: [{ sessionId: source.id, eventSeq: 9, turnStartSeq: 6 }] })
+    expect(result.hits[0].snippet).toContain('Meet at café tomorrow.')
+    expect(Array.from(result.hits[0].snippet).length).toBeLessThanOrEqual(242)
+    for (const query of ['tool payload', 'injected only', 'reasoning only', 'unfinished only']) {
+      expect(await search(query)).toEqual({ kind: 'results', hits: [] })
+    }
+    expect(await ctx.sessionController.inspect(source.id)).toEqual(before)
+    expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 
   it.each(['initial', 'continuation'])('rejects a %s result when archive scope changes during awaited work', async phase => {

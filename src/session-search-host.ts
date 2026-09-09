@@ -4,6 +4,7 @@ import type {} from '@deepseek-ai/dsh-session-query'
 import type {} from '@deepseek-ai/dsh-workspace'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { discussionTurns } from './session-discussion.ts'
+import { DiscussionTextMatcher } from './discussion-text-matcher.ts'
 import { discussionSearchRequestSchema } from './session-search-codec.ts'
 import type { DiscussionSearchHit, DiscussionSearchRequest, DiscussionSearchResult } from './session-search.ts'
 
@@ -23,11 +24,9 @@ function scopeFacts(ctx: Context) {
   }
 }
 
-function snippetAround(text: string, needle: string): string {
-  const normalized = text.replace(/\s+/gu, ' ')
-  const index = normalized.toLowerCase().indexOf(needle)
-  const position = Array.from(normalized.slice(0, Math.max(0, index))).length
-  const points = Array.from(normalized)
+function snippetAround(text: string, index: number): string {
+  const position = Array.from(text.slice(0, index)).length
+  const points = Array.from(text)
   const start = Math.max(0, position - 48)
   const end = Math.min(points.length, start + 240)
   return `${start === 0 ? '' : '…'}${points.slice(start, end).join('')}${end === points.length ? '' : '…'}`
@@ -133,25 +132,37 @@ export class SessionGraphSearchService extends TypertRemoteService {
     // unicode61 treats uninterrupted Chinese as a single token. Verify that
     // query against scoped originals as well, after the real index succeeds.
     const candidates = literal ? sessions : indexed
-    for (const candidate of candidates) {
-      const source = await this.ctx.sessionController.inspect(candidate.header.id, signal)
-      signal.throwIfAborted()
-      const turns = discussionTurns(source.events).filter(turn => turn.endSeq !== null)
-      const matches = turns.flatMap(turn => turn.messages.map(message => ({ turn, message })))
-      const match = matches.reverse().find(({ message }) => message.text.replace(/\s+/gu, ' ').toLowerCase().includes(needle))
-      if (match === undefined) continue
-      const owner = workspaces.find(item => item.sessionIds.includes(candidate.header.id))
-        ?? workspaces.find(item => item.path === candidate.header.cwd)
-      hits.push({
-        sessionId: candidate.header.id,
-        title: (await query.readTitle(candidate.header.id, signal))?.title.trim() || candidate.header.id,
-        ...(owner === undefined ? {} : { workspace: { id: owner.id, title: owner.title.trim() || owner.path } }),
-        ...(candidate.header.cwd === undefined ? {} : { cwd: candidate.header.cwd }),
-        archived: archived.has(candidate.header.id),
-        eventSeq: match.message.seq, turnStartSeq: match.turn.startSeq,
-        time: source.events.find(event => event.seq === match.message.seq)!.time,
-        snippet: snippetAround(match.message.text, needle),
-      })
+    const matcher = literal ? undefined : new DiscussionTextMatcher(request.query)
+    try {
+      for (const candidate of candidates) {
+        const source = await this.ctx.sessionController.inspect(candidate.header.id, signal)
+        signal.throwIfAborted()
+        const turns = discussionTurns(source.events).filter(turn => turn.endSeq !== null)
+        const matches = turns.flatMap(turn => turn.messages.map(message => ({ turn, message })))
+        let snippet: string | undefined
+        const match = matches.reverse().find(({ message }) => {
+          const text = message.text.replace(/\s+/gu, ' ')
+          const position = matcher === undefined ? text.toLowerCase().indexOf(needle) : matcher.find(text)
+          if (position === undefined || position < 0) return false
+          snippet = snippetAround(text, position)
+          return true
+        })
+        if (match === undefined) continue
+        const owner = workspaces.find(item => item.sessionIds.includes(candidate.header.id))
+          ?? workspaces.find(item => item.path === candidate.header.cwd)
+        hits.push({
+          sessionId: candidate.header.id,
+          title: (await query.readTitle(candidate.header.id, signal))?.title.trim() || candidate.header.id,
+          ...(owner === undefined ? {} : { workspace: { id: owner.id, title: owner.title.trim() || owner.path } }),
+          ...(candidate.header.cwd === undefined ? {} : { cwd: candidate.header.cwd }),
+          archived: archived.has(candidate.header.id),
+          eventSeq: match.message.seq, turnStartSeq: match.turn.startSeq,
+          time: source.events.find(event => event.seq === match.message.seq)!.time,
+          snippet: snippet!,
+        })
+      }
+    } finally {
+      matcher?.dispose()
     }
     signal.throwIfAborted()
     if (JSON.stringify(scopeFacts(this.ctx)) !== scopeRevision) return { kind: 'stale' }

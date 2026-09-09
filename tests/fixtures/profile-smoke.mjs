@@ -42,7 +42,7 @@ export function apply(ctx) {
     return sessionId
   }
   async function verify() {
-    const secondPrompt = 'Second fixture. 通过知识卡片整理研究资料。'
+    const secondPrompt = 'Second fixture. 通过知识卡片整理研究资料。 Café notes use foo-bar labels.'
     const sourceIds = [await create('First fixture.'), await create(secondPrompt)]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
     const callsBeforeHistory = calls
@@ -56,15 +56,17 @@ export function apply(ctx) {
     assert.deepEqual(history.turns[0].messages.map(message => [message.role, message.text]), [
       ['user', secondPrompt], ['assistant', 'Fixture response.'],
     ])
-    const search = await ctx.typertGateway.invoke({
-      namespace: 'sessionGraphSearch', method: 'search',
-      args: { request: { query: '知识卡片', scope: { kind: 'directory', cwd: process.cwd() }, includeArchived: false } }, signal,
-    })
-    assert.equal(search.kind, 'results')
-    assert.deepEqual(search.hits.map(hit => hit.sessionId), [sourceIds[1]])
-    assert.equal(search.hits[0].turnStartSeq, history.turns[0].startSeq)
-    assert.equal(search.hits[0].eventSeq, history.turns[0].messages[0].seq)
-    assert.equal(search.hits[0].snippet, secondPrompt)
+    for (const query of ['知识卡片', 'cafe', 'foo bar']) {
+      const search = await ctx.typertGateway.invoke({
+        namespace: 'sessionGraphSearch', method: 'search',
+        args: { request: { query, scope: { kind: 'directory', cwd: process.cwd() }, includeArchived: false } }, signal,
+      })
+      assert.equal(search.kind, 'results')
+      assert.deepEqual(search.hits.map(hit => hit.sessionId), [sourceIds[1]])
+      assert.equal(search.hits[0].turnStartSeq, history.turns[0].startSeq)
+      assert.equal(search.hits[0].eventSeq, history.turns[0].messages[0].seq)
+      assert.equal(search.hits[0].snippet, secondPrompt)
+    }
     assert.equal(calls, callsBeforeHistory)
     const targetSessionId = await create()
     const merge = await ctx.sessionGraphMerge.submit({
