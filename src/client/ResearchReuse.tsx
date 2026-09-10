@@ -5,6 +5,7 @@ import type { ResearchMaterialSelection, ResearchReuseRecord } from '../research
 import type { ResearchReuseApi } from './research-reuse-remote.ts'
 import type { SessionGraphKey } from './locales.ts'
 import { retainDialogFocus } from './dialog-focus.ts'
+import { SourcePreview } from './SourcePreview.tsx'
 import styles from './GraphView.module.css'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
@@ -12,6 +13,7 @@ type ReuseMode = 'compose' | 'history'
 interface MaterialEntry { readonly selection: ResearchMaterialSelection; readonly label: string }
 interface ReuseContextValue {
   readonly add: (selection: ResearchMaterialSelection, label: string) => void
+  readonly contains: (selection: ResearchMaterialSelection) => boolean
   readonly count: number
   readonly open: () => void
   readonly history: () => void
@@ -28,14 +30,16 @@ export function ResearchReuseEntry({ t }: { readonly t: Translate }): ReactEleme
 }
 
 /** Keeps the draft and uncertain attempt alive while its dialogs are closed. */
-export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, children, t }: {
+export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, children, picker, t }: {
   readonly api: ResearchReuseApi
   readonly workspaces: readonly WorkspaceView[]
   readonly viewedId: SessionId
   readonly openSession: (id: SessionId) => void
+  readonly picker?: ReactNode
   readonly children: ReactNode
   readonly t: Translate
 }): ReactElement {
+  const [picking, setPicking] = useState(false)
   const [materials, setMaterials] = useState<readonly MaterialEntry[]>([])
   const [mode, setMode] = useState<ReuseMode>()
   const [question, setQuestion] = useState('')
@@ -55,6 +59,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
     setFailed(undefined)
     setNotice(undefined)
     setMode(next)
+    setPicking(false)
     if (next === 'compose' && uncertain && preview !== undefined) {
       void perform(signal => recover(preview, signal, 'compose', false))
     }
@@ -63,6 +68,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
     active.current?.abort()
     setBusy(false)
     setMode(undefined)
+    setNotice(undefined)
     queueMicrotask(() => { trigger.current?.focus() })
   }
   const change = (): void => {
@@ -141,7 +147,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
       return next
     })
   }
-  return <ReuseContext.Provider value={{ add, count: materials.length, open: () => { show('compose') }, history }}>
+  return <ReuseContext.Provider value={{ add, contains: selection => materials.some(item => JSON.stringify(item.selection) === JSON.stringify(selection)), count: materials.length, open: () => { show('compose') }, history }}>
     <div className={styles.knowledgeRoot} aria-hidden={mode !== undefined || undefined}
       ref={element => { if (element !== null) element.inert = mode !== undefined }}>{children}
       {notice === undefined ? null : <span className={styles.reuseNotice} role="status">{t(notice)}</span>}
@@ -156,7 +162,11 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
       <div className={styles.knowledgeBody}>
         {mode === 'compose' ? <>
           <p>{t('reuse.boundary')}</p>
-          {materials.length === 0 ? <p role="status">{t('reuse.empty')}</p> : <ol>{materials.map((item, index) => <li key={JSON.stringify(item.selection)}>
+          {picker === undefined ? null : <div className={styles.topicControls}><button type="button" className={styles.primaryButton} disabled={locked || !picking && materials.length >= 3}
+            onClick={() => { setPicking(value => !value) }}>{t(picking ? 'reuse.donePicking' : 'reuse.pick')}</button>
+            <span role="status">{t('reuse.materials', { count: materials.length })}</span></div>}
+          {picking ? picker : null}
+          {materials.length === 0 ? <p role="status">{t('reuse.empty')}</p> : <ol className={styles.materialList}>{materials.map((item, index) => <li key={JSON.stringify(item.selection)}>
             <strong>{item.label}</strong>
             <button type="button" disabled={locked || index === 0} onClick={() => { move(index, -1) }}>{t('reuse.up')}</button>
             <button type="button" disabled={locked || index === materials.length - 1} onClick={() => { move(index, 1) }}>{t('reuse.down')}</button>
@@ -167,7 +177,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
           <label>{t('reuse.workspace')}<select value={workspaceId} disabled={locked} onChange={event => { change(); setWorkspaceId(event.target.value) }}>
             <option value="">{t('reuse.chooseWorkspace')}</option>{workspaces.map(item => <option key={item.workspaceId} value={item.workspaceId}>{item.title || item.path}</option>)}
           </select></label>
-          <button type="button" disabled={locked || materials.length < 1 || materials.length > 3 || question.trim() === '' || !workspaces.some(item => item.workspaceId === workspaceId)}
+          <button className={styles.primaryButton} type="button" disabled={locked || materials.length < 1 || materials.length > 3 || question.trim() === '' || !workspaces.some(item => item.workspaceId === workspaceId)}
             onClick={() => {
               const base = { materials: materials.map(item => item.selection), question: question.trim(), workspaceId }
               const payload = JSON.stringify(base)
@@ -184,7 +194,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
               <button type="button" disabled={busy} onClick={() => {
                 void perform(signal => recover(preview, signal, 'compose', false))
               }}>{t('reuse.recover')}</button></div> : null}
-            {preview.stage === 'accepted' ? null : <button type="button" disabled={busy} onClick={() => { submit(preview) }}>
+            {preview.stage === 'accepted' ? null : <button className={styles.primaryButton} type="button" disabled={busy} onClick={() => { submit(preview) }}>
               {t(!uncertain && preview.error === undefined ? 'reuse.confirm' : 'reuse.retry')}</button>}
             {preview.targetCreated ? <button type="button" onClick={() => { openSession(preview.targetSessionId as SessionId) }}>{t('reuse.open')}</button> : null}
           </>}
@@ -195,6 +205,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
           </section>)}
           {failed === undefined ? null : <button type="button" disabled={busy} onClick={history}>{t('reuse.retryHistory')}</button>}
         </>}
+        {notice === undefined ? null : <p role="status">{t(notice)}</p>}
         {busy ? <p role="status">{t('reuse.busy')}</p> : null}
         {failed === undefined ? null : <p role="alert">{t('reuse.error')} {failed}</p>}
       </div>
@@ -211,6 +222,17 @@ function ResearchReuseSnapshot({ record, t }: { readonly record: ResearchReuseRe
       {material.kind === 'card' ? `${material.content.title} · ${t('knowledge.versionNumber', { number: material.revisionNumber })}`
         : `${material.source.title} · ${t('knowledge.sourceRange', { start: material.source.source.startSeq, end: material.source.source.endSeq })}`} → {record.targetSessionId}
     </li>)}</ul><p>{t('reuse.answer')}</p></> : <p>{t('reuse.pending')}</p>}
-    <pre className={styles.historyText}>{record.promptText}</pre>
+    <h4>{t('reuse.question')}</h4><p className={styles.historyText}>{record.question}</p>
+    {record.materials.map((material, index) => <section key={index} className={styles.materialCard}>
+      <p>{index + 1}. {t(material.kind === 'card' ? 'knowledge.title' : 'knowledge.discussions')}</p>
+      {material.kind === 'turn' ? <SourcePreview source={material.source} t={t} /> : <>
+        <h4>{material.content.title}</h4><p>{t('knowledge.versionNumber', { number: material.revisionNumber })} · {t(`knowledge.status.${material.content.status}`)} · {t(`knowledge.kind.${material.content.kind}`)}</p>
+        {(['question', 'conclusion', 'rationale', 'openQuestions'] as const).map(field => material.content[field] === '' ? null : <section key={field}>
+          <h5>{t(`knowledge.field.${field}`)}</h5><p className={styles.historyText}>{material.content[field]}</p>
+        </section>)}
+        <p>{t('reuse.sourceLabels')}</p><ul>{material.sources.map((source, i) => <li key={i}>{source.title}</li>)}</ul>
+      </>}
+    </section>)}
+    <details><summary>{t('knowledge.exactPayload')}</summary><pre className={styles.historyText}>{record.promptText}</pre></details>
   </section>
 }

@@ -84,7 +84,6 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   return <div className={styles.topicGraph}>
     <div className={styles.topicControls}><button type="button" disabled={phase === 'loading'}
       onClick={() => { setRevision(value => value + 1) }}>{t('topic.refresh')}</button>
-      <button type="button" onClick={() => { knowledge.create() }}>{t('knowledge.new')}</button>
       <button type="button" disabled={phase !== 'ready' || cards.length === 0} onClick={() => {
         knowledge.exportCards(cards.map(card => ({ cardId: card.cardId, title: card.revisions.at(-1)!.content.title })))
       }}>{t('export.title')}</button>

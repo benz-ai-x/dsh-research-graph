@@ -59,17 +59,19 @@ This prerelease uses npm tag `next`; the commands below pin the exact matching v
 
 ## Knowledge Cards
 
-In **Research Graph → Original**, select completed turns and choose **Save as Knowledge Card**. Edit the title, question, conclusion, reasons/conditions, open questions, type and draft/confirmed status; optionally choose a Research Topic. Manual creation does not call a model or change the source Session. You can also create a card from the topic controls or the Knowledge Cards search tab.
+In **Research Graph → Original**, select completed turns and choose **Save as Knowledge Card**. Edit the title, question, conclusion, reasons/conditions, open questions, type and draft/confirmed status; optionally choose a Research Topic. Manual creation does not call a model or change the source Session. The header offers **New Knowledge Card** directly and **How to create a Knowledge Card** explains the source workflow. Title is required; question, reasons, type and status are optional details. The save bar stays visible while scrolling.
 
-Cards appear in topic graphs with a distinct Source Relation. Open a card to inspect any saved revision, read its retained excerpt, or check the exact original turns. Unavailable originals remain clearly labelled as retained excerpts. Edits append immutable revisions; a failed save preserves the draft, and retrying it does not create another card. Discarding edits returns to saved content.
+Cards appear in topic graphs with a distinct Source Relation. Open a card to inspect any saved revision, read its retained excerpt, or check the exact original turns. Unavailable originals remain clearly labelled as retained excerpts. Edits append immutable revisions; a failed save preserves the draft, and retrying it does not create another card. Escape, Close card and Discard edits ask before losing unsaved content, including generated drafts; Keep editing preserves the current form. A pending save stays mounted until it completes. Discarding edits returns to saved content. Drafts are held in the open view, not automatically saved to Host storage.
 
-Use the existing discussion search entry and choose **Knowledge Cards** to search card titles and bodies across this Host or the selected topic. Topic membership is independent of source directories. Removing a card from a topic preserves its content, revisions and sources; search can find and reattach it. Cards live in Host storage and survive browser-cache clearing and Host restart. Reset and Relayout only affect presentation. Each save supports up to 32 sources and 4 MB of source text JSON; reduce the selected range if it exceeds that limit.
+Open **Knowledge Cards** directly from the header, or use **Search discussions & knowledge** and switch the visible content buttons to search card titles and bodies across this Host or the selected topic. Topic membership is independent of source directories. Removing a card from a topic preserves its content, revisions and sources; search can find and reattach it. Cards live in Host storage and survive browser-cache clearing and Host restart. Reset and Relayout only affect presentation. Each save supports up to 32 sources and 4 MB of source text JSON; reduce the selected range if it exceeds that limit.
 
 Starting another card or extraction from a source reader opens a separate editor. Closing it returns to the earlier card or draft with its edits preserved.
 
+See the [first UX repair round and screenshots](docs/reviews/ux-round-1.md) for interaction and responsive acceptance.
+
 ## Reviewed AI extraction
 
-Select completed turns in Original and choose **Extract knowledge**. Preview the included material before generating; the material budget includes only whole turns and lists omitted ranges. Confirm the provider/model and generate drafts. Review each card's question, conclusions, conditions and open questions, then correct its text and citations before saving. Invalid citations are excluded; uncited drafts are marked for verification. A valid citation establishes provenance, not correctness, and raw tool evidence is not inspected.
+Select completed turns in Original and choose **Extract knowledge**. Preview readable source titles, turns and user/assistant text before generating; **View exact message text** expands the unchanged model payload. The material budget includes only whole turns and lists omitted ranges. Confirm the provider/model and generate drafts. Review each card's question, conclusions, conditions and open questions, then correct its text and citations before saving. Invalid citations are excluded; uncited drafts are marked for verification. A valid citation establishes provenance, not correctness, and raw tool evidence is not inspected.
 
 Generation is cancellable. Generating again appends another batch and preserves existing edits. Extraction source snapshots survive Host restart, so an open draft can still save the same cited text. Generated drafts themselves stay in the open view until saved. Each model call allows up to five drafts, with a 4,096-token output limit and the configured timeout.
 
@@ -77,7 +79,7 @@ See the [batch acceptance and browser screenshots](docs/reviews/issues-6-10-acce
 
 ## Start a discussion from selected materials
 
-Add a saved card revision or one completed original turn to **Materials**. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** shows the actual text, source boundaries, card versions and the 32,000-character total budget. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
+Add a saved card revision or one completed original turn to **Materials**. You can also open **Materials → Choose materials** to select saved card revisions or completed discussion turns without leaving your question. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** presents the question, readable material content, card revisions and the 32,000-character total budget. **View exact message text** reveals the unchanged text submitted after confirmation. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
 
 If a submission response is lost, materials stay locked while Research Graph checks the Host's recorded target state. **Check target status** or reopening Materials repeats that check; Retry always uses the same submission. Closing the dialog suppresses late navigation.
 
@@ -162,8 +164,8 @@ Open a non-blank session and choose **Research Graph** beside the standard conve
 - Dwell on another Canvas Session for a compact preview without replacing the Selected Session inspector.
 - Drag nodes or complete cluster frames to arrange the canvas. Alignment guides snap nearby card edges.
 - Session Arrangement persistence fails soft. If browser storage is unavailable, denied, corrupt, or full, the live graph continues with automatic geometry instead of failing to render.
-- Each Canvas Session exposes stable top input and bottom output terminals for later graph-editing features. Branches are neutral solid directed edges, Merge Relations are branded solid directed edges, and Subagent Derivations are dashed.
-- Use wheel zoom, background-drag panning, fit, 100%, relayout, reset, Viewed Session location, or the minimap. The minimap appears only when content leaves the visible surface, and resizing preserves the current content center and scale.
+- Small connection dots show relationship anchors; they are not drag handles. Branches are neutral solid directed edges, Merge Relations are branded solid directed edges, and Subagent Derivations are dashed.
+- Use wheel zoom, background-drag panning, fit, 100%, relayout, reset, Viewed Session location, or the minimap. The minimap appears when content leaves the visible surface and is hidden in narrow containers. Resizing preserves the current content center and scale.
 - Filter by title; Enter centers the first match and Escape clears the filter.
 - Hover a node or edge to emphasize its Branch Lineage.
 - Read the header badge to identify the package version and exact local Build ID; hover it for the full package identity.
@@ -198,9 +200,11 @@ Topic switching reads Session headers and existing metadata, not all original di
 
 See the [Research Topics acceptance record and screenshots](docs/reviews/issue-5-ui-acceptance.md) for cross-Workspace collection, independent arrangements, source recovery, restart persistence, and the 1,000-reference baseline.
 
+The topic toolbar keeps selection and layout sync status together; creation and rename fields open on demand. Workspace arrangements are kept on this device, while **Save arrangement** syncs a topic arrangement to the Host. Singleton clusters show just their node, and long node titles use up to two lines.
+
 ## Search discussion history
 
-Choose **Search discussions** in the Research Graph header, enter words or a phrase, and select a Workspace, the Viewed Session's directory, or all sessions on this Host. **Include archived** adds archived sources for reading. It does not restore them or add them to the canvas. The existing title filter continues to emphasize Canvas Sessions independently.
+Choose **Search discussions & knowledge** in the Research Graph header, enter words or a phrase, and select a Workspace, the Viewed Session's directory, or all sessions on this Host. **Include archived** adds archived sources for reading. It does not restore them or add them to the canvas. The existing title filter continues to emphasize Canvas Sessions independently.
 
 Results show the session title, workspace or directory, message time, and a short passage. Each session contributes its latest matching passage from completed direct user/assistant discussion, ordered newest first. Select a result to read its exact turn in the search Inspector; the matching message is marked, and earlier/later discussion remains available. Only **Open session** changes the Viewed Session; native chat scroll positioning is not implied.
 

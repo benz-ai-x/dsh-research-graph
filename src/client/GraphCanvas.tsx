@@ -206,7 +206,7 @@ function NodeCard({
           style={{ background: `var(${clusterColor})` }}
         />
         <span className={styles.body}>
-          <span className={styles.title}>
+          <span className={styles.title} title={node.title}>
             {session?.blank ? t('node.newSession') : node.title}
           </span>
           <span className={styles.nodeMeta}>
@@ -1070,6 +1070,8 @@ export function GraphCanvas({
   }, [arrangement.key, bounds, restoredArrangementKey])
   // One palette slot per cluster, by cluster order — the single source for
   // node dots and frame accents alike.
+  const singletonClusters = useMemo(() => new Set(clusters
+    .filter(cluster => cluster.memberIds.length === 1).map(cluster => cluster.rootId)), [clusters])
   const colorOfCluster = useMemo(() => {
     const map = new Map<string, string>()
     clusters.forEach((cluster, index) => {
@@ -1556,7 +1558,7 @@ export function GraphCanvas({
           transform: `translate(${viewport.panX}px, ${viewport.panY}px) scale(${viewport.scale})`,
         }}
       >
-        {frames.map(frame => (
+        {frames.filter(frame => !singletonClusters.has(frame.clusterId)).map(frame => (
           <div
             key={frame.clusterId}
             className={clsx(

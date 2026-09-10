@@ -19,6 +19,7 @@ import { DiscussionSearch } from './DiscussionSearch.tsx'
 import { ResearchTopics } from './ResearchTopics.tsx'
 import { KnowledgeProvider, useKnowledge } from './Knowledge.tsx'
 import type { KnowledgeApi } from './knowledge-remote.ts'
+import { ResearchMaterialPicker } from './ResearchMaterialPicker.tsx'
 import { ResearchReuseEntry, ResearchReuseProvider } from './ResearchReuse.tsx'
 import type { ResearchReuseApi } from './research-reuse-remote.ts'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
@@ -79,6 +80,7 @@ export type GraphViewProps =
 export function GraphView(props: GraphViewProps): ReactElement {
   const workspaces = props.useWorkspaces(state => state)
   return <div className={styles.knowledgeBoundary}><ResearchReuseProvider key={props.sessionId} api={props.reuse}
+    picker={<ResearchMaterialPicker api={props.knowledge} useSessions={props.useSessions} read={props.readSessionHistory} t={props.t} />}
     workspaces={workspaces.items} viewedId={props.sessionId} openSession={props.openSession} t={props.t}>
     <KnowledgeProvider api={props.knowledge}
     topics={props.topics} read={props.readSessionHistory} t={props.t}>
@@ -95,6 +97,7 @@ function GraphViewBody({
   const pendingInteractions = useSessionPendingInteraction(state => state)
   const workspaces = useWorkspaces(state => state)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [initialSearchType, setInitialSearchType] = useState<'discussion' | 'knowledge'>()
   const [topicMode, setTopicMode] = useState(false)
   const [adding, setAdding] = useState<SessionId>()
   const [topicRevision, setTopicRevision] = useState(0)
@@ -108,6 +111,7 @@ function GraphViewBody({
     queueMicrotask(() => { addTrigger.current?.focus() })
   }
   const searchButton = useRef<HTMLButtonElement>(null)
+  const searchTrigger = useRef<HTMLButtonElement>()
 
   const scope = useMemo(
     () => resolveGraphScope(sessionId, sessions, workspaces),
@@ -130,7 +134,9 @@ function GraphViewBody({
       <div className={styles.graphBody} aria-hidden={searchOpen || adding !== undefined || undefined}
         ref={element => { if (element !== null) element.inert = searchOpen || adding !== undefined }}>
         <div className={styles.header}>
-          <button className={styles.searchEntry} type="button" ref={searchButton} onClick={() => { setSearchOpen(true) }}>{t('search.open')}</button>
+          <button className={styles.searchEntry} type="button" ref={searchButton} onClick={event => { searchTrigger.current = event.currentTarget; setInitialSearchType(undefined); setSearchOpen(true) }}>{t('search.open')}</button>
+          <button className={styles.searchEntry} type="button" onClick={event => { searchTrigger.current = event.currentTarget; setInitialSearchType('knowledge'); setSearchOpen(true) }}>{t('knowledge.title')}</button>
+          <button className={styles.primaryButton} type="button" onClick={() => { knowledgeContext?.create() }}>{t('knowledge.new')}</button>
           <ResearchReuseEntry t={t} />
           <button className={styles.searchEntry} type="button" aria-pressed={topicMode}
             onClick={() => { setTopicMode(value => !value) }}>{t(topicMode ? 'topic.back' : 'topic.title')}</button>
@@ -150,6 +156,7 @@ function GraphViewBody({
             {SESSION_GRAPH_BUILD_LABEL}
           </span>
         </div>
+        <details className={styles.workflowHelp}><summary>{t('knowledge.workflowHelp')}</summary><p>{t('knowledge.workflow')}</p><p>{t('knowledge.localLayout')}</p></details>
         {topicMode ? <ResearchTopics key={workingKey} api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
           workingKey, actions: { hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
@@ -170,10 +177,10 @@ function GraphViewBody({
       </div>
       {searchOpen ? <div className={styles.searchLayer} aria-hidden={adding !== undefined || undefined}
         ref={element => { if (element !== null) element.inert = adding !== undefined }}><DiscussionSearch key={searchKey}
-        workingKey={searchKey} initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
+        workingKey={searchKey} initialType={initialSearchType} initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
         workspaces={workspaces.items} search={searchDiscussion} read={readSessionHistory} open={openSession} t={t}
         onAddToTopic={addToTopic}
-        onClose={() => { setSearchOpen(false); queueMicrotask(() => { searchButton.current?.focus() }) }} /></div> : null}
+        onClose={() => { setSearchOpen(false); queueMicrotask(() => { (searchTrigger.current ?? searchButton.current)?.focus() }) }} /></div> : null}
       {adding === undefined ? null : <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t('topic.add')}
         onKeyDown={event => {
           if (event.key === 'Escape') { event.stopPropagation(); closePicker() }

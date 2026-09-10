@@ -1663,3 +1663,114 @@
 }
 
 .reuseNotice button { pointer-events: auto; }
+
+/* Shared research controls follow the Host theme and leave a visible action hierarchy. */
+.knowledgeBoundary { container-type: inline-size; }
+.knowledgeDialog button, .topicToolbar button, .arrangementStatus button, .header > button {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.knowledgeDialog button:hover:not(:disabled), .topicToolbar button:hover:not(:disabled), .header > button:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+.knowledgeBoundary .primaryButton, .searchTypes button[aria-pressed='true'] {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-state-business-tertiary);
+  color: var(--dsw-alias-state-business-primary);
+  font-weight: 600;
+}
+.knowledgeBoundary .dangerButton { color: var(--dsw-alias-state-error-primary); }
+.knowledgeBoundary button:disabled { opacity: .45; cursor: default; }
+.knowledgeBoundary :is(button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+.knowledgeDialog { font-size: 14px; line-height: 1.5; }
+.knowledgeBody { padding: 16px 24px 32px; flex: 1; }
+.knowledgeEditor { width: 100%; max-width: 880px; box-sizing: border-box; align-self: center; }
+.knowledgeForm { max-width: none; gap: 10px; }
+.knowledgeBody :is(input, textarea, select) { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.knowledgeBody label { min-width: 0; }
+.knowledgeForm textarea { line-height: 1.5; }
+.knowledgeBody h3, .knowledgeBody h4, .knowledgeBody h5 { overflow-wrap: anywhere; }
+.optionalFields { border: 1px solid var(--dsw-alias-border-l2); padding: 10px 12px; border-radius: 8px; }
+.knowledgeBody summary, .workflowHelp summary { cursor: pointer; min-height: 28px; }
+.optionalFields[open] > summary { margin-bottom: 12px; }
+.editorActions {
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  order: -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  background: var(--dsw-alias-bg-layer-1);
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+.editorActions > span { flex: 1; font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.draftContent { display: contents; }
+.discardOverlay { position: absolute; inset: 0; z-index: 150; display: grid; place-items: center; background: #0005; padding: 20px; }
+.discardDialog { max-width: 440px; padding: 24px; border-radius: 12px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); box-shadow: 0 12px 48px #0005; }
+.discardDialog button { min-height: 36px; padding: 8px 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 7px; font: inherit; background: var(--dsw-alias-bg-layer-2); color: inherit; cursor: pointer; }
+.draftNotice { position: absolute; bottom: 20px; left: 32px; right: 32px; z-index: 100; background: var(--dsw-alias-bg-layer-2); padding: 12px; }
+.searchTypes { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 18px 12px; }
+.workflowHelp { margin: 0 16px 6px; font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.workflowHelp p { margin: 4px 0 8px; }
+.header { gap: 8px; }
+.header .legend { margin-left: auto; }
+.sourcePreview, .materialCard { border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; padding: 12px 16px; margin: 12px 0; }
+.sourcePreview { max-height: 320px; overflow: auto; }
+.sourcePreview:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 2px; }
+.sourcePreview h4, .materialCard h4 { margin: 0 0 8px; }
+.sourcePreview h5 { margin: 12px 0 8px; }
+.sourcePreview article + article { border-top: 1px solid var(--dsw-alias-border-l2); padding-top: 8px; }
+.materialPicker { margin: 12px 0 20px; padding: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; }
+.materialPicker .searchTypes { padding: 0 0 12px; }
+.materialList { padding-left: 24px; }
+.materialList li { padding: 8px 0; }
+.materialList strong { display: block; overflow-wrap: anywhere; margin-bottom: 6px; }
+.materialList button + button { margin-left: 6px; }
+.knowledgeResults { grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); }
+.topicToolbar, .arrangementStatus { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.arrangementStatus { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.topicSelection { align-items: center; min-width: 0; }
+.topicSelection select, .topicControls input { min-height: 34px; padding: 5px 8px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 6px; color: inherit; background: var(--dsw-alias-bg-layer-2); font: inherit; }
+.frameToggle { width: 28px; height: 28px; }
+.title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; line-height: 16px; font-size: 13px; }
+.node { padding: 4px 12px; }
+.nodePort::after { width: 4px; height: 4px; border: none; background: var(--dsw-alias-label-tertiary); box-shadow: none; }
+
+@container (max-width: 760px) {
+  .minimap { display: none; }
+  .header { flex-wrap: wrap; overflow: visible; gap: 6px; padding: 6px 12px; }
+  .header > button { min-height: 34px; padding: 5px 8px; font-size: 12px; }
+  .header .legend { display: none; }
+  .header .buildInfo { font-size: 10px; }
+  .knowledgeDialog, .searchOverlay { inset: 6px; }
+  .knowledgeBody { padding: 12px; }
+  .searchHeader { padding: 12px; }
+  .searchHeader h2 { font-size: 16px; }
+  .searchBody { grid-template-columns: minmax(0, 1fr); overflow: auto; }
+  .searchResults, .searchInspector { min-height: 150px; overflow: visible; }
+  .searchForm { padding: 8px 12px; }
+  .topics { padding: 8px 12px; }
+  .topicSelection { width: 100%; }
+  .topicSelection select { flex: 1; min-width: 0; max-width: 100%; }
+  .editorActions { top: -12px; }
+  .knowledgeBody .knowledgeBody { padding: 12px 0; }
+}
+
+.knowledgeBody p { overflow-wrap: anywhere; }
+.knowledgeBody .topicControls label { align-items: stretch; }
+.topicToolbar .arrangementStatus { margin-left: auto; }
+/* Extraction cards scroll with their parent, so their save bars use that scrollport. */
+.knowledgeBody .knowledgeEditor { overflow: visible; }

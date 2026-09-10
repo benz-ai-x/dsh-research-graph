@@ -5,6 +5,8 @@ import type { KnowledgeApi } from './knowledge-remote.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
 import { KnowledgeEditor } from './Knowledge.tsx'
+import { useDraftProtection } from './DraftGuard.tsx'
+import { SourcePreview } from './SourcePreview.tsx'
 import styles from './GraphView.module.css'
 
 /** Each model response appends a new batch, so in-progress edits never get replaced. */
@@ -25,6 +27,7 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
   const [failed, setFailed] = useState<string>()
   const [canceled, setCanceled] = useState(false)
   const [batches, setBatches] = useState<readonly { readonly id: string; readonly result: ExtractionResult; readonly preparation: ExtractionPreparation }[]>([])
+  useDraftProtection(false, busy)
   const active = useRef<AbortController>()
   useEffect(() => () => { active.current?.abort() }, [])
   const run = async (generate: boolean): Promise<void> => {
@@ -59,14 +62,15 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
     {prepared === undefined ? null : <>
       <h3>{t('extract.included')}</h3>
       <p>{t('knowledge.sourceRange', { start: prepared.included.source.startSeq, end: prepared.included.source.endSeq })} · {prepared.materialText.length}/{prepared.budgetChars}</p>
-      <pre className={styles.historyText}>{prepared.materialText}</pre>
+      <SourcePreview source={prepared.included} t={t} />
+      <details><summary>{t('knowledge.exactPayload')}</summary><pre className={styles.historyText}>{prepared.materialText}</pre></details>
       <h4>{t('extract.omitted')}</h4>
       {prepared.omitted.length === 0 ? <p>{t('extract.noneOmitted')}</p> : <ul>{prepared.omitted.map(range => <li key={range.startSeq}>
         {t('knowledge.sourceRange', { start: range.startSeq, end: range.endSeq })}</li>)}</ul>}
       <p>{t('extract.hint')}</p>
       <label>{t('extract.provider')}<input disabled={busy} maxLength={200} value={provider} onChange={event => { setProvider(event.target.value) }} /></label>
       <label>{t('extract.model')}<input disabled={busy} maxLength={200} value={model} onChange={event => { setModel(event.target.value) }} /></label>
-      <button type="button" disabled={busy || provider.trim() === '' || model.trim() === ''} onClick={() => { void run(true) }}>
+      <button className={styles.primaryButton} type="button" disabled={busy || provider.trim() === '' || model.trim() === ''} onClick={() => { void run(true) }}>
         {t(batches.length === 0 ? 'extract.generate' : 'extract.append')}</button>
       <p>{t('extract.preserve')}</p><p>{t('extract.snapshot')}</p>
     </>}

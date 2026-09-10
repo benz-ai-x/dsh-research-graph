@@ -52,6 +52,61 @@ import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
+describe('research workflow discovery', () => {
+  it('opens the knowledge library directly, updates the search heading, and returns focus to its entry', async () => {
+    const b = await bench({ a: session('a') })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    expect(screen.getByRole('button', { name: '新建知识卡片' })).toBeTruthy()
+    const entry = screen.getByRole('button', { name: '知识卡片' })
+    fireEvent.click(entry)
+    const search = screen.getByRole('dialog', { name: '搜索知识卡片' })
+    await waitFor(() => { expect(b.searchKnowledge).toHaveBeenCalledWith({ query: '' }, expect.any(AbortSignal)) })
+    expect(within(search).getByRole('heading', { name: '搜索知识卡片' })).toBeTruthy()
+    fireEvent.click(within(search).getByRole('button', { name: '讨论原文' }))
+    expect(screen.getByRole('dialog', { name: '搜索历史讨论' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭搜索' }))
+    await waitFor(() => { expect(document.activeElement).toBe(entry) })
+    await b.fiber.dispose()
+  })
+
+  it('selects a fixed card revision and an original turn inside materials while retaining the question and order', async () => {
+    const b = await bench({ 'session-a': session('session-a') })
+    const revision = { revisionId: 'picked-revision', requestHash: 'a'.repeat(64), number: 2, savedAt: 1000,
+      content: knowledgeContent('选择器中的卡片'), sources: [knowledgeSource()] }
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [{ cardId: 'picked-card', topicIds: [], revisions: [revision] }] })
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'session-a',
+      turns: knowledgeSource().source.turns, hasEarlier: false, hasLater: false } })
+    mount(b.slots, b.sessionsStore, 'session-a', workspacesState([{ workspaceId: 'b', title: '目标 B', path: '/b', sessionIds: [], createdAt: '', updatedAt: '' }]))
+    switchTab('Research Graph')
+    fireEvent.click(screen.getByRole('button', { name: '材料（0）' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '新问题' }), { target: { value: '保留这个问题' } })
+    fireEvent.click(screen.getByRole('button', { name: '选择材料' }))
+    fireEvent.click(await screen.findByRole('button', { name: '将此修订加入材料' }))
+    expect((screen.getByRole('button', { name: '已加入材料' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '讨论原文' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '选择来源会话' }), { target: { value: 'session-a' } })
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '将所选轮次加入材料' }))
+    fireEvent.click(screen.getByRole('button', { name: '完成选择，继续填写' }))
+    expect((screen.getByRole('textbox', { name: '新问题' }) as HTMLTextAreaElement).value).toBe('保留这个问题')
+    expect(screen.getAllByRole('listitem').map(item => item.textContent)).toEqual([
+      expect.stringContaining('选择器中的卡片 · 第 2 版'), expect.stringContaining('Session session-a · 第 1 轮'),
+    ])
+    expect(b.prepareReuse).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByRole('combobox', { name: '目标工作区' }), { target: { value: 'b' } })
+    fireEvent.click(screen.getByRole('button', { name: '预览发送内容' }))
+    await waitFor(() => { expect(b.prepareReuse).toHaveBeenCalled() })
+    expect(b.prepareReuse.mock.calls[0]![0]).toMatchObject({ question: '保留这个问题', workspaceId: 'b', materials: [
+      { kind: 'card', cardId: 'picked-card', revisionId: 'picked-revision' },
+      { kind: 'turn', sessionId: 'session-a', startSeq: 10, endSeq: 14 },
+    ] })
+    expect(b.saveKnowledge).not.toHaveBeenCalled()
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+})
+
 describe('Markdown export in the registered Graph', () => {
   it('previews selected cards, retries failure, and downloads the frozen text until another preview', async () => {
     const b = await bench({ a: session('a') })
@@ -433,7 +488,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
     fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
     const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
     fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
-    await within(dialog).findByText('明确的测试证据')
+    await within(dialog).findAllByText('明确的测试证据')
     expect(b.extractKnowledge).not.toHaveBeenCalled()
     fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
     fireEvent.click(within(dialog).getByRole('button', { name: '取消生成' }))
@@ -481,8 +536,8 @@ describe('Knowledge Cards registered Graph workflow', () => {
     const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
     await within(dialog).findByText('先核验来源')
     fireEvent.click(within(dialog).getByRole('button', { name: '关闭卡片' }))
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
-    fireEvent.change(screen.getByRole('combobox', { name: '搜索内容' }), { target: { value: 'knowledge' } })
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
+    fireEvent.click(within(screen.getByRole('group', { name: '搜索内容' })).getByRole('button', { name: '知识卡片' }))
     fireEvent.change(screen.getByRole('textbox', { name: '关键词' }), { target: { value: '方法' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索知识卡片' }))
     await screen.findByRole('button', { name: /可重用的方法/ })
@@ -529,6 +584,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '编辑卡片' }))
     fireEvent.change(within(dialog).getByRole('textbox', { name: '结论' }), { target: { value: '丢弃的修改' } })
     fireEvent.click(within(dialog).getByRole('button', { name: '放弃编辑' }))
+    fireEvent.click(screen.getByRole('button', { name: '放弃未保存内容' }))
     expect(within(dialog).getByText('保留精确轮次')).toBeTruthy()
     expect(within(dialog).queryByText('丢弃的修改')).toBeNull()
     expect(b.saveKnowledge).toHaveBeenCalledTimes(2)
@@ -579,7 +635,8 @@ describe('Research Topics registered Graph workflow', () => {
       fireEvent.change(input, { target: { value: '修改后的名称 B' } })
       fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
       await screen.findByRole('option', { name: '修改后的名称 B (0)' })
-      expect(input.value).toBe('')
+      expect(screen.queryByRole('textbox', { name: '新主题名称' })).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: '重命名' }))
       expect((screen.getByRole('textbox', { name: '主题名称' }) as HTMLInputElement).value).toBe('修改后的名称 B')
       expect(screen.queryByRole('alert')).toBeNull()
       await host.ctx.fiber.dispose()
@@ -597,7 +654,7 @@ describe('Research Topics registered Graph workflow', () => {
       fireEvent.change(input, { target: { value: '  原名称 A  ' } })
       fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
       await screen.findByRole('option', { name: '另一客户端的名称 (0)' })
-      expect(input.value).toBe('')
+      expect(screen.queryByRole('textbox', { name: '新主题名称' })).toBeNull()
       expect(await host.invoke('list')).toEqual([updated])
     })
 
@@ -625,7 +682,7 @@ describe('Research Topics registered Graph workflow', () => {
       fireEvent.change(input, { target: { value: scenario.retry } })
       fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
       await screen.findByRole('option', { name: `${scenario.retry} (0)` })
-      expect(input.value).toBe('')
+      expect(screen.queryByRole('textbox', { name: '新主题名称' })).toBeNull()
       expect(screen.queryByRole('alert')).toBeNull()
       expect(await host.invoke('list')).toEqual([{ ...saved[0], title: scenario.retry }])
     })
@@ -740,7 +797,7 @@ describe('Research Topics registered Graph workflow', () => {
     b.writeTopic.mockResolvedValue({ ok: true, value: { ...topic, references: [{ sessionId: 'outside', title: '跨工作区资料' }] } })
     mount(b.slots, b.sessionsStore, 'viewed')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     fireEvent.click(await screen.findByRole('button', { name: '查看原文：跨工作区资料' }))
@@ -878,6 +935,7 @@ describe('Research Topics registered Graph workflow', () => {
     fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
     await screen.findByRole('option', { name: '跨工作区调查 (0)' })
     expect(b.writeTopic.mock.calls[1]![0]).toEqual(request)
+    fireEvent.click(screen.getByRole('button', { name: '重命名' }))
     const rename = screen.getByRole('textbox', { name: '主题名称' })
     fireEvent.change(rename, { target: { value: '统一主题' } })
     b.writeTopic.mockResolvedValueOnce({ ok: true, value: { ...topic, title: '统一主题' } })
@@ -1909,7 +1967,7 @@ describe('cluster frames', () => {
     expect(document.querySelectorAll('[data-cluster-id]')).toHaveLength(1)
   })
 
-  it('frames the isolated singleton too: every session sits inside a cluster box', async () => {
+  it('keeps the singleton node without repeating its title in a cluster frame', async () => {
     const b = await bench({
       root: session('root', { updatedAt: 500 }),
       branchChild: session('branchChild', { parentId: id('root'), updatedAt: 400 }),
@@ -1917,9 +1975,10 @@ describe('cluster frames', () => {
     })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    expect(document.querySelectorAll('[data-cluster-id]')).toHaveLength(2)
+    expect(document.querySelectorAll('[data-cluster-id]')).toHaveLength(1)
     const lone = document.querySelector('[data-cluster-id="lone"]')
-    expect(lone?.querySelector('[class*="frameLabel"]')?.textContent).toBe('Session lone')
+    expect(lone).toBeNull()
+    expect(nodeButton('lone')).toBeTruthy()
   })
 
   it('collapses a cluster into its compact column, drops its edge, and persists', async () => {
@@ -2061,6 +2120,7 @@ describe('cluster drag', () => {
       root: session('root', { updatedAt: 500 }),
       branchChild: session('branchChild', { parentId: id('root'), updatedAt: 400 }),
       lone: session('lone', { updatedAt: 200 }),
+      child: session('child', { parentId: id('lone'), updatedAt: 100 }),
     })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
@@ -2207,7 +2267,7 @@ describe('discussion search through the registered Graph view', () => {
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('A 资料')] } })
     mount(b.slots, b.sessionsStore, 'root', workspaceStore)
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.change(screen.getByRole('combobox', { name: '搜索范围' }), { target: { value: 'workspace:b' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -2233,7 +2293,7 @@ describe('discussion search through the registered Graph view', () => {
     const b = await bench({ loose: session('loose', { cwd: undefined }) })
     mount(b.slots, b.sessionsStore, 'loose')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     await screen.findByText('所选范围内没有匹配的讨论。')
@@ -2246,7 +2306,7 @@ describe('discussion search through the registered Graph view', () => {
     const workspaceStore = createSnapshotStore(workspacesState(action === 'remove' ? [a] : []))
     mount(b.slots, b.sessionsStore, 'root', workspaceStore)
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     await act(async () => { workspaceStore.set(workspacesState(action === 'register' ? [a] : [])) })
     const expected = action === 'register' ? { kind: 'workspace', workspaceId: 'a' } : { kind: 'all' }
@@ -2263,7 +2323,7 @@ describe('discussion search through the registered Graph view', () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    const entry = screen.getByRole('button', { name: '搜索正文' })
+    const entry = screen.getByRole('button', { name: '搜索讨论与知识' })
     fireEvent.click(entry)
     expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '正文关键词' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
@@ -2287,7 +2347,7 @@ describe('discussion search through the registered Graph view', () => {
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'stale' } })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     fireEvent.click(await screen.findByRole('button', { name: '查看原文：过期结果' }))
@@ -2309,7 +2369,7 @@ describe('discussion search through the registered Graph view', () => {
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('第二页')] } })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     fireEvent.click(await screen.findByRole('button', { name: '查看原文：第一页' }))
@@ -2337,7 +2397,7 @@ describe('discussion search through the registered Graph view', () => {
     b.searchDiscussion.mockResolvedValue({ ok: true, value: { kind: 'results', hits: [hit('新查询结果')] } })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'old' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     expect(screen.getByText('正在准备索引并检索讨论…')).toBeTruthy()
@@ -2348,7 +2408,7 @@ describe('discussion search through the registered Graph view', () => {
     if (action === 'cancel') fireEvent.click(screen.getByRole('button', { name: '取消搜索' }))
     if (action === 'close') {
       fireEvent.click(screen.getByRole('button', { name: '关闭搜索' }))
-      fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+      fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     }
     const wasAborted = signal.aborted
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'newer' } })
@@ -2365,7 +2425,7 @@ describe('discussion search through the registered Graph view', () => {
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'disabled' } } as never)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     await screen.findByText('全文索引尚未启用。')
@@ -2381,7 +2441,7 @@ describe('discussion search through the registered Graph view', () => {
     b.searchDiscussion.mockResolvedValueOnce({ ok: false, error: { code: 'failed', message: 'Index unavailable', details: {} } } as never)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     fireEvent.click(await screen.findByRole('button', { name: '重试搜索' }))
@@ -2405,7 +2465,7 @@ describe('discussion search through the registered Graph view', () => {
     } })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: '知识卡片' } })
     fireEvent.change(screen.getByRole('combobox', { name: '搜索范围' }), { target: { value: 'all' } })
     fireEvent.click(screen.getByRole('checkbox', { name: '包含归档' }))
