@@ -6,6 +6,7 @@ import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
+import { useResearchReuse } from './ResearchReuse.tsx'
 
 /** The Selected Session's explicitly opened discussion reader. */
 export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, read, t }: {
@@ -17,6 +18,7 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, rea
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const knowledge = useKnowledge()
+  const reuse = useResearchReuse()
   const [result, setResult] = useState<SessionHistoryResult>()
   const [request, setRequest] = useState<SessionHistoryRequest>({ sessionId,
     ...(source !== undefined ? { source } : anchorSeq === undefined ? {} : { anchorSeq }) })
@@ -114,6 +116,10 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, rea
           {knowledge === undefined ? null : <button type="button" disabled={loading || result?.kind !== 'original'} onClick={() => {
             knowledge.extract({ kind: 'discussion', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq })
           }}>{t('extract.title')}</button>}
+          {reuse === undefined ? null : <><button type="button" disabled={loading || result?.kind !== 'original' || selection.turns.length !== 1} onClick={() => {
+            reuse.add({ kind: 'turn', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq },
+              `${sessionId} · ${t('history.turn', { turn: selection.turns[0]!.turn })}`)
+          }}>{t('reuse.addTurn')}</button>{selection.turns.length !== 1 ? <p>{t('reuse.singleTurn')}</p> : null}</>}
           <button type="button" onClick={() => {
             setSelection(undefined)
             setIncompleteRange(false)

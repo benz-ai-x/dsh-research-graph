@@ -45,8 +45,48 @@ import { researchTopicFixture } from './fixtures/research-topics.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
 import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
+import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
 const id = (value: string): SessionId => value as SessionId
+
+describe('Research reuse registered Graph workflow', () => {
+  it('previews one turn and waits for admission before opening the same target after a failed send', async () => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'A', source: { startSeq: 10, endSeq: 14,
+      turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: '所选原文' }] }] } }
+    const record: ResearchReuseRecord = { operationId: 'reuse-one', requestHash: 'a'.repeat(64), requestId: 'request-one',
+      targetSessionId: 'research-target', targetCreated: false, stage: 'prepared', workspace: { id: 'b', title: '目标 B', cwd: '/b' },
+      createdAt: 1000, question: '新研究问题', materials: [{ kind: 'turn', source }], promptText: '预览中的完整发送内容', budgetChars: 32_000 }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: source.source.turns, hasEarlier: false, hasLater: false } })
+    b.prepareReuse.mockResolvedValue({ ok: true, value: record })
+    b.submitReuse.mockResolvedValueOnce({ ok: true, value: { ...record, targetCreated: true, stage: 'created', error: 'Admission failed' } })
+    const receipt = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphReuse/submit']>>>()
+    b.submitReuse.mockReturnValueOnce(receipt.promise)
+    mount(b.slots, b.sessionsStore, 'a', workspacesState([{ workspaceId: 'b', title: '目标 B', path: '/b', sessionIds: [], createdAt: '', updatedAt: '' }]))
+    switchTab('Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '将所选轮次加入材料' }))
+    fireEvent.click(screen.getByRole('button', { name: '材料（1）' }))
+    const dialog = await screen.findByRole('dialog', { name: '开始新讨论' })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '新问题' }), { target: { value: '新研究问题' } })
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '目标工作区' }), { target: { value: 'b' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览发送内容' }))
+    await within(dialog).findByText('预览中的完整发送内容')
+    expect(b.submitReuse).not.toHaveBeenCalled()
+    expect(b.prepareReuse.mock.calls[0]![0]).toMatchObject({ workspaceId: 'b', question: '新研究问题',
+      materials: [{ kind: 'turn', sessionId: 'a', startSeq: 10, endSeq: 14 }] })
+    fireEvent.click(within(dialog).getByRole('button', { name: '确认并开始讨论' }))
+    await within(dialog).findByRole('button', { name: '打开目标会话' })
+    expect(b.open).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '重试发送' }))
+    expect(b.open).not.toHaveBeenCalled()
+    await act(async () => { receipt.resolve({ ok: true, value: { ...record, targetCreated: true, stage: 'accepted', acceptedAt: 2000 } }) })
+    expect(b.open).toHaveBeenCalledExactlyOnceWith(id('research-target'))
+    expect(b.submitReuse.mock.calls.map(call => call[0])).toEqual([{ operationId: 'reuse-one' }, { operationId: 'reuse-one' }])
+  })
+})
 
 describe('Knowledge Cards registered Graph workflow', () => {
   it('shows extraction scope, cancels late generation and keeps edited drafts when generating another batch', async () => {
@@ -601,6 +641,10 @@ async function bench(byId: Record<string, SessionSummary>) {
   const membershipKnowledge = vi.fn()
   const prepareExtraction = vi.fn<TypertRemoteMap['sessionGraphKnowledge/prepareExtraction']>()
   const extractKnowledge = vi.fn<TypertRemoteMap['sessionGraphKnowledge/extract']>()
+  const prepareReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/prepare']>()
+  const submitReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/submit']>()
+  const readReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/read']>()
+  const sessionReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/forSession']>(async () => ({ ok: true, value: [] }))
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
   const fork = vi.fn(async () => id('branched'))
@@ -664,6 +708,7 @@ async function bench(byId: Record<string, SessionSummary>) {
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
   ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
     membership: membershipKnowledge, prepareExtraction, extract: extractKnowledge } as never)
+  ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -673,6 +718,7 @@ async function bench(byId: Record<string, SessionSummary>) {
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge,
+    prepareReuse, submitReuse, readReuse, sessionReuse,
   }
 }
 

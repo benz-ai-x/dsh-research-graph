@@ -11,7 +11,7 @@ import { EXTRACTION_SYSTEM_PROMPT, type ExtractionDraft, type ExtractionPreparat
 import type { KnowledgeCard, KnowledgeMembership, KnowledgeSearch, KnowledgeSourceAddress, KnowledgeSave, KnowledgeSource } from './knowledge.ts'
 import { knowledgeCardSchema, knowledgeMembershipSchema, knowledgeReadSchema, knowledgeSaveSchema, knowledgeSearchSchema,
   extractionPreparationRequestSchema, extractionRequestSchema, knowledgeContentSchema } from './knowledge-codec.ts'
-import { discussionTurns } from './session-discussion.ts'
+import { readKnowledgeDiscussion } from './knowledge-discussion.ts'
 import { extractionPreparationSchema } from './knowledge-extraction-codec.ts'
 
 const cardStorageSchema: z.ZodType<KnowledgeCard> = z.unknown().transform((value, context) => {
@@ -211,19 +211,7 @@ export class KnowledgeService extends TypertRemoteService {
       if (source === undefined) throw new Error('Saved source is unavailable')
       return source
     }
-    const snapshot = await this.ctx.sessionController.inspect(address.sessionId as SessionId, signal)
-    signal.throwIfAborted()
-    if (snapshot.meta.origin === 'subagent') throw new Error('Select a direct discussion')
-    const turns = discussionTurns(snapshot.events)
-    const first = turns.findIndex(turn => turn.startSeq === address.startSeq)
-    const last = turns.findIndex(turn => turn.endSeq === address.endSeq)
-    if (first < 0 || last < first || turns.slice(first, last + 1).some(turn => turn.endSeq === null)) {
-      throw new Error('The selected completed discussion is unavailable')
-    }
-    const title = (await this.ctx.sessionQuery.readTitle(address.sessionId as SessionId, signal))?.title.trim() || address.sessionId
-    return { sessionId: address.sessionId, title,
-      ...(snapshot.meta.cwd === undefined ? {} : { cwd: snapshot.meta.cwd }),
-      source: { startSeq: address.startSeq, endSeq: address.endSeq, turns: turns.slice(first, last + 1) } }
+    return readKnowledgeDiscussion(this.ctx, address, signal)
   }
 
   dispose(): Promise<void> {

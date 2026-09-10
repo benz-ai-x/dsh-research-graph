@@ -9,6 +9,7 @@ import { SessionHistory } from './SessionHistory.tsx'
 import styles from './GraphView.module.css'
 import { KnowledgeExtraction } from './KnowledgeExtraction.tsx'
 import type { ExtractionDraft, ExtractionPreparation } from '../knowledge-extraction.ts'
+import { useResearchReuse } from './ResearchReuse.tsx'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 interface KnowledgeContextValue {
@@ -81,6 +82,7 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
   readonly preparation?: ExtractionPreparation
 }): ReactElement {
   const [identity] = useState(() => cardId ?? draft?.cardId ?? crypto.randomUUID())
+  const reuse = useResearchReuse()
   const [card, setCard] = useState<KnowledgeCard>()
   const [version, setVersion] = useState('')
   const [content, setContent] = useState<KnowledgeContent>(draft?.content ?? EMPTY_CONTENT)
@@ -210,6 +212,10 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
           setFailed(false)
           setEditing(true)
         }}>{t('knowledge.edit')}</button>
+          {reuse === undefined ? null : <button type="button" onClick={() => {
+            reuse.add({ kind: 'card', cardId: identity, revisionId: revision.revisionId },
+              `${revision.content.title} · ${t('knowledge.versionNumber', { number: revision.number })}`)
+          }}>{t('reuse.addCard')}</button>}
           {selectedTopic === '' ? null : <button type="button" disabled={busy} onClick={() => {
             void commit(signal => api.membership({ cardId: identity, topicId: selectedTopic, attached: !card!.topicIds.includes(selectedTopic) }, signal))
           }}>{t(card!.topicIds.includes(selectedTopic) ? 'knowledge.detach' : 'knowledge.attach')}</button>}</div>

@@ -122,6 +122,14 @@ _Avoid_: Branch, Merge Relation, Topic Reference
 The Host-retained selection and exact included direct discussion text shown before an explicit AI extraction. A character budget admits only whole completed turns and lists omitted ranges. Generated drafts and corrected citations can address this frozen material across Host restart; the snapshot does not itself create a Knowledge Card or claim that its statements are true.
 _Avoid_: Full-session summary, verified tool evidence, saved card
 
+**Research Material**:
+An explicitly selected saved Card Revision or one complete Discussion Turn, frozen for a new discussion. A card contributes its own content and source labels; original discussion must be selected separately. One new discussion uses one to three ordered materials within the visible message budget.
+_Avoid_: Whole Research Topic, inherited context, Session Snapshot
+
+**Reuse Relation**:
+A durable provenance record from selected Research Materials to an independent target Session, created only after Harness acknowledges native prompt admission. It retains the exact material, versions, boundaries and message shown in preview. Prepared and created attempts recover uncertain submissions without claiming usage. Admission does not mean the model has answered.
+_Avoid_: Branch, Merge Relation, generated answer, preview
+
 **Research Topic**:
 A named collection with a stable identity on one Host, containing references to Sessions across Workspaces. One Session can belong to several topics. Topic membership and arrangement survive Host restart without changing Session ownership, archive state, lineage, or model context.
 _Avoid_: Workspace, Session Cluster, merged context

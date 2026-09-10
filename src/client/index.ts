@@ -30,6 +30,7 @@ import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
 import { RESEARCH_TOPICS_REMOTE } from './research-topics-remote.ts'
 import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
+import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
 
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
@@ -45,6 +46,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
     ...RESEARCH_TOPICS_REMOTE.descriptors,
     ...KNOWLEDGE_REMOTE.descriptors,
+    ...RESEARCH_REUSE_REMOTE.descriptors,
   ],
 }
 
@@ -116,6 +118,28 @@ function registerUi(ctx: Context): void {
     locale: NS,
     label: () => t('view.graph'),
     inject: (): GraphViewInjected => ({
+      reuse: {
+        prepare: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.prepare(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        submit: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.submit(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        read: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.read(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        forSession: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.forSession(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+      },
       knowledge: {
         prepareExtraction: async (request, signal) => {
           const result = await ctx.remote.sessionGraphKnowledge.prepareExtraction(request, signal)
@@ -226,6 +250,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphSearch',
       'remote.sessionGraphTopics',
       'remote.sessionGraphKnowledge',
+      'remote.sessionGraphReuse',
     ],
     registerUi,
   )

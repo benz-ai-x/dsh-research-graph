@@ -1620,3 +1620,16 @@
 .knowledgeNode { border-style: dashed; border-color: var(--dsw-alias-brand-primary); }
 .edgeSource { fill: none; stroke: var(--dsw-alias-brand-primary); stroke-width: 2; stroke-dasharray: 3 5; }
 .knowledgeResults { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+
+.reuseNotice {
+  position: absolute;
+  z-index: 100;
+  bottom: 90px;
+  left: 20px;
+  padding: 8px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  border-radius: 8px;
+  pointer-events: none;
+}

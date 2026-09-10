@@ -1,5 +1,6 @@
 /** `sessionGraph` namespace dictionaries (view tab label + graph chrome strings). */
 import { knowledgeEn, knowledgeZh, type KnowledgeKey } from './knowledge-locales.ts'
+import { reuseEn, reuseZh, type ReuseKey } from './research-reuse-locales.ts'
 
 /** Dictionary namespace owned by this plugin. */
 export const NS = 'sessionGraph'
@@ -7,6 +8,7 @@ export const NS = 'sessionGraph'
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
   | KnowledgeKey
+  | ReuseKey
   | 'topic.title' | 'topic.back' | 'topic.description' | 'topic.loading' | 'topic.readError' | 'topic.retry'
   | 'topic.newName' | 'topic.create' | 'topic.empty' | 'topic.choose' | 'topic.name' | 'topic.rename'
   | 'topic.saving' | 'topic.saveError'
@@ -170,6 +172,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh: Record<SessionGraphKey, string> = {
   ...knowledgeZh,
+  ...reuseZh,
   'topic.refresh': '刷新来源',
   'topic.saveArrangement': '保存排列',
   'topic.arrangementHint': '拖动或折叠后，点击“保存排列”保存到此主题。',
@@ -350,6 +353,7 @@ export const zh: Record<SessionGraphKey, string> = {
 /** English dictionary. */
 export const en: Record<SessionGraphKey, string> = {
   ...knowledgeEn,
+  ...reuseEn,
   'topic.refresh': 'Refresh sources',
   'topic.saveArrangement': 'Save arrangement',
   'topic.arrangementHint': 'After dragging or collapsing, save the arrangement to this topic.',

@@ -19,6 +19,8 @@ import { DiscussionSearch } from './DiscussionSearch.tsx'
 import { ResearchTopics } from './ResearchTopics.tsx'
 import { KnowledgeProvider } from './Knowledge.tsx'
 import type { KnowledgeApi } from './knowledge-remote.ts'
+import { ResearchReuseEntry, ResearchReuseProvider } from './ResearchReuse.tsx'
+import type { ResearchReuseApi } from './research-reuse-remote.ts'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
 import { layoutSessionGraph } from './layout.ts'
 import { retainDialogFocus } from './dialog-focus.ts'
@@ -26,6 +28,7 @@ import styles from './GraphView.module.css'
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  readonly reuse: ResearchReuseApi
   readonly knowledge: KnowledgeApi
   topics: {
     readonly list: (signal: AbortSignal) => Promise<readonly ResearchTopic[]>
@@ -72,15 +75,18 @@ export type GraphViewProps =
  * @returns the tab body element.
  */
 export function GraphView(props: GraphViewProps): ReactElement {
-  return <div className={styles.knowledgeBoundary}><KnowledgeProvider key={props.sessionId} api={props.knowledge}
+  const workspaces = props.useWorkspaces(state => state)
+  return <div className={styles.knowledgeBoundary}><ResearchReuseProvider key={props.sessionId} api={props.reuse}
+    workspaces={workspaces.items} viewedId={props.sessionId} openSession={props.openSession} t={props.t}>
+    <KnowledgeProvider api={props.knowledge}
     topics={props.topics} read={props.readSessionHistory} t={props.t}>
     <GraphViewBody {...props} />
-  </KnowledgeProvider></div>
+  </KnowledgeProvider></ResearchReuseProvider></div>
 }
 
 function GraphViewBody({
   sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
-  openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, t,
+  openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, reuse, t,
 }: GraphViewProps): ReactElement {
   const sessions = useSessions(state => state)
   const pendingInteractions = useSessionPendingInteraction(state => state)
@@ -120,6 +126,7 @@ function GraphViewBody({
         ref={element => { if (element !== null) element.inert = searchOpen || adding !== undefined }}>
         <div className={styles.header}>
           <button className={styles.searchEntry} type="button" ref={searchButton} onClick={() => { setSearchOpen(true) }}>{t('search.open')}</button>
+          <ResearchReuseEntry t={t} />
           <button className={styles.searchEntry} type="button" aria-pressed={topicMode}
             onClick={() => { setTopicMode(value => !value) }}>{t(topicMode ? 'topic.back' : 'topic.title')}</button>
           <span className={styles.count}>
@@ -139,7 +146,7 @@ function GraphViewBody({
           </span>
         </div>
         {topicMode ? <ResearchTopics api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
-          actions: { topics, knowledge, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
+          actions: { topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas
           laid={laid}

@@ -69,6 +69,12 @@ Select completed turns in Original and choose **Extract knowledge**. Preview the
 
 Generation is cancellable. Generating again appends another batch and preserves existing edits. Extraction source snapshots survive Host restart, so an open draft can still save the same cited text. Generated drafts themselves stay in the open view until saved. Each model call allows up to five drafts, with a 4,096-token output limit and the configured timeout.
 
+## Start a discussion from selected materials
+
+Add a saved card revision or one completed original turn to **Materials**. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** shows the actual text, source boundaries, card versions and the 32,000-character total budget. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
+
+Confirming creates an independent Session and sends the frozen preview through native Harness admission. A failed create preserves the materials. If a target exists but sending fails, Open and Retry recover that same target and message identity. **Sent** means the Host acknowledged receipt; inspect the Session for model response status. **Materials used by this Session** reopens the frozen sources, versions and Reuse Relations after later edits, browser-cache clearing or Host restart. Source Workspace ownership and directories remain authoritative in Harness.
+
 ## What it adds
 
 | Capability | What you get |
