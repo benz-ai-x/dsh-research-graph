@@ -12,7 +12,7 @@ export type SessionGraphKey =
   | 'topic.readOriginal' | 'topic.closeOriginal' | 'topic.remove'
   | 'topic.add' | 'topic.addSelected' | 'topic.close'
   | 'topic.saveArrangement' | 'topic.arrangementHint' | 'topic.unsaved'
-  | 'topic.refresh'
+  | 'topic.refresh' | 'topic.cancel' | 'topic.canceled'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -185,6 +185,8 @@ export const zh: Record<SessionGraphKey, string> = {
   'topic.back': '工作区图',
   'topic.description': '将同一 Host 中不同工作区的会话整理到主题中。关联只用于组织资料，不会改变源会话或发送模型上下文。',
   'topic.loading': '正在读取主题…',
+  'topic.cancel': '取消读取',
+  'topic.canceled': '已取消读取主题。',
   'topic.readError': '读取主题失败。请重试。',
   'topic.retry': '重试',
   'topic.newName': '新主题名称',
@@ -361,6 +363,8 @@ export const en: Record<SessionGraphKey, string> = {
   'topic.back': 'Workspace graph',
   'topic.description': 'Organize Sessions from different Workspaces in the same Host. References do not change source Sessions or send model context.',
   'topic.loading': 'Loading topics…',
+  'topic.cancel': 'Cancel reading',
+  'topic.canceled': 'Topic reading canceled.',
   'topic.readError': 'Could not read topics. Please retry.',
   'topic.retry': 'Retry',
   'topic.newName': 'New topic name',

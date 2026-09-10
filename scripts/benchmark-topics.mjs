@@ -35,7 +35,11 @@ const graph = deriveSessionGraph(chain, scope, undefined, new Map())
 const derived = performance.now()
 const laid = layoutSessionGraph(graph)
 const end = performance.now()
-const median = values => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]
+const median = values => {
+  const sorted = [...values].sort((a, b) => a - b)
+  const middle = Math.floor(sorted.length / 2)
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+}
 console.log(JSON.stringify({
   recordedAt: new Date().toISOString(), node: process.version,
   device: { cpu: cpus()[0]?.model, logicalCpus: cpus().length, memoryGiB: totalmem() / 1024 ** 3, arch: arch(), os: `${platform()} ${release()}` },

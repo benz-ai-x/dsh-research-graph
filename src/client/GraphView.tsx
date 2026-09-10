@@ -19,6 +19,7 @@ import { DiscussionSearch } from './DiscussionSearch.tsx'
 import { ResearchTopics } from './ResearchTopics.tsx'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
 import { layoutSessionGraph } from './layout.ts'
+import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
 
 /** Business face the browser entry injects into the view (navigation verbs). */
@@ -154,13 +155,7 @@ export function GraphView({
       {adding === undefined ? null : <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t('topic.add')}
         onKeyDown={event => {
           if (event.key === 'Escape') { event.stopPropagation(); closePicker() }
-          if (event.key !== 'Tab') return
-          const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button, input, select, [tabindex="0"]')]
-            .filter(element => !element.hasAttribute('disabled'))
-          const first = controls[0]
-          const last = controls[controls.length - 1]
-          if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
-          else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+          retainDialogFocus(event)
         }}>
         <div className={styles.searchHeader}><div><h2>{t('topic.add')}</h2><p className={styles.topicSourceId}>{adding}</p></div>
           <button type="button" autoFocus onClick={closePicker}>{t('topic.close')}</button></div>

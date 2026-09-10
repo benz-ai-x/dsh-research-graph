@@ -74,9 +74,9 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     {phase === 'loading' ? <div className={styles.topicControls} role="status">{t('topic.loading')} <button type="button" onClick={() => {
       active.current?.abort()
       setPhase('canceled')
-    }}>{t('search.cancel')}</button></div> : null}
+    }}>{t('topic.cancel')}</button></div> : null}
     {phase === 'error' || phase === 'canceled' ? <div className={styles.topicControls} role={phase === 'error' ? 'alert' : 'status'}>
-      {t(phase === 'error' ? 'topic.readError' : 'search.canceled')}
+      {t(phase === 'error' ? 'topic.readError' : 'topic.canceled')}
       <button type="button" onClick={() => { setRevision(value => value + 1) }}>{t('topic.retry')}</button>
     </div> : null}
     {phase !== 'ready' || graph === undefined || laid === undefined ? null : graph.nodes.size === 0

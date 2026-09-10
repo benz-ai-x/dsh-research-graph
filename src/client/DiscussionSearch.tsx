@@ -5,6 +5,7 @@ import type { DiscussionSearchHit, DiscussionSearchResult, DiscussionSearchScope
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
 import { SessionHistory } from './SessionHistory.tsx'
+import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
 
 /** Search chooses a read-only source independently of the scope-bound canvas. */
@@ -81,13 +82,7 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
     <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t('search.title')}
       onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); onClose() }
-        if (event.key !== 'Tab') return
-        const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button, input, select, a[href], [tabindex="0"]')]
-          .filter(element => !element.hasAttribute('disabled'))
-        const first = controls[0]
-        const last = controls[controls.length - 1]
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+        retainDialogFocus(event)
       }}>
       <div className={styles.searchHeader}>
         <div><h2>{t('search.title')}</h2><p>{t('search.description')}</p></div>
