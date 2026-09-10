@@ -37,7 +37,7 @@ kind: "package-bundle"
 ## 快速开始
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
 dsh web
 ```
 
@@ -47,13 +47,14 @@ dsh web
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 与包名迁移验收 |
 | 旧包：[`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
 | [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 
-在与 DSH 对齐的发布线上，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-rc.1` 对应插件 `0.1.5-rc.1`。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。下文介绍的研究工作流随本次 RC 发布；已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
+在与 DSH 对齐的发布线上，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-rc.2` 对应插件 `0.1.5-rc.2`。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。研究工作流已随 `0.1.5-rc.1` 发布；`0.1.5-rc.2` 加入首轮 UI/UX 修复，包括草稿保护、直接选择材料和搜索范围恢复。已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
 
 本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
@@ -120,7 +121,7 @@ dsh web
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -137,7 +138,7 @@ dsh --profile web --dump-config
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
 dsh web
 ```
 
@@ -219,7 +220,7 @@ Viewed Session 的图范围身份变化时（例如目录变为具名工作区�
 <a id="enable-discussion-search"></a>
 ### 启用讨论搜索
 
-DSH `0.1.5-rc.1` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
+DSH `0.1.5-rc.2` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
 
 ```yaml
 - id: session-query-sqlite
