@@ -5,7 +5,7 @@ import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionPersistence', 'typertGateway']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionPersistence', 'typertGateway']
 
 export function apply(ctx) {
   let calls = 0
@@ -68,6 +68,21 @@ export function apply(ctx) {
       assert.equal(search.hits[0].snippet, secondPrompt)
     }
     assert.equal(calls, callsBeforeHistory)
+    const topicId = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
+    const topics = (method, request) => ctx.typertGateway.invoke({
+      namespace: 'sessionGraphTopics', method, args: request === undefined ? {} : { request }, signal,
+    })
+    await topics('write', { kind: 'create', topicId, title: 'Packed Research Topic' })
+    const collected = await topics('write', { kind: 'add', topicId, sessionIds: sourceIds })
+    assert.deepEqual(collected.references.map(source => source.sessionId), sourceIds)
+    const arrangement = { positions: { [sourceIds[0]]: { x: 100, y: 200 } }, collapsed: [], offsets: {} }
+    await topics('write', { kind: 'arrange', topicId, arrangement })
+    const snapshot = await topics('read', { topicId })
+    assert.deepEqual(snapshot.topic.arrangement, arrangement)
+    assert.ok(snapshot.sources.every(source => source.status === 'listed'))
+    await topics('write', { kind: 'remove', topicId, sessionId: sourceIds[0] })
+    assert.deepEqual((await topics('list')).find(topic => topic.topicId === topicId).references.map(source => source.sessionId), [sourceIds[1]])
+    assert.equal(calls, callsBeforeHistory)
     const targetSessionId = await create()
     const merge = await ctx.sessionGraphMerge.submit({
       targetSessionId, sourceIds, operationId: 'profile-smoke', instruction: 'Compare the two fixtures.',
@@ -90,7 +105,7 @@ export function apply(ctx) {
       await reader.close()
     }
     assert.ok(calls >= 4)
-    return { ok: true, sources: sourceIds.length, durableMerge: true, readonlyDigest: true, readonlyHistory: true, readonlySearch: true, fixtureModelCalls: calls }
+    return { ok: true, sources: sourceIds.length, durableTopics: true, durableMerge: true, readonlyDigest: true, readonlyHistory: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {

@@ -100,36 +100,33 @@ export function edgePath(from: { x: number; y: number }, to: { x: number; y: num
 export function layoutSessionGraph(graph: SessionGraph): LaidOutGraph {
   const nodes: LaidOutNode[] = []
 
-  const place = (key: string, depth: number, colCursor: { current: number }, local: LaidOutNode[]): number => {
-    const y = depth * DEPTH_PITCH
-    const node = graph.nodes.get(key)
-    if (node === undefined) {
-      throw new Error(`session-graph layout: node "${key}" referenced but not derived`)
-    }
-    // First and last child column as one bounds pair: undefined while the
-    // node is a leaf, set on the first recursion, stretched on every later one.
-    let bounds: [number, number] | undefined
-    for (const child of graph.children.get(key) ?? []) {
-      const childX = place(child, depth + 1, colCursor, local)
-      bounds = bounds === undefined ? [childX, childX] : [bounds[0], childX]
-    }
-    let x: number
-    if (bounds === undefined) {
-      x = colCursor.current * COL_PITCH
-      colCursor.current += 1
-    } else {
-      x = (bounds[0] + bounds[1]) / 2
-    }
-    local.push({ node, key, x, y })
-    return x
-  }
-
   // Lay out every cluster in its own local frame, measuring each extent.
   const frames = graph.clusters.map((cluster) => {
-    const colCursor = { current: 0 }
+    let column = 0
     const local: LaidOutNode[] = []
-    place(cluster.rootId, 0, colCursor, local)
-    // place() pushes at least the root or throws, so local is never empty.
+    const xByKey = new Map<string, number>()
+    const stack = [{ key: String(cluster.rootId), depth: 0, exit: false }]
+    let entry = stack.pop()
+    while (entry !== undefined) {
+      const { key, depth } = entry
+      const node = graph.nodes.get(key)
+      if (node === undefined) throw new Error(`session-graph layout: node "${key}" referenced but not derived`)
+      const children = graph.children.get(key) ?? []
+      if (!entry.exit) {
+        stack.push({ key, depth, exit: true })
+        for (let index = children.length - 1; index >= 0; index -= 1) {
+          stack.push({ key: children[index]!, depth: depth + 1, exit: false })
+        }
+      } else {
+        const x = children.length === 0
+          ? column++ * COL_PITCH
+          : (xByKey.get(children[0]!)! + xByKey.get(children[children.length - 1]!)!) / 2
+        xByKey.set(key, x)
+        local.push({ node, key, x, y: depth * DEPTH_PITCH })
+      }
+      entry = stack.pop()
+    }
+    // Every cluster contributes at least its root or throws.
     const expandedHeight = Math.max(...local.map(entry => entry.y)) + CARD_H
     const compactHeight = (cluster.memberIds.length - 1) * COLLAPSED_ROW + CARD_H
     return { local, stackHeight: Math.max(expandedHeight, compactHeight) }

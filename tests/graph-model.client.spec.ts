@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceSnapshot, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { branchLineage, deriveSessionGraph, matchFilter, resolveGraphScope } from '../src/client/graph-model.ts'
+import { branchLineage, deriveSessionGraph, deriveTopicGraph, matchFilter, resolveGraphScope } from '../src/client/graph-model.ts'
 import type { GraphNode } from '../src/client/graph-model.ts'
 
 const id = (value: string): SessionId => value as SessionId
@@ -64,6 +64,34 @@ function graphFor(
 }
 
 describe('resolveGraphScope', () => {
+  it('keeps explicit topic references across scopes and availability, with only confirmed lineage', () => {
+    const sources = [
+      { sessionId: 'a', title: 'A', status: 'listed' as const, archived: false, workspace: { id: 'a', title: 'Workspace A' } },
+      { sessionId: 'b', title: 'B', status: 'listed' as const, archived: true, parentSessionId: 'a', workspace: { id: 'b', title: 'Workspace B' } },
+      { sessionId: 'missing', title: 'Saved source', status: 'unavailable' as const, archived: false },
+      { sessionId: 'blank', title: 'Blank reference', status: 'listed' as const, archived: false },
+      { sessionId: 'merge', title: 'Confirmed Merge', status: 'listed' as const, archived: false },
+    ]
+    const list = listState({ a: session('a'), b: session('b', { cwd: '/elsewhere' }), blank: session('blank', { blank: true }),
+      merge: session('merge', { cwd: '/elsewhere', projectionValues: { sessionGraphMerge: {
+        operationId: 'merge', contextEventSeq: 8, sources: [{ sessionId: 'a', capturedThroughSeq: 6 }, { sessionId: 'outside', capturedThroughSeq: 4 }],
+      } } }),
+    })
+    const snapshot = { topic: {
+      topicId: 'topic-a', title: 'Topic A', references: sources,
+      arrangement: { positions: {}, collapsed: [], offsets: {} },
+    }, sources }
+    const graph = deriveTopicGraph(snapshot, list, id('a'), new Map())
+    expect([...graph.nodes.keys()].sort()).toEqual(['a', 'b', 'blank', 'merge', 'missing'])
+    expect(graph.edges).toEqual([
+      { id: 'branch:a->b', kind: 'branch', from: 'a', to: 'b' }, { id: 'merge:a->merge', kind: 'merge', from: 'a', to: 'merge' },
+    ])
+    expect(graph.nodes.get('b')?.topicSource).toMatchObject({ workspace: { title: 'Workspace B' }, archived: true })
+    expect(graph.nodes.get('missing')).toMatchObject({ title: 'Saved source', topicSource: { status: 'unavailable' } })
+    const scope = resolveGraphScope(id('a'), list, workspacesState([], ['b']))
+    expect([...deriveSessionGraph(list, scope, id('a'), new Map()).nodes.keys()]).toEqual(['a'])
+  })
+
   it('resolves by sessionIds membership first and unions same-cwd rows into members', () => {
     const list = listState({
       a: session('a'),

@@ -8,8 +8,12 @@
  * disposal removes the tab.
  */
 import { Context, Service } from '@deepseek-ai/cordis'
+import { writeFileSync } from 'node:fs'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { FC, ReactNode } from 'react'
 import { bindSnapshotSelector, stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -37,8 +41,365 @@ import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { apply, inject } from '@benz-ai-x/dsh-client-ui-session-graph/client'
 import packageMetadata from '../package.json'
 import { zh, type SessionGraphKey } from '../src/client/locales.ts'
+import { researchTopicFixture } from './fixtures/research-topics.ts'
+import { topicHost } from './fixtures/research-topics-host.ts'
 
 const id = (value: string): SessionId => value as SessionId
+
+describe('Research Topics registered Graph workflow', () => {
+  describe('creation with an uncertain response', () => {
+    const cleanups: (() => Promise<void>)[] = []
+    let root: string
+    let host: Awaited<ReturnType<typeof topicHost>>
+    let b: Awaited<ReturnType<typeof bench>>
+    let input: HTMLInputElement
+
+    beforeEach(async () => {
+      root = await mkdtemp(join(tmpdir(), 'session-graph-topic-retry-'))
+      cleanups.push(() => rm(root, { recursive: true, force: true }))
+      host = await topicHost(root, cleanups)
+      b = await bench({ a: session('a') })
+      cleanups.push(async () => { await b.fiber.dispose() })
+      b.listTopics.mockImplementation(async signal => ({ ok: true, value: await host.invoke('list', undefined, signal) }))
+      b.readTopic.mockImplementation(async (request, signal) => ({ ok: true, value: await host.invoke('read', request, signal) }))
+      b.writeTopic.mockImplementation(async (request, signal) => ({ ok: true, value: await host.invoke('write', request, signal) }))
+      b.writeTopic.mockImplementationOnce(async (request, signal) => {
+        await host.invoke('write', request, signal)
+        throw new Error('Connection closed after durable create')
+      })
+      mount(b.slots, b.sessionsStore, 'a')
+      switchTab('Graph')
+      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      input = await screen.findByRole('textbox', { name: '新主题名称' }) as HTMLInputElement
+      fireEvent.change(input, { target: { value: '原名称 A' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('alert')
+      expect(input.value).toBe('原名称 A')
+      await host.ctx.fiber.dispose()
+      host = await topicHost(root, cleanups)
+      expect(await host.invoke('list')).toMatchObject([{ title: '原名称 A' }])
+    })
+
+    afterEach(async () => {
+      cleanup()
+      for (const dispose of cleanups.splice(0).reverse()) await dispose()
+    })
+
+    it('saves an amended create title after the Host restarts', async () => {
+      const saved = await host.invoke('list')
+      fireEvent.change(input, { target: { value: '修改后的名称 B' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('option', { name: '修改后的名称 B (0)' })
+      expect(input.value).toBe('')
+      expect((screen.getByRole('textbox', { name: '主题名称' }) as HTMLInputElement).value).toBe('修改后的名称 B')
+      expect(screen.queryByRole('alert')).toBeNull()
+      await host.ctx.fiber.dispose()
+      host = await topicHost(root, cleanups)
+      expect(await host.invoke('list')).toEqual([{ ...saved[0], title: '修改后的名称 B' }])
+    })
+
+    it('preserves other client changes when retrying an unchanged name', async () => {
+      const [saved] = await host.invoke('list')
+      await host.invoke('write', { kind: 'rename', topicId: saved.topicId, title: '另一客户端的名称' })
+      const updated = await host.invoke('write', {
+        kind: 'arrange', topicId: saved.topicId,
+        arrangement: { positions: { source: { x: 10, y: 20 } }, collapsed: ['source'], offsets: {} },
+      })
+      fireEvent.change(input, { target: { value: '  原名称 A  ' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('option', { name: '另一客户端的名称 (0)' })
+      expect(input.value).toBe('')
+      expect(await host.invoke('list')).toEqual([updated])
+    })
+
+    it.each([
+      { failure: 'before saving', committed: false, saved: '原名称 A', retry: '修改后的名称 B' },
+      { failure: 'after saving', committed: true, saved: '修改后的名称 B', retry: '原名称 A' },
+    ])('retains the amended input when rename fails $failure and saves the next retry', async scenario => {
+      let failRename = true
+      b.writeTopic.mockImplementation(async (request, signal) => {
+        if (request.kind === 'rename' && failRename) {
+          failRename = false
+          if (scenario.committed) await host.invoke('write', request, signal)
+          throw new Error('Connection failed during rename')
+        }
+        return { ok: true, value: await host.invoke('write', request, signal) }
+      })
+      fireEvent.change(input, { target: { value: '修改后的名称 B' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('alert')
+      expect(input.value).toBe('修改后的名称 B')
+      expect(input.disabled).toBe(false)
+      const saved = await host.invoke('list')
+      expect(saved).toHaveLength(1)
+      expect(saved[0].title).toBe(scenario.saved)
+      fireEvent.change(input, { target: { value: scenario.retry } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('option', { name: `${scenario.retry} (0)` })
+      expect(input.value).toBe('')
+      expect(screen.queryByRole('alert')).toBeNull()
+      expect(await host.invoke('list')).toEqual([{ ...saved[0], title: scenario.retry }])
+    })
+
+    it('abandons a late recovered create without renaming after the view closes', async () => {
+      const response = deferred<void>()
+      const received = deferred<void>()
+      b.writeTopic.mockImplementationOnce(async (request, signal) => {
+        const value = await host.invoke('write', request, signal)
+        received.resolve()
+        await response.promise
+        return { ok: true, value }
+      })
+      fireEvent.change(input, { target: { value: '修改后的名称 B' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await received.promise
+      expect(input.disabled).toBe(true)
+      fireEvent.click(screen.getByRole('button', { name: '工作区图' }))
+      await act(async () => { response.resolve() })
+      expect(screen.queryByRole('textbox', { name: '新主题名称' })).toBeNull()
+      expect((await host.invoke('list')).map(topic => topic.title)).toEqual(['原名称 A'])
+    })
+  })
+
+  it('keeps an open topic reference when the live Workspace feed archives its source', async () => {
+    const b = await bench({ a: session('a') })
+    const reference = { sessionId: 'a', title: 'Source A' }
+    const topic = { topicId: 'topic-a', title: '研究 A', references: [reference], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [{ ...reference, status: 'listed', archived: false }] } })
+    const workspaces = createSnapshotStore(workspacesState())
+    mount(b.slots, b.sessionsStore, 'a', workspaces)
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelectorAll('[data-node-id]')).toHaveLength(1) })
+    fireEvent.click(nodeButton('a'))
+    await act(async () => { workspaces.set({ ...workspacesState(), archivedSessionIds: [id('a')] }) })
+    expect(nodeButton('a').textContent).toContain('已归档')
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('已归档')
+    expect((screen.getByRole('button', { name: '打开会话' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.doubleClick(nodeButton('a'))
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.readHistory).not.toHaveBeenCalled()
+    expect(b.writeTopic).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
+  it('switches 1,000 references, selects and locates sources, cancels reads, and rejects late results after switching or closing', async () => {
+    const fixture = researchTopicFixture()
+    const b = await bench({ ...fixture.rows, viewed: session('viewed') })
+    b.listTopics.mockResolvedValue({ ok: true, value: [fixture.a.topic, fixture.b.topic] })
+    const lateA = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphTopics/read']>>>()
+    b.readTopic.mockImplementationOnce(() => lateA.promise)
+    b.readTopic.mockResolvedValue({ ok: true, value: fixture.b })
+    const ui = mount(b.slots, b.sessionsStore, 'viewed', {
+      ...workspacesState(), archivedSessionIds: fixture.b.sources.filter(source => source.archived).map(source => id(source.sessionId)),
+    })
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(b.readTopic).toHaveBeenCalledTimes(1) })
+    const topicSelect = screen.getByRole('combobox', { name: '选择研究主题' })
+    const switchStarted = performance.now()
+    fireEvent.change(topicSelect, { target: { value: fixture.b.topic.topicId } })
+    await waitFor(() => { expect(document.querySelectorAll('[data-node-id]')).toHaveLength(1_000) })
+    const switched = performance.now()
+    expect(b.readTopic.mock.calls[0]![1]!.aborted).toBe(true)
+    await act(async () => { lateA.resolve({ ok: true, value: fixture.a }) })
+    expect(document.querySelectorAll('[data-node-id]')).toHaveLength(1_000)
+    expect(b.readHistory).not.toHaveBeenCalled()
+    fireEvent.click(nodeButton('source-0990'))
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('研究工作区 2')
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('已归档')
+    const selected = performance.now()
+    const lateOriginal = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphHistory/read']>>>()
+    b.readHistory.mockImplementationOnce(() => lateOriginal.promise)
+    const sourcePanel = within(screen.getByTestId('topic-source-panel'))
+    fireEvent.click(sourcePanel.getByRole('button', { name: '阅读原文' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenCalledTimes(1) })
+    fireEvent.click(sourcePanel.getByRole('button', { name: '取消读取' }))
+    expect(b.readHistory.mock.calls[0]![1]!.aborted).toBe(true)
+    expect((sourcePanel.getByRole('button', { name: '打开会话' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(nodeButton('source-0991'))
+    fireEvent.click(screen.getByRole('button', { name: '打开会话' }))
+    expect(b.open).toHaveBeenCalledWith('source-0991')
+    const located = performance.now()
+    fireEvent.click(nodeButton('source-0999'))
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('来源不可用')
+    await act(async () => { lateOriginal.resolve({ ok: true, value: { kind: 'unavailable', sessionId: 'source-0990' } }) })
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('source-0999')
+    const closing = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphTopics/read']>>>()
+    b.readTopic.mockImplementationOnce(() => closing.promise)
+    fireEvent.change(topicSelect, { target: { value: fixture.a.topic.topicId } })
+    await waitFor(() => { expect(b.readTopic).toHaveBeenCalledTimes(3) })
+    ui.unmount()
+    expect(b.readTopic.mock.calls[2]![1]!.aborted).toBe(true)
+    await act(async () => { closing.resolve({ ok: true, value: fixture.a }) })
+    expect(document.querySelectorAll('[data-node-id]')).toHaveLength(0)
+    if (process.env.SESSION_GRAPH_PERFORMANCE_REPORT) writeFileSync(process.env.SESSION_GRAPH_PERFORMANCE_REPORT, JSON.stringify({
+      references: 1000, archived: 200, missing: 100,
+      switchMs: switched - switchStarted, selectMs: selected - switched, readCancelLocateMs: located - selected,
+    }, null, 2))
+    await b.fiber.dispose()
+  }, 30_000)
+
+  it('adds a cross-Workspace archived search result without changing Viewed Session', async () => {
+    const b = await bench({ viewed: session('viewed') })
+    const topic = { topicId: 'topic-a', title: '研究 A', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.searchDiscussion.mockResolvedValue({ ok: true, value: { kind: 'results', hits: [{
+      sessionId: 'outside', title: '跨工作区资料', archived: true, eventSeq: 2, turnStartSeq: 0, time: 1000, snippet: 'needle',
+    }] } })
+    b.writeTopic.mockResolvedValue({ ok: true, value: { ...topic, references: [{ sessionId: 'outside', title: '跨工作区资料' }] } })
+    mount(b.slots, b.sessionsStore, 'viewed')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
+    fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
+    fireEvent.click(await screen.findByRole('button', { name: '查看原文：跨工作区资料' }))
+    fireEvent.click(screen.getByRole('button', { name: '加入研究主题' }))
+    await screen.findByRole('option', { name: '研究 A (0)' })
+    fireEvent.click(screen.getByRole('button', { name: '加入所选主题' }))
+    await waitFor(() => { expect(screen.queryByRole('dialog', { name: '加入研究主题' })).toBeNull() })
+    expect(b.writeTopic.mock.calls[0]![0]).toEqual({ kind: 'add', topicId: topic.topicId, sessionIds: ['outside'] })
+    expect(screen.getByRole('dialog', { name: zh['search.title'] })).toBeTruthy()
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
+  it('keeps each topic arrangement and retains an unsaved reset across switches and a failed retry', async () => {
+    const b = await bench({ a: session('a') })
+    const references = [{ sessionId: 'a', title: 'Source A' }]
+    const topics = ['a', 'b'].map((key, index) => ({
+      topicId: `topic-${key}`, title: `研究 ${key}`, references,
+      arrangement: { positions: { a: { x: 100 + index * 400, y: 200 } }, collapsed: [], offsets: {} },
+    }))
+    b.listTopics.mockResolvedValue({ ok: true, value: topics })
+    b.readTopic.mockImplementation(async request => ({ ok: true, value: {
+      topic: topics.find(topic => topic.topicId === request.topicId)!,
+      sources: [{ ...references[0]!, status: 'listed', archived: false }],
+    } }))
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(nodeButton('a').style.left).toBe('100px') })
+    fireEvent.click(screen.getByRole('button', { name: '重置布局' }))
+    const resetPosition = nodeButton('a').style.left
+    expect(resetPosition).not.toBe('100px')
+    fireEvent.change(screen.getByRole('combobox', { name: '选择研究主题' }), { target: { value: 'topic-b' } })
+    await waitFor(() => { expect(nodeButton('a').style.left).toBe('500px') })
+    fireEvent.change(screen.getByRole('combobox', { name: '选择研究主题' }), { target: { value: 'topic-a' } })
+    await waitFor(() => { expect(nodeButton('a').style.left).toBe(resetPosition) })
+    b.writeTopic.mockRejectedValueOnce(new Error('Storage unavailable'))
+    fireEvent.click(screen.getByRole('button', { name: '保存排列' }))
+    await screen.findByRole('alert')
+    expect(nodeButton('a').style.left).toBe(resetPosition)
+    const arrangement = { positions: {}, collapsed: [], offsets: {} }
+    b.writeTopic.mockResolvedValueOnce({ ok: true, value: { ...topics[0]!, arrangement } })
+    fireEvent.click(screen.getByRole('button', { name: '保存排列' }))
+    await waitFor(() => { expect((screen.getByRole('button', { name: '保存排列' }) as HTMLButtonElement).disabled).toBe(true) })
+    expect(b.writeTopic.mock.calls.map(([request]) => request)).toEqual([
+      { kind: 'arrange', topicId: 'topic-a', arrangement }, { kind: 'arrange', topicId: 'topic-a', arrangement },
+    ])
+    expect(document.querySelectorAll('[data-node-id]')).toHaveLength(1)
+    expect(localStorage.getItem('dsh.session-graph.layout.topic:topic-a')).toBeNull()
+    await b.fiber.dispose()
+  })
+
+  it('adds the Selected Session to a chosen topic and preserves the selection after a failed save', async () => {
+    const b = await bench({ a: session('a') })
+    const topic = { topicId: 'topic-a', title: '研究 A', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '加入研究主题' }))
+    await screen.findByRole('option', { name: '研究 A (0)' })
+    b.writeTopic.mockRejectedValueOnce(new Error('Storage unavailable'))
+    fireEvent.click(screen.getByRole('button', { name: '加入所选主题' }))
+    await screen.findByRole('alert')
+    expect((screen.getByRole('combobox', { name: '选择研究主题' }) as HTMLSelectElement).value).toBe(topic.topicId)
+    b.writeTopic.mockResolvedValueOnce({ ok: true, value: { ...topic, references: [{ sessionId: 'a', title: 'Session a' }] } })
+    fireEvent.click(screen.getByRole('button', { name: '加入所选主题' }))
+    await waitFor(() => { expect(screen.queryByRole('dialog', { name: '加入研究主题' })).toBeNull() })
+    expect(b.writeTopic.mock.calls.map(([request]) => request)).toEqual([
+      { kind: 'add', topicId: 'topic-a', sessionIds: ['a'] }, { kind: 'add', topicId: 'topic-a', sessionIds: ['a'] },
+    ])
+    expect(b.open).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-node-id="a"]')?.getAttribute('aria-selected')).toBe('true')
+    await b.fiber.dispose()
+  })
+
+  it('shows cross-Workspace, archived and missing references, and reads a selected source only on demand', async () => {
+    const b = await bench({ a: session('a'), b: session('b', { cwd: '/other' }) })
+    const references = [
+      { sessionId: 'a', title: 'Source A', workspace: { id: 'a', title: 'Workspace A' } },
+      { sessionId: 'b', title: 'Source B', workspace: { id: 'b', title: 'Workspace B' } },
+      { sessionId: 'missing', title: 'Missing source', workspace: { id: 'old', title: 'Old Workspace' } },
+    ]
+    const topic = { topicId: 'topic-a', title: '跨工作区调查', references, arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: references.map(reference => ({
+      ...reference, status: reference.sessionId === 'missing' ? 'unavailable' : 'listed', archived: reference.sessionId === 'b',
+    })) } })
+    mount(b.slots, b.sessionsStore, 'a', { ...workspacesState(), archivedSessionIds: [id('b')] })
+    fireEvent.click(screen.getByRole('tab', { name: 'Graph' }))
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelectorAll('[data-node-id]')).toHaveLength(3) })
+    expect(document.querySelectorAll('[data-edge-kind]')).toHaveLength(0)
+    expect(b.readHistory).not.toHaveBeenCalled()
+    fireEvent.click(nodeButton('b'))
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('Workspace B')
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('已归档')
+    expect(b.readHistory).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenCalledTimes(1) })
+    expect(b.readHistory.mock.calls[0]![0]).toEqual({ sessionId: 'b' })
+    expect(b.open).not.toHaveBeenCalled()
+    expect((screen.getByRole('button', { name: '打开会话' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('无法打开归档会话')
+    fireEvent.doubleClick(nodeButton('b'))
+    expect(b.open).not.toHaveBeenCalled()
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '打开会话' }))
+    expect(b.open).toHaveBeenCalledWith('a')
+    fireEvent.click(nodeButton('missing'))
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('来源不可用')
+    expect((screen.getByRole('button', { name: '打开会话' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(b.fork).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+    expect(b.submitMerge).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
+  it('retains a failed create input, retries with the same identity, and renames the saved topic', async () => {
+    const b = await bench({ a: session('a') })
+    mount(b.slots, b.sessionsStore, 'a')
+    fireEvent.click(screen.getByRole('tab', { name: 'Graph' }))
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await screen.findByText('尚无研究主题。创建一个主题开始整理资料。')
+    const input = screen.getByRole('textbox', { name: '新主题名称' })
+    fireEvent.change(input, { target: { value: '跨工作区调查' } })
+    b.writeTopic.mockRejectedValueOnce(new Error('Storage unavailable'))
+    fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+    await screen.findByRole('alert')
+    expect((input as HTMLInputElement).value).toBe('跨工作区调查')
+    const request = b.writeTopic.mock.calls[0]![0]
+    const topic = { topicId: request.topicId, title: '跨工作区调查', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.writeTopic.mockResolvedValueOnce({ ok: true, value: topic })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+    fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+    await screen.findByRole('option', { name: '跨工作区调查 (0)' })
+    expect(b.writeTopic.mock.calls[1]![0]).toEqual(request)
+    const rename = screen.getByRole('textbox', { name: '主题名称' })
+    fireEvent.change(rename, { target: { value: '统一主题' } })
+    b.writeTopic.mockResolvedValueOnce({ ok: true, value: { ...topic, title: '统一主题' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存名称' }))
+    await screen.findByRole('option', { name: '统一主题 (0)' })
+    expect(b.writeTopic.mock.calls[2]![0]).toEqual({ kind: 'rename', topicId: topic.topicId, title: '统一主题' })
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+})
 
 function session(value: string, over: Partial<SessionSummary> = {}): SessionSummary {
   return {
@@ -133,6 +494,9 @@ async function bench(byId: Record<string, SessionSummary>) {
     value: { kind: 'original', sessionId: request.sessionId, turns: [], hasEarlier: false, hasLater: false },
   }))
   const searchDiscussion = vi.fn<TypertRemoteMap['sessionGraphSearch/search']>(async () => ({ ok: true, value: { kind: 'results', hits: [] } }))
+  const listTopics = vi.fn<TypertRemoteMap['sessionGraphTopics/list']>(async () => ({ ok: true, value: [] }))
+  const readTopic = vi.fn<TypertRemoteMap['sessionGraphTopics/read']>(async () => { throw new Error('Unconfigured topic read') })
+  const writeTopic = vi.fn<TypertRemoteMap['sessionGraphTopics/write']>(async () => { throw new Error('Unconfigured topic write') })
   const submitMerge = vi.fn(async (request: {
     readonly operationId: string
     readonly sourceIds: readonly SessionId[]
@@ -176,6 +540,7 @@ async function bench(byId: Record<string, SessionSummary>) {
   ctx.provide('remote.sessionGraphMerge', { submit: submitMerge } as never)
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
+  ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -183,6 +548,7 @@ async function bench(byId: Record<string, SessionSummary>) {
   await fiber
   return {
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
+    listTopics, readTopic, writeTopic,
   }
 }
 

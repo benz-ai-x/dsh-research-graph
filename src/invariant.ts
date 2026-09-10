@@ -15,10 +15,10 @@ export const name = 'client-ui-session-graph-invariant'
 export const inject = ['invariants']
 
 /**
- * No runtime invariant: a pure-consumer plugin — it derives its graph from
- * the sessions-list snapshot without emitting cordis events or owning
- * mutable cross-plugin state; its view-slot registration is a plain effect
- * whose disposal this package's behavior specs observe directly.
+ * No additional cross-plugin event invariant. Session facts remain owned by
+ * Harness; topic records are validated and committed through its Storage
+ * Domain contract. Public Gateway and registered-view behavior specs cover
+ * topic durability, source immutability, cancellation, and effect disposal.
  */
 const install: InvariantInstaller = () => {}
 

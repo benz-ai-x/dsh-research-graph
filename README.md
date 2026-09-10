@@ -64,6 +64,7 @@ This prerelease uses npm tag `next`; the commands below pin the exact matching v
 | Cross-session workflows | Open or branch any Canvas Session and merge immutable snapshots from two or three sources |
 | Original discussion | Read user/assistant text by turn in the Inspector, select a completed range, and check its exact source |
 | Discussion search | Find body keywords across workspaces, optionally include archived sources, and inspect the exact matching turn |
+| Research Topics | Collect Session references across Workspaces, retain archived sources, and save a separate arrangement for each topic |
 | Read-only Session Digests | Generate concise overviews, key outcomes, and open items on demand without changing Session logs |
 
 See the [Original discussion browser acceptance record and screenshots](docs/reviews/pr-14-ui-acceptance.md) for paging, source recovery, running turns, and navigation.
@@ -72,7 +73,8 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 
 | Action | Durable effect | Model use |
 |---|---|---|
-| Browse or arrange | Does not change Session logs; arrangements stay in browser storage | None |
+| Browse or arrange a Workspace/Directory graph | Does not change Session logs; arrangements stay in browser storage | None |
+| Organize Research Topics | Saves names, Session references, and explicitly saved arrangements in Host storage; source Sessions remain unchanged | None |
 | Read or select discussion | Retains the selection and fallback excerpt only while the reader is open; does not change Session logs | None |
 | Search discussion | Uses the Host index and verifies original text; retains temporary result snapshots without changing sources or archive state | None |
 | Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback |
@@ -134,6 +136,20 @@ Open a non-blank session and choose **Graph** beside the standard conversation t
 - Read the header badge to identify the package version and exact local Build ID; hover it for the full package identity.
 
 Keyboard shortcuts work while the canvas is focused: `+` and `-` zoom, `0` restores 100%, and `1` fits the graph.
+
+## Organize Research Topics
+
+Choose **Research Topics** in the Graph header and create a named topic. In a Selected Session's details or a selected discussion search result, choose **Add to Research Topic**, select a topic, and add the source. You can create a topic in that picker too. Topics collect Session references across Workspaces on the same Host; a Session can belong to several topics.
+
+If creation fails, retrying recovers the same topic. If you edit the name before retrying, the revised name must also save before the input clears; another failure keeps that input available for retry.
+
+The topic graph displays source titles and Workspaces, including archived sources and retained references whose source is unavailable. Only confirmed Branch and Merge facts produce edges. Selecting a node shows its source details; **Read original** loads discussion on demand, and **Open Session** explicitly navigates to a listed, non-archived source. Archived sources remain readable here; opening their Session is disabled because the matching Harness does not keep archived Sessions selected. Removing a reference affects that topic alone. It does not delete, move, archive, branch, or merge a source, or send model context.
+
+Drag nodes or clusters and use collapse, relayout, or reset, then choose **Save arrangement**. Each topic has its own Host-persisted arrangement. Reset clears arrangement choices without removing references. Unsaved edits survive topic switching while Research Topics remains open; save before leaving that view. Failed saves retain the input and can be retried. Names, membership, and saved arrangements survive a Host restart and are shared by clients connected to that Host. Concurrent edits to the same arrangement use the last successful save.
+
+Topic switching reads Session headers and existing metadata, not all original discussions. A listed source can still fail when its original is opened; the reader reports that failure or unavailability and offers retry. Switching topics, closing the view, or canceling a read prevents late responses from replacing the current result. Ordinary Workspace/Directory Canvas Session eligibility remains unchanged.
+
+See the [Research Topics acceptance record and screenshots](docs/reviews/issue-5-ui-acceptance.md) for cross-Workspace collection, independent arrangements, source recovery, restart persistence, and the 1,000-reference baseline.
 
 ## Search discussion history
 
@@ -299,6 +315,8 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 
 | File | Responsibility |
 |---|---|
+| [`src/research-topics-host.ts`](src/research-topics-host.ts) | Host storage, serialized topic writes, lightweight source metadata, and lifecycle cancellation |
+| [`src/client/ResearchTopics.tsx`](src/client/ResearchTopics.tsx) and [`src/client/TopicGraph.tsx`](src/client/TopicGraph.tsx) | Topic creation, selection, membership, arrangement drafts, and source inspection |
 | [`src/client/GraphView.tsx`](src/client/GraphView.tsx) | Workspace/Directory Scope resolution, graph derivation, and view header |
 | [`src/client/GraphCanvas.tsx`](src/client/GraphCanvas.tsx) | Canvas rendering, ports, inspector, controls, gestures, hover state, and minimap |
 | [`src/config.ts`](src/config.ts) | Exported Standard Schema, defaults, and normalized Host configuration |
@@ -319,7 +337,7 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 ## Current limitations
 
 - Graph is unavailable on the no-session home screen and in a fresh blank session because neither has a conversation view ring.
-- The graph follows one Workspace or Directory Scope at a time and does not search message content or working-directory paths.
+- The scope graph follows one Workspace or Directory Scope at a time. Research Topics span Workspaces within one Host; discussion search is a separate body-text view.
 - Pan and zoom reset on tab switch or reload; node positions, cluster offsets, and collapse state persist.
 - Session Digests are generated only on demand and cached in Host memory, not persisted as durable artifacts. A Host restart clears the cache.
 - A Session without a logged model route needs a configured fallback route before it can be digested.
