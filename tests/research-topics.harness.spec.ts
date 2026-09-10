@@ -1,62 +1,15 @@
-import { Context } from '@deepseek-ai/cordis'
-import SessionStore, { type Session } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
-import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
-import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
+import type { Session } from '@deepseek-ai/dsh-session'
 import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
-import { createSessionTestController } from 'harness-session-controller-test-support'
 import { mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apply, inject } from '../src/index.ts'
-import Storage from '@deepseek-ai/dsh-storage'
-import * as StorageJson from '@deepseek-ai/dsh-storage-json'
-import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
+import { topicHost } from './fixtures/research-topics-host.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
 })
-
-async function topicHost(root: string) {
-  const ctx = new Context()
-  cleanups.push(async () => {
-    await ctx.fiber.dispose()
-  })
-  await ctx.plugin(Storage)
-  await ctx.plugin(StorageJson, { root: join(root, 'data') })
-  await ctx.plugin(StorageDomain, { backend: 'json' })
-  expect(ctx.get('storageDomain'), 'storage domain fixture is available').toBeDefined()
-  await ctx.plugin(SessionStore)
-  await ctx.plugin(JsonlSessionPersistence, { root: join(root, 'sessions'), compression: 'none' })
-  await ctx.plugin(TypertRegistry)
-  await ctx.plugin(SqliteSessionQueryEngine, { path: ':memory:', openAt: 'never' })
-  const workspaces = [
-    { id: 'a', title: 'Research A', path: '/a', sessionIds: [] as string[] },
-    { id: 'b', title: 'Research B', path: '/b', sessionIds: [] as string[] },
-  ]
-  const archivedSessionIds: string[] = []
-  ctx.provide('workspaceRegistry', { list: () => workspaces, archivedSessionIds })
-  ctx.provide('llm', { stream: vi.fn(() => { throw new Error('Topics must not call a model') }) })
-  await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'llm', 'typert'],
-    apply(controllerCtx) {
-      createSessionTestController(controllerCtx, {
-        cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
-      })
-    },
-  })
-  await ctx.plugin({ apply, inject })
-  expect(ctx.get('sessionGraphTopics'), 'topic service is ready when plugin startup completes').toBeDefined()
-  await ctx.plugin(TypertGatewayService)
-  const invoke = (method: string, request?: unknown, signal = new AbortController().signal) => ctx.typertGateway.invoke({
-    namespace: 'sessionGraphTopics', method, args: request === undefined ? {} : { request },
-    signal,
-  })
-  return { ctx, workspaces, archivedSessionIds, invoke }
-}
 
 function addTurn(session: Session, turn: number, prompt: string, answer = 'Recorded conclusion.'): void {
   session.append('turn/start', { turn })
@@ -78,7 +31,7 @@ describe('Research Topics public Host interface', () => {
   it('lists archived and missing sources without reading original text or dropping membership', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
-    const host = await topicHost(root)
+    const host = await topicHost(root, cleanups)
     const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/b' } })
     addTurn(source, 1, 'Original discussion.')
     host.ctx.effect(() => host.ctx.sessions.enter(source))
@@ -94,7 +47,7 @@ describe('Research Topics public Host interface', () => {
     expect(original).not.toHaveBeenCalled()
     await host.ctx.fiber.dispose()
     await rm(join(root, 'sessions'), { recursive: true, force: true })
-    const restarted = await topicHost(root)
+    const restarted = await topicHost(root, cleanups)
     const missing = await restarted.invoke('read', { topicId })
     expect(missing.topic.references).toEqual(snapshot.topic.references)
     expect(missing.sources).toMatchObject([{ sessionId: source.id, status: 'unavailable', workspace: { id: 'b' } }])
@@ -103,7 +56,7 @@ describe('Research Topics public Host interface', () => {
   it('keeps the last saved state when storage fails and accepts a retry after recovery', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
-    const host = await topicHost(root)
+    const host = await topicHost(root, cleanups)
     const topicId = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     const saved = await host.invoke('write', { kind: 'create', topicId, title: '已保存' })
     await rename(join(root, 'data'), join(root, 'saved-data'))
@@ -118,7 +71,7 @@ describe('Research Topics public Host interface', () => {
   it('persists independent arrangements and resets positions without removing references', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
-    const host = await topicHost(root)
+    const host = await topicHost(root, cleanups)
     const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'Original discussion.')
     host.ctx.effect(() => host.ctx.sessions.enter(source))
@@ -131,7 +84,7 @@ describe('Research Topics public Host interface', () => {
     const arrangement = { positions: { [source.id]: { x: 120, y: -80 } }, collapsed: [source.id], offsets: {} }
     await host.invoke('write', { kind: 'arrange', topicId: a, arrangement })
     await host.ctx.fiber.dispose()
-    const restarted = await topicHost(root)
+    const restarted = await topicHost(root, cleanups)
     const topics = await restarted.invoke('list')
     expect(topics.find(topic => topic.topicId === a).arrangement).toEqual(arrangement)
     expect(topics.find(topic => topic.topicId === b).arrangement).toEqual({ positions: {}, collapsed: [], offsets: {} })
@@ -145,7 +98,7 @@ describe('Research Topics public Host interface', () => {
   it('renames a topic and makes a repeated create preserve its saved references and title', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
-    const host = await topicHost(root)
+    const host = await topicHost(root, cleanups)
     const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'Original discussion.')
     host.ctx.effect(() => host.ctx.sessions.enter(source))
@@ -161,19 +114,19 @@ describe('Research Topics public Host interface', () => {
   it('creates a named topic and reopens it after restarting the Host', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
-    const first = await topicHost(root)
+    const first = await topicHost(root, cleanups)
     const topicId = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     const created = await first.invoke('write', { kind: 'create', topicId, title: '跨会话研究' })
     expect(created).toMatchObject({ topicId, title: '跨会话研究', references: [] })
     await first.ctx.fiber.dispose()
-    const restarted = await topicHost(root)
+    const restarted = await topicHost(root, cleanups)
     expect(await restarted.invoke('list')).toEqual([created])
     expect(restarted.ctx.llm.stream).not.toHaveBeenCalled()
   })
   it('keeps cross-Workspace references independent in two topics and retains them across restart', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
-    const host = await topicHost(root)
+    const host = await topicHost(root, cleanups)
     const sources = ['/a', '/b'].map(cwd => host.ctx.sessions.prepare(undefined, { meta: { cwd } }))
     for (const source of sources) {
       addTurn(source, 1, 'Original discussion.')
@@ -192,7 +145,7 @@ describe('Research Topics public Host interface', () => {
     expect(await Promise.all(sources.map(source => host.ctx.sessionController.inspect(source.id)))).toEqual(before)
     expect(host.archivedSessionIds).toEqual([])
     await host.ctx.fiber.dispose()
-    const restarted = await topicHost(root)
+    const restarted = await topicHost(root, cleanups)
     const topics = await restarted.invoke('list')
     expect(topics.find(topic => topic.topicId === a).references.map(reference => reference.sessionId)).toEqual([sources[1]!.id])
     expect(topics.find(topic => topic.topicId === b).references.map(reference => reference.sessionId)).toEqual([sources[0]!.id])

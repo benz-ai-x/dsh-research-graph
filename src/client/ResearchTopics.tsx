@@ -25,7 +25,7 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
   const [arrangements, setArrangements] = useState<Record<string, LayoutState>>({})
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
-  const createId = useRef<string>()
+  const createAttempt = useRef<{ readonly topicId: string; readonly title: string; readonly rename: boolean }>()
   const writeController = useRef<AbortController>()
   useEffect(() => () => { writeController.current?.abort() }, [])
   useEffect(() => {
@@ -46,8 +46,12 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     setBusy(true)
     setFailed(false)
     try {
-      const topic = await api.write(request, controller.signal)
+      let topic = await api.write(request, controller.signal)
       if (controller.signal.aborted) return undefined
+      if (request.kind === 'create' && createAttempt.current?.rename && topic.title !== request.title) {
+        topic = await api.write({ kind: 'rename', topicId: topic.topicId, title: request.title }, controller.signal)
+        if (controller.signal.aborted) return undefined
+      }
       setItems(current => current.some(item => item.topicId === topic.topicId)
         ? current.map(item => item.topicId === topic.topicId ? topic : item) : [...current, topic])
       return topic
@@ -66,10 +70,16 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     </div> : <>
       <form className={styles.topicControls} onSubmit={event => {
         event.preventDefault()
-        createId.current ??= crypto.randomUUID()
-        void write({ kind: 'create', topicId: createId.current, title }).then(topic => {
+        const previous = createAttempt.current
+        const name = title.trim()
+        createAttempt.current = {
+          topicId: previous?.topicId ?? crypto.randomUUID(), title: name,
+          // An edited retry may have saved even if its response failed again.
+          rename: previous !== undefined && (previous.rename || previous.title !== name),
+        }
+        void write({ kind: 'create', topicId: createAttempt.current.topicId, title: name }).then(topic => {
           if (topic === undefined) return
-          createId.current = undefined
+          createAttempt.current = undefined
           setTitle('')
           setSelectedId(topic.topicId)
         })

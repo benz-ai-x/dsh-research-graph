@@ -9,6 +9,9 @@
  */
 import { Context, Service } from '@deepseek-ai/cordis'
 import { writeFileSync } from 'node:fs'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { FC, ReactNode } from 'react'
@@ -39,10 +42,125 @@ import { apply, inject } from '@benz-ai-x/dsh-client-ui-session-graph/client'
 import packageMetadata from '../package.json'
 import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
+import { topicHost } from './fixtures/research-topics-host.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
 describe('Research Topics registered Graph workflow', () => {
+  describe('creation with an uncertain response', () => {
+    const cleanups: (() => Promise<void>)[] = []
+    let root: string
+    let host: Awaited<ReturnType<typeof topicHost>>
+    let b: Awaited<ReturnType<typeof bench>>
+    let input: HTMLInputElement
+
+    beforeEach(async () => {
+      root = await mkdtemp(join(tmpdir(), 'session-graph-topic-retry-'))
+      cleanups.push(() => rm(root, { recursive: true, force: true }))
+      host = await topicHost(root, cleanups)
+      b = await bench({ a: session('a') })
+      cleanups.push(async () => { await b.fiber.dispose() })
+      b.listTopics.mockImplementation(async signal => ({ ok: true, value: await host.invoke('list', undefined, signal) }))
+      b.readTopic.mockImplementation(async (request, signal) => ({ ok: true, value: await host.invoke('read', request, signal) }))
+      b.writeTopic.mockImplementation(async (request, signal) => ({ ok: true, value: await host.invoke('write', request, signal) }))
+      b.writeTopic.mockImplementationOnce(async (request, signal) => {
+        await host.invoke('write', request, signal)
+        throw new Error('Connection closed after durable create')
+      })
+      mount(b.slots, b.sessionsStore, 'a')
+      switchTab('Graph')
+      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      input = await screen.findByRole('textbox', { name: '新主题名称' }) as HTMLInputElement
+      fireEvent.change(input, { target: { value: '原名称 A' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('alert')
+      expect(input.value).toBe('原名称 A')
+      await host.ctx.fiber.dispose()
+      host = await topicHost(root, cleanups)
+      expect(await host.invoke('list')).toMatchObject([{ title: '原名称 A' }])
+    })
+
+    afterEach(async () => {
+      cleanup()
+      for (const dispose of cleanups.splice(0).reverse()) await dispose()
+    })
+
+    it('saves an amended create title after the Host restarts', async () => {
+      const saved = await host.invoke('list')
+      fireEvent.change(input, { target: { value: '修改后的名称 B' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('option', { name: '修改后的名称 B (0)' })
+      expect(input.value).toBe('')
+      expect((screen.getByRole('textbox', { name: '主题名称' }) as HTMLInputElement).value).toBe('修改后的名称 B')
+      expect(screen.queryByRole('alert')).toBeNull()
+      await host.ctx.fiber.dispose()
+      host = await topicHost(root, cleanups)
+      expect(await host.invoke('list')).toEqual([{ ...saved[0], title: '修改后的名称 B' }])
+    })
+
+    it('preserves other client changes when retrying an unchanged name', async () => {
+      const [saved] = await host.invoke('list')
+      await host.invoke('write', { kind: 'rename', topicId: saved.topicId, title: '另一客户端的名称' })
+      const updated = await host.invoke('write', {
+        kind: 'arrange', topicId: saved.topicId,
+        arrangement: { positions: { source: { x: 10, y: 20 } }, collapsed: ['source'], offsets: {} },
+      })
+      fireEvent.change(input, { target: { value: '  原名称 A  ' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('option', { name: '另一客户端的名称 (0)' })
+      expect(input.value).toBe('')
+      expect(await host.invoke('list')).toEqual([updated])
+    })
+
+    it.each([
+      { failure: 'before saving', committed: false, saved: '原名称 A', retry: '修改后的名称 B' },
+      { failure: 'after saving', committed: true, saved: '修改后的名称 B', retry: '原名称 A' },
+    ])('retains the amended input when rename fails $failure and saves the next retry', async scenario => {
+      let failRename = true
+      b.writeTopic.mockImplementation(async (request, signal) => {
+        if (request.kind === 'rename' && failRename) {
+          failRename = false
+          if (scenario.committed) await host.invoke('write', request, signal)
+          throw new Error('Connection failed during rename')
+        }
+        return { ok: true, value: await host.invoke('write', request, signal) }
+      })
+      fireEvent.change(input, { target: { value: '修改后的名称 B' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('alert')
+      expect(input.value).toBe('修改后的名称 B')
+      expect(input.disabled).toBe(false)
+      const saved = await host.invoke('list')
+      expect(saved).toHaveLength(1)
+      expect(saved[0].title).toBe(scenario.saved)
+      fireEvent.change(input, { target: { value: scenario.retry } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await screen.findByRole('option', { name: `${scenario.retry} (0)` })
+      expect(input.value).toBe('')
+      expect(screen.queryByRole('alert')).toBeNull()
+      expect(await host.invoke('list')).toEqual([{ ...saved[0], title: scenario.retry }])
+    })
+
+    it('abandons a late recovered create without renaming after the view closes', async () => {
+      const response = deferred<void>()
+      const received = deferred<void>()
+      b.writeTopic.mockImplementationOnce(async (request, signal) => {
+        const value = await host.invoke('write', request, signal)
+        received.resolve()
+        await response.promise
+        return { ok: true, value }
+      })
+      fireEvent.change(input, { target: { value: '修改后的名称 B' } })
+      fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
+      await received.promise
+      expect(input.disabled).toBe(true)
+      fireEvent.click(screen.getByRole('button', { name: '工作区图' }))
+      await act(async () => { response.resolve() })
+      expect(screen.queryByRole('textbox', { name: '新主题名称' })).toBeNull()
+      expect((await host.invoke('list')).map(topic => topic.title)).toEqual(['原名称 A'])
+    })
+  })
+
   it('keeps an open topic reference when the live Workspace feed archives its source', async () => {
     const b = await bench({ a: session('a') })
     const reference = { sessionId: 'a', title: 'Source A' }
