@@ -7,6 +7,7 @@ export const NS = 'sessionGraph'
 
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
+  | 'position.unavailable' | 'position.topicUnavailable'
   | KnowledgeKey
   | ReuseKey
   | 'topic.title' | 'topic.back' | 'topic.description' | 'topic.loading' | 'topic.readError' | 'topic.retry'
@@ -171,6 +172,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh: Record<SessionGraphKey, string> = {
+  'position.unavailable': '上次选中的资料已不可用，已保留视口并清空选择。',
+  'position.topicUnavailable': '上次的研究主题已不可用，请从列表选择主题。',
   ...knowledgeZh,
   ...reuseZh,
   'topic.refresh': '刷新来源',
@@ -352,6 +355,8 @@ export const zh: Record<SessionGraphKey, string> = {
 
 /** English dictionary. */
 export const en: Record<SessionGraphKey, string> = {
+  'position.unavailable': 'The previously selected material is unavailable. The viewport is kept and selection is cleared.',
+  'position.topicUnavailable': 'The previous research topic is unavailable. Choose a topic from the list.',
   ...knowledgeEn,
   ...reuseEn,
   'topic.refresh': 'Refresh sources',

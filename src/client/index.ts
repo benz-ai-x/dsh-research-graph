@@ -51,7 +51,12 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
 }
 
 /** Register the Graph view after its dynamically mounted Remote is injectable. */
-function registerUi(ctx: Context): void {
+async function registerUi(ctx: Context): Promise<void> {
+  const lifecycle = new AbortController()
+  ctx.effect(() => () => { lifecycle.abort() }, 'ui-session-graph: identity request')
+  const identity = await ctx.remote.sessionGraphKnowledge.hostIdentity(AbortSignal.any([lifecycle.signal, AbortSignal.timeout(30_000)]))
+  lifecycle.signal.throwIfAborted()
+  if (!identity.ok) throw new Error(identity.error.message)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-session-graph: dictionaries')
   // Registration-time text (the view tab label) reads through the bound
   // translate as a thunk, so it follows the active locale without
@@ -118,6 +123,7 @@ function registerUi(ctx: Context): void {
     locale: NS,
     label: () => t('view.graph'),
     inject: (): GraphViewInjected => ({
+      hostId: identity.value.hostId,
       reuse: {
         prepare: async (request, signal) => {
           const result = await ctx.remote.sessionGraphReuse.prepare(request, signal)

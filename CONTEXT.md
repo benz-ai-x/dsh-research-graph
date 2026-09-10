@@ -142,6 +142,9 @@ _Avoid_: Session Snapshot, copied discussion, knowledge card
 The projection of a Research Topic's references, including archived and unavailable sources. It shows only Branch and Merge relations supported by Harness facts. Being visible here does not make a source a Canvas Session in a Workspace Scope.
 _Avoid_: Global graph, Workspace Scope, Session Cluster
 
+**Working Position**:
+Browser-local presentation for a persistent Host and explicit graph scope: viewport, selected identity, valid Original cursor/scroll, search conditions, and unsaved topic arrangement. It contains no source excerpts or authoritative knowledge. Restored search conditions trigger fresh reads. Opening a different Viewed Session never implicitly selects an old Research Topic.
+
 **Session Arrangement**:
 The placement and collapse choices a person applies to one graph scope; they change presentation only, never Session Lineage or activity. Each Workspace Scope owns a separate Session Arrangement even when Workspaces share a directory, while a Directory Scope owns the arrangement for its directory. Each Research Topic owns a separately saved arrangement in Host storage; Reset and Relayout affect presentation, not its Topic References.
 _Avoid_: Session state, graph data

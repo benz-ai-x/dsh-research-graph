@@ -3,14 +3,18 @@ import type { KnowledgeCard } from '../knowledge.ts'
 import type { SessionGraphKey } from './locales.ts'
 import { useKnowledge } from './Knowledge.tsx'
 import styles from './GraphView.module.css'
+import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** Shares the search entry while keeping card scope independent of Session directories. */
-export function KnowledgeSearch({ t }: {
+export function KnowledgeSearch({ t, workingKey }: {
+  readonly workingKey?: string | undefined
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const knowledge = useKnowledge()!
-  const [query, setQuery] = useState('')
-  const [inTopic, setInTopic] = useState(false)
+  const [restored] = useState(() => loadWorkingPosition(workingKey).knowledge)
+  const [query, setQuery] = useState(restored?.query ?? '')
+  const [inTopic, setInTopic] = useState(restored?.inTopic === true && knowledge.topicId !== undefined)
+  useEffect(() => { saveWorkingPosition(workingKey, { knowledge: { query, inTopic } }) }, [workingKey, query, inTopic])
   const [cards, setCards] = useState<readonly KnowledgeCard[]>()
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -37,6 +41,7 @@ export function KnowledgeSearch({ t }: {
       if (!controller.signal.aborted) setBusy(false)
     }
   }
+  useEffect(() => { if (restored !== undefined) void run() }, [])
   return <div className={styles.knowledgeBody}>
     <form className={styles.searchForm} onSubmit={event => { event.preventDefault(); void run() }}>
       <label>{t('knowledge.query')}<input autoFocus maxLength={200} value={query}

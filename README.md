@@ -157,6 +157,12 @@ Open a non-blank session and choose **Graph** beside the standard conversation t
 
 Keyboard shortcuts work while the canvas is focused: `+` and `-` zoom, `0` restores 100%, and `1` fits the graph.
 
+## Return to your working position
+
+Reopen Graph to restore its pan, zoom, arrangement, selected material, and valid Original page/scroll position. Reopening search restores the conditions and queries the Host again; results are never cached as working state. Missing selections are cleared with a notice while the valid viewport stays in place. A missing topic returns to the topic list.
+
+Presentation state belongs to the same browser and is isolated by persistent Host identity, Workspace identity (even when directories match) or Directory Scope, and topic identity. A newly Viewed Session still opens its own scope; choose **Research Topics** explicitly to return to a remembered topic. Reset and Relayout retain their existing meaning and do not delete saved knowledge, sources, or reuse receipts. Clearing browser storage loses working positions and unsaved arrangements, while Host records remain available. Older arrangements without a Host identity are left untouched and are not automatically assigned to the current Host.
+
 ## Organize Research Topics
 
 Choose **Research Topics** in the Graph header and create a named topic. In a Selected Session's details or a selected discussion search result, choose **Add to Research Topic**, select a topic, and add the source. You can create a topic in that picker too. Topics collect Session references across Workspaces on the same Host; a Session can belong to several topics.
@@ -165,7 +171,7 @@ If creation fails, retrying recovers the same topic. If you edit the name before
 
 The topic graph displays source titles and Workspaces, including archived sources and retained references whose source is unavailable. Only confirmed Branch and Merge facts produce edges. Selecting a node shows its source details; **Read original** loads discussion on demand, and **Open Session** explicitly navigates to a listed, non-archived source. Archived sources remain readable here; opening their Session is disabled because the matching Harness does not keep archived Sessions selected. Removing a reference affects that topic alone. It does not delete, move, archive, branch, or merge a source, or send model context.
 
-Drag nodes or clusters and use collapse, relayout, or reset, then choose **Save arrangement**. Each topic has its own Host-persisted arrangement. Reset clears arrangement choices without removing references. Unsaved edits survive topic switching while Research Topics remains open; save before leaving that view. Failed saves retain the input and can be retried. Names, membership, and saved arrangements survive a Host restart and are shared by clients connected to that Host. Concurrent edits to the same arrangement use the last successful save.
+Drag nodes or clusters and use collapse, relayout, or reset, then choose **Save arrangement**. Each topic has its own Host-persisted arrangement. Reset clears arrangement choices without removing references. Unsaved arrangement edits also survive reopening in the same browser; choose Save arrangement to share them through the Host. Failed saves retain the input and can be retried. Names, membership, and saved arrangements survive a Host restart and are shared by clients connected to that Host. Concurrent edits to the same arrangement use the last successful save.
 
 Topic switching reads Session headers and existing metadata, not all original discussions. A listed source can still fail when its original is opened; the reader reports that failure or unavailability and offers retry. Switching topics, closing the view, or canceling a read prevents late responses from replacing the current result. Ordinary Workspace/Directory Canvas Session eligibility remains unchanged.
 

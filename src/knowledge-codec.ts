@@ -27,6 +27,10 @@ function count(value: unknown): number {
 }
 function array(value: unknown): unknown[] { return Array.isArray(value) ? value : invalid() }
 
+export const knowledgeHostIdentitySchema = { parse(value: unknown): { readonly hostId: string } {
+  return { hostId: uuid(object(value, ['hostId']).hostId) }
+} }
+
 const CONTENT_KEYS = ['title', 'question', 'conclusion', 'rationale', 'openQuestions', 'kind', 'status']
 function content(value: unknown): KnowledgeContent {
   const item = object(value, CONTENT_KEYS)

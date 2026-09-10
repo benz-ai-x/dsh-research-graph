@@ -11,6 +11,17 @@ afterEach(async () => {
 })
 
 describe('Knowledge Cards public Host workflow', () => {
+  it('keeps the presentation Host identity across restart and separates another storage Host', async () => {
+    const roots = await Promise.all([mkdtemp(join(tmpdir(), 'session-graph-identity-')), mkdtemp(join(tmpdir(), 'session-graph-identity-'))])
+    for (const root of roots) cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const first = await topicHost(roots[0]!, cleanups)
+    const identity = (host: typeof first) => host.ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method: 'hostIdentity',
+      args: {}, signal: new AbortController().signal })
+    const saved = await identity(first)
+    await first.ctx.fiber.dispose()
+    expect(await identity(await topicHost(roots[0]!, cleanups))).toEqual(saved)
+    expect(await identity(await topicHost(roots[1]!, cleanups))).not.toEqual(saved)
+  })
   it('finds detached cards independently of source workspace and preserves revisions when reattaching', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-knowledge-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))

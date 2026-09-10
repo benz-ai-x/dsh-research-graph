@@ -28,6 +28,7 @@ const extractionStorageSchema: z.ZodType<ExtractionPreparation> = z.unknown().tr
 })
 export const KNOWLEDGE_DOMAIN = { name: 'session_graph_knowledge', version: 1, tables: {
   cards: { valueSchema: cardStorageSchema }, extraction_sources: { valueSchema: extractionStorageSchema },
+  metadata: { valueSchema: z.object({ hostId: z.string().uuid() }) },
 } } as const
 
 /** Owns saved knowledge and explicit extraction; all source reads go through Harness. */
@@ -40,6 +41,23 @@ export class KnowledgeService extends TypertRemoteService {
   constructor(ctx: Context, private readonly domain: Domain<typeof KNOWLEDGE_DOMAIN>, private readonly config: ResolvedConfig) {
     super(ctx, 'sessionGraphKnowledge')
     ctx.effect(() => () => this.dispose(), 'session-graph.knowledge-quiescence')
+  }
+
+  @Remote('hostIdentity')
+  hostIdentity(signal: AbortSignal): Promise<{ readonly hostId: string }> {
+    return this.run(signal, async combined => {
+      const operation = this.tail.then(async () => {
+        combined.throwIfAborted()
+        const table = this.domain.table('metadata')
+        const saved = table.get('identity')
+        if (saved !== undefined) return saved
+        const identity = { hostId: randomUUID() }
+        await table.put('identity', identity)
+        return identity
+      })
+      this.tail = operation.then(() => {}, () => {})
+      return operation
+    })
   }
 
   @Remote('prepareExtraction')

@@ -36,6 +36,7 @@ import {
   fitViewport, initialViewport, minimapProjection, panBy, resizeViewport, zoomAt,
 } from './viewport.ts'
 import styles from './GraphView.module.css'
+import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** Screen movement below this many px stays a click, not a drag. */
 const DRAG_THRESHOLD = 3
@@ -464,7 +465,7 @@ function DigestSection({
 }
 
 function SelectedSessionPanel({
-  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose, onAddToTopic,
+  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose, onAddToTopic, workingKey, onUnavailable,
 }: {
   node: SessionGraphNode | undefined
   branchedFrom: string | undefined
@@ -477,8 +478,11 @@ function SelectedSessionPanel({
   onReadHistory: GraphViewInjected['readSessionHistory']
   onClose: () => void
   onAddToTopic: ((id: SessionId) => void) | undefined
+  workingKey: string | undefined
+  onUnavailable: () => void
 }): ReactElement | null {
-  const [tab, setTab] = useState<'digest' | 'history'>('digest')
+  const [tab, setTab] = useState<'digest' | 'history'>(() => loadWorkingPosition(workingKey).tab ?? 'digest')
+  useEffect(() => { saveWorkingPosition(workingKey, { tab }) }, [workingKey, tab])
   const tabId = useId()
   const digestTab = useRef<HTMLButtonElement>(null)
   const historyTab = useRef<HTMLButtonElement>(null)
@@ -578,6 +582,7 @@ function SelectedSessionPanel({
       aria-label={t('panel.title')}
       data-canvas-overlay=""
       data-testid="session-graph-panel"
+      data-working-scroll=""
     >
       <div className={styles.panelHeader}>
         <div className={styles.panelHeading}>{t('panel.title')}</div>
@@ -673,7 +678,7 @@ function SelectedSessionPanel({
       </div>
       <div id={`${tabId}-content`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
         {tab === 'history'
-          ? <SessionHistory key={node.id} sessionId={node.id} read={onReadHistory} t={t} />
+          ? <SessionHistory key={node.id} sessionId={node.id} workingKey={workingKey} onUnavailable={onUnavailable} read={onReadHistory} t={t} />
           : <DigestSection
             node={node}
             entry={digestBySession[node.id]}
@@ -831,7 +836,7 @@ const CARD_H_MAP = 4
  */
 export function GraphCanvas({
   laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory,
-  onMerge, onRetryMerge, topic, onAddToTopic,
+  onMerge, onRetryMerge, topic, onAddToTopic, workingKey,
 }: {
   laid: LaidOutGraph
   clusters: readonly ClusterInfo[]
@@ -851,9 +856,11 @@ export function GraphCanvas({
     readonly renderInspector: (node: GraphNode | undefined, onClose: () => void) => ReactElement | null
     readonly openCard?: (cardId: string) => void
   }
+  workingKey?: string
 }): ReactElement {
+  const [restored] = useState(() => loadWorkingPosition(workingKey))
   const surfaceRef = useRef<HTMLDivElement | null>(null)
-  const [viewport, setViewport] = useState(initialViewport)
+  const [viewport, setViewport] = useState(() => restored.viewport ?? initialViewport())
   const [viewSize, setViewSize] = useState({ width: 0, height: 0 })
   const viewSizeRef = useRef(viewSize)
   useEffect(() => {
@@ -912,7 +919,18 @@ export function GraphCanvas({
     previous: ClusterOffset | undefined
   } | null>(null)
   const suppressClickRef = useRef(false)
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(restored.selected ?? null)
+  const restoringSelection = useRef(restored.selected)
+  const [unavailableSelection, setUnavailableSelection] = useState(false)
+  useEffect(() => {
+    if (selected === null) return
+    const node = laid.nodes.find(entry => entry.key === selected)?.node
+    const restoring = restoringSelection.current === selected
+    restoringSelection.current = undefined
+    if (node !== undefined && !(restoring && node.kind !== 'knowledge' && node.topicSource?.status === 'unavailable' && node.retainedSource === undefined)) return
+    setSelected(null)
+    setUnavailableSelection(true)
+  }, [selected, laid])
   const [mergeMode, setMergeMode] = useState(false)
   const [mergeSources, setMergeSources] = useState<readonly SessionId[]>([])
   const [mergeInstruction, setMergeInstruction] = useState('')
@@ -957,7 +975,8 @@ export function GraphCanvas({
   }
   const [hoverNode, setHoverNode] = useState<string | null>(null)
   const [hoverEdge, setHoverEdge] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(restored.query ?? '')
+  useEffect(() => { saveWorkingPosition(workingKey, { viewport, selected, query }) }, [workingKey, viewport, selected, query])
   // Set for the duration of one programmatic viewport jump (fit, locate,
   // 100%): the content layer CSS-transitions the transform. Gestures
   // (wheel, drags, minimap) never set it — they must stay immediate.
@@ -989,7 +1008,7 @@ export function GraphCanvas({
   // fit the manual bounds, the auto grid fits its own).
   const fittedRef = useRef(false)
   useEffect(() => {
-    fittedRef.current = false
+    fittedRef.current = restored.viewport !== undefined
   }, [arrangement.key])
 
   // Arrow-key navigation: move focus to the geometrically nearest node in
@@ -1886,6 +1905,8 @@ export function GraphCanvas({
         )
         : null}
       {topic === undefined ? <SelectedSessionPanel
+        workingKey={workingKey}
+        onUnavailable={() => { setSelected(null); setUnavailableSelection(true) }}
         onAddToTopic={onAddToTopic}
         node={mergeMode || selectedNode?.kind === 'knowledge' ? undefined : selectedNode}
         branchedFrom={selected === null ? undefined : branchSource.get(selected)}
@@ -1898,6 +1919,8 @@ export function GraphCanvas({
         onReadHistory={onReadHistory}
         onClose={() => { setSelected(null) }}
       /> : topic.renderInspector(selectedNode, () => { setSelected(null) })}
+      {unavailableSelection ? <div className={styles.reuseNotice} role="status">{t('position.unavailable')}
+        <button type="button" onClick={() => { setUnavailableSelection(false) }}>{t('panel.close')}</button></div> : null}
       {showMinimap
         ? (
           <Minimap

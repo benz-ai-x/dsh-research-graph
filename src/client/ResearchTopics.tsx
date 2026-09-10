@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { ResearchTopic, ResearchTopicWrite } from '../research-topic.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
-import type { LayoutState } from './layout-store.ts'
+import { loadLayout, saveLayout, type LayoutState } from './layout-store.ts'
 import { TopicGraph, type TopicGraphContext } from './TopicGraph.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
+import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './working-position.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
@@ -21,7 +22,9 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
   const [items, setItems] = useState<readonly ResearchTopic[]>([])
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   const [revision, setRevision] = useState(0)
-  const [selectedId, setSelectedId] = useState('')
+  const [remembered] = useState(() => loadWorkingPosition(context?.workingKey).topicId)
+  const [selectedId, setSelectedId] = useState(remembered ?? '')
+  const [unavailable, setUnavailable] = useState(false)
   const [title, setTitle] = useState('')
   const [renames, setRenames] = useState<Record<string, string>>({})
   const [arrangements, setArrangements] = useState<Record<string, LayoutState>>({})
@@ -36,11 +39,21 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     void api.list(controller.signal).then(value => {
       if (controller.signal.aborted) return
       setItems(value)
-      setSelectedId(current => value.some(topic => topic.topicId === current) ? current : value[0]?.topicId ?? '')
+      setSelectedId(current => {
+        if (value.some(topic => topic.topicId === current)) return current
+        if (current !== '' || remembered !== undefined) {
+          setUnavailable(true)
+          return ''
+        }
+        return value[0]?.topicId ?? ''
+      })
       setPhase('ready')
     }, () => { if (!controller.signal.aborted) setPhase('error') })
     return () => { controller.abort() }
   }, [api, revision, refresh])
+  useEffect(() => {
+    if (phase === 'ready') saveWorkingPosition(context?.workingKey, { topicId: selectedId })
+  }, [context?.workingKey, phase, selectedId])
 
   const write = async (request: ResearchTopicWrite): Promise<ResearchTopic | undefined> => {
     const controller = new AbortController()
@@ -65,6 +78,8 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     }
   }
   const selected = items.find(topic => topic.topicId === selectedId)
+  const arrangementKey = context === undefined ? undefined : workingPositionKey(context.actions.hostId, context.workingKey, selectedId)
+  const draftArrangement = arrangements[selectedId] ?? (arrangementKey === undefined ? undefined : loadLayout(arrangementKey))
   const selectTopic = knowledge?.selectTopic
   useEffect(() => {
     if (context === undefined) return
@@ -73,6 +88,7 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
   }, [context === undefined, selectTopic, selected?.topicId])
   return <section className={styles.topics} aria-label={t('topic.title')}>
     <p className={styles.topicDescription}>{t('topic.description')}</p>
+    {unavailable ? <p role="status">{t('position.topicUnavailable')}</p> : null}
     {phase === 'loading' ? <p role="status">{t('topic.loading')}</p> : phase === 'error' ? <div role="alert">
       {t('topic.readError')} <button type="button" onClick={() => { setRevision(value => value + 1) }}>{t('topic.retry')}</button>
     </div> : <>
@@ -97,7 +113,8 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
         <button type="submit" disabled={busy || title.trim() === ''}>{t('topic.create')}</button>
       </form>
       {items.length === 0 ? <p>{t('topic.empty')}</p> : <label className={styles.topicSelection}>{t('topic.choose')}
-        <select value={selectedId} disabled={busy} onChange={event => { setSelectedId(event.target.value); setFailed(false) }}>
+        <select value={selectedId} disabled={busy} onChange={event => { setSelectedId(event.target.value); setFailed(false); setUnavailable(false) }}>
+          <option value="">{t('topic.choose')}</option>
           {items.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title} ({topic.references.length})</option>)}
         </select>
       </label>}
@@ -119,24 +136,30 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     {busy ? <p role="status">{t('topic.saving')}</p> : null}
     {failed ? <p role="alert">{t('topic.saveError')}</p> : null}
     {context === undefined || selected === undefined ? null : <div className={styles.topicControls}>
-      <button type="button" disabled={phase !== 'ready' || busy || arrangements[selected.topicId] === undefined} onClick={() => {
-        const arrangement = arrangements[selected.topicId]
+      <button type="button" disabled={phase !== 'ready' || busy || draftArrangement === undefined} onClick={() => {
+        const arrangement = draftArrangement
         if (arrangement === undefined) return
         void write({ kind: 'arrange', topicId: selected.topicId, arrangement }).then(saved => {
           if (saved === undefined) return
+          if (arrangementKey !== undefined && JSON.stringify(loadLayout(arrangementKey)) === JSON.stringify(arrangement)) {
+            try { localStorage.removeItem(`dsh.session-graph.layout.${arrangementKey}`) } catch { /* presentation storage may be denied */ }
+          }
           setArrangements(current => {
-            if (current[selected.topicId] !== arrangement) return current
+            if (current[selected.topicId] !== undefined && current[selected.topicId] !== arrangement) return current
             const next = { ...current }
             delete next[selected.topicId]
             return next
           })
         })
       }}>{t('topic.saveArrangement')}</button>
-      <span role="status">{t(arrangements[selected.topicId] === undefined ? 'topic.arrangementHint' : 'topic.unsaved')}</span>
+      <span role="status">{t(draftArrangement === undefined ? 'topic.arrangementHint' : 'topic.unsaved')}</span>
     </div>}
     {phase !== 'ready' || selected === undefined || context === undefined ? null : <TopicGraph key={selected.topicId} topic={selected}
-      context={context} arrangement={arrangements[selected.topicId] ?? selected.arrangement}
-      onArrange={state => { setArrangements(current => ({ ...current, [selected.topicId]: state })) }}
+      context={context} arrangement={draftArrangement ?? selected.arrangement}
+      onArrange={state => {
+        if (arrangementKey !== undefined) saveLayout(arrangementKey, state)
+        setArrangements(current => ({ ...current, [selected.topicId]: state }))
+      }}
       remove={sessionId => { void write({ kind: 'remove', topicId: selected.topicId, sessionId }) }} busy={busy} t={t} />}
   </section>
 }

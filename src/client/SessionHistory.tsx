@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from 'react'
 import type {
   SessionDiscussionSource, SessionHistoryRequest, SessionHistoryResult, SessionHistoryTurn,
 } from '../session-history.ts'
@@ -7,21 +7,30 @@ import type { SessionGraphKey } from './locales.ts'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
 import { useResearchReuse } from './ResearchReuse.tsx'
+import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, read, t }: {
+export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, workingKey, onUnavailable, read, t }: {
   readonly sessionId: string
   readonly anchorSeq?: number
   readonly highlightSeq?: number
   readonly source?: SessionDiscussionSource
+  readonly workingKey?: string | undefined
+  readonly onUnavailable?: (() => void) | undefined
   readonly read: GraphViewInjected['readSessionHistory']
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const knowledge = useKnowledge()
   const reuse = useResearchReuse()
   const [result, setResult] = useState<SessionHistoryResult>()
-  const [request, setRequest] = useState<SessionHistoryRequest>({ sessionId,
-    ...(source !== undefined ? { source } : anchorSeq === undefined ? {} : { anchorSeq }) })
+  const element = useRef<HTMLElement>(null)
+  const initialScroll = useRef(anchorSeq === undefined && source === undefined ? loadWorkingPosition(workingKey).historyScroll?.[sessionId] : undefined)
+  const unavailable = useRef(onUnavailable)
+  unavailable.current = onUnavailable
+  const [request, setRequest] = useState<SessionHistoryRequest>(() => {
+    const anchor = anchorSeq ?? loadWorkingPosition(workingKey).history?.[sessionId]
+    return { sessionId, ...(source !== undefined ? { source } : anchor === undefined ? {} : { anchorSeq: anchor }) }
+  })
   const [loading, setLoading] = useState(true)
   const [selection, setSelection] = useState<SessionDiscussionSource>()
   const [failed, setFailed] = useState(false)
@@ -39,6 +48,18 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, rea
       if (controller.signal.aborted) return
       if (value.kind === 'original') {
         for (const turn of value.turns) loadedTurns.current.set(turn.startSeq, turn)
+        const anchor = value.turns[0]?.startSeq
+        const history = { ...loadWorkingPosition(workingKey).history }
+        if (anchor === undefined) delete history[sessionId]
+        else history[sessionId] = anchor
+        saveWorkingPosition(workingKey, { history })
+      } else if (value.kind === 'unavailable' && request.anchorSeq !== undefined && workingKey !== undefined) {
+        const history = { ...loadWorkingPosition(workingKey).history }
+        const historyScroll = { ...loadWorkingPosition(workingKey).historyScroll }
+        delete history[sessionId]
+        delete historyScroll[sessionId]
+        saveWorkingPosition(workingKey, { history, historyScroll })
+        unavailable.current?.()
       }
       setResult(value)
       setLoading(false)
@@ -49,6 +70,20 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, rea
     })
     return () => { controller.abort() }
   }, [request, read])
+  useLayoutEffect(() => {
+    if (loading || result === undefined) return
+    const panel = element.current?.closest<HTMLElement>('[data-working-scroll]')
+    if (panel == null) return
+    if (initialScroll.current !== undefined) {
+      panel.scrollTop = initialScroll.current
+      initialScroll.current = undefined
+    }
+    const remember = (): void => {
+      saveWorkingPosition(workingKey, { historyScroll: { ...loadWorkingPosition(workingKey).historyScroll, [sessionId]: panel.scrollTop } })
+    }
+    panel.addEventListener('scroll', remember, { passive: true })
+    return () => { panel.removeEventListener('scroll', remember) }
+  }, [workingKey, sessionId, result, loading])
 
   const select = (turn: SessionHistoryTurn): void => {
     if (turn.endSeq === null || loading || result?.kind !== 'original') return
@@ -73,7 +108,7 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, rea
   }
 
   return (
-    <section aria-label={t('history.title')} className={styles.history}>
+    <section ref={element} aria-label={t('history.title')} className={styles.history}>
       <div className={styles.historyIdentity}>{sessionId}</div>
       <p className={styles.historyHint}>{t('history.scope')}</p>
       {loading ? <div role="status">

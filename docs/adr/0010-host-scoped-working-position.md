@@ -1,0 +1,7 @@
+# Restore presentation by Host and explicit graph scope
+
+The Host stores a random, durable identity beside Knowledge Cards. Browser working positions and arrangements use this identity plus Workspace/Directory and optional Research Topic identity. Equal directory strings do not merge distinct Workspaces or Hosts. Existing unowned browser arrangements remain untouched; automatic migration from an unowned path would silently assign another Host's presentation. This supersedes the automatic path migration policy in ADR 0001 for the registered Graph UI.
+
+Only presentation is stored in the browser: viewport, selected identity, title/search conditions, Original cursor and scroll, remembered explicit topic, and unsaved topic arrangements. Knowledge, immutable sources, extraction snapshots, and reuse receipts stay in Host storage. Search reopening reads current results, Original restoration validates its exact turn address, and canceled or unmounted requests cannot write late responses.
+
+Restoration does not call navigation or model services. A new Viewed Session starts with its own scope; topic mode is entered explicitly. Missing topics return to the list; missing selections clear with a notice without discarding the viewport. Corrupt or denied browser storage falls back to usable live state. Topic arrangement Save still establishes the shared Host copy; local unsaved changes never implicitly overwrite it. Reset and Relayout remain presentation actions.

@@ -9,9 +9,11 @@ import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
 import { KnowledgeSearch } from './KnowledgeSearch.tsx'
+import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** Search chooses a read-only source independently of the scope-bound canvas. */
-export function DiscussionSearch({ initialScope, workspaces, search, read, open, onClose, onAddToTopic, t }: {
+export function DiscussionSearch({ initialScope, workspaces, search, read, open, onClose, onAddToTopic, workingKey, t }: {
+  readonly workingKey?: string
   readonly initialScope: DiscussionSearchScope
   readonly workspaces: readonly WorkspaceView[]
   readonly search: GraphViewInjected['searchDiscussion']
@@ -22,10 +24,13 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const knowledge = useKnowledge()
-  const [searchType, setSearchType] = useState<'discussion' | 'knowledge'>('discussion')
-  const [query, setQuery] = useState('')
-  const [scope, setScope] = useState(initialScope)
-  const [includeArchived, setIncludeArchived] = useState(false)
+  const [restored] = useState(() => loadWorkingPosition(workingKey))
+  const [searchType, setSearchType] = useState<'discussion' | 'knowledge'>(restored.searchType ?? 'discussion')
+  const [query, setQuery] = useState(restored.discussion?.query ?? '')
+  const [scope, setScope] = useState(restored.discussion?.scope ?? initialScope)
+  const [includeArchived, setIncludeArchived] = useState(restored.discussion?.includeArchived ?? false)
+  useEffect(() => { saveWorkingPosition(workingKey, { searchType, discussion: { query, scope, includeArchived } }) },
+    [workingKey, searchType, query, scope, includeArchived])
   const [result, setResult] = useState<DiscussionSearchResult>()
   const [selected, setSelected] = useState<DiscussionSearchHit>()
   const [busy, setBusy] = useState(false)
@@ -82,6 +87,8 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
     }
   }
 
+  useEffect(() => { if (scopeAvailable && searchType === 'discussion' && restored.discussion?.query.trim()) void run() }, [])
+
   return (
     <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t('search.title')}
       onKeyDown={event => {
@@ -96,7 +103,7 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
         <select value={searchType} onChange={event => { invalidate(); setSearchType(event.target.value as typeof searchType) }}>
           <option value="discussion">{t('knowledge.discussions')}</option><option value="knowledge">{t('knowledge.title')}</option>
         </select></label>}
-      {searchType === 'knowledge' ? <KnowledgeSearch t={t} /> : <>
+      {searchType === 'knowledge' ? <KnowledgeSearch workingKey={workingKey} t={t} /> : <>
       <form className={styles.searchForm} onSubmit={event => { event.preventDefault(); void run() }}>
         <label className={styles.searchQuery}>{t('search.query')}
           <input autoFocus value={query} maxLength={256} placeholder={t('search.placeholder')}

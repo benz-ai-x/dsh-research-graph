@@ -15,10 +15,12 @@ import { SessionHistory } from './SessionHistory.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
 import { withKnowledgeCards } from './knowledge-graph.ts'
+import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './working-position.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
 export interface TopicGraphContext {
+  readonly workingKey: string
   readonly sessions: SessionListState
   readonly workspaces: WorkspaceSnapshot
   readonly pendingInteractions: ReadonlyMap<SessionId, unknown>
@@ -37,6 +39,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   readonly t: Translate
 }): ReactElement {
   const knowledge = useKnowledge()!
+  const workingKey = workingPositionKey(context.actions.hostId, context.workingKey, topic.topicId)
   const [cards, setCards] = useState<readonly KnowledgeCard[]>([])
   const [snapshot, setSnapshot] = useState<ResearchTopicSnapshot>()
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error' | 'canceled'>('loading')
@@ -92,7 +95,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     </div> : null}
     {phase !== 'ready' || graph === undefined || laid === undefined ? null : graph.nodes.size === 0
       ? <p>{t('topic.noReferences')}</p>
-      : <GraphCanvas key={`${topic.topicId}:${membership}`} laid={laid} clusters={graph.clusters}
+      : <GraphCanvas key={`${workingKey}:${membership}`} workingKey={workingKey} laid={laid} clusters={graph.clusters}
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
@@ -103,13 +106,14 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
             <h3>{node.title}</h3><p className={styles.historyText}>{node.card.revisions.at(-1)!.content.conclusion}</p>
             <p>{t('knowledge.versionNumber', { number: node.card.revisions.at(-1)!.number })} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</p>
             <button type="button" onClick={() => { knowledge.open(node.card.cardId) }}>{t('knowledge.edit')}</button>
-          </aside> : <TopicSourcePanel key={node.id} node={node} read={context.actions.readSessionHistory} open={open}
+          </aside> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
             busy={busy} onClose={onClose} t={t} /> }} />}
   </div>
 }
 
-function TopicSourcePanel({ node, read, open, remove, busy, onClose, t }: {
+function TopicSourcePanel({ node, read, open, remove, busy, onClose, workingKey, t }: {
+  readonly workingKey: string
   readonly node: SessionGraphNode
   readonly read: GraphViewInjected['readSessionHistory']
   readonly open: GraphViewInjected['openSession']
@@ -118,9 +122,10 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, t }: {
   readonly onClose: () => void
   readonly t: Translate
 }): ReactElement {
-  const [reading, setReading] = useState(false)
+  const [reading, setReading] = useState(() => loadWorkingPosition(workingKey).selected === node.id && loadWorkingPosition(workingKey).tab === 'history')
+  useEffect(() => { saveWorkingPosition(workingKey, { tab: reading ? 'history' : 'digest' }) }, [workingKey, reading])
   const source = node.topicSource
-  return <aside className={`${styles.panel} ${styles.topicSourcePanel}`} data-canvas-overlay="" data-testid="topic-source-panel" aria-label={t('topic.source')}>
+  return <aside className={`${styles.panel} ${styles.topicSourcePanel}`} data-working-scroll="" data-canvas-overlay="" data-testid="topic-source-panel" aria-label={t('topic.source')}>
     <div className={styles.panelHeader}><span className={styles.panelHeading}>{t('topic.source')}</span>
       <button type="button" className={styles.panelClose} aria-label={t('panel.close')} onClick={onClose}>×</button></div>
     <h3 className={styles.panelTitle}>{node.title}</h3>
@@ -134,6 +139,6 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, t }: {
       <button type="button" className={styles.panelSecondaryAction} onClick={() => { setReading(value => !value) }}>{t(reading ? 'topic.closeOriginal' : 'topic.readOriginal')}</button>
       {remove === undefined ? null : <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>}
     </div>
-    {reading ? <SessionHistory sessionId={node.id} {...(node.retainedSource === undefined ? {} : { source: node.retainedSource })} read={read} t={t} /> : null}
+    {reading ? <SessionHistory workingKey={workingKey} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { source: node.retainedSource })} read={read} t={t} /> : null}
   </aside>
 }

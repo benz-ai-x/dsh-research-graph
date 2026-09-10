@@ -1,7 +1,7 @@
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { KnowledgeCard, KnowledgeMembership, KnowledgeSave, KnowledgeSearch } from '../knowledge.ts'
 import { knowledgeCardSchema, knowledgeListSchema, knowledgeMembershipSchema, knowledgeNullableSchema,
-  knowledgeReadSchema, knowledgeSaveSchema, knowledgeSearchSchema } from '../knowledge-codec.ts'
+  knowledgeReadSchema, knowledgeSaveSchema, knowledgeSearchSchema, knowledgeHostIdentitySchema } from '../knowledge-codec.ts'
 import { extractionPreparationRequestSchema, extractionRequestSchema } from '../knowledge-codec.ts'
 import { extractionPreparationSchema, extractionResultSchema } from '../knowledge-extraction-codec.ts'
 import type { ExtractionPreparation, ExtractionPreparationRequest, ExtractionRequest, ExtractionResult } from '../knowledge-extraction.ts'
@@ -17,6 +17,7 @@ export interface KnowledgeApi {
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteMap {
+    'sessionGraphKnowledge/hostIdentity': (signal?: AbortSignal) => Promise<RemoteResult<{ readonly hostId: string }>>
     'sessionGraphKnowledge/prepareExtraction': (request: ExtractionPreparationRequest, signal?: AbortSignal) => Promise<RemoteResult<ExtractionPreparation>>
     'sessionGraphKnowledge/extract': (request: ExtractionRequest, signal?: AbortSignal) => Promise<RemoteResult<ExtractionResult>>
     'sessionGraphKnowledge/read': (request: { readonly cardId: string }, signal?: AbortSignal) => Promise<RemoteResult<KnowledgeCard | null>>
@@ -26,6 +27,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   }
   interface TypertRemoteNamespaceMap {
     sessionGraphKnowledge: {
+      hostIdentity: TypertRemoteMap['sessionGraphKnowledge/hostIdentity']
       prepareExtraction: TypertRemoteMap['sessionGraphKnowledge/prepareExtraction']
       extract: TypertRemoteMap['sessionGraphKnowledge/extract']
       read: TypertRemoteMap['sessionGraphKnowledge/read']
@@ -40,6 +42,7 @@ const PACKAGE_NAME = '@benz-ai-x/dsh-client-ui-session-graph'
 export const KNOWLEDGE_REMOTE: TypertRemoteContribution = {
   package: PACKAGE_NAME,
   descriptors: [
+    { method: 'hostIdentity', request: undefined, result: knowledgeHostIdentitySchema },
     { method: 'prepareExtraction', request: extractionPreparationRequestSchema, result: extractionPreparationSchema },
     { method: 'extract', request: extractionRequestSchema, result: extractionResultSchema },
     { method: 'read', request: knowledgeReadSchema, result: knowledgeNullableSchema },
@@ -49,7 +52,7 @@ export const KNOWLEDGE_REMOTE: TypertRemoteContribution = {
   ].map(({ method, request, result }) => ({
     id: `${PACKAGE_NAME}#sessionGraphKnowledge/${method}`,
     service: 'sessionGraphKnowledge', namespace: 'sessionGraphKnowledge', method, invocation: { kind: 'direct' },
-    parameters: [{ name: 'request', wire: 'request', source: 'json',
+    parameters: request === undefined ? [] : [{ name: 'request', wire: 'request', source: 'json',
       codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#Knowledge/${method}/Request`, schema: request } }],
     cancellation: { parameter: 'signal' },
     result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#Knowledge/${method}/Result`, schema: result },

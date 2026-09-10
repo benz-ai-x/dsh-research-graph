@@ -49,6 +49,138 @@ import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
+describe('Working position in the registered Graph', () => {
+  it('restores an explicitly reopened topic and its unsaved arrangement, then returns to the list if it disappeared', async () => {
+    const fixture = researchTopicFixture()
+    const a = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }
+    const bTopic = { ...a, topic: { ...a.topic, topicId: fixture.b.topic.topicId, title: '研究 B' } }
+    const b = await bench({ ...fixture.rows, viewed: session('viewed') })
+    b.listTopics.mockResolvedValue({ ok: true, value: [a.topic, bTopic.topic] })
+    b.readTopic.mockImplementation(async request => ({ ok: true, value: request.topicId === a.topic.topicId ? a : bTopic }))
+    mount(b.slots, b.sessionsStore, 'viewed')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await screen.findByRole('combobox', { name: '选择研究主题' })
+    fireEvent.change(screen.getByRole('combobox', { name: '选择研究主题' }), { target: { value: bTopic.topic.topicId } })
+    await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
+    const node = nodeButton('source-0001')
+    fireEvent.pointerDown(node, { pointerId: 7, clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(node, { pointerId: 7, clientX: 320, clientY: 280 })
+    fireEvent.pointerUp(node, { pointerId: 7 })
+    const left = nodeButton('source-0001').style.left
+    fireEvent.click(nodeButton('source-0001'))
+    fireEvent.click(nodeButton('source-0001'))
+    expect(screen.getByTestId('topic-source-panel')).toBeTruthy()
+    switchTab('Chat')
+    switchTab('Graph')
+    expect(screen.queryByRole('combobox', { name: '选择研究主题' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await screen.findByTestId('topic-source-panel')
+    expect((screen.getByRole('combobox', { name: '选择研究主题' }) as HTMLSelectElement).value).toBe(bTopic.topic.topicId)
+    expect(nodeButton('source-0001').style.left).toBe(left)
+    expect((screen.getByRole('button', { name: zh['topic.saveArrangement'] }) as HTMLButtonElement).disabled).toBe(false)
+    expect(b.writeTopic).not.toHaveBeenCalled()
+    switchTab('Chat')
+    b.listTopics.mockResolvedValue({ ok: true, value: [a.topic] })
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await screen.findByText('上次的研究主题已不可用，请从列表选择主题。')
+    expect(document.querySelector('[data-node-id]')).toBeNull()
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
+  it('requeries restored search conditions and discards a late response after closing', async () => {
+    const b = await bench(FIXTURE)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: zh['search.open'] }))
+    fireEvent.change(screen.getByRole('textbox', { name: zh['search.query'] }), { target: { value: '研究结论' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: zh['search.includeArchived'] }))
+    fireEvent.click(screen.getByRole('button', { name: zh['search.submit'] }))
+    await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledTimes(1) })
+    fireEvent.click(screen.getByRole('button', { name: zh['search.close'] }))
+    const late = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphSearch/search']>>>()
+    b.searchDiscussion.mockReturnValueOnce(late.promise)
+    fireEvent.click(screen.getByRole('button', { name: zh['search.open'] }))
+    await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledTimes(2) })
+    expect(b.searchDiscussion.mock.calls[1]![0]).toEqual({ query: '研究结论', scope: { kind: 'directory', cwd: '/w' }, includeArchived: true })
+    fireEvent.click(screen.getByRole('button', { name: zh['search.close'] }))
+    expect(b.searchDiscussion.mock.calls[1]![1]!.aborted).toBe(true)
+    await act(async () => { late.resolve({ ok: true, value: { kind: 'results', hits: [] } }) })
+    fireEvent.click(screen.getByRole('button', { name: zh['search.open'] }))
+    await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledTimes(3) })
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
+  it('isolates Hosts and same-directory Workspaces, clears missing selections, and tolerates corrupt browser state', async () => {
+    const b = await bench(FIXTURE)
+    const first = workspacesState([workspace('first', '/w', ['root'])])
+    mount(b.slots, b.sessionsStore, 'root', first)
+    switchTab('Graph')
+    stubSize(1000, 600)
+    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    fireEvent.click(nodeButton('branchChild'))
+    const scale = screen.getByRole('button', { name: '缩放至 100%' }).textContent
+    cleanup()
+    mount(b.slots, b.sessionsStore, 'root', workspacesState([workspace('second', '/w', ['root'])]))
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    cleanup()
+    const anotherHost = await bench(FIXTURE, 'another-host')
+    mount(anotherHost.slots, anotherHost.sessionsStore, 'root', first)
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    cleanup()
+    const { branchChild: _, ...remaining } = FIXTURE
+    b.sessionsStore.set(listState(remaining))
+    mount(b.slots, b.sessionsStore, 'root', first)
+    switchTab('Graph')
+    await screen.findByText(zh['position.unavailable'])
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    expect(b.open).not.toHaveBeenCalled()
+    cleanup()
+    localStorage.setItem('dsh.session-graph.position.["test-host","workspace:first",null]', '{broken')
+    mount(b.slots, b.sessionsStore, 'root', first)
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
+  })
+
+  it('restores viewport, selection and Original position after reopening without navigating', async () => {
+    const b = await bench(FIXTURE)
+    const turn = { turn: 8, startSeq: 80, endSeq: 89, startedAt: 1000, messages: [{ role: 'user' as const, seq: 81, text: '研究位置' }] }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'root', turns: [turn], hasEarlier: false, hasLater: false } })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    stubSize(1000, 600)
+    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('研究位置')
+    const panel = screen.getByTestId('session-graph-panel')
+    panel.scrollTop = 380
+    fireEvent.scroll(panel)
+    const scale = screen.getByRole('button', { name: '缩放至 100%' }).textContent
+    const position = screen.getByRole('group', { name: zh['canvas.description'] }).style.backgroundPosition
+    switchTab('Chat')
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
+    expect(screen.getByRole('group', { name: zh['canvas.description'] }).style.backgroundPosition).toBe(position)
+    await screen.findByText('研究位置')
+    expect(screen.getByTestId('session-graph-panel').scrollTop).toBe(380)
+    expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'root', anchorSeq: 80 }, expect.any(AbortSignal))
+    expect(b.open).not.toHaveBeenCalled()
+    switchTab('Chat')
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'unavailable', sessionId: 'root', turns: [], hasEarlier: false, hasLater: false } })
+    switchTab('Graph')
+    await screen.findByText(zh['position.unavailable'])
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
+  })
+})
+
 describe('Research reuse registered Graph workflow', () => {
   it('previews one turn and waits for admission before opening the same target after a failed send', async () => {
     const b = await bench({ a: session('a') })
@@ -632,7 +764,7 @@ const tConversation: ConversationSessionHeaderProps['t'] =
   key => (conversationZh as Record<string, string>)[key] ?? key
 
 /** Real-stack bench: root Context + real SlotRegistry ring + the plugin fiber. */
-async function bench(byId: Record<string, SessionSummary>) {
+async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host') {
   const ctx = new Context()
   const slots = new SlotRegistry(ctx)
   const saveKnowledge = vi.fn<(request: KnowledgeSave, signal?: AbortSignal) => Promise<{ ok: true; value: KnowledgeCard }>>()
@@ -707,6 +839,7 @@ async function bench(byId: Record<string, SessionSummary>) {
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
   ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
+    hostIdentity: async () => ({ ok: true, value: { hostId } }),
     membership: membershipKnowledge, prepareExtraction, extract: extractKnowledge } as never)
   ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
@@ -1381,7 +1514,7 @@ describe('free viewport controls', () => {
   })
 
   it('fits persisted negative positions after the entry surface settles', async () => {
-    localStorage.setItem('dsh.session-graph.layout./w', JSON.stringify({
+    localStorage.setItem('dsh.session-graph.layout.["test-host","/w",null]', JSON.stringify({
       v: 1,
       positions: { branchChild: { x: -1_000, y: -1_000 } },
       collapsed: [],
@@ -1447,7 +1580,7 @@ describe('node drag and position persistence', () => {
     const after = nodeButton('branchChild').style.left
     expect(after).not.toBe(before)
     // The drag landed in the Directory Scope's Session Arrangement.
-    const stored = localStorage.getItem('dsh.session-graph.layout./w')
+    const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toBeTruthy()
     expect(stored).toContain('branchChild')
     // The drag gesture did not select or navigate.
@@ -1479,7 +1612,7 @@ describe('node drag and position persistence', () => {
     switchTab('Graph')
     expect(nodeButton('branchChild').style.left).toBe(moved)
     cleanup()
-    localStorage.setItem('dsh.session-graph.layout./w', '{corrupt')
+    localStorage.setItem('dsh.session-graph.layout.["test-host","/w",null]', '{corrupt')
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Graph')
     // Corrupt storage falls back to the auto layout's depth row.
@@ -1498,7 +1631,7 @@ describe('node drag and position persistence', () => {
     fireEvent.click(node)
     expect(node.getAttribute('aria-selected')).toBe('true')
     expect(b.open).not.toHaveBeenCalled()
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('rolls back a node drag when the pointer sequence is canceled', async () => {
@@ -1514,7 +1647,7 @@ describe('node drag and position persistence', () => {
     expect(nodeButton('branchChild').style.left).toBe(before.left)
     expect(nodeButton('branchChild').style.top).toBe(before.top)
     expect(document.querySelector('[data-testid^="session-graph-guide-"]')).toBeNull()
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('keeps Session Arrangements separate for Workspaces that share a directory', async () => {
@@ -1540,7 +1673,7 @@ describe('node drag and position persistence', () => {
     expect(nodeButton('branchChild').style.left).toBe('0px')
   })
 
-  it('migrates a legacy path Arrangement into its Workspace identity', async () => {
+  it('leaves layouts without a Host identity untouched instead of assigning them to a Workspace', async () => {
     localStorage.setItem('dsh.session-graph.layout./w', JSON.stringify({
       v: 1,
       positions: { branchChild: { x: 160, y: 200 } },
@@ -1551,13 +1684,13 @@ describe('node drag and position persistence', () => {
     const namedScope = workspacesState([workspace('stable', '/w', ['root'])])
     mount(b.slots, b.sessionsStore, 'root', namedScope)
     switchTab('Graph')
-    expect(nodeButton('branchChild').style.left).toBe('160px')
+    expect(nodeButton('branchChild').style.left).toBe('0px')
 
     cleanup()
     localStorage.removeItem('dsh.session-graph.layout./w')
     mount(b.slots, b.sessionsStore, 'root', namedScope)
     switchTab('Graph')
-    expect(nodeButton('branchChild').style.left).toBe('160px')
+    expect(nodeButton('branchChild').style.left).toBe('0px')
   })
 })
 
@@ -1602,7 +1735,7 @@ describe('cluster frames', () => {
     expect(root.style.left).toBe('0px')
     expect(branchChild.style.left).toBe('0px')
     expect(parseFloat(branchChild.style.top) - parseFloat(root.style.top)).toBe(64)
-    const stored = localStorage.getItem('dsh.session-graph.layout./w')
+    const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toContain('"collapsed":["root"]')
     // A collapsed member still selects normally.
     fireEvent.click(branchChild)
@@ -1648,7 +1781,7 @@ describe('cluster drag', () => {
     // cluster drag would arrive dead (jsdom has no setPointerCapture, so
     // the no-pan assertion is the regression's proxy).
     expect(content().style.transform).toBe(transformBefore)
-    expect(localStorage.getItem('dsh.session-graph.layout./w'))
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]'))
       .toContain('"offsets":{"root":{"dx":60,"dy":40}}')
     expect(b.open).not.toHaveBeenCalled()
   })
@@ -1686,7 +1819,7 @@ describe('cluster drag', () => {
     fireEvent.pointerDown(node, { pointerId: 24, clientX: 200, clientY: 200 })
     fireEvent.pointerMove(node, { pointerId: 24, clientX: 210, clientY: 200 })
     fireEvent.pointerUp(node, { pointerId: 24 })
-    const stored = JSON.parse(localStorage.getItem('dsh.session-graph.layout./w')!) as {
+    const stored = JSON.parse(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')!) as {
       positions: Record<string, { x: number; y: number }>
     }
     expect(stored.positions['branchChild']).toEqual({ x: 10, y: 120 })
@@ -1702,7 +1835,7 @@ describe('cluster drag', () => {
     fireEvent.pointerMove(toggle, { pointerId: 25, clientX: 360, clientY: 140 })
     fireEvent.pointerUp(toggle, { pointerId: 25 })
     expect(nodeButton('root').style.left).toBe('0px')
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('rolls back a cluster drag when the pointer sequence is canceled', async () => {
@@ -1717,7 +1850,7 @@ describe('cluster drag', () => {
     fireEvent.pointerCancel(title, { pointerId: 28 })
     expect(nodeButton('root').style.left).toBe('0px')
     expect(nodeButton('root').style.top).toBe('0px')
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('raises the grabbed cluster frame above overlapping frames', async () => {
@@ -1753,16 +1886,16 @@ describe('relayout button', () => {
     expect(nodeButton('branchChild').style.left).not.toBe('0px')
     fireEvent.click(screen.getByRole('button', { name: '重新布局' }))
     expect(nodeButton('branchChild').style.left).toBe('0px')
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toContain('"positions":{}')
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toContain('"positions":{}')
     // Collapsed clusters survive the relayout.
     fireEvent.click(document.querySelector('[data-cluster-id="root"] button')!)
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toContain('"collapsed":["root"]')
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toContain('"collapsed":["root"]')
   })
 })
 
 describe('reset and minimap', () => {
   it('reset clears manual layout and collapse, then fits the view', async () => {
-    localStorage.setItem('dsh.session-graph.layout./w', JSON.stringify({
+    localStorage.setItem('dsh.session-graph.layout.["test-host","/w",null]', JSON.stringify({
       v: 1,
       positions: {},
       collapsed: ['root'],
@@ -1783,7 +1916,7 @@ describe('reset and minimap', () => {
     // Manual position and collapse both cleared; node returns to the auto grid.
     expect(nodeButton('branchChild').style.left).toBe('0px')
     expect(nodeButton('branchChild').style.top).toBe('120px')
-    const stored = localStorage.getItem('dsh.session-graph.layout./w')
+    const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toContain('"positions":{}')
     expect(stored).toContain('"collapsed":[]')
     // The cleared graph, rather than the previous far-away graph, owns Fit.
