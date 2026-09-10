@@ -4,7 +4,7 @@
  * positions, the compact column a collapsed cluster stacks into, the offset
  * a dragged cluster carries, and the palette cycle that colors frames by
  * cluster order.
- * @module @benz-ai-x/dsh-client-ui-session-graph/src/client/clusters
+ * @module @benz-ai-x/dsh-research-graph/src/client/clusters
  */
 import type { ClusterInfo } from './graph-model.ts'
 import type { ContentBounds, LaidOutGraph, LaidOutNode } from './layout.ts'

@@ -63,6 +63,7 @@ jobs:
       - name: Publish the verified archive
         run: |
           package_version=$(node -p 'require("./package.json").version')
-          package_archive=".artifacts/benz-ai-x-dsh-client-ui-session-graph-$package_version.tgz"
+          package_basename=$(node -p 'require("./package.json").name.replace(/^@/, "").replace("/", "-")')
+          package_archive=".artifacts/$package_basename-$package_version.tgz"
           publish_tag=$(node -p 'require("./package.json").version.includes("-") ? "next" : "latest"')
           npm publish "$package_archive" --access public --provenance --tag "$publish_tag" --loglevel verbose

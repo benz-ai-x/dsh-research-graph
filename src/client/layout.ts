@@ -4,7 +4,7 @@
  * columns in depth-first display order and each parent centers on the
  * midpoint of its first and last child column, so identical graphs lay out
  * identically.
- * @module @benz-ai-x/dsh-client-ui-session-graph/src/client/layout
+ * @module @benz-ai-x/dsh-research-graph/src/client/layout
  */
 import type { GraphEdge, GraphNode, SessionGraph } from './graph-model.ts'
 

@@ -152,7 +152,7 @@ async function main() {
     help: { type: 'boolean', short: 'h' },
   } })
   if (values.help) {
-    console.log('Usage: dsh-session-graph-migrate --input <historical.jsonl[.zstd]> [--output <session.v3.jsonl[.zstd]>] [--max-bytes <bytes>]\nWithout --output, validates only. Stop DSH before placing a recovered file in a Session directory. Existing files are never overwritten.')
+    console.log('Usage: dsh-research-graph-migrate --input <historical.jsonl[.zstd]> [--output <session.v3.jsonl[.zstd]>] [--max-bytes <bytes>]\nWithout --output, validates only. Stop DSH before placing a recovered file in a Session directory. Existing files are never overwritten.')
     return
   }
   if (!values.input) throw new Error('--input is required; use --help for usage')

@@ -21,7 +21,7 @@ describe('published package metadata', () => {
     ) as PackageMetadata
     const patch = readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
 
-    expect(metadata.name).toBe('@benz-ai-x/dsh-client-ui-session-graph')
+    expect(metadata.name).toBe('@benz-ai-x/dsh-research-graph')
     expect(metadata.dsh).toMatchObject({
       bundle: { patch: './cordis.patch.yml' },
       client: { platform: 'web' },

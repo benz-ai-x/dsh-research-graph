@@ -20,7 +20,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   }
 }
 
-const PACKAGE_NAME = '@benz-ai-x/dsh-client-ui-session-graph'
+const PACKAGE_NAME = '@benz-ai-x/dsh-research-graph'
 
 export const RESEARCH_TOPICS_REMOTE: TypertRemoteContribution = {
   package: PACKAGE_NAME,

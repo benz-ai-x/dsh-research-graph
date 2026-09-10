@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const PLUGIN_ID = '@benz-ai-x/dsh-client-ui-session-graph'
+const PLUGIN_ID = '@benz-ai-x/dsh-research-graph'
 
 interface Handoff {
   readonly id: string
@@ -184,7 +184,7 @@ describe('tsdown client artifact', () => {
       },
       locale: {
         register: () => () => {},
-        bind: () => key => key === 'view.graph' ? 'Graph' : key,
+        bind: () => key => key === 'view.graph' ? 'Research Graph' : key,
       },
       slots: {
         inject: (name, install) => {
@@ -274,7 +274,7 @@ describe('tsdown client artifact', () => {
     ]])
     expect(views).toHaveLength(1)
     expect(views[0]).toMatchObject({ name: 'conversation.view', id: 'graph' })
-    expect(views[0]?.label()).toBe('Graph')
+    expect(views[0]?.label()).toBe('Research Graph')
     expect(views[0]?.inject().hostId).toBe('host-one')
     await views[0]?.inject().branchSession('source')
     expect(forkRequests).toEqual([{ sessionId: 'source', increaseTitle: true }])

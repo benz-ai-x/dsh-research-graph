@@ -4,7 +4,7 @@
  * corresponding alignment guides. React-free; GraphCanvas feeds every drag
  * move through {@link snapPosition} so the threshold behavior is pinned by
  * unit tests.
- * @module @benz-ai-x/dsh-client-ui-session-graph/src/client/snap
+ * @module @benz-ai-x/dsh-research-graph/src/client/snap
  */
 
 /** The snapped position plus the alignment guides to display. */

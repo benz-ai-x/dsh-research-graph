@@ -1,64 +1,65 @@
 ---
-description: "DeepSeek Harness（dsh）AI Agent 会话可视化与管理插件：在交互式图谱画布中浏览会话谱系、排列分支、汇聚快照并生成摘要。"
+description: "研图：面向 DeepSeek Harness 的研究图谱插件，将 AI 讨论组织为研究主题、有出处的知识卡片和可继续沿用的研究材料。"
 kind: "package-bundle"
 ---
 
-# Session Graph：DeepSeek Harness 会话可视化插件
+# DSH Research Graph · 研图
 
-[![CI](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-client-ui-session-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph)
+[![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
 [![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
-[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-session-graph?logo=github)](https://github.com/benz-ai-x/dsh-session-graph/releases/latest)
+[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [English](README.md) | 中文
 
-**面向 DeepSeek Harness（dsh）的 AI Agent 会话可视化与管理插件。**
+**在 DeepSeek Harness 中，将 AI 讨论沉淀为可追溯、可复用的研究知识。**
 
-Session Graph（`@benz-ai-x/dsh-client-ui-session-graph`）为 DeepSeek Harness Web 对话视图添加交互式 **Graph** 标签。在同一画布中浏览 Session Lineage（会话谱系）、跳转对话、创建 Branch（分支）、汇聚会话快照，并生成 Session Digest（会话摘要）。
+研图（Research Graph，`@benz-ai-x/dsh-research-graph`）为 DeepSeek Harness Web 对话视图添加交互式**研图**标签。将跨工作区的讨论组织为研究主题，保存有准确出处的知识卡片，审核 AI 提炼结果，并使用所选材料开始下一轮讨论。
 
-Branch 连接的 Canvas Session 组成可移动会话簇，Merge Session 保留快照溯源，Subagent Session 折叠为紧凑摘要。按需生成的 Session Digest 帮助回顾关键结论与待办。浏览、排列与生成摘要都不会修改 Session 日志。
+画布同时保留 Session Lineage（会话谱系）、可移动的 Branch 会话簇、Merge 快照溯源和紧凑的 Subagent 摘要。可阅读讨论原文或按需生成 Session Digest（会话摘要），源会话日志保持原样。
 
 <p align="center">
-  <a href="docs/assets/session-graph-overview.png">
-    <img src="https://raw.githubusercontent.com/benz-ai-x/dsh-session-graph/main/docs/assets/session-graph-overview.png" alt="DeepSeek Harness Session Graph，展示分支、汇聚关系、子代理摘要、标题过滤和画布控制" width="100%" />
+  <a href="docs/assets/research-graph/overview.png">
+    <img src="https://raw.githubusercontent.com/benz-ai-x/dsh-research-graph/main/docs/assets/research-graph/overview.png" alt="DeepSeek Harness 研图，展示研究主题、讨论来源和知识卡片" width="100%" />
   </a>
 </p>
 
-<p align="center"><sub>使用合成演示会话渲染的真实 Session Graph 界面。</sub></p>
+<p align="center"><sub>从旧包升级后，使用合成研究数据渲染的真实研图界面。</sub></p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph">npm</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-session-graph/releases">版本发布</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-session-graph/issues">问题反馈</a> ·
+  <a href="https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph">npm</a> ·
+  <a href="https://github.com/benz-ai-x/dsh-research-graph/releases">版本发布</a> ·
+  <a href="https://github.com/benz-ai-x/dsh-research-graph/issues">问题反馈</a> ·
   <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>
 </p>
 
 ## 快速开始
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
 dsh web
 ```
 
-若 `dsh web` 已在运行，请先停止再重启。打开命令打印的一次性认证 URL，进入任意非空 Session，然后选择 **Graph**。不要分享或持久保存 URL 中的 token。
+若 `dsh web` 已在运行，请先停止再重启。打开命令打印的一次性认证 URL，进入任意非空 Session，然后选择 **研图**。不要分享或持久保存 URL 中的 token。
 
 ## 兼容性
 
-| Session Graph | DeepSeek Harness | Node.js | 验证方式 |
+| 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
-| [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
-| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
-| [`v0.1.6`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
-| [`v0.1.5`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 与包名迁移验收 |
+| 旧包：[`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
+| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
+| [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
+| [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 
-在与 DSH 对齐的发布线上，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-rc.1` 对应插件 `0.1.5-rc.1`。下文介绍的研究工作流随本次 RC 发布；已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
+在与 DSH 对齐的发布线上，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-rc.1` 对应插件 `0.1.5-rc.1`。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。下文介绍的研究工作流随本次 RC 发布；已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
 
 本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
 ## 知识卡片
 
-在 **Graph → 原文** 中选择已完成轮次，点击**保存为知识卡片**。可编辑标题、核心问题、结论、理由/适用条件、待验证事项、类型及草稿/已确认状态，并选择研究主题。人工创建不调用模型、不修改源会话。主题操作区和知识卡片搜索页也提供新建入口。
+在 **研图 → 原文** 中选择已完成轮次，点击**保存为知识卡片**。可编辑标题、核心问题、结论、理由/适用条件、待验证事项、类型及草稿/已确认状态，并选择研究主题。人工创建不调用模型、不修改源会话。主题操作区和知识卡片搜索页也提供新建入口。
 
 主题图用独立的来源关系连接卡片与原讨论。打开卡片可查看各个已保存修订、阅读保留的摘录，并回读准确的原文轮次；原文不可用时会明确标为摘录。编辑会追加不可变修订；保存失败保留输入，重试不会重复创建卡片，放弃编辑恢复已保存内容。
 
@@ -78,11 +79,11 @@ dsh web
 
 把已保存的卡片修订或一个完整已完成轮次加入**材料**。首版支持 1–3 项，可排序、移除，输入新问题并明确选择目标工作区。**预览发送内容**展示实际文字、来源边界、卡片版本及 32,000 字符总预算。仅选卡片只带卡片内容和来源说明，原文需要另行选择；超预算材料或包含 Harness 会话引用指令的文字需要编辑或移除后再发送。
 
-提交响应丢失时，材料保持锁定，Graph 会向 Host 核对目标记录。可点击**核对目标状态**或重新打开材料重查；重试始终复用同一次提交。关闭弹窗后，迟到响应不会触发导航。
+提交响应丢失时，材料保持锁定，研图会向 Host 核对目标记录。可点击**核对目标状态**或重新打开材料重查；重试始终复用同一次提交。关闭弹窗后，迟到响应不会触发导航。
 
-若目标创建成功但沿用日志保存失败，Graph 会直接核对预留会话，保留打开和重试入口。状态核对失败时材料继续锁定；存储恢复后重试仍使用同一目标和消息。
+若目标创建成功但沿用日志保存失败，研图会直接核对预留会话，保留打开和重试入口。状态核对失败时材料继续锁定；存储恢复后重试仍使用同一目标和消息。
 
-确认后创建独立 Session，并通过 Harness 原生接口发送固定预览。创建失败保留材料；目标已建立但发送失败时，可以打开或重试相同目标与消息身份。**已发送**只表示 Host 确认接收，模型回答状态在会话中查看。新会话 Graph 的**本会话所用材料**可在来源更新、清理浏览器缓存或 Host 重启后核对原版本、原文范围及沿用关系，不改变来源的工作区归属和目录。
+确认后创建独立 Session，并通过 Harness 原生接口发送固定预览。创建失败保留材料；目标已建立但发送失败时，可以打开或重试相同目标与消息身份。**已发送**只表示 Host 确认接收，模型回答状态在会话中查看。新会话研图中的**本会话所用材料**可在来源更新、清理浏览器缓存或 Host 重启后核对原版本、原文范围及沿用关系，不改变来源的工作区归属和目录。
 
 ## 核心能力
 
@@ -113,7 +114,7 @@ dsh web
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -122,25 +123,28 @@ dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-rc.1
 dsh --profile web --dump-config
 ```
 
-输出应包含 `name: '@benz-ai-x/dsh-client-ui-session-graph'`。
+输出应包含 `name: '@benz-ai-x/dsh-research-graph'`。
 
-<details>
-<summary>从固定 GitHub tag 安装源码</summary>
+### 从旧包名升级
+
+产品现名为 **DSH Research Graph · 研图**，仓库为 `benz-ai-x/dsh-research-graph`。npm 包名现为 `@benz-ai-x/dsh-research-graph`。如果 web profile 已安装 `@benz-ai-x/dsh-client-ui-session-graph`，先停止该 profile，再执行：
 
 ```sh
-dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5-rc.1
+dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh web
 ```
 
-profile 显式授权前，pnpm 会阻止 git 依赖执行 `prepare` 脚本。首次 GitHub 安装会以 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` 退出；把 dsh 打印的完整键复制到 `$DSH_HOME/profiles/web/pnpm-workspace.yaml` 的 `allowBuilds` 下，再次执行命令。这项权限允许包代码在 agent 沙箱之外执行，因此应先检查源码，并继续锁定该 tag 或 commit。
+继续使用同一个 profile 并保留其数据目录。改名保留研究主题、知识卡片、材料沿用记录和画布位置的存储身份。若有自定义插件设置，重装后在原 `ui-session-graph` patch ID 下恢复；同一 profile 只安装一个包名。
 
-</details>
+已发布的 `v0.1.5-rc.1` 及更早 Git 标签保留当时的包名。本轮包名迁移请使用上面的 npm 包，或将当前源码打成本地归档安装。
 
 本包同时包含浏览器插件与 `cordis.patch.yml` 组合包补丁。dsh 插件管理器会把它插入 `web` profile 已提供的 Session、Workspace、locale、renderer 与 conversation 插件之后，无需手工修改 `cordis.yml`。
 
 使用以下命令移除：
 
 ```sh
-dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 ```
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
@@ -149,7 +153,7 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 
 ## 使用图谱
 
-打开一个非空会话，在标准对话标签旁选择 **Graph**。Viewed Session（当前查看会话）会优先解析命名 Workspace Scope（工作区范围），匹配不到时退化为 Directory Scope（目录范围）。
+打开一个非空会话，在标准对话标签旁选择 **研图**。Viewed Session（当前查看会话）会优先解析命名 Workspace Scope（工作区范围），匹配不到时退化为 Directory Scope（目录范围）。
 
 - 单击选择 Selected Session（选中会话）并持续强调其 Branch Lineage；可关闭的详情检查器可打开该会话或创建 Branch，并在 Harness 拒绝请求时显示错误。单击画布空白处或按 Escape 可清除选择。
 - 双击会在该会话上次使用的视图中打开它。
@@ -172,7 +176,7 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 
 ## 返回上次工作位置
 
-重开 Graph 会恢复平移、缩放、排列、选中资料及仍有效的原文页和滚动位置。重开搜索时恢复条件并重新查询 Host，不缓存旧搜索结果。失效资料会清空选择并显示可关闭的提示，保留有效视口；移出最后一张卡后，空主题也会清理失效选择。失效主题会返回主题列表。
+重开 研图会恢复平移、缩放、排列、选中资料及仍有效的原文页和滚动位置。重开搜索时恢复条件并重新查询 Host，不缓存旧搜索结果。失效资料会清空选择并显示可关闭的提示，保留有效视口；移出最后一张卡后，空主题也会清理失效选择。失效主题会返回主题列表。
 
 知识卡片带入主题的来源节点也会恢复上次有效的原文位置。阅读长来源或复核选区时会记住起止边界，重开不会缩短为普通一页。在卡片内点击来源时，仍精确打开该修订保存的范围。主题原文恢复遇到连接失败时，可继续阅读保留摘录；重试核验原文成功后才恢复已保存的滚动位置。
 
@@ -180,7 +184,7 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 
 ## 整理研究主题
 
-在 Graph 页头选择**研究主题**，创建并命名主题。在选中会话的详情或搜索结果的原文面板中，选择**加入研究主题**，再选择主题并加入资料；也可以在选择面板中新建主题。同一 Host 内可跨工作区收集会话，同一会话可加入多个主题。
+在 研图页头选择**研究主题**，创建并命名主题。在选中会话的详情或搜索结果的原文面板中，选择**加入研究主题**，再选择主题并加入资料；也可以在选择面板中新建主题。同一 Host 内可跨工作区收集会话，同一会话可加入多个主题。
 
 创建失败后重试会恢复同一个主题。如果重试前修改了名称，只有新名称也保存成功后才会清空输入；再次失败仍保留输入，可继续重试。
 
@@ -194,7 +198,7 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 
 ## 搜索历史讨论
 
-点击 Graph 页头的「搜索正文」，输入词句，选择工作区、Viewed Session 所在目录或当前 Host 的全部会话。「包含归档」允许只读检索归档来源，不会取消归档或让其出现在画布中。现有标题过滤仍独立强调 Canvas Session。
+点击 研图页头的「搜索正文」，输入词句，选择工作区、Viewed Session 所在目录或当前 Host 的全部会话。「包含归档」允许只读检索归档来源，不会取消归档或让其出现在画布中。现有标题过滤仍独立强调 Canvas Session。
 
 结果展示会话标题、工作区或目录、消息时间和片段，每个会话返回已完成用户/助手讨论中最近的一处命中，按时间倒序排列。点击结果，在搜索 Inspector 核对准确轮次；命中消息有标记，可继续加载更早、更晚的讨论。只有「打开会话」才切换 Viewed Session，暂不定位原生聊天的滚动位置。
 
@@ -262,7 +266,7 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 
 工具支持明文 JSONL、`.zst` 和 `.zstd`；仅转换本插件可识别的旧标记，并通过 DSH 官方完整格式迁移及当前格式校验。原文件保持不变，已有输出文件不会被覆盖。默认输入及解压后数据上限为 128 MiB，可用 `--max-bytes` 调整；无法识别的字段、损坏或截断数据会被拒绝。已是 V3 或没有旧标记的会话应使用 DSH 正常读取/迁移流程。
 
-若要让宿主使用恢复文件，先停止 DSH，再将验证后的文件以 `session.v3.jsonl` 或 `session.v3.jsonl.zstd` 放入**该会话原有目录**并保留原文件；若已有 V3 文件，先核查冲突，不能直接覆盖。工具只生成文件，不扫描或替换真实会话。安装包也提供同名命令 `dsh-session-graph-migrate`。
+若要让宿主使用恢复文件，先停止 DSH，再将验证后的文件以 `session.v3.jsonl` 或 `session.v3.jsonl.zstd` 放入**该会话原有目录**并保留原文件；若已有 V3 文件，先核查冲突，不能直接覆盖。工具只生成文件，不扫描或替换真实会话。安装包提供 `dsh-research-graph-migrate` 命令，并保留 `dsh-session-graph-migrate` 作为兼容别名。
 
 ## 生成会话摘要
 
@@ -294,13 +298,13 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 
 | 现象 | 首先检查 |
 |---|---|
-| 找不到 **Graph** 标签 | 重启 `dsh web`，打开非空 Session，并确认 `dsh --profile web --dump-config` 中存在本包 |
+| 找不到 **研图** 标签 | 重启 `dsh web`，打开非空 Session，并确认 `dsh --profile web --dump-config` 中存在本包 |
 | Host 在 Remote error 导出附近启动失败 | 按兼容表安装与 DSH 匹配的插件，并确认解析后的 profile 没有保留旧包版本 |
 | GitHub 源码安装报告 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | 检查固定版本源码，把 dsh 打印的完整键加入该 profile 的 `allowBuilds`，然后重试 |
 | 生成摘要时报告没有模型路由 | 使用日志中带路由的 Session，或配置 `provider` 与 `model` 兜底字段对 |
 | Web URL 拒绝访问 | 打开 `dsh web` 打印的完整认证 URL；不要复用或分享被截掉 token 的地址 |
 
-若问题仍然存在，请在 [GitHub Issue](https://github.com/benz-ai-x/dsh-session-graph/issues/new) 中附上 Graph 页头显示的包版本、Harness 版本以及相关 Host/浏览器错误。
+若问题仍然存在，请在 [GitHub Issue](https://github.com/benz-ai-x/dsh-research-graph/issues/new) 中附上 研图页头显示的包版本、Harness 版本以及相关 Host/浏览器错误。
 
 ## 开发与贡献
 
@@ -319,7 +323,7 @@ pnpm --dir /path/to/deepseek-harness run build:lib
 DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 ```
 
-修改 Session、Merge、Digest 或持久化行为前，请先阅读 [`CONTEXT.md`](CONTEXT.md) 的领域模型与 [`docs/adr/`](docs/adr/) 的持久设计决策。安装方式或产品行为变化时必须同时更新本文与 [`README.md`](README.md)。面向用户的工作应从 [GitHub Issue](https://github.com/benz-ai-x/dsh-session-graph/issues) 开始。
+修改 Session、Merge、Digest 或持久化行为前，请先阅读 [`CONTEXT.md`](CONTEXT.md) 的领域模型与 [`docs/adr/`](docs/adr/) 的持久设计决策。安装方式或产品行为变化时必须同时更新本文与 [`README.md`](README.md)。面向用户的工作应从 [GitHub Issue](https://github.com/benz-ai-x/dsh-research-graph/issues) 开始。
 
 `check:harness` 要求宿主与插件版本相同。它用该 checkout 构建的真实公开声明检查 Host/Client 源码及打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并从 `package.json` 自动选择 `dsh-v<version>`。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件。History 读取还经过与浏览器相同的 RPC Gateway，覆盖传输层提供的取消信号；仅模型传输使用固定响应。
 
@@ -337,9 +341,9 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 
 [Publish workflow](.github/workflows/publish.yml) 接受已发布的 GitHub Release 或手工提供的现有 tag。它要求 tag 等于 `v` 加包版本，重新运行 `pnpm run check`，打包归档，并把这些已验证字节发布到 npm；稳定版使用 npm tag `latest`，预发布版使用 `next`。
 
-本包使用 [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/)：organization 为 `benz-ai-x`、repository 为 `dsh-session-graph`、workflow 为 `publish.yml`、environment 为 `npm-publish`，仅允许 `npm publish` action。工作流通过 GitHub OIDC 认证，不应再接收长期 `NPM_TOKEN`；保留 GitHub environment 作为发布边界。若为其他包名或 scope 做首次发布，只在首次引导时使用权限范围尽量小、有效期尽量短的令牌，随后立即配置 trusted publishing 并吊销该令牌。
+本包使用 [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/)：organization 为 `benz-ai-x`、repository 为 `dsh-research-graph`、workflow 为 `publish.yml`、environment 为 `npm-publish`，仅允许 `npm publish` action。工作流通过 GitHub OIDC 认证，不应再接收长期 `NPM_TOKEN`；保留 GitHub environment 作为发布边界。若为其他包名或 scope 做首次发布，只在首次引导时使用权限范围尽量小、有效期尽量短的令牌，随后立即配置 trusted publishing 并吊销该令牌。
 
-每次适配发布都必须把 `package.json.version` 及直接引用的 DSH 依赖更新为目标 DSH 的完整版本；插件 tag 为 `v<version>`，上游 tag 为 `dsh-v<version>`。`check-version.mjs` 会拒绝依赖或发布 tag 不一致，`check:harness` 会拒绝宿主版本不一致。发布前完成 `pnpm run check`、`check:harness` 和打包 profile 验收，并确认 Graph 页头徽标读取同一版本，再合入变更、创建不可移动的 tag 和 Release。相同 DSH 版本下的本地迭代使用 Build ID 区分，不覆盖已发布版本或重命名历史标签。
+每次适配发布都必须把 `package.json.version` 及直接引用的 DSH 依赖更新为目标 DSH 的完整版本；插件 tag 为 `v<version>`，上游 tag 为 `dsh-v<version>`。`check-version.mjs` 会拒绝依赖或发布 tag 不一致，`check:harness` 会拒绝宿主版本不一致。发布前完成 `pnpm run check`、`check:harness` 和打包 profile 验收，并确认 研图页头徽标读取同一版本，再合入变更、创建不可移动的 tag 和 Release。相同 DSH 版本下的本地迭代使用 Build ID 区分，不覆盖已发布版本或重命名历史标签。
 
 本包导出两个 Node 侧入口和一个惰性加载的浏览器模块；实际打包归档中的每个 JavaScript 入口都带有匹配的 TypeScript 声明：
 
@@ -377,7 +381,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 
 ## 当前限制
 
-- 无会话主页与全新空白会话没有对话视图环，因此无法使用 Graph。
+- 无会话主页与全新空白会话没有对话视图环，因此无法使用研图。
 - 范围图一次跟随一个工作区或目录；研究主题可跨同一 Host 内的工作区，正文搜索使用独立视图。
 - 切换标签或刷新会重置平移与缩放；节点位置、簇偏移与折叠状态会持久化。
 - Session Digest 只按需生成并缓存在 Host 内存中，不作为长期产物持久化；Host 重启会清空缓存。
