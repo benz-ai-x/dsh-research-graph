@@ -36,7 +36,11 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, ret
   unavailable.current = onUnavailable
   const [request, setRequest] = useState<SessionHistoryRequest>(() => {
     if (source !== undefined) return { sessionId, source }
-    const anchor = anchorSeq ?? loadWorkingPosition(workingKey).history?.[sessionId]
+    if (anchorSeq !== undefined) return { sessionId, anchorSeq }
+    const position = loadWorkingPosition(workingKey)
+    const range = position.historyRange?.[sessionId]
+    const anchor = position.history?.[sessionId]
+    if (range !== undefined && range.startSeq === anchor) return { sessionId, range }
     if (anchor !== undefined) return { sessionId, anchorSeq: anchor }
     return { sessionId, ...(retainedSource === undefined ? {} : { source: retainedSource }) }
   })
@@ -58,16 +62,24 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, ret
       if (value.kind === 'original') {
         for (const turn of value.turns) loadedTurns.current.set(turn.startSeq, turn)
         const anchor = value.turns[0]?.startSeq
-        const history = { ...loadWorkingPosition(workingKey).history }
+        const position = loadWorkingPosition(workingKey)
+        const history = { ...position.history }
+        const historyRange = { ...position.historyRange }
+        const endSeq = value.turns.at(-1)?.endSeq
         if (anchor === undefined) delete history[sessionId]
         else history[sessionId] = anchor
-        saveWorkingPosition(workingKey, { history })
-      } else if (value.kind === 'unavailable' && request.anchorSeq !== undefined && workingKey !== undefined) {
+        if ((request.source !== undefined || request.range !== undefined) && anchor !== undefined && endSeq != null) {
+          historyRange[sessionId] = { startSeq: anchor, endSeq }
+        } else delete historyRange[sessionId]
+        saveWorkingPosition(workingKey, { history, historyRange })
+      } else if (value.kind === 'unavailable' && (request.anchorSeq !== undefined || request.range !== undefined) && workingKey !== undefined) {
         const history = { ...loadWorkingPosition(workingKey).history }
+        const historyRange = { ...loadWorkingPosition(workingKey).historyRange }
         const historyScroll = { ...loadWorkingPosition(workingKey).historyScroll }
         delete history[sessionId]
+        delete historyRange[sessionId]
         delete historyScroll[sessionId]
-        saveWorkingPosition(workingKey, { history, historyScroll })
+        saveWorkingPosition(workingKey, { history, historyRange, historyScroll })
         unavailable.current?.()
       }
       setResult(value)

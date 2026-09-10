@@ -46,6 +46,7 @@ import { topicHost } from './fixtures/research-topics-host.ts'
 import { knowledgeContent, knowledgeSource } from './fixtures/knowledge-client.ts'
 import { loadWorkingPosition, workingPositionKey } from '../src/client/working-position.ts'
 import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
 import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
@@ -97,6 +98,79 @@ describe('Markdown export in the registered Graph', () => {
 })
 
 describe('Working position in the registered Graph', () => {
+  it.each(['retained source', 'reviewed range', 'changed provenance', 'missing source'] as const)('restores long Original ranges through the real Host: %s', async scenario => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-long-original-'))
+    const disposals: (() => Promise<void>)[] = [() => rm(root, { recursive: true, force: true })]
+    try {
+      const host = await topicHost(root, disposals)
+      const discussion = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/w' } })
+      for (let turn = 1; turn <= 12; turn++) {
+        discussion.append('turn/start', { turn })
+        discussion.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: `原文 ${turn}` }] }), { surfaceOp: 'append' })
+        discussion.append('turn/end', { turn, reason: { kind: 'completed' } })
+      }
+      const leave = host.ctx.sessions.enter(discussion)
+      host.ctx.effect(() => leave)
+      const original = await host.ctx.sessionGraphHistory.read({ sessionId: discussion.id, limit: 20 }, new AbortController().signal)
+      const first = original.turns[0]!
+      const last = original.turns.at(-1)!
+      const source = { sessionId: discussion.id, title: '长来源', source: { startSeq: first.startSeq, endSeq: last.endSeq!, turns: original.turns } }
+      const b = await bench({ [discussion.id]: session(discussion.id) })
+      disposals.push(async () => { await b.fiber.dispose() })
+      const topic = { topicId: 'long-topic', title: '长来源研究', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+      const card: KnowledgeCard = { cardId: 'long-card', topicIds: [topic.topicId], revisions: [{
+        revisionId: 'long-revision', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000, content: knowledgeContent(), sources: [source],
+      }] }
+      b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+      b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+      b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+      b.readHistory.mockImplementation(async (request, signal) => ({ ok: true, value: await host.ctx.typertGateway.invoke({
+        namespace: 'sessionGraphHistory', method: 'read', args: { request }, signal: signal ?? new AbortController().signal,
+      }) }))
+      const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
+      mount(b.slots, b.sessionsStore, discussion.id)
+      switchTab('Graph')
+      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      await waitFor(() => { expect(document.querySelector('[data-node-id="card:long-card"]')).not.toBeNull() })
+      fireEvent.click(nodeButton(discussion.id))
+      fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+      await waitFor(() => { expect((screen.getByRole('checkbox', { name: '选择第 12 轮' }) as HTMLInputElement).disabled).toBe(false) })
+      if (scenario === 'reviewed range') {
+        fireEvent.click(screen.getByRole('checkbox', { name: '选择第 2 轮' }))
+        fireEvent.click(screen.getByRole('checkbox', { name: '选择第 12 轮' }))
+        fireEvent.click(screen.getByRole('button', { name: '复核所选原文' }))
+        await waitFor(() => { expect(screen.queryByRole('checkbox', { name: '选择第 1 轮' })).toBeNull() })
+      }
+      screen.getByTestId('topic-source-panel').scrollTop = 3000
+      fireEvent.scroll(screen.getByTestId('topic-source-panel'))
+      const range = { startSeq: original.turns[scenario === 'reviewed range' ? 1 : 0]!.startSeq, endSeq: last.endSeq! }
+      expect(loadWorkingPosition(key).historyScroll?.[discussion.id]).toBe(3000)
+      switchTab('Chat')
+      if (scenario === 'missing source') leave()
+      if (scenario === 'changed provenance') b.searchKnowledge.mockResolvedValue({ ok: true, value: [{ ...card,
+        revisions: [...card.revisions, { ...card.revisions[0]!, revisionId: 'shorter-revision', number: 2,
+          sources: [{ ...source, source: { startSeq: first.startSeq, endSeq: first.endSeq!, turns: [first] } }] }],
+      }] })
+      switchTab('Graph')
+      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: discussion.id, range }, expect.any(AbortSignal)) })
+      if (scenario === 'missing source') {
+        await screen.findByText(zh['position.unavailable'])
+        expect(screen.queryByTestId('topic-source-panel')).toBeNull()
+        expect(loadWorkingPosition(key)).toMatchObject({ selected: null, history: {}, historyRange: {}, historyScroll: {} })
+      } else {
+        await screen.findByText('原文 12')
+        expect(screen.getByTestId('topic-source-panel').scrollTop).toBe(3000)
+        expect(screen.getAllByRole('checkbox', { name: /^选择第/ })).toHaveLength(scenario === 'reviewed range' ? 11 : 12)
+        expect(host.ctx.llm.stream).not.toHaveBeenCalled()
+      }
+      expect(b.open).not.toHaveBeenCalled()
+    } finally {
+      cleanup()
+      for (const dispose of disposals.reverse()) await dispose()
+    }
+  })
+
   it.each(['available', 'transport failure', 'missing'] as const)('restores a card source Original after reopening its topic: %s', async outcome => {
     const source = knowledgeSource()
     const b = await bench({ 'session-a': session('session-a') })

@@ -1,4 +1,5 @@
 import type { DiscussionSearchScope } from '../session-search.ts'
+import type { SessionDiscussionRange } from '../session-history.ts'
 import type { Viewport } from './viewport.ts'
 import { SCALE_MAX, SCALE_MIN } from './viewport.ts'
 
@@ -9,6 +10,7 @@ export interface WorkingPosition {
   readonly query?: string
   readonly tab?: 'digest' | 'history'
   readonly history?: Readonly<Record<string, number>>
+  readonly historyRange?: Readonly<Record<string, SessionDiscussionRange>>
   readonly historyScroll?: Readonly<Record<string, number>>
   readonly topicId?: string
   readonly searchType?: 'discussion' | 'knowledge'
@@ -38,6 +40,10 @@ export function loadWorkingPosition(key: string | undefined): WorkingPosition {
       .filter(([id, seq]) => string(id) && Number.isSafeInteger(seq) && (seq as number) >= 0)) as Record<string, number> : undefined
     const historyScroll = object(value.historyScroll) ? Object.fromEntries(Object.entries(value.historyScroll)
       .filter(([id, top]) => string(id) && finite(top) && top >= 0)) as Record<string, number> : undefined
+    const historyRange = object(value.historyRange) ? Object.fromEntries(Object.entries(value.historyRange)
+      .filter(([id, range]) => string(id) && object(range) && Number.isSafeInteger(range.startSeq)
+        && Number.isSafeInteger(range.endSeq) && (range.startSeq as number) >= 0 && (range.endSeq as number) > (range.startSeq as number))
+      .map(([id, range]) => [id, { startSeq: (range as SessionDiscussionRange).startSeq, endSeq: (range as SessionDiscussionRange).endSeq }])) : undefined
     return {
       ...(object(viewport) && finite(viewport.scale) && viewport.scale >= SCALE_MIN && viewport.scale <= SCALE_MAX
         && finite(viewport.panX) && finite(viewport.panY) ? { viewport: viewport as unknown as Viewport } : {}),
@@ -45,6 +51,7 @@ export function loadWorkingPosition(key: string | undefined): WorkingPosition {
       ...(string(value.query, 256) ? { query: value.query } : {}),
       ...(value.tab === 'digest' || value.tab === 'history' ? { tab: value.tab } : {}),
       ...(history === undefined ? {} : { history }),
+      ...(historyRange === undefined ? {} : { historyRange }),
       ...(historyScroll === undefined ? {} : { historyScroll }),
       ...(string(value.topicId) ? { topicId: value.topicId } : {}),
       ...(value.searchType === 'discussion' || value.searchType === 'knowledge' ? { searchType: value.searchType } : {}),

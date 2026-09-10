@@ -62,12 +62,13 @@ export class SessionGraphHistoryService extends TypertRemoteService {
     signal.throwIfAborted()
     const turns = discussionTurns(source.events)
     const limit = request.limit ?? 10
-    const { source: selectedSource, beforeSeq, afterSeq, anchorSeq } = request
+    const { beforeSeq, afterSeq, anchorSeq } = request
+    const selectedRange = request.source ?? request.range
     let end = turns.length
     let start = Math.max(0, end - limit)
-    if (selectedSource !== undefined) {
-      start = turns.findIndex(turn => turn.startSeq === selectedSource.startSeq)
-      end = turns.findIndex(turn => turn.endSeq === selectedSource.endSeq) + 1
+    if (selectedRange !== undefined) {
+      start = turns.findIndex(turn => turn.startSeq === selectedRange.startSeq)
+      end = turns.findIndex(turn => turn.endSeq === selectedRange.endSeq) + 1
       if (start < 0 || end <= start || turns.slice(start, end).some(turn => turn.endSeq === null)) {
         return unavailable(request)
       }

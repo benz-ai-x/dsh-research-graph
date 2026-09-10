@@ -65,6 +65,13 @@ export function apply(ctx) {
     assert.equal(history.kind, 'original')
     assert.equal(history.sessionId, sourceIds[1])
     assert.equal(history.turns.length, 1)
+    const restoredRange = await ctx.typertGateway.invoke({
+      namespace: 'sessionGraphHistory', method: 'read',
+      args: { request: { sessionId: sourceIds[1], range: {
+        startSeq: history.turns[0].startSeq, endSeq: history.turns[0].endSeq,
+      } } }, signal,
+    })
+    assert.deepEqual(restoredRange, history)
     assert.deepEqual(history.turns[0].messages.map(message => [message.role, message.text]), [
       ['user', secondPrompt], ['assistant', 'Fixture response.'],
     ])
@@ -165,7 +172,7 @@ export function apply(ctx) {
     }
     assert.ok(calls >= 4)
     return { ok: true, sources: sourceIds.length, durableTopics: true, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
-      acceptedReuse: true, frozenMarkdown: true, readonlyDigest: true, readonlyHistory: true, readonlySearch: true, fixtureModelCalls: calls }
+      acceptedReuse: true, frozenMarkdown: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {
