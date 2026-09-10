@@ -1606,6 +1606,8 @@
   overflow: hidden;
 }
 
+.knowledgeDialog[aria-hidden='true'] { visibility: hidden; }
+
 .knowledgeBody {
   overflow: auto;
   padding: 16px 24px 120px;

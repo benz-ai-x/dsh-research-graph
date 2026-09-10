@@ -10,6 +10,7 @@ import { containsSessionReferenceUri } from './session-merge.ts'
 import { readKnowledgeDiscussion } from './knowledge-discussion.ts'
 import { RESEARCH_MATERIAL_BUDGET, researchReusePrompt, type ResearchMaterial, type ResearchReusePreparation, type ResearchReuseRecord } from './research-reuse.ts'
 import { researchReusePreparationSchema, researchReuseReadSchema, researchReuseRecordSchema, researchReuseSessionSchema } from './research-reuse-codec.ts'
+import { ServiceRequests } from './service-requests.ts'
 
 const recordSchema: z.ZodType<ResearchReuseRecord> = z.unknown().transform((value, context) => {
   try { return researchReuseRecordSchema.parse(value) } catch {
@@ -21,10 +22,8 @@ export const RESEARCH_REUSE_DOMAIN = { name: 'session_graph_reuse', version: 1, 
 
 /** A durable admission journal binds one frozen preview to one native Session/request identity. */
 export class ResearchReuseService extends TypertRemoteService {
-  private readonly lifecycle = new AbortController()
-  private readonly active = new Set<Promise<unknown>>()
+  private readonly requests = new ServiceRequests('Research reuse service')
   private tail: Promise<void> = Promise.resolve()
-  private disposal: Promise<void> | undefined
 
   constructor(ctx: Context, private readonly domain: Domain<typeof RESEARCH_REUSE_DOMAIN>) {
     super(ctx, 'sessionGraphReuse')
@@ -33,7 +32,7 @@ export class ResearchReuseService extends TypertRemoteService {
 
   @Remote('prepare')
   prepare(request: ResearchReusePreparation, signal: AbortSignal): Promise<ResearchReuseRecord> {
-    return this.run(signal, combined => this.serialize(async () => {
+    return this.requests.run(signal, combined => this.serialize(async () => {
       combined.throwIfAborted()
       const command = researchReusePreparationSchema.parse(request)
       const requestHash = createHash('sha256').update(JSON.stringify(command)).digest('hex')
@@ -78,12 +77,17 @@ export class ResearchReuseService extends TypertRemoteService {
 
   @Remote('read')
   read(request: { readonly operationId: string }, signal: AbortSignal): Promise<ResearchReuseRecord | null> {
-    return this.run(signal, async () => this.domain.table('attempts').get(researchReuseReadSchema.parse(request).operationId) ?? null)
+    return this.requests.run(signal, combined => this.serialize(async () => {
+      // Recovery must wait for an admitted submit, including uncancellable creation,
+      // to finish journaling before reporting that no target exists.
+      combined.throwIfAborted()
+      return this.domain.table('attempts').get(researchReuseReadSchema.parse(request).operationId) ?? null
+    }))
   }
 
   @Remote('forSession')
   forSession(request: { readonly sessionId: string }, signal: AbortSignal): Promise<readonly ResearchReuseRecord[]> {
-    return this.run(signal, async () => {
+    return this.requests.run(signal, async () => {
       const { sessionId } = researchReuseSessionSchema.parse(request)
       return [...this.domain.table('attempts').entries()].map(([, record]) => record)
         .filter(record => record.targetSessionId === sessionId && record.targetCreated)
@@ -92,7 +96,7 @@ export class ResearchReuseService extends TypertRemoteService {
 
   @Remote('submit')
   submit(request: { readonly operationId: string }, signal: AbortSignal): Promise<ResearchReuseRecord> {
-    return this.run(signal, combined => this.serialize(async () => {
+    return this.requests.run(signal, combined => this.serialize(async () => {
       combined.throwIfAborted()
       const { operationId } = researchReuseReadSchema.parse(request)
       const table = this.domain.table('attempts')
@@ -138,24 +142,7 @@ export class ResearchReuseService extends TypertRemoteService {
     return pending
   }
 
-  private run<Value>(signal: AbortSignal, operation: (signal: AbortSignal) => Promise<Value>): Promise<Value> {
-    const combined = AbortSignal.any([signal, this.lifecycle.signal])
-    const pending = Promise.resolve().then(async () => {
-      combined.throwIfAborted()
-      const value = await operation(combined)
-      combined.throwIfAborted()
-      return structuredClone(value)
-    })
-    this.active.add(pending)
-    const release = (): void => { this.active.delete(pending) }
-    void pending.then(release, release)
-    return pending
-  }
-
   dispose(): Promise<void> {
-    if (this.disposal !== undefined) return this.disposal
-    this.lifecycle.abort(new Error('Research reuse service is disposed'))
-    this.disposal = Promise.allSettled([...this.active]).then(() => this.domain.close())
-    return this.disposal
+    return this.requests.dispose(() => this.domain.close())
   }
 }

@@ -97,7 +97,7 @@ export default defineConfig({
   },
   test: {
     execArgv,
-    include: ['tests/views.client.spec.tsx', 'tests/**/*.harness.spec.ts'],
+    include: ['tests/views.client.spec.tsx', 'tests/**/*.harness.spec.{ts,tsx}'],
     pool: 'forks',
     server: {
       deps: {

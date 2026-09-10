@@ -63,6 +63,8 @@ Cards appear in topic graphs with a distinct Source Relation. Open a card to ins
 
 Use the existing discussion search entry and choose **Knowledge Cards** to search card titles and bodies across this Host or the selected topic. Topic membership is independent of source directories. Removing a card from a topic preserves its content, revisions and sources; search can find and reattach it. Cards live in Host storage and survive browser-cache clearing and Host restart. Reset and Relayout only affect presentation. Each save supports up to 32 sources and 4 MB of source text JSON; reduce the selected range if it exceeds that limit.
 
+Starting another card or extraction from a source reader opens a separate editor. Closing it returns to the earlier card or draft with its edits preserved.
+
 ## Reviewed AI extraction
 
 Select completed turns in Original and choose **Extract knowledge**. Preview the included material before generating; the material budget includes only whole turns and lists omitted ranges. Confirm the provider/model and generate drafts. Review each card's question, conclusions, conditions and open questions, then correct its text and citations before saving. Invalid citations are excluded; uncited drafts are marked for verification. A valid citation establishes provenance, not correctness, and raw tool evidence is not inspected.
@@ -74,6 +76,8 @@ See the [batch acceptance and browser screenshots](docs/reviews/issues-6-10-acce
 ## Start a discussion from selected materials
 
 Add a saved card revision or one completed original turn to **Materials**. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** shows the actual text, source boundaries, card versions and the 32,000-character total budget. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
+
+If a submission response is lost, materials stay locked while Graph checks the Host's recorded target state. **Check target status** or reopening Materials repeats that check; Retry always uses the same submission. Closing the dialog suppresses late navigation.
 
 Confirming creates an independent Session and sends the frozen preview through native Harness admission. A failed create preserves the materials. If a target exists but sending fails, Open and Retry recover that same target and message identity. **Sent** means the Host acknowledged receipt; inspect the Session for model response status. **Materials used by this Session** reopens the frozen sources, versions and Reuse Relations after later edits, browser-cache clearing or Host restart. Source Workspace ownership and directories remain authoritative in Harness.
 
@@ -195,7 +199,7 @@ The search uses Harness's keyword/phrase index, retaining its punctuation and ac
 
 Use **Load more results** to continue the same result snapshot. Changing keywords, scope, or archive inclusion clears it and cancels pending work. A failed search or page can be retried; expired results ask you to search again. Result excerpts retain search-time text while the Inspector rechecks the original. Search does not call a model or write source sessions.
 
-If the selected Workspace disappears or a directory becomes a named Workspace while search is open, Graph cancels that search and clears its results. The scope resets to the Viewed Session's available scope, or all Host sessions when unscoped; your keywords remain for the next search.
+If the Viewed Session's graph scope identity changes, such as a directory becoming a named Workspace or the Viewed Workspace disappearing, search restores the new scope's saved conditions or its defaults. The previous scope's keywords remain saved with that scope. If only the explicitly selected search Workspace disappears while the graph scope stays the same, search cancels pending work, clears results and falls back to the available scope while preserving the current keywords.
 
 See the [discussion search browser acceptance record and screenshots](docs/reviews/pr-15-ui-acceptance.md) for Chinese matches, exact turns, archived sources, paging, retry, and cancellation.
 

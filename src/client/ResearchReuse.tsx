@@ -8,6 +8,7 @@ import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
+type ReuseMode = 'compose' | 'history'
 interface MaterialEntry { readonly selection: ResearchMaterialSelection; readonly label: string }
 interface ReuseContextValue {
   readonly add: (selection: ResearchMaterialSelection, label: string) => void
@@ -36,10 +37,11 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
   readonly t: Translate
 }): ReactElement {
   const [materials, setMaterials] = useState<readonly MaterialEntry[]>([])
-  const [mode, setMode] = useState<'compose' | 'history'>()
+  const [mode, setMode] = useState<ReuseMode>()
   const [question, setQuestion] = useState('')
   const [workspaceId, setWorkspaceId] = useState('')
   const [preview, setPreview] = useState<ResearchReuseRecord>()
+  const [uncertain, setUncertain] = useState(false)
   const [records, setRecords] = useState<readonly ResearchReuseRecord[]>()
   const [notice, setNotice] = useState<SessionGraphKey>()
   const [busy, setBusy] = useState(false)
@@ -48,11 +50,14 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
   const active = useRef<AbortController>()
   const trigger = useRef<HTMLElement>()
   useEffect(() => () => { active.current?.abort() }, [])
-  const show = (next: 'compose' | 'history'): void => {
+  const show = (next: ReuseMode): void => {
     if (document.activeElement instanceof HTMLElement) trigger.current = document.activeElement
     setFailed(undefined)
     setNotice(undefined)
     setMode(next)
+    if (next === 'compose' && uncertain && preview !== undefined) {
+      void perform(signal => recover(preview, signal, 'compose', false))
+    }
   }
   const close = (): void => {
     active.current?.abort()
@@ -84,21 +89,39 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
       if (!signal.aborted) setRecords(found)
     })
   }
+  const receive = (saved: ResearchReuseRecord, destination: ReuseMode, navigate: boolean): void => {
+    if (destination === 'history') setRecords(value => value?.map(item => item.operationId === saved.operationId ? saved : item))
+    else { setPreview(saved); setUncertain(false) }
+    if (saved.stage !== 'accepted') setFailed(saved.error ?? t('reuse.error'))
+    else {
+      setFailed(undefined)
+      if (destination === 'compose') setNotice('reuse.sent')
+      if (navigate) openSession(saved.targetSessionId as SessionId)
+    }
+  }
+  const recover = async (record: ResearchReuseRecord, signal: AbortSignal, destination: ReuseMode, navigate: boolean): Promise<void> => {
+    const saved = await api.read({ operationId: record.operationId }, signal)
+    if (signal.aborted) return
+    if (saved === null) throw new Error(t('reuse.recoveryUnavailable'))
+    receive(saved, destination, navigate)
+  }
   const submit = (record: ResearchReuseRecord): void => {
+    const destination = mode ?? 'compose'
+    if (destination === 'compose') setUncertain(true)
     void perform(async signal => {
-      const saved = await api.submit({ operationId: record.operationId }, signal)
-      if (signal.aborted) return
-      if (mode === 'history') setRecords(value => value?.map(item => item.operationId === saved.operationId ? saved : item))
-      else setPreview(saved)
-      if (saved.stage !== 'accepted') setFailed(saved.error ?? t('reuse.error'))
-      else if (mode === 'compose') {
-        setNotice('reuse.sent')
-        openSession(saved.targetSessionId as SessionId)
+      let saved: ResearchReuseRecord
+      try { saved = await api.submit({ operationId: record.operationId }, signal) } catch {
+        signal.throwIfAborted()
+        await recover(record, signal, destination, destination === 'compose')
+        return
       }
+      if (!signal.aborted) receive(saved, destination, destination === 'compose')
     })
   }
-  const locked = busy || preview?.targetCreated === true
+  const locked = busy || uncertain || preview?.targetCreated === true
   const add = (selection: ResearchMaterialSelection, label: string): void => {
+    if (uncertain) { setNotice('reuse.uncertain'); return }
+    if (busy) return
     if (preview?.targetCreated) { setNotice('reuse.created'); return }
     if (materials.some(item => JSON.stringify(item.selection) === JSON.stringify(selection))) { setNotice('reuse.duplicate'); return }
     if (materials.length >= 3) { setNotice('reuse.limit'); return }
@@ -157,8 +180,12 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
             }}>{t('reuse.preview')}</button>
           {preview === undefined ? null : <>
             <ResearchReuseSnapshot record={preview} t={t} />
+            {uncertain ? <div role="status"><p>{t('reuse.uncertain')}</p><p>{preview.targetSessionId}</p>
+              <button type="button" disabled={busy} onClick={() => {
+                void perform(signal => recover(preview, signal, 'compose', false))
+              }}>{t('reuse.recover')}</button></div> : null}
             {preview.stage === 'accepted' ? null : <button type="button" disabled={busy} onClick={() => { submit(preview) }}>
-              {t(preview.error === undefined ? 'reuse.confirm' : 'reuse.retry')}</button>}
+              {t(!uncertain && preview.error === undefined ? 'reuse.confirm' : 'reuse.retry')}</button>}
             {preview.targetCreated ? <button type="button" onClick={() => { openSession(preview.targetSessionId as SessionId) }}>{t('reuse.open')}</button> : null}
           </>}
         </> : <>

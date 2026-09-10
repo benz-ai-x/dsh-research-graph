@@ -11,6 +11,7 @@ import { KnowledgeExtraction } from './KnowledgeExtraction.tsx'
 import type { ExtractionDraft, ExtractionPreparation } from '../knowledge-extraction.ts'
 import { useResearchReuse } from './ResearchReuse.tsx'
 import { KnowledgeExport, type ExportChoice } from './KnowledgeExport.tsx'
+import { editableKnowledgeSources, changeExtractionCitation } from './knowledge-citations.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 interface KnowledgeContextValue {
@@ -26,6 +27,12 @@ interface KnowledgeContextValue {
 const KnowledgeContext = createContext<KnowledgeContextValue | undefined>(undefined)
 export function useKnowledge(): KnowledgeContextValue | undefined { return useContext(KnowledgeContext) }
 
+interface KnowledgeDialog {
+  readonly id: string
+  readonly content: { readonly cardId?: string; readonly source?: KnowledgeDiscussionAddress; readonly extraction?: KnowledgeDiscussionAddress }
+  readonly trigger: HTMLElement | undefined
+}
+
 /** Owns explicit card dialogs; source readers only supply an address, never authoritative text. */
 export function KnowledgeProvider({ api, topics, read, t, children }: {
   readonly api: KnowledgeApi
@@ -34,45 +41,48 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
   readonly t: Translate
   readonly children: ReactNode
 }): ReactElement {
-  const [dialog, setDialog] = useState<{ readonly cardId?: string; readonly source?: KnowledgeDiscussionAddress; readonly extraction?: KnowledgeDiscussionAddress }>()
+  const [dialogs, setDialogs] = useState<readonly KnowledgeDialog[]>([])
   const [exporting, setExporting] = useState<readonly ExportChoice[]>()
   const exportTrigger = useRef<HTMLElement>()
   const [refresh, setRefresh] = useState(0)
   const [topicId, selectTopic] = useState<string>()
-  const trigger = useRef<HTMLElement>()
-  const open = (value: NonNullable<typeof dialog>): void => {
-    if (document.activeElement instanceof HTMLElement) trigger.current = document.activeElement
-    setDialog(value)
+  const open = (content: KnowledgeDialog['content']): void => {
+    const dialog = { id: crypto.randomUUID(), content, trigger: document.activeElement instanceof HTMLElement ? document.activeElement : undefined }
+    setDialogs(current => [...current, dialog])
   }
   const close = (): void => {
-    setDialog(undefined)
-    queueMicrotask(() => { trigger.current?.focus() })
+    const trigger = dialogs.at(-1)?.trigger
+    setDialogs(current => current.slice(0, -1))
+    queueMicrotask(() => { trigger?.focus() })
   }
   const closeExport = (): void => {
     setExporting(undefined)
     queueMicrotask(() => { exportTrigger.current?.focus() })
   }
-  const title = dialog?.extraction !== undefined ? 'extract.title' : 'knowledge.title'
   return <KnowledgeContext.Provider value={{ api, refresh, topicId, selectTopic,
     create: source => { open(source === undefined ? {} : { source }) }, open: cardId => { open({ cardId }) },
     extract: extraction => { open({ extraction }) }, exportCards: cards => {
       if (document.activeElement instanceof HTMLElement) exportTrigger.current = document.activeElement
       setExporting(cards)
     } }}>
-    <div className={styles.knowledgeRoot} aria-hidden={dialog !== undefined || exporting !== undefined || undefined}
-      ref={element => { if (element !== null) element.inert = dialog !== undefined || exporting !== undefined }}>{children}</div>
-    {dialog === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal={exporting === undefined} aria-label={t(title)}
-      aria-hidden={exporting !== undefined || undefined} ref={element => { if (element !== null) element.inert = exporting !== undefined }}
+    <div className={styles.knowledgeRoot} aria-hidden={dialogs.length > 0 || exporting !== undefined || undefined}
+      ref={element => { if (element !== null) element.inert = dialogs.length > 0 || exporting !== undefined }}>{children}</div>
+    {dialogs.map(({ id, content: dialog }, index) => {
+      const covered = index !== dialogs.length - 1 || exporting !== undefined
+      const title = dialog.extraction !== undefined ? 'extract.title' : 'knowledge.title'
+      return <section key={id} className={styles.knowledgeDialog} role="dialog" aria-modal={!covered} aria-label={t(title)}
+      aria-hidden={covered || undefined} ref={element => { if (element !== null) element.inert = covered }}
       onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); close() }
         retainDialogFocus(event)
       }}>
       <div className={styles.searchHeader}><h2>{t(title)}</h2><button type="button" autoFocus onClick={close}>{t('knowledge.close')}</button></div>
-      {dialog.extraction === undefined ? <KnowledgeEditor key={dialog.cardId ?? 'new'} cardId={dialog.cardId} source={dialog.source} topicId={topicId}
+      {dialog.extraction === undefined ? <KnowledgeEditor cardId={dialog.cardId} source={dialog.source} topicId={topicId}
         api={api} topics={topics} read={read} t={t} close={close} changed={() => { setRefresh(value => value + 1) }} />
         : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} t={t}
           changed={() => { setRefresh(value => value + 1) }} />}
-    </section>}
+    </section>
+    })}
     {exporting === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal="true" aria-label={t('export.title')}
       onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); closeExport() }
@@ -197,15 +207,9 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
         </select></label>
         <p>{t('knowledge.sourceHint')}</p>
         {preparation?.included.source.turns.map(turn => <div key={turn.startSeq}>
-          <label><input type="checkbox" disabled={busy} checked={sources.some(address => address.kind === 'extraction'
+          <label><input type="checkbox" disabled={busy} checked={sources.some(address => address.kind === 'extraction' && address.preparationId === preparation.preparationId
             && turn.startSeq >= address.startSeq && turn.endSeq! <= address.endSeq)} onChange={event => {
-              const selected = new Set(preparation.included.source.turns.filter(item => sources.some(address => address.kind === 'extraction'
-                && item.startSeq >= address.startSeq && item.endSeq! <= address.endSeq)).map(item => item.startSeq))
-              if (event.target.checked) selected.add(turn.startSeq)
-              else selected.delete(turn.startSeq)
-              setSources(preparation.included.source.turns.filter(item => selected.has(item.startSeq)).map(item => ({
-                kind: 'extraction', preparationId: preparation.preparationId, startSeq: item.startSeq, endSeq: item.endSeq!,
-              })))
+              setSources(changeExtractionCitation(preparation, sources, turn.startSeq, event.target.checked))
               setInvalidCitations(0)
             }} />{t('extract.citation', { turn: turn.turn })}</label>
           <button type="button" onClick={() => { setCitationReading(turn.startSeq) }}>{t('extract.review')}</button>
@@ -230,7 +234,7 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
           <h4>{t(`knowledge.field.${field}`)}</h4><p className={styles.historyText}>{revision.content[field]}</p></section>)}
         <div className={styles.topicControls}><button type="button" disabled={busy} onClick={() => {
           setContent(revision.content)
-          setSources(revision.sources.map((_, sourceIndex) => ({ kind: 'revision', cardId: identity, revisionId: revision.revisionId, sourceIndex })))
+          setSources(editableKnowledgeSources(identity, revision, preparation))
           setFailed(false)
           setEditing(true)
         }}>{t('knowledge.edit')}</button>

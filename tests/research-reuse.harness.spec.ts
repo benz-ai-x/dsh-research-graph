@@ -2,6 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { setImmediate } from 'node:timers/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
@@ -10,6 +11,38 @@ const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
 
 describe('Research material reuse public Host workflow', () => {
+  it.each(['active', 'canceled'])('waits for %s target creation to finish journaling before returning recovery state', async state => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-reuse-recovery-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const { ctx } = await topicHost(root, cleanups)
+    const card = await ctx.sessionGraphKnowledge.save({ cardId: randomUUID(), revisionId: randomUUID(),
+      content: { title: '固定材料', question: '', conclusion: '已知条件', rationale: '', openQuestions: '', kind: 'method', status: 'draft' },
+      sources: [] }, new AbortController().signal)
+    const record = await ctx.sessionGraphReuse.prepare({ operationId: randomUUID(), workspaceId: 'b', question: '如何继续？',
+      materials: [{ kind: 'card', cardId: card.cardId, revisionId: card.revisions[0]!.revisionId }] }, new AbortController().signal)
+    const creation = Promise.withResolvers<void>()
+    const entered = Promise.withResolvers<void>()
+    vi.spyOn(ctx.sessionController, 'create').mockImplementation(async () => {
+      entered.resolve()
+      await creation.promise
+      return { sessionId: record.targetSessionId as never }
+    })
+    const prompt = vi.spyOn(ctx.sessionController, 'prompt').mockResolvedValue({ accepted: true })
+    const controller = new AbortController()
+    const submission = ctx.sessionGraphReuse.submit({ operationId: record.operationId }, controller.signal).catch(() => undefined)
+    await entered.promise
+    if (state === 'canceled') controller.abort()
+    let settled = false
+    const recovery = ctx.sessionGraphReuse.read({ operationId: record.operationId }, new AbortController().signal).then(value => { settled = true; return value })
+    await setImmediate()
+    const waitingForCreation = !settled
+    creation.resolve()
+    const [, saved] = await Promise.all([submission, recovery])
+    expect(waitingForCreation).toBe(true)
+    expect(saved).toMatchObject({ targetSessionId: record.targetSessionId, targetCreated: true, stage: state === 'active' ? 'accepted' : 'created' })
+    expect(prompt).toHaveBeenCalledTimes(state === 'active' ? 1 : 0)
+  })
+
   it('freezes exact material and recovers a lost admission response with the same target and request identities', async () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-reuse-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))

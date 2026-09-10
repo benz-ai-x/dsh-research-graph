@@ -16,6 +16,7 @@ import { extractionPreparationSchema } from './knowledge-extraction-codec.ts'
 import { discussionTurns } from './session-discussion.ts'
 import { renderKnowledgeExport, type ExportCard, type ExportSourceStatus, type KnowledgeExportRequest, type KnowledgeExportResult } from './knowledge-export.ts'
 import { knowledgeExportRequestSchema } from './knowledge-export-codec.ts'
+import { ServiceRequests } from './service-requests.ts'
 
 const cardStorageSchema: z.ZodType<KnowledgeCard> = z.unknown().transform((value, context) => {
   try { return knowledgeCardSchema.parse(value) } catch {
@@ -36,10 +37,8 @@ export const KNOWLEDGE_DOMAIN = { name: 'session_graph_knowledge', version: 1, t
 
 /** Owns saved knowledge and explicit extraction; all source reads go through Harness. */
 export class KnowledgeService extends TypertRemoteService {
-  private readonly lifecycle = new AbortController()
-  private readonly active = new Set<Promise<unknown>>()
+  private readonly requests = new ServiceRequests('Knowledge service')
   private tail: Promise<void> = Promise.resolve()
-  private disposal: Promise<void> | undefined
 
   constructor(ctx: Context, private readonly domain: Domain<typeof KNOWLEDGE_DOMAIN>, private readonly config: ResolvedConfig) {
     super(ctx, 'sessionGraphKnowledge')
@@ -48,7 +47,7 @@ export class KnowledgeService extends TypertRemoteService {
 
   @Remote('hostIdentity')
   hostIdentity(signal: AbortSignal): Promise<{ readonly hostId: string }> {
-    return this.run(signal, async combined => {
+    return this.requests.run(signal, async combined => {
       const operation = this.tail.then(async () => {
         combined.throwIfAborted()
         const table = this.domain.table('metadata')
@@ -65,7 +64,7 @@ export class KnowledgeService extends TypertRemoteService {
 
   @Remote('prepareExport')
   prepareExport(request: KnowledgeExportRequest, signal: AbortSignal): Promise<KnowledgeExportResult> {
-    return this.run(signal, async combined => {
+    return this.requests.run(signal, async combined => {
       const command = knowledgeExportRequestSchema.parse(request)
       let size = 0
       // Freeze every selected revision before the first asynchronous source read.
@@ -105,7 +104,7 @@ export class KnowledgeService extends TypertRemoteService {
 
   @Remote('prepareExtraction')
   prepareExtraction(request: ExtractionPreparationRequest, signal: AbortSignal): Promise<ExtractionPreparation> {
-    return this.run(signal, async combined => {
+    return this.requests.run(signal, async combined => {
       const command = extractionPreparationRequestSchema.parse(request)
       const selected = await this.capture(command.source, combined)
       if (Buffer.byteLength(JSON.stringify(selected), 'utf8') > 4_000_000) throw new Error('Select a smaller discussion range')
@@ -134,7 +133,7 @@ export class KnowledgeService extends TypertRemoteService {
 
   @Remote('extract')
   extract(request: ExtractionRequest, signal: AbortSignal): Promise<ExtractionResult> {
-    return this.run(signal, async combined => {
+    return this.requests.run(signal, async combined => {
       const command = extractionRequestSchema.parse(request)
       const prepared = this.preparation(command.preparationId)
       const callSignal = AbortSignal.any([combined, AbortSignal.timeout(this.config.timeoutMs)])
@@ -189,12 +188,12 @@ export class KnowledgeService extends TypertRemoteService {
 
   @Remote('read')
   read(request: { readonly cardId: string }, signal: AbortSignal): Promise<KnowledgeCard | null> {
-    return this.run(signal, async () => this.domain.table('cards').get(knowledgeReadSchema.parse(request).cardId) ?? null)
+    return this.requests.run(signal, async () => this.domain.table('cards').get(knowledgeReadSchema.parse(request).cardId) ?? null)
   }
 
   @Remote('search')
   search(request: KnowledgeSearch, signal: AbortSignal): Promise<readonly KnowledgeCard[]> {
-    return this.run(signal, async combined => {
+    return this.requests.run(signal, async combined => {
       const command = knowledgeSearchSchema.parse(request)
       if (command.topicId !== undefined) await this.ctx.sessionGraphTopics.read({ topicId: command.topicId }, combined)
       const query = command.query.toLocaleLowerCase()
@@ -207,7 +206,7 @@ export class KnowledgeService extends TypertRemoteService {
 
   @Remote('membership')
   membership(request: KnowledgeMembership, signal: AbortSignal): Promise<KnowledgeCard> {
-    return this.run(signal, async combined => {
+    return this.requests.run(signal, async combined => {
       const command = knowledgeMembershipSchema.parse(request)
       const operation = this.tail.then(async () => {
         combined.throwIfAborted()
@@ -229,7 +228,7 @@ export class KnowledgeService extends TypertRemoteService {
 
   @Remote('save')
   save(request: KnowledgeSave, signal: AbortSignal): Promise<KnowledgeCard> {
-    return this.run(signal, async combined => {
+    return this.requests.run(signal, async combined => {
       const command = knowledgeSaveSchema.parse(request)
       const operation = this.tail.then(async () => {
         combined.throwIfAborted()
@@ -276,23 +275,6 @@ export class KnowledgeService extends TypertRemoteService {
   }
 
   dispose(): Promise<void> {
-    if (this.disposal !== undefined) return this.disposal
-    this.lifecycle.abort(new Error('Knowledge service is disposed'))
-    this.disposal = Promise.allSettled([...this.active]).then(() => this.domain.close())
-    return this.disposal
-  }
-
-  private run<Value>(signal: AbortSignal, operation: (signal: AbortSignal) => Promise<Value>): Promise<Value> {
-    const combined = AbortSignal.any([signal, this.lifecycle.signal])
-    const pending = Promise.resolve().then(async () => {
-      combined.throwIfAborted()
-      const value = await operation(combined)
-      combined.throwIfAborted()
-      return structuredClone(value)
-    })
-    this.active.add(pending)
-    const release = (): void => { this.active.delete(pending) }
-    void pending.then(release, release)
-    return pending
+    return this.requests.dispose(() => this.domain.close())
   }
 }
