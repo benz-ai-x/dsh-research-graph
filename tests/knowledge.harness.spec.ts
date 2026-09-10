@@ -1,6 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
@@ -11,6 +12,23 @@ afterEach(async () => {
 })
 
 describe('Knowledge Cards public Host workflow', () => {
+  it('searches the latest title and body fields without matching hidden type or status values', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-knowledge-search-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const { ctx } = await topicHost(root, cleanups)
+    const signal = new AbortController().signal
+    const first = await ctx.sessionGraphKnowledge.save({ cardId: randomUUID(), revisionId: randomUUID(),
+      content: { title: '旧标题', question: '', conclusion: '旧结论', rationale: '', openQuestions: '', kind: 'method', status: 'draft' }, sources: [] }, signal)
+    const current = await ctx.sessionGraphKnowledge.save({ cardId: first.cardId, revisionId: randomUUID(),
+      content: { title: '缓存方案', question: '如何验证', conclusion: '保留快照', rationale: '便于比较', openQuestions: 'Check 一致性', kind: 'method', status: 'draft' }, sources: [] }, signal)
+    for (const query of ['缓存', '如何', '快照', '比较', 'check']) {
+      expect(await ctx.sessionGraphKnowledge.search({ query }, signal), query).toEqual([current])
+    }
+    for (const query of ['draft', 'method', '旧标题', '旧结论']) {
+      expect(await ctx.sessionGraphKnowledge.search({ query }, signal), query).toEqual([])
+    }
+  })
+
   it('keeps the presentation Host identity across restart and separates another storage Host', async () => {
     const roots = await Promise.all([mkdtemp(join(tmpdir(), 'session-graph-identity-')), mkdtemp(join(tmpdir(), 'session-graph-identity-'))])
     for (const root of roots) cleanups.push(() => rm(root, { recursive: true, force: true }))

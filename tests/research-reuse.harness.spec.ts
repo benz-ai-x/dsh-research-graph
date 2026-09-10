@@ -1,16 +1,85 @@
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { setImmediate } from 'node:timers/promises'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { topicHost } from './fixtures/research-topics-host.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
 
 describe('Research material reuse public Host workflow', () => {
+  it('recovers a created target from a stale journal during a storage outage and after restart', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-reuse-storage-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    let host = await topicHost(root, cleanups)
+    const signal = new AbortController().signal
+    const card = await host.ctx.sessionGraphKnowledge.save({ cardId: randomUUID(), revisionId: randomUUID(),
+      content: { title: '研究材料', question: '', conclusion: '固定内容', rationale: '', openQuestions: '', kind: 'method', status: 'draft' },
+      sources: [] }, signal)
+    const preparation = { operationId: randomUUID(), workspaceId: 'b', question: '接下来怎么验证？',
+      materials: [{ kind: 'card' as const, cardId: card.cardId, revisionId: card.revisions[0]!.revisionId }] }
+    const record = await host.ctx.sessionGraphReuse.prepare(preparation, signal)
+    const request = { operationId: record.operationId }
+    // Use real Session persistence at the external creation boundary; only
+    // the independent reuse journal is made unwritable.
+    vi.spyOn(host.ctx.sessionController, 'create').mockImplementation(async request => {
+      const session = host.ctx.sessions.prepare(request.sessionId, { meta: { cwd: '/b' } })
+      const handle = await host.ctx.sessionPersistence.create(session.header)
+      await handle.flush()
+      await handle.close()
+      return { sessionId: session.id }
+    })
+    const prompt = vi.spyOn(host.ctx.sessionController, 'prompt').mockResolvedValue({ accepted: true })
+    await rename(join(root, 'data'), join(root, 'saved-data'))
+    await writeFile(join(root, 'data'), 'storage temporarily unavailable')
+    try {
+      await expect(host.ctx.sessionGraphReuse.submit(request, signal)).rejects.toThrow()
+      expect((await host.ctx.sessionController.inspect(record.targetSessionId as SessionId)).meta.cwd).toBe('/b')
+      expect(prompt).not.toHaveBeenCalled()
+      const recovered = await host.ctx.sessionGraphReuse.read(request, signal)
+      expect(recovered).toMatchObject({ ...record, targetCreated: true })
+      expect(await host.ctx.sessionGraphReuse.prepare(preparation, signal)).toEqual(recovered)
+      expect(await host.ctx.sessionGraphReuse.forSession({ sessionId: record.targetSessionId }, signal)).toEqual([recovered])
+    } finally {
+      await rm(join(root, 'data'))
+      await rename(join(root, 'saved-data'), join(root, 'data'))
+    }
+    await host.ctx.fiber.dispose()
+    host = await topicHost(root, cleanups)
+    expect(await host.ctx.sessionGraphReuse.read(request, signal)).toMatchObject({ ...record, targetCreated: true })
+    vi.spyOn(host.ctx.sessionController, 'create').mockResolvedValue({ sessionId: record.targetSessionId as SessionId })
+    const retry = vi.spyOn(host.ctx.sessionController, 'prompt').mockResolvedValue({ accepted: true })
+    expect(await host.ctx.sessionGraphReuse.submit(request, signal)).toMatchObject({
+      targetSessionId: record.targetSessionId, requestId: record.requestId, stage: 'accepted', targetCreated: true,
+    })
+    expect(retry).toHaveBeenCalledExactlyOnceWith({ sessionId: record.targetSessionId, requestId: record.requestId,
+      mode: 'queue', content: [{ type: 'text', text: record.promptText }] }, expect.any(AbortSignal))
+  })
+
+  it('reports no target only after an authoritative missing-session result', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-reuse-inspection-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const { ctx } = await topicHost(root, cleanups)
+    const signal = new AbortController().signal
+    const card = await ctx.sessionGraphKnowledge.save({ cardId: randomUUID(), revisionId: randomUUID(),
+      content: { title: '研究材料', question: '', conclusion: '固定内容', rationale: '', openQuestions: '', kind: 'method', status: 'draft' },
+      sources: [] }, signal)
+    const record = await ctx.sessionGraphReuse.prepare({ operationId: randomUUID(), workspaceId: 'b', question: '如何继续？',
+      materials: [{ kind: 'card', cardId: card.cardId, revisionId: card.revisions[0]!.revisionId }] }, signal)
+    const request = { operationId: record.operationId }
+    expect(await ctx.sessionGraphReuse.read(request, signal)).toEqual(record)
+    vi.spyOn(ctx.sessionController, 'create').mockRejectedValue(new Error('Create response unavailable'))
+    const inspection = vi.spyOn(ctx.sessionController, 'inspect').mockRejectedValue(new Error('Session storage unavailable'))
+    await expect(ctx.sessionGraphReuse.submit(request, signal)).rejects.toThrow('Session storage unavailable')
+    await expect(ctx.sessionGraphReuse.read(request, signal)).rejects.toThrow('Session storage unavailable')
+    inspection.mockRestore()
+    expect(await ctx.sessionGraphReuse.read(request, signal)).toEqual(record)
+  })
+
   it.each(['active', 'canceled'])('waits for %s target creation to finish journaling before returning recovery state', async state => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-reuse-recovery-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))

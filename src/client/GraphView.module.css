@@ -1661,3 +1661,5 @@
   border-radius: 8px;
   pointer-events: none;
 }
+
+.reuseNotice button { pointer-events: auto; }

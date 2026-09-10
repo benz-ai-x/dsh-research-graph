@@ -3410,6 +3410,42 @@ describe('title filter', () => {
 
 
 describe('Working position live updates', () => {
+  it.each(['empty on entry', 'last card detached'])('clears a stale card selection when a topic is %s and preserves its viewport', async state => {
+    const b = await bench({ viewed: session('viewed') })
+    const topic = { topicId: 'topic-empty', title: '空主题恢复', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    const card: KnowledgeCard = { cardId: 'removed-card', topicIds: [topic.topicId], revisions: [{
+      revisionId: 'revision-one', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: { title: '临时卡片', question: '', conclusion: '保留成果', rationale: '', openQuestions: '', kind: 'method', status: 'draft' }, sources: [],
+    }] }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: state === 'empty on entry' ? [] : [card] })
+    const scopeKey = JSON.stringify(['test-host', '/w', null])
+    const topicKey = JSON.stringify(['test-host', scopeKey, topic.topicId])
+    const storageKey = 'dsh.session-graph.position.' + topicKey
+    const viewport = { scale: 1.3, panX: 10, panY: 20 }
+    localStorage.setItem('dsh.session-graph.position.' + scopeKey, JSON.stringify({ v: 1, topicId: topic.topicId }))
+    localStorage.setItem(storageKey, JSON.stringify({ v: 1, selected: 'card:removed-card', viewport }))
+    mount(b.slots, b.sessionsStore, 'viewed')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    if (state === 'last card detached') {
+      await screen.findByRole('button', { name: zh['knowledge.edit'] })
+      b.searchKnowledge.mockResolvedValue({ ok: true, value: [] })
+      fireEvent.click(screen.getByRole('button', { name: zh['topic.refresh'] }))
+    }
+    await screen.findByText(zh['topic.noReferences'])
+    await waitFor(() => { expect(JSON.parse(localStorage.getItem(storageKey)!)).toMatchObject({ selected: null, viewport }) })
+    const notice = screen.getByText(zh['position.unavailable'])
+    fireEvent.click(within(notice).getByRole('button', { name: zh['panel.close'] }))
+    expect(screen.queryByText(zh['position.unavailable'])).toBeNull()
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+    fireEvent.click(screen.getByRole('button', { name: zh['topic.refresh'] }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="card:removed-card"]')).not.toBeNull() })
+    expect(screen.queryByRole('button', { name: zh['knowledge.edit'] })).toBeNull()
+    expect(JSON.parse(localStorage.getItem(storageKey)!)).toMatchObject({ selected: null, viewport })
+  })
+
   it('restores the separate topic arrangement after a live Workspace identity change', async () => {
     const fixture = researchTopicFixture()
     const tiny = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }

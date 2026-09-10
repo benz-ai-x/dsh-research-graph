@@ -34,9 +34,7 @@ export function withKnowledgeCards(graph: SessionGraph, cards: readonly Knowledg
       }
     }
     nodes.set(id, {
-      kind: 'knowledge', card, id, clusterId: id, title: revision.content.title, blank: false,
-      displayStatus: undefined, viewed: false, updatedAt: revision.savedAt, subagentCount: 0, runningSubagents: 0,
-      branchFrom: undefined, mergeSources: [],
+      kind: 'knowledge', card, id, clusterId: id, title: revision.content.title, updatedAt: revision.savedAt,
     })
     children.set(id, [])
     clusters.push({ rootId: id, label: revision.content.title, memberIds: [id] })

@@ -39,7 +39,7 @@ export class ResearchReuseService extends TypertRemoteService {
       const existing = this.domain.table('attempts').get(command.operationId)
       if (existing !== undefined) {
         if (existing.requestHash !== requestHash) throw new Error('This preview identity already belongs to other materials')
-        return existing
+        return this.recoverTarget(existing, combined)
       }
       const workspace = this.ctx.workspaceRegistry.list().find(item => String(item.id) === command.workspaceId)
       if (workspace === undefined) throw new Error('Choose an available target Workspace')
@@ -78,20 +78,24 @@ export class ResearchReuseService extends TypertRemoteService {
   @Remote('read')
   read(request: { readonly operationId: string }, signal: AbortSignal): Promise<ResearchReuseRecord | null> {
     return this.requests.run(signal, combined => this.serialize(async () => {
-      // Recovery must wait for an admitted submit, including uncancellable creation,
-      // to finish journaling before reporting that no target exists.
+      // Wait for uncancellable creation, then verify the reserved native identity:
+      // failed journal writes can leave an older prepared record in storage.
       combined.throwIfAborted()
-      return this.domain.table('attempts').get(researchReuseReadSchema.parse(request).operationId) ?? null
+      const record = this.domain.table('attempts').get(researchReuseReadSchema.parse(request).operationId)
+      return record === undefined ? null : this.recoverTarget(record, combined)
     }))
   }
 
   @Remote('forSession')
   forSession(request: { readonly sessionId: string }, signal: AbortSignal): Promise<readonly ResearchReuseRecord[]> {
-    return this.requests.run(signal, async () => {
+    return this.requests.run(signal, combined => this.serialize(async () => {
+      combined.throwIfAborted()
       const { sessionId } = researchReuseSessionSchema.parse(request)
-      return [...this.domain.table('attempts').entries()].map(([, record]) => record)
-        .filter(record => record.targetSessionId === sessionId && record.targetCreated)
-    })
+      const records = [...this.domain.table('attempts').entries()].map(([, record]) => record)
+        .filter(record => record.targetSessionId === sessionId)
+      return (await Promise.all(records.map(record => this.recoverTarget(record, combined))))
+        .filter(record => record.targetCreated)
+    }))
   }
 
   @Remote('submit')
@@ -125,15 +129,28 @@ export class ResearchReuseService extends TypertRemoteService {
         // A receipt write failure is uncertain to the caller. Leave recovery to
         // the same native request identity instead of persisting a false failure.
         if (record.stage === 'accepted') throw error
-        let targetCreated = record.targetCreated
-        if (!targetCreated) {
-          try { await this.ctx.sessionController.inspect(record.targetSessionId as SessionId); targetCreated = true } catch { /* No created target to recover yet. */ }
-        }
-        const failed = { ...record, targetCreated, error: (error instanceof Error ? error.message : String(error)).slice(0, 4000) }
+        const recovered = await this.recoverTarget(record)
+        const failed = { ...recovered, error: (error instanceof Error ? error.message : String(error)).slice(0, 4000) }
         await table.put(operationId, failed)
         return failed
       }
     }))
+  }
+
+  private async recoverTarget(record: ResearchReuseRecord, signal?: AbortSignal): Promise<ResearchReuseRecord> {
+    if (record.targetCreated) return record
+    try {
+      await this.ctx.sessionController.inspect(record.targetSessionId as SessionId, signal)
+    } catch (error) {
+      // The optional Host package is loaded only inside its running service;
+      // standalone package loading does not require the Harness application.
+      const { ApiSessionNotFound } = await import('@deepseek-ai/dsh-api-session-controller')
+      if (error instanceof ApiSessionNotFound) return record
+      throw error
+    }
+    // Recovery stays read-only and works while the journal is unwritable.
+    // Keep `prepared` so retry still adopts/attaches the same native target.
+    return { ...record, targetCreated: true }
   }
 
   private serialize<Value>(operation: () => Promise<Value>): Promise<Value> {

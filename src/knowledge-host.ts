@@ -198,8 +198,11 @@ export class KnowledgeService extends TypertRemoteService {
       if (command.topicId !== undefined) await this.ctx.sessionGraphTopics.read({ topicId: command.topicId }, combined)
       const query = command.query.toLocaleLowerCase()
       return [...this.domain.table('cards').entries()].map(([, card]) => card)
-        .filter(card => (command.topicId === undefined || card.topicIds.includes(command.topicId))
-          && Object.values(card.revisions.at(-1)!.content).some(value => value.toLocaleLowerCase().includes(query)))
+        .filter(card => {
+          if (command.topicId !== undefined && !card.topicIds.includes(command.topicId)) return false
+          const { title, question, conclusion, rationale, openQuestions } = card.revisions.at(-1)!.content
+          return [title, question, conclusion, rationale, openQuestions].some(value => value.toLocaleLowerCase().includes(query))
+        })
         .sort((a, b) => b.revisions.at(-1)!.savedAt - a.revisions.at(-1)!.savedAt || a.cardId.localeCompare(b.cardId))
     })
   }

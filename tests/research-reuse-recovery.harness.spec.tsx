@@ -38,7 +38,7 @@ async function compose() {
   return { api, open, record }
 }
 
-it.each(['created', 'accepted'] as const)('recovers the %s journal after a lost submit response and keeps the same target', async stage => {
+it.each(['prepared', 'created', 'accepted'] as const)('recovers the %s journal after a lost submit response and keeps the same target', async stage => {
   const { api, record, open } = await compose()
   const saved: ResearchReuseRecord = { ...record, stage, targetCreated: true,
     ...(stage === 'accepted' ? { acceptedAt: 2000 } : { error: 'Admission response lost' }) }
@@ -48,7 +48,7 @@ it.each(['created', 'accepted'] as const)('recovers the %s journal after a lost 
   await screen.findByRole('button', { name: '打开目标会话' })
   expect((screen.getByRole('textbox', { name: '新问题' }) as HTMLTextAreaElement).disabled).toBe(true)
   expect(api.read).toHaveBeenCalledWith({ operationId: record.operationId }, expect.any(AbortSignal))
-  if (stage === 'created') {
+  if (stage !== 'accepted') {
     expect(open).not.toHaveBeenCalled()
     api.submit.mockResolvedValue({ ...saved, stage: 'accepted', acceptedAt: 2000 })
     fireEvent.click(screen.getByRole('button', { name: '重试发送' }))

@@ -166,8 +166,10 @@ function NodeCard({
   onHoverNode: (key: string | null) => void
 }) {
   const { node, key, x, y } = laid
-  const badge = node.subagentCount > 0
-    ? `${t('node.subagents', { count: node.subagentCount })}${node.runningSubagents > 0 ? ` (${t('node.running', { count: node.runningSubagents })})` : ''}`
+  const session = node.kind === 'knowledge' ? undefined : node
+  const source = session?.topicSource
+  const badge = session !== undefined && session.subagentCount > 0
+    ? `${t('node.subagents', { count: session.subagentCount })}${session.runningSubagents > 0 ? ` (${t('node.running', { count: session.runningSubagents })})` : ''}`
     : ''
   return (
     <>
@@ -179,16 +181,16 @@ function NodeCard({
           node.kind === 'knowledge' ? styles.knowledgeNode : null,
           selected ? styles.nodeSelected : null,
           mergeOrder === undefined ? null : styles.nodeMergeSelected,
-          node.displayStatus === 'waiting-input' ? styles.nodePending : null,
+          session?.displayStatus === 'waiting-input' ? styles.nodePending : null,
           badgeHovered ? styles.badgeHovered : null,
           dimClass,
         )}
         style={{ left: `${x}px`, top: `${y}px` }}
         data-node-id={key}
         data-node-kind={node.kind ?? 'session'}
-        data-display-status={node.displayStatus}
+        data-display-status={session?.displayStatus}
         data-merge-selected={mergeOrder}
-        aria-current={node.viewed ? 'true' : undefined}
+        aria-current={session?.viewed ? 'true' : undefined}
         aria-selected={selected || mergeOrder !== undefined}
         onPointerDown={gestures.onPointerDown}
         onPointerMove={gestures.onPointerMove}
@@ -200,20 +202,20 @@ function NodeCard({
         onMouseLeave={() => { onHoverNode(null) }}
       >
         <span
-          className={clsx(styles.dot, node.displayStatus === 'running' ? styles.dotPulse : null)}
+          className={clsx(styles.dot, session?.displayStatus === 'running' ? styles.dotPulse : null)}
           style={{ background: `var(${clusterColor})` }}
         />
         <span className={styles.body}>
           <span className={styles.title}>
-            {node.blank ? t('node.newSession') : node.title}
+            {session?.blank ? t('node.newSession') : node.title}
           </span>
           <span className={styles.nodeMeta}>
             {node.kind === 'knowledge' ? <span>{t('knowledge.title')} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</span> : null}
-            <span className={clsx(styles.time, node.topicSource === undefined ? null : styles.topicSourceLabel)}
-              title={node.topicSource?.workspace?.title || node.topicSource?.cwd}>{node.topicSource === undefined ? timeLabel(node.updatedAt, now, t)
-              : node.topicSource.workspace?.title || node.topicSource.cwd || t('topic.noWorkspace')}</span>
-            {node.topicSource?.archived ? <span className={styles.badge}>{t('search.archived')}</span> : null}
-            {node.topicSource?.status === 'unavailable' ? <span className={styles.badge}>{t('topic.unavailable')}</span> : null}
+            <span className={clsx(styles.time, source === undefined ? null : styles.topicSourceLabel)}
+              title={source?.workspace?.title || source?.cwd}>{source === undefined ? timeLabel(node.updatedAt, now, t)
+              : source.workspace?.title || source.cwd || t('topic.noWorkspace')}</span>
+            {source?.archived ? <span className={styles.badge}>{t('search.archived')}</span> : null}
+            {source?.status === 'unavailable' ? <span className={styles.badge}>{t('topic.unavailable')}</span> : null}
             {badge !== ''
               ? (
                 <span
@@ -303,7 +305,7 @@ function digestErrorLabel(code: string | undefined, t: Translate): string {
 function DigestSection({
   node, entry, now, t, onGenerate,
 }: {
-  node: GraphNode
+  node: SessionGraphNode
   entry: DigestEntry | undefined
   now: number
   t: Translate
@@ -1017,7 +1019,7 @@ export function GraphCanvas({
     const active = document.activeElement?.closest('[data-node-id]') as HTMLElement | null
     const from = active !== null
       ? shown.nodes.find(entry => entry.key === active.dataset.nodeId)
-      : shown.nodes.find(entry => entry.node.viewed) ?? shown.nodes[0]
+      : shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed) ?? shown.nodes[0]
     if (from === undefined) return
     let best: { key: string; distance: number } | undefined
     for (const entry of shown.nodes) {
@@ -1746,7 +1748,7 @@ export function GraphCanvas({
           type="button"
           aria-label={t('toolbar.locate')}
           onClick={() => {
-            const viewed = shown.nodes.find(entry => entry.node.viewed)
+            const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
             if (viewed !== undefined) locateNode(viewed.key)
           }}
         >
@@ -1919,7 +1921,7 @@ export function GraphCanvas({
         onReadHistory={onReadHistory}
         onClose={() => { setSelected(null) }}
       /> : topic.renderInspector(selectedNode, () => { setSelected(null) }, () => { setSelected(null); setUnavailableSelection(true) })}
-      {unavailableSelection ? <div className={styles.reuseNotice} role="status">{t('position.unavailable')}
+      {unavailableSelection ? <div className={styles.reuseNotice} data-canvas-overlay="" role="status">{t('position.unavailable')}
         <button type="button" onClick={() => { setUnavailableSelection(false) }}>{t('panel.close')}</button></div> : null}
       {showMinimap
         ? (
@@ -1954,7 +1956,8 @@ export function GraphCanvas({
             right: selectedNode === undefined ? 12 : INSPECTOR_RIGHT_INSET,
           },
         })
-        const status = displayStatusLabel(entry.node.displayStatus, t)
+        const session = entry.node.kind === 'knowledge' ? undefined : entry.node
+        const status = displayStatusLabel(session?.displayStatus, t)
         const branched = branchSource.get(entry.key)
         return (
           <div
@@ -1965,13 +1968,13 @@ export function GraphCanvas({
             aria-hidden="true"
           >
             <div className={styles.previewTitle}>
-              {entry.node.blank ? t('node.newSession') : entry.node.title}
+              {session?.blank ? t('node.newSession') : entry.node.title}
             </div>
             {status !== '' ? <div className={styles.previewStatus}>{status}</div> : null}
             <div className={styles.previewMeta}>
               {timeLabel(entry.node.updatedAt, now, t)}
-              {entry.node.subagentCount > 0
-                ? ` · ${t('panel.subagents', { count: entry.node.subagentCount })}`
+              {session !== undefined && session.subagentCount > 0
+                ? ` · ${t('panel.subagents', { count: session.subagentCount })}`
                 : ''}
             </div>
             {branched !== undefined

@@ -50,17 +50,23 @@ export interface DirectoryGraphScope extends GraphScopeBase {
 /** The Workspace Scope or Directory Scope rendered for one Viewed Session. */
 export type GraphScope = WorkspaceGraphScope | DirectoryGraphScope
 
+/** Display facts shared by both kinds of canvas node. */
+interface GraphNodeBase {
+  readonly id: string
+  readonly clusterId: string
+  readonly title: string
+  readonly updatedAt: number
+}
+
 /** One canvas node: a visible session with its folded subagent badge totals. */
-export interface SessionGraphNode {
+export interface SessionGraphNode extends GraphNodeBase {
   readonly kind?: 'session'
   readonly id: SessionId
   /** Owning cluster's root session id. */
   readonly clusterId: SessionId
-  readonly title: string
   readonly blank: boolean
   readonly displayStatus: DisplayStatus | undefined
   readonly viewed: boolean
-  readonly updatedAt: number
   /** Subagent descendants reachable through an uninterrupted subagent-origin chain. */
   readonly subagentCount: number
   readonly runningSubagents: number
@@ -74,10 +80,9 @@ export interface SessionGraphNode {
 }
 
 /** Knowledge nodes have card identities and cannot be passed to Session actions. */
-export interface KnowledgeGraphNode extends Omit<SessionGraphNode, 'id' | 'clusterId' | 'kind'> {
+export interface KnowledgeGraphNode extends GraphNodeBase {
   readonly kind: 'knowledge'
   readonly id: `card:${string}`
-  readonly clusterId: string
   readonly card: KnowledgeCard
 }
 export type GraphNode = SessionGraphNode | KnowledgeGraphNode
@@ -105,11 +110,11 @@ export interface ClusterInfo {
 }
 
 /** The derived graph: cluster partitioning plus the canvas node forest. */
-export interface SessionGraph {
+export interface SessionGraph<Node extends GraphNode = GraphNode> {
   /** Clusters in display order (root recency descending, id tiebreak). */
   readonly clusters: readonly ClusterInfo[]
   /** Canvas node data keyed by session id. */
-  readonly nodes: ReadonlyMap<string, GraphNode>
+  readonly nodes: ReadonlyMap<string, Node>
   /** Attached Branch children in display order (updatedAt descending, id tiebreak). */
   readonly children: ReadonlyMap<string, readonly string[]>
   readonly edges: readonly GraphEdge[]
@@ -241,7 +246,7 @@ export function deriveSessionGraph(
   scope: GraphScope | undefined,
   viewedId: SessionId | undefined,
   pendingInteractions: ReadonlyMap<SessionId, unknown>,
-): SessionGraph {
+): SessionGraph<SessionGraphNode> {
   const visible = new Map<SessionId, SessionSummary>()
   if (scope !== undefined) {
     for (const row of Object.values(list.byId)) {
@@ -260,7 +265,7 @@ export function deriveTopicGraph(
   list: SessionListState,
   viewedId: SessionId | undefined,
   pendingInteractions: ReadonlyMap<SessionId, unknown>,
-): SessionGraph {
+): SessionGraph<SessionGraphNode> {
   const sources = new Map(snapshot.sources.map(source => [source.sessionId, source]))
   const visible = new Map<SessionId, SessionSummary>()
   for (const reference of snapshot.topic.references) {
@@ -284,10 +289,10 @@ function deriveRowsGraph(
   viewedId: SessionId | undefined,
   pendingInteractions: ReadonlyMap<SessionId, unknown>,
   sources?: ReadonlyMap<string, ResearchTopicSource>,
-): SessionGraph {
+): SessionGraph<SessionGraphNode> {
 
   const badges = indexBadges(visible)
-  const nodes = new Map<string, GraphNode>()
+  const nodes = new Map<string, SessionGraphNode>()
   const children = new Map<string, string[]>()
   const edges: GraphEdge[] = []
   const clusters: ClusterInfo[] = []
@@ -424,7 +429,7 @@ function orderClustersByMerge(
 
 /**
  * The Branch Lineage of one Canvas Session: itself, its Branch ancestors
- * up the {@link GraphNode.branchFrom} chain, and its Branch descendants down
+ * up the {@link SessionGraphNode.branchFrom} chain, and its Branch descendants down
  * the tree — never siblings. The canvas emphasizes this lineage while
  * dimming the rest. Cycles fail soft via the seen set; an unknown key
  * yields an empty set.
@@ -437,7 +442,7 @@ export function branchLineage(nodes: Iterable<GraphNode>, key: string): Readonly
   const childrenOf = new Map<string, string[]>()
   for (const node of nodes) {
     byId.set(node.id, node)
-    if (node.branchFrom === undefined) continue
+    if (node.kind === 'knowledge' || node.branchFrom === undefined) continue
     const list = childrenOf.get(node.branchFrom)
     if (list === undefined) childrenOf.set(node.branchFrom, [node.id])
     else list.push(node.id)
@@ -446,7 +451,7 @@ export function branchLineage(nodes: Iterable<GraphNode>, key: string): Readonly
   let current = byId.get(key)
   while (current !== undefined && !seen.has(current.id)) {
     seen.add(current.id)
-    current = current.branchFrom === undefined ? undefined : byId.get(current.branchFrom)
+    current = current.kind === 'knowledge' || current.branchFrom === undefined ? undefined : byId.get(current.branchFrom)
   }
   const stack = [key]
   let next = stack.pop()

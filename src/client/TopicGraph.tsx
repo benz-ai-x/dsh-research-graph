@@ -77,7 +77,8 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   }, [snapshot, topic, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions, cards])
   const laid = useMemo(() => graph === undefined ? undefined : layoutSessionGraph(graph), [graph])
   const open = (id: SessionId): void => {
-    const source = graph?.nodes.get(id)?.topicSource
+    const node = graph?.nodes.get(id)
+    const source = node?.kind === 'knowledge' ? undefined : node?.topicSource
     if (source?.status === 'listed' && !source.archived) context.actions.openSession(id)
   }
   return <div className={styles.topicGraph}>
@@ -96,9 +97,9 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
       {t(phase === 'error' ? 'topic.readError' : 'topic.canceled')}
       <button type="button" onClick={() => { setRevision(value => value + 1) }}>{t('topic.retry')}</button>
     </div> : null}
-    {phase !== 'ready' || graph === undefined || laid === undefined ? null : graph.nodes.size === 0
-      ? <p>{t('topic.noReferences')}</p>
-      : <GraphCanvas key={`${workingKey}:${membership}`} workingKey={workingKey} laid={laid} clusters={graph.clusters}
+    {phase !== 'ready' || graph === undefined || laid === undefined ? null : <>
+      {graph.nodes.size === 0 ? <p>{t('topic.noReferences')}</p> : null}
+      <GraphCanvas key={`${workingKey}:${membership}`} workingKey={workingKey} laid={laid} clusters={graph.clusters}
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
@@ -112,7 +113,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
             <button type="button" onClick={() => { knowledge.exportCards([{ cardId: node.card.cardId, title: node.title }]) }}>{t('export.title')}</button>
           </aside> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
-            busy={busy} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} />}
+            busy={busy} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} /></>}
   </div>
 }
 
