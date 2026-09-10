@@ -135,6 +135,7 @@ export function apply(ctx) {
       { kind: 'turn', sessionId: sourceIds[0], startSeq: firstHistory.turns[0].startSeq, endSeq: firstHistory.turns[0].endSeq },
     ] })
     assert.equal(preview.stage, 'prepared')
+    assert.deepEqual(await reuse('read', { operationId: preview.operationId }), preview)
     assert.deepEqual(await reuse('forSession', { sessionId: preview.targetSessionId }), [])
     await knowledge('save', { ...cardRequest, revisionId: randomUUID(), content: { ...cardRequest.content, conclusion: 'Later card revision must not replace the preview.' } })
     assert.ok(!exportPreview.markdown.includes('Later card revision'))

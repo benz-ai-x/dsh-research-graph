@@ -6,7 +6,6 @@ declare module '@deepseek-ai/dsh-session/types' {
 // packages. scripts/check-harness-types.mjs excludes this file and checks both
 // compiler faces against the matching Harness's public declarations instead.
 declare module '@deepseek-ai/dsh-api-session-controller' {
-  export class ApiSessionNotFound extends Error {}
   const requestIdBrand: unique symbol
   export type SessionRequestId = string & { readonly [requestIdBrand]: true }
 }

@@ -73,7 +73,7 @@ describe('Research material reuse public Host workflow', () => {
     const request = { operationId: record.operationId }
     expect(await ctx.sessionGraphReuse.read(request, signal)).toEqual(record)
     vi.spyOn(ctx.sessionController, 'create').mockRejectedValue(new Error('Create response unavailable'))
-    const inspection = vi.spyOn(ctx.sessionController, 'inspect').mockRejectedValue(new Error('Session storage unavailable'))
+    const inspection = vi.spyOn(ctx.sessionController, 'page').mockRejectedValue(new Error('Session storage unavailable'))
     await expect(ctx.sessionGraphReuse.submit(request, signal)).rejects.toThrow('Session storage unavailable')
     await expect(ctx.sessionGraphReuse.read(request, signal)).rejects.toThrow('Session storage unavailable')
     inspection.mockRestore()

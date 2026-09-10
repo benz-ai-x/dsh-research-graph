@@ -72,6 +72,10 @@ declare module '@deepseek-ai/cordis' {
       ) => void) => () => void
     }
     readonly sessionController: {
+      page: (request: {
+        readonly address: { readonly kind: 'session'; readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId }
+        readonly throughSeq: number
+      }, signal: AbortSignal) => Promise<unknown>
       create: (request: {
         readonly sessionId?: import('@deepseek-ai/dsh-session/types').SessionId
         readonly workspaceId?: import('@deepseek-ai/dsh-workspace/types').WorkspaceId

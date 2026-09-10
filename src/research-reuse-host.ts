@@ -140,12 +140,12 @@ export class ResearchReuseService extends TypertRemoteService {
   private async recoverTarget(record: ResearchReuseRecord, signal?: AbortSignal): Promise<ResearchReuseRecord> {
     if (record.targetCreated) return record
     try {
-      await this.ctx.sessionController.inspect(record.targetSessionId as SessionId, signal)
+      // An empty history cut verifies existence without starting an Agent or
+      // returning source text. Its public error codes survive module copies.
+      await this.ctx.sessionController.page({ address: { kind: 'session', sessionId: record.targetSessionId as SessionId },
+        throughSeq: -1 }, signal ?? new AbortController().signal)
     } catch (error) {
-      // The optional Host package is loaded only inside its running service;
-      // standalone package loading does not require the Harness application.
-      const { ApiSessionNotFound } = await import('@deepseek-ai/dsh-api-session-controller')
-      if (error instanceof ApiSessionNotFound) return record
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'session/not-found') return record
       throw error
     }
     // Recovery stays read-only and works while the journal is unwritable.

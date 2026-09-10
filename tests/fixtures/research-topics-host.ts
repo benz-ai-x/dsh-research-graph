@@ -33,7 +33,7 @@ export async function topicHost(root: string, cleanups: (() => Promise<void>)[])
   ctx.provide('workspaceRegistry', { list: () => workspaces, archivedSessionIds })
   ctx.provide('llm', { stream: vi.fn(() => { throw new Error('Topics must not call a model') }) })
   await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'llm', 'typert'],
+    inject: ['sessions', 'sessionPersistence', 'sessionQuery', 'llm', 'typert'],
     apply(controllerCtx) {
       createSessionTestController(controllerCtx, {
         cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
