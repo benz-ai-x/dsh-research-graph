@@ -1,31 +1,9 @@
 import type { KnowledgeCard, KnowledgeContent, KnowledgeMembership, KnowledgeSearch, KnowledgeSourceAddress, KnowledgeSave, KnowledgeSource } from './knowledge.ts'
 import { sessionHistoryRequestSchema } from './session-history-codec.ts'
 import type { ExtractionPreparationRequest, ExtractionRequest } from './knowledge-extraction.ts'
+import { createWirePrimitives } from './wire-primitives.ts'
 
-function invalid(): never { throw new TypeError('Invalid Knowledge Card data') }
-function object(value: unknown, keys: readonly string[]): Record<string, unknown> {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) return invalid()
-  if (Object.keys(value).some(key => !keys.includes(key))) return invalid()
-  return value as Record<string, unknown>
-}
-function text(value: unknown, max = 24_000): string {
-  if (typeof value !== 'string' || value.includes('\0') || value.length > max) return invalid()
-  return value
-}
-function identity(value: unknown): string {
-  const id = text(value, 200)
-  if (id.trim() === '') return invalid()
-  return id
-}
-function uuid(value: unknown): string {
-  const id = identity(value)
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(id)) return invalid()
-  return id
-}
-function count(value: unknown): number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : invalid()
-}
-function array(value: unknown): unknown[] { return Array.isArray(value) ? value : invalid() }
+const { invalid, object, text, identity, uuid, count, array } = createWirePrimitives('Invalid Knowledge Card data', 24_000)
 
 export const knowledgeHostIdentitySchema = { parse(value: unknown): { readonly hostId: string } {
   return { hostId: uuid(object(value, ['hostId']).hostId) }

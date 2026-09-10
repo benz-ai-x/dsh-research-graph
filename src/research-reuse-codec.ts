@@ -1,25 +1,9 @@
 import type { ResearchMaterial, ResearchMaterialSelection, ResearchReusePreparation, ResearchReuseRecord } from './research-reuse.ts'
 import { knowledgeContentSchema, knowledgeSourceSchema } from './knowledge-codec.ts'
+import { createWirePrimitives } from './wire-primitives.ts'
 
-function invalid(): never { throw new TypeError('Invalid research material data') }
-function object(value: unknown, keys: readonly string[]): Record<string, unknown> {
-  if (value === null || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(key => !keys.includes(key))) return invalid()
-  return value as Record<string, unknown>
-}
-function text(value: unknown, max = 32_000): string {
-  if (typeof value !== 'string' || value.includes('\0') || value.length > max) return invalid()
-  return value
-}
-function identity(value: unknown): string {
-  const id = text(value, 200)
-  return id.trim() === '' ? invalid() : id
-}
-function uuid(value: unknown): string {
-  const id = identity(value)
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(id) ? id : invalid()
-}
-function count(value: unknown): number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : invalid() }
-function array(value: unknown): unknown[] { return Array.isArray(value) ? value : invalid() }
+const { invalid, object, text, identity, uuid, count, array } = createWirePrimitives('Invalid research material data', 32_000)
+
 function selection(value: unknown): ResearchMaterialSelection {
   const item = object(value, ['kind', 'cardId', 'revisionId', 'sessionId', 'startSeq', 'endSeq'])
   if (item.kind === 'card') {
