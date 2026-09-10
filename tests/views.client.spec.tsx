@@ -70,6 +70,70 @@ describe('research workflow discovery', () => {
     await b.fiber.dispose()
   })
 
+  it('restores search defaults and the original mode across scope changes after opening the card library', async () => {
+    const b = await bench({ root: session('root', { cwd: '/w' }) })
+    const workspaceStore = createSnapshotStore(workspacesState([]))
+    const directoryKey = workingPositionKey('test-host', '/w')
+    const workspaceKey = workingPositionKey('test-host', 'workspace:a')
+    mount(b.slots, b.sessionsStore, 'root', workspaceStore)
+    switchTab('Research Graph')
+    fireEvent.click(screen.getByRole('button', { name: '知识卡片' }))
+    await waitFor(() => { expect(b.searchKnowledge).toHaveBeenCalledTimes(1) })
+    fireEvent.click(screen.getByRole('button', { name: '讨论原文' }))
+    fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: '原范围关键词' } })
+
+    await act(async () => { workspaceStore.set(workspacesState([workspace('a', '/w', ['root'])])) })
+    expect(screen.getByRole('dialog', { name: '搜索历史讨论' })).toBeTruthy()
+    expect((screen.getByRole('textbox', { name: '正文关键词' }) as HTMLInputElement).value).toBe('')
+    expect((screen.getByRole('combobox', { name: '搜索范围' }) as HTMLSelectElement).value).toBe('workspace:a')
+    expect(loadWorkingPosition(workspaceKey).searchType).toBe('discussion')
+    expect(loadWorkingPosition(directoryKey).discussion?.query).toBe('原范围关键词')
+
+    await act(async () => { workspaceStore.set(workspacesState([])) })
+    expect(screen.getByRole('dialog', { name: '搜索历史讨论' })).toBeTruthy()
+    expect((screen.getByRole('textbox', { name: '正文关键词' }) as HTMLInputElement).value).toBe('原范围关键词')
+    await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledWith({
+      query: '原范围关键词', scope: { kind: 'directory', cwd: '/w' }, includeArchived: false,
+    }, expect.any(AbortSignal)) })
+    expect(b.searchKnowledge).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: '关闭搜索' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
+    expect(screen.getByRole('dialog', { name: '搜索历史讨论' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭搜索' }))
+    fireEvent.click(screen.getByRole('button', { name: '知识卡片' }))
+    expect(screen.getByRole('dialog', { name: '搜索知识卡片' })).toBeTruthy()
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
+  it.each(['discussion', 'knowledge'] as const)('restores saved %s conditions in a new scope after opening the card library', async searchType => {
+    const b = await bench({ root: session('root', { cwd: '/w' }) })
+    const workspaceStore = createSnapshotStore(workspacesState([]))
+    const workspaceKey = workingPositionKey('test-host', 'workspace:a')
+    const discussion = { query: '工作区原文条件', scope: { kind: 'workspace', workspaceId: 'a' }, includeArchived: true }
+    const knowledge = { query: '工作区卡片条件', inTopic: false }
+    localStorage.setItem(`dsh.session-graph.position.${workspaceKey}`, JSON.stringify({ v: 1, searchType, discussion, knowledge }))
+    mount(b.slots, b.sessionsStore, 'root', workspaceStore)
+    switchTab('Research Graph')
+    fireEvent.click(screen.getByRole('button', { name: '知识卡片' }))
+    await waitFor(() => { expect(b.searchKnowledge).toHaveBeenCalledWith({ query: '' }, expect.any(AbortSignal)) })
+
+    await act(async () => { workspaceStore.set(workspacesState([workspace('a', '/w', ['root'])])) })
+    expect(screen.getByRole('dialog', { name: searchType === 'discussion' ? '搜索历史讨论' : '搜索知识卡片' })).toBeTruthy()
+    if (searchType === 'discussion') {
+      await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledWith(discussion, expect.any(AbortSignal)) })
+      expect((screen.getByRole('checkbox', { name: zh['search.includeArchived'] }) as HTMLInputElement).checked).toBe(true)
+      expect(b.searchKnowledge).toHaveBeenCalledTimes(1)
+    } else {
+      await waitFor(() => { expect(b.searchKnowledge).toHaveBeenCalledWith({ query: knowledge.query }, expect.any(AbortSignal)) })
+      expect(b.searchDiscussion).not.toHaveBeenCalled()
+    }
+    expect(loadWorkingPosition(workspaceKey)).toMatchObject({ searchType, discussion, knowledge })
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
   it('selects a fixed card revision and an original turn inside materials while retaining the question and order', async () => {
     const b = await bench({ 'session-a': session('session-a') })
     const revision = { revisionId: 'picked-revision', requestHash: 'a'.repeat(64), number: 2, savedAt: 1000,

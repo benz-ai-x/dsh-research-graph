@@ -16,7 +16,7 @@ This round addresses the eight findings from the UI/UX walkthrough. It changes b
 ## Validation
 
 - `pnpm run check`: 175 tests across 20 files, strict source type checking and build passed.
-- Matching DSH `0.1.5-rc.1` / `dsh-v0.1.5-rc.1`: all four source/published compiler faces and 251 Harness tests across 13 files passed.
+- Matching DSH `0.1.5-rc.1` / `dsh-v0.1.5-rc.1`: all four source/published compiler faces and 254 Harness tests across 13 files passed, including the search-scope review correction below.
 - Packed-profile acceptance: install, boot, durable topics/knowledge, reviewed extraction, accepted reuse, frozen Markdown, exact history ranges, read-only search, and removal passed. The fixture uses 10 deterministic model calls, with no paid provider.
 - New rendered regressions cover Escape/close/discard confirmation, focus return, in-flight saves, optional field retention, direct card-library discovery, dynamic search labels, and ordered selection of an exact card revision plus an original turn. Existing nested-dialog, retry, source-recovery, arrangement-race and 1,000-reference tests remain green.
 - Chrome acceptance used an isolated profile with synthetic discussions, at the normal desktop viewport, 960×900 and 640×820. English/dark and Chinese/light controls were inspected. The 640 px search had a 640 px document width and a 568 px dialog whose scroll width equalled its client width.
@@ -25,3 +25,9 @@ This round addresses the eight findings from the UI/UX walkthrough. It changes b
 ## Scope
 
 Draft protection covers the plugin's close/Escape/discard actions and browser `beforeunload`. Drafts remain in the mounted view; this round does not add durable draft autosave or recovery across arbitrary Host view replacement. Topic layouts retain explicit Host synchronization, with local arrangement drafts. This is a focused workflow and responsive check, not a complete device or accessibility conformance audit.
+
+## PR #21 review correction
+
+The card-library entry originally kept its initial content type across search scope changes. Opening Knowledge Cards, switching to Discussion text, and registering the Directory as a Workspace incorrectly reopened card search and overwrote the new scope's saved type. The entry now applies only to its opening scope and is cleared when that scope changes, including before returning to the original scope. This preserves ADR 0010's search restoration rules.
+
+Three registered-view regressions cover new-scope defaults, returning to the original discussion/query, reopening both header entries, and restoring saved discussion or knowledge conditions with fresh reads. The two affected cases failed before the fix; all three and the original review reproduction pass afterward. `pnpm run check` and matching `pnpm check:harness` passed again. Logs are retained locally in `.artifacts/pr21-fix/`.

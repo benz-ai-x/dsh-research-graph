@@ -97,7 +97,7 @@ function GraphViewBody({
   const pendingInteractions = useSessionPendingInteraction(state => state)
   const workspaces = useWorkspaces(state => state)
   const [searchOpen, setSearchOpen] = useState(false)
-  const [initialSearchType, setInitialSearchType] = useState<'discussion' | 'knowledge'>()
+  const [knowledgeEntryKey, setKnowledgeEntryKey] = useState<string>()
   const [topicMode, setTopicMode] = useState(false)
   const [adding, setAdding] = useState<SessionId>()
   const [topicRevision, setTopicRevision] = useState(0)
@@ -126,6 +126,11 @@ function GraphViewBody({
   const now = Date.now()
   const workingKey = workingPositionKey(hostId, scope?.arrangement.key ?? `viewed:${sessionId}`)
   const searchKey = topicMode ? workingPositionKey(hostId, workingKey, knowledgeContext?.topicId ?? 'topic-list') : workingKey
+  // The library entry applies only to its opening scope. Clear it before a keyed
+  // remount so returning to that scope also restores the user's saved choice.
+  if (knowledgeEntryKey !== undefined && knowledgeEntryKey !== searchKey) {
+    setKnowledgeEntryKey(undefined)
+  }
 
   return (
     // The free canvas owns its viewport. Extend the view behind the floating
@@ -134,8 +139,8 @@ function GraphViewBody({
       <div className={styles.graphBody} aria-hidden={searchOpen || adding !== undefined || undefined}
         ref={element => { if (element !== null) element.inert = searchOpen || adding !== undefined }}>
         <div className={styles.header}>
-          <button className={styles.searchEntry} type="button" ref={searchButton} onClick={event => { searchTrigger.current = event.currentTarget; setInitialSearchType(undefined); setSearchOpen(true) }}>{t('search.open')}</button>
-          <button className={styles.searchEntry} type="button" onClick={event => { searchTrigger.current = event.currentTarget; setInitialSearchType('knowledge'); setSearchOpen(true) }}>{t('knowledge.title')}</button>
+          <button className={styles.searchEntry} type="button" ref={searchButton} onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(undefined); setSearchOpen(true) }}>{t('search.open')}</button>
+          <button className={styles.searchEntry} type="button" onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(searchKey); setSearchOpen(true) }}>{t('knowledge.title')}</button>
           <button className={styles.primaryButton} type="button" onClick={() => { knowledgeContext?.create() }}>{t('knowledge.new')}</button>
           <ResearchReuseEntry t={t} />
           <button className={styles.searchEntry} type="button" aria-pressed={topicMode}
@@ -177,7 +182,7 @@ function GraphViewBody({
       </div>
       {searchOpen ? <div className={styles.searchLayer} aria-hidden={adding !== undefined || undefined}
         ref={element => { if (element !== null) element.inert = adding !== undefined }}><DiscussionSearch key={searchKey}
-        workingKey={searchKey} initialType={initialSearchType} initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
+        workingKey={searchKey} initialType={knowledgeEntryKey === searchKey ? 'knowledge' : undefined} initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
         workspaces={workspaces.items} search={searchDiscussion} read={readSessionHistory} open={openSession} t={t}
         onAddToTopic={addToTopic}
         onClose={() => { setSearchOpen(false); queueMicrotask(() => { (searchTrigger.current ?? searchButton.current)?.focus() }) }} /></div> : null}
