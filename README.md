@@ -69,6 +69,8 @@ Select completed turns in Original and choose **Extract knowledge**. Preview the
 
 Generation is cancellable. Generating again appends another batch and preserves existing edits. Extraction source snapshots survive Host restart, so an open draft can still save the same cited text. Generated drafts themselves stay in the open view until saved. Each model call allows up to five drafts, with a 4,096-token output limit and the configured timeout.
 
+See the [batch acceptance and browser screenshots](docs/reviews/issues-6-10-acceptance.md) and [real-model qualitative review](docs/reviews/issues-6-10-model-quality.md) for the complete research workflow and its evidence limits.
+
 ## Start a discussion from selected materials
 
 Add a saved card revision or one completed original turn to **Materials**. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** shows the actual text, source boundaries, card versions and the 32,000-character total budget. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
@@ -175,7 +177,7 @@ Choose **Research Topics** in the Graph header and create a named topic. In a Se
 
 If creation fails, retrying recovers the same topic. If you edit the name before retrying, the revised name must also save before the input clears; another failure keeps that input available for retry.
 
-The topic graph displays source titles and Workspaces, including archived sources and retained references whose source is unavailable. Only confirmed Branch and Merge facts produce edges. Selecting a node shows its source details; **Read original** loads discussion on demand, and **Open Session** explicitly navigates to a listed, non-archived source. Archived sources remain readable here; opening their Session is disabled because the matching Harness does not keep archived Sessions selected. Removing a reference affects that topic alone. It does not delete, move, archive, branch, or merge a source, or send model context.
+The topic graph displays source titles and Workspaces, including archived sources and retained references whose source is unavailable. Edges between Sessions require confirmed Branch or Merge facts. Knowledge Cards also show separate Source Relations to their retained discussion sources. Selecting a node shows its source details; **Read original** loads discussion on demand, and **Open Session** explicitly navigates to a listed, non-archived source. Archived sources remain readable here; opening their Session is disabled because the matching Harness does not keep archived Sessions selected. Removing a reference affects that topic alone. It does not delete, move, archive, branch, or merge a source, or send model context.
 
 Drag nodes or clusters and use collapse, relayout, or reset, then choose **Save arrangement**. Each topic has its own Host-persisted arrangement. Reset clears arrangement choices without removing references. Unsaved arrangement edits also survive reopening in the same browser; choose Save arrangement to share them through the Host. Failed saves retain the input and can be retried. Names, membership, and saved arrangements survive a Host restart and are shared by clients connected to that Host. Concurrent edits to the same arrangement use the last successful save.
 
@@ -221,7 +223,7 @@ Select a Canvas Session and choose **Original** in the Session Inspector. It ope
 - **Excerpt only** means the original cannot currently be read and only the text retained with this selection is available. The label remains visible while retrying and after a connection failure, until original text is available again. **Source unavailable** means no original or retained excerpt can be shown. Source identity stays visible, and **Retry reading** checks again. An empty readable Session has a separate empty state.
 - Reading can be canceled. Closing the Inspector, changing Session, or leaving the reader aborts the pending request; late responses cannot replace a newer selection. Reading never changes the Viewed Session. Choose **Open session** explicitly to continue in Harness; this does not scroll the native chat to a turn.
 
-Selections and excerpts are temporary: closing the reader, switching to the digest or another Session, or reloading discards them. They are not saved knowledge cards. Reading, selection, refresh, and retry do not call a model or write to the source Session.
+Reader selections and excerpts are temporary: closing the reader, switching to the digest or another Session, or reloading discards them. Choose **Save as Knowledge Card** explicitly to retain selected sources in a saved revision. Working Position restores the reading location by querying the original again. Reading, selection, refresh, and retry do not call a model or write to the source Session.
 
 Paging limits browser content, but the Host currently inspects one complete Session snapshot for each request. It does not page the underlying log file. Very large individual Sessions can therefore still take time to read.
 
