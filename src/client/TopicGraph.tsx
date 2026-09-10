@@ -66,7 +66,8 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   }, [snapshot, topic, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions])
   const laid = useMemo(() => graph === undefined ? undefined : layoutSessionGraph(graph), [graph])
   const open = (id: SessionId): void => {
-    if (graph?.nodes.get(id)?.topicSource?.status === 'listed') context.actions.openSession(id)
+    const source = graph?.nodes.get(id)?.topicSource
+    if (source?.status === 'listed' && !source.archived) context.actions.openSession(id)
   }
   return <div className={styles.topicGraph}>
     <div className={styles.topicControls}><button type="button" disabled={phase === 'loading'}
@@ -110,8 +111,9 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, t }: {
       {source?.archived ? <span>{t('search.archived')}</span> : null}</div>
     <div className={styles.topicSourceId}>{node.id}</div>
     {source?.status === 'unavailable' ? <div role="status">{t('topic.unavailable')}</div> : null}
+    {source?.archived ? <div role="status">{t('topic.archivedReading')}</div> : null}
     <div className={styles.panelActions}>
-      <button type="button" className={styles.panelPrimaryAction} onClick={() => { open(node.id) }} disabled={source?.status !== 'listed'}>{t('panel.open')}</button>
+      <button type="button" className={styles.panelPrimaryAction} onClick={() => { open(node.id) }} disabled={source?.status !== 'listed' || source.archived}>{t('panel.open')}</button>
       <button type="button" className={styles.panelSecondaryAction} onClick={() => { setReading(value => !value) }}>{t(reading ? 'topic.closeOriginal' : 'topic.readOriginal')}</button>
       <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>
     </div>

@@ -141,11 +141,13 @@ Keyboard shortcuts work while the canvas is focused: `+` and `-` zoom, `0` resto
 
 Choose **Research Topics** in the Graph header and create a named topic. In a Selected Session's details or a selected discussion search result, choose **Add to Research Topic**, select a topic, and add the source. You can create a topic in that picker too. Topics collect Session references across Workspaces on the same Host; a Session can belong to several topics.
 
-The topic graph displays source titles and Workspaces, including archived sources and retained references whose source is unavailable. Only confirmed Branch and Merge facts produce edges. Selecting a node shows its source details; **Read original** loads discussion on demand, and **Open Session** explicitly navigates to it. Removing a reference affects that topic alone. It does not delete, move, archive, branch, or merge a source, or send model context.
+The topic graph displays source titles and Workspaces, including archived sources and retained references whose source is unavailable. Only confirmed Branch and Merge facts produce edges. Selecting a node shows its source details; **Read original** loads discussion on demand, and **Open Session** explicitly navigates to a listed, non-archived source. Archived sources remain readable here; opening their Session is disabled because the matching Harness does not keep archived Sessions selected. Removing a reference affects that topic alone. It does not delete, move, archive, branch, or merge a source, or send model context.
 
 Drag nodes or clusters and use collapse, relayout, or reset, then choose **Save arrangement**. Each topic has its own Host-persisted arrangement. Reset clears arrangement choices without removing references. Unsaved edits survive topic switching while Research Topics remains open; save before leaving that view. Failed saves retain the input and can be retried. Names, membership, and saved arrangements survive a Host restart and are shared by clients connected to that Host. Concurrent edits to the same arrangement use the last successful save.
 
 Topic switching reads Session headers and existing metadata, not all original discussions. A listed source can still fail when its original is opened; the reader reports that failure or unavailability and offers retry. Switching topics, closing the view, or canceling a read prevents late responses from replacing the current result. Ordinary Workspace/Directory Canvas Session eligibility remains unchanged.
+
+See the [Research Topics acceptance record and screenshots](docs/reviews/issue-5-ui-acceptance.md) for cross-Workspace collection, independent arrangements, source recovery, restart persistence, and the 1,000-reference baseline.
 
 ## Search discussion history
 

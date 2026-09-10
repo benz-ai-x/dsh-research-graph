@@ -12,7 +12,7 @@ export type SessionGraphKey =
   | 'topic.readOriginal' | 'topic.closeOriginal' | 'topic.remove'
   | 'topic.add' | 'topic.addSelected' | 'topic.close'
   | 'topic.saveArrangement' | 'topic.arrangementHint' | 'topic.unsaved'
-  | 'topic.refresh' | 'topic.cancel' | 'topic.canceled'
+  | 'topic.refresh' | 'topic.cancel' | 'topic.canceled' | 'topic.archivedReading'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -187,6 +187,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'topic.loading': '正在读取主题…',
   'topic.cancel': '取消读取',
   'topic.canceled': '已取消读取主题。',
+  'topic.archivedReading': '已归档，可在此阅读原文；无法打开归档会话。',
   'topic.readError': '读取主题失败。请重试。',
   'topic.retry': '重试',
   'topic.newName': '新主题名称',
@@ -365,6 +366,7 @@ export const en: Record<SessionGraphKey, string> = {
   'topic.loading': 'Loading topics…',
   'topic.cancel': 'Cancel reading',
   'topic.canceled': 'Topic reading canceled.',
+  'topic.archivedReading': 'Archived sources can be read here; opening their Session is unavailable.',
   'topic.readError': 'Could not read topics. Please retry.',
   'topic.retry': 'Retry',
   'topic.newName': 'New topic name',
