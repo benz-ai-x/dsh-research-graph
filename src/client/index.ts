@@ -29,6 +29,8 @@ import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
 import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
 import { RESEARCH_TOPICS_REMOTE } from './research-topics-remote.ts'
+import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
+import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
 
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
@@ -43,11 +45,18 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...SESSION_HISTORY_REMOTE.descriptors,
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
     ...RESEARCH_TOPICS_REMOTE.descriptors,
+    ...KNOWLEDGE_REMOTE.descriptors,
+    ...RESEARCH_REUSE_REMOTE.descriptors,
   ],
 }
 
 /** Register the Graph view after its dynamically mounted Remote is injectable. */
-function registerUi(ctx: Context): void {
+async function registerUi(ctx: Context): Promise<void> {
+  const lifecycle = new AbortController()
+  ctx.effect(() => () => { lifecycle.abort() }, 'ui-session-graph: identity request')
+  const identity = await ctx.remote.sessionGraphKnowledge.hostIdentity(AbortSignal.any([lifecycle.signal, AbortSignal.timeout(30_000)]))
+  lifecycle.signal.throwIfAborted()
+  if (!identity.ok) throw new Error(identity.error.message)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-session-graph: dictionaries')
   // Registration-time text (the view tab label) reads through the bound
   // translate as a thunk, so it follows the active locale without
@@ -114,6 +123,66 @@ function registerUi(ctx: Context): void {
     locale: NS,
     label: () => t('view.graph'),
     inject: (): GraphViewInjected => ({
+      hostId: identity.value.hostId,
+      reuse: {
+        prepare: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.prepare(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        submit: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.submit(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        read: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.read(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        forSession: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.forSession(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+      },
+      knowledge: {
+        prepareExport: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.prepareExport(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        prepareExtraction: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.prepareExtraction(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        extract: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.extract(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        read: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.read(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        save: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.save(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        search: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.search(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        membership: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.membership(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+      },
       topics: {
         list: async signal => {
           const result = await ctx.remote.sessionGraphTopics.list(signal)
@@ -191,6 +260,8 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphHistory',
       'remote.sessionGraphSearch',
       'remote.sessionGraphTopics',
+      'remote.sessionGraphKnowledge',
+      'remote.sessionGraphReuse',
     ],
     registerUi,
   )

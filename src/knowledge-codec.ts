@@ -1,0 +1,100 @@
+import type { KnowledgeCard, KnowledgeContent, KnowledgeMembership, KnowledgeSearch, KnowledgeSourceAddress, KnowledgeSave, KnowledgeSource } from './knowledge.ts'
+import { sessionHistoryRequestSchema } from './session-history-codec.ts'
+import type { ExtractionPreparationRequest, ExtractionRequest } from './knowledge-extraction.ts'
+import { createWirePrimitives } from './wire-primitives.ts'
+
+const { invalid, object, text, identity, uuid, count, array } = createWirePrimitives('Invalid Knowledge Card data', 24_000)
+
+export const knowledgeHostIdentitySchema = { parse(value: unknown): { readonly hostId: string } {
+  return { hostId: uuid(object(value, ['hostId']).hostId) }
+} }
+
+const CONTENT_KEYS = ['title', 'question', 'conclusion', 'rationale', 'openQuestions', 'kind', 'status']
+function content(value: unknown): KnowledgeContent {
+  const item = object(value, CONTENT_KEYS)
+  const title = text(item.title, 120).trim()
+  if (title === '' || !['conclusion', 'method', 'hypothesis', 'question'].includes(String(item.kind))
+    || (item.status !== 'draft' && item.status !== 'confirmed')) return invalid()
+  return {
+    title, question: text(item.question), conclusion: text(item.conclusion), rationale: text(item.rationale),
+    openQuestions: text(item.openQuestions), kind: item.kind as KnowledgeContent['kind'], status: item.status,
+  }
+}
+function address(value: unknown): KnowledgeSourceAddress {
+  const raw = object(value, ['kind', 'sessionId', 'startSeq', 'endSeq', 'cardId', 'revisionId', 'sourceIndex', 'preparationId'])
+  if (raw.kind === 'extraction') {
+    const item = object(value, ['kind', 'preparationId', 'startSeq', 'endSeq'])
+    const startSeq = count(item.startSeq)
+    const endSeq = count(item.endSeq)
+    if (endSeq <= startSeq) return invalid()
+    return { kind: 'extraction', preparationId: uuid(item.preparationId), startSeq, endSeq }
+  }
+  if (raw.kind === 'revision') {
+    const item = object(value, ['kind', 'cardId', 'revisionId', 'sourceIndex'])
+    return { kind: 'revision', cardId: uuid(item.cardId), revisionId: uuid(item.revisionId), sourceIndex: count(item.sourceIndex) }
+  }
+  const item = object(value, ['kind', 'sessionId', 'startSeq', 'endSeq'])
+  const startSeq = count(item.startSeq)
+  const endSeq = count(item.endSeq)
+  if (item.kind !== 'discussion' || endSeq < startSeq) return invalid()
+  return { kind: 'discussion', sessionId: identity(item.sessionId), startSeq, endSeq }
+}
+function source(value: unknown): KnowledgeSource {
+  const item = object(value, ['sessionId', 'title', 'cwd', 'source'])
+  const request = sessionHistoryRequestSchema.parse({ sessionId: item.sessionId, source: item.source })
+  if (request.source === undefined) return invalid()
+  return {
+    sessionId: request.sessionId, title: text(item.title), source: request.source,
+    ...(item.cwd === undefined ? {} : { cwd: text(item.cwd) }),
+  }
+}
+
+export const knowledgeSaveSchema = { parse(value: unknown): KnowledgeSave {
+  const item = object(value, ['cardId', 'revisionId', 'topicId', 'content', 'sources'])
+  if (array(item.sources).length > 32) return invalid()
+  return {
+    cardId: uuid(item.cardId), revisionId: uuid(item.revisionId), content: content(item.content),
+    sources: array(item.sources).map(address), ...(item.topicId === undefined ? {} : { topicId: uuid(item.topicId) }),
+  }
+} }
+export const knowledgeSearchSchema = { parse(value: unknown): KnowledgeSearch {
+  const item = object(value, ['query', 'topicId'])
+  return { query: text(item.query, 200).trim(), ...(item.topicId === undefined ? {} : { topicId: uuid(item.topicId) }) }
+} }
+export const knowledgeMembershipSchema = { parse(value: unknown): KnowledgeMembership {
+  const item = object(value, ['cardId', 'topicId', 'attached'])
+  if (typeof item.attached !== 'boolean') return invalid()
+  return { cardId: uuid(item.cardId), topicId: uuid(item.topicId), attached: item.attached }
+} }
+export const knowledgeReadSchema = { parse(value: unknown): { readonly cardId: string } {
+  return { cardId: uuid(object(value, ['cardId']).cardId) }
+} }
+export const knowledgeCardSchema = { parse(value: unknown): KnowledgeCard {
+  const item = object(value, ['cardId', 'topicIds', 'revisions'])
+  const revisions = array(item.revisions).map((value, index) => {
+    const revision = object(value, ['revisionId', 'requestHash', 'number', 'savedAt', 'content', 'sources'])
+    if (count(revision.number) !== index + 1) return invalid()
+    const requestHash = text(revision.requestHash, 64)
+    if (!/^[0-9a-f]{64}$/u.test(requestHash)) return invalid()
+    return { revisionId: uuid(revision.revisionId), requestHash, number: index + 1, savedAt: count(revision.savedAt),
+      content: content(revision.content), sources: array(revision.sources).map(source) }
+  })
+  if (revisions.length === 0 || new Set(revisions.map(revision => revision.revisionId)).size !== revisions.length) return invalid()
+  return { cardId: uuid(item.cardId), topicIds: array(item.topicIds).map(uuid), revisions }
+} }
+export const knowledgeListSchema = { parse(value: unknown): readonly KnowledgeCard[] { return array(value).map(knowledgeCardSchema.parse) } }
+export const knowledgeNullableSchema = { parse(value: unknown): KnowledgeCard | null { return value === null ? null : knowledgeCardSchema.parse(value) } }
+export const knowledgeContentSchema = { parse: content }
+export const knowledgeSourceSchema = { parse: source }
+export const knowledgeAddressSchema = { parse: address }
+export const extractionPreparationRequestSchema = { parse(value: unknown): ExtractionPreparationRequest {
+  const item = object(value, ['source', 'budgetChars'])
+  const source = address(item.source)
+  const budgetChars = count(item.budgetChars)
+  if (source.kind !== 'discussion' || budgetChars < 500 || budgetChars > 64_000) return invalid()
+  return { source, budgetChars }
+} }
+export const extractionRequestSchema = { parse(value: unknown): ExtractionRequest {
+  const item = object(value, ['preparationId', 'provider', 'model'])
+  return { preparationId: uuid(item.preparationId), provider: identity(item.provider).trim(), model: identity(item.model).trim() }
+} }

@@ -43,8 +43,497 @@ import packageMetadata from '../package.json'
 import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { knowledgeContent, knowledgeSource } from './fixtures/knowledge-client.ts'
+import { loadWorkingPosition, workingPositionKey } from '../src/client/working-position.ts'
+import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
+import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
 const id = (value: string): SessionId => value as SessionId
+
+describe('Markdown export in the registered Graph', () => {
+  it('previews selected cards, retries failure, and downloads the frozen text until another preview', async () => {
+    const b = await bench({ a: session('a') })
+    const card = (cardId: string, title: string): KnowledgeCard => ({ cardId, topicIds: ['topic-a'], revisions: [{
+      revisionId: `revision-${cardId}`, requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: { title, question: '', conclusion: '结论', rationale: '', openQuestions: '', kind: 'conclusion', status: 'draft' }, sources: [],
+    }] })
+    const cards = [card('card-a', '成果 A'), card('card-b', '成果 B')]
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: cards })
+    b.listTopics.mockResolvedValue({ ok: true, value: [{ topicId: 'topic-a', title: '导出主题', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic: { topicId: 'topic-a', title: '导出主题', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }, sources: [] } })
+    const frozen = { filename: '成果A.md', markdown: '# 成果 A\n\n第一版\n', cards: [{ cardId: 'card-a', revisionId: 'revision-one', number: 1, title: '成果 A' }] }
+    b.prepareExport.mockRejectedValueOnce(new Error('Storage temporarily unavailable'))
+    b.prepareExport.mockResolvedValue({ ok: true, value: frozen })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="card:card-a"]')).not.toBeNull() })
+    fireEvent.click(screen.getByRole('button', { name: '导出 Markdown' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '成果 B' }))
+    expect(b.prepareExport).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown' }))
+    await screen.findByText('Storage temporarily unavailable')
+    expect((screen.getByRole('button', { name: '下载 Markdown' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown' }))
+    await waitFor(() => { expect((screen.getByRole('textbox', { name: 'Markdown 预览' }) as HTMLTextAreaElement).value).toBe(frozen.markdown) })
+    expect(b.prepareExport).toHaveBeenLastCalledWith({ cardIds: ['card-a'] }, expect.any(AbortSignal))
+    const objectUrl = vi.fn((_blob: Blob) => 'blob:export-preview')
+    vi.stubGlobal('URL', class extends URL { static createObjectURL = objectUrl; static revokeObjectURL = vi.fn() })
+    let filename = ''
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () { filename = this.download })
+    b.prepareExport.mockResolvedValue({ ok: true, value: { ...frozen, markdown: '# 成果 A\n\n第二版\n' } })
+    fireEvent.click(screen.getByRole('button', { name: '下载 Markdown' }))
+    expect(filename).toBe(frozen.filename)
+    const blob = objectUrl.mock.calls[0]![0] as Blob
+    const text = await new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => { resolve(String(reader.result)) }; reader.readAsText(blob) })
+    expect(text).toBe(frozen.markdown)
+    expect(b.prepareExport).toHaveBeenCalledTimes(2)
+    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown' }))
+    await waitFor(() => { expect((screen.getByRole('textbox', { name: 'Markdown 预览' }) as HTMLTextAreaElement).value).toContain('第二版') })
+    expect(b.saveKnowledge).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+  })
+})
+
+describe('Working position in the registered Graph', () => {
+  it.each(['retained source', 'reviewed range', 'changed provenance', 'missing source'] as const)('restores long Original ranges through the real Host: %s', async scenario => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-long-original-'))
+    const disposals: (() => Promise<void>)[] = [() => rm(root, { recursive: true, force: true })]
+    try {
+      const host = await topicHost(root, disposals)
+      const discussion = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/w' } })
+      for (let turn = 1; turn <= 12; turn++) {
+        discussion.append('turn/start', { turn })
+        discussion.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: `原文 ${turn}` }] }), { surfaceOp: 'append' })
+        discussion.append('turn/end', { turn, reason: { kind: 'completed' } })
+      }
+      const leave = host.ctx.sessions.enter(discussion)
+      host.ctx.effect(() => leave)
+      const original = await host.ctx.sessionGraphHistory.read({ sessionId: discussion.id, limit: 20 }, new AbortController().signal)
+      const first = original.turns[0]!
+      const last = original.turns.at(-1)!
+      const source = { sessionId: discussion.id, title: '长来源', source: { startSeq: first.startSeq, endSeq: last.endSeq!, turns: original.turns } }
+      const b = await bench({ [discussion.id]: session(discussion.id) })
+      disposals.push(async () => { await b.fiber.dispose() })
+      const topic = { topicId: 'long-topic', title: '长来源研究', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+      const card: KnowledgeCard = { cardId: 'long-card', topicIds: [topic.topicId], revisions: [{
+        revisionId: 'long-revision', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000, content: knowledgeContent(), sources: [source],
+      }] }
+      b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+      b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+      b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+      b.readHistory.mockImplementation(async (request, signal) => ({ ok: true, value: await host.ctx.typertGateway.invoke({
+        namespace: 'sessionGraphHistory', method: 'read', args: { request }, signal: signal ?? new AbortController().signal,
+      }) }))
+      const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
+      mount(b.slots, b.sessionsStore, discussion.id)
+      switchTab('Graph')
+      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      await waitFor(() => { expect(document.querySelector('[data-node-id="card:long-card"]')).not.toBeNull() })
+      fireEvent.click(nodeButton(discussion.id))
+      fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+      await waitFor(() => { expect((screen.getByRole('checkbox', { name: '选择第 12 轮' }) as HTMLInputElement).disabled).toBe(false) })
+      if (scenario === 'reviewed range') {
+        fireEvent.click(screen.getByRole('checkbox', { name: '选择第 2 轮' }))
+        fireEvent.click(screen.getByRole('checkbox', { name: '选择第 12 轮' }))
+        fireEvent.click(screen.getByRole('button', { name: '复核所选原文' }))
+        await waitFor(() => { expect(screen.queryByRole('checkbox', { name: '选择第 1 轮' })).toBeNull() })
+      }
+      screen.getByTestId('topic-source-panel').scrollTop = 3000
+      fireEvent.scroll(screen.getByTestId('topic-source-panel'))
+      const range = { startSeq: original.turns[scenario === 'reviewed range' ? 1 : 0]!.startSeq, endSeq: last.endSeq! }
+      expect(loadWorkingPosition(key).historyScroll?.[discussion.id]).toBe(3000)
+      switchTab('Chat')
+      if (scenario === 'missing source') leave()
+      if (scenario === 'changed provenance') b.searchKnowledge.mockResolvedValue({ ok: true, value: [{ ...card,
+        revisions: [...card.revisions, { ...card.revisions[0]!, revisionId: 'shorter-revision', number: 2,
+          sources: [{ ...source, source: { startSeq: first.startSeq, endSeq: first.endSeq!, turns: [first] } }] }],
+      }] })
+      switchTab('Graph')
+      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: discussion.id, range }, expect.any(AbortSignal)) })
+      if (scenario === 'missing source') {
+        await screen.findByText(zh['position.unavailable'])
+        expect(screen.queryByTestId('topic-source-panel')).toBeNull()
+        expect(loadWorkingPosition(key)).toMatchObject({ selected: null, history: {}, historyRange: {}, historyScroll: {} })
+      } else {
+        await screen.findByText('原文 12')
+        expect(screen.getByTestId('topic-source-panel').scrollTop).toBe(3000)
+        expect(screen.getAllByRole('checkbox', { name: /^选择第/ })).toHaveLength(scenario === 'reviewed range' ? 11 : 12)
+        expect(host.ctx.llm.stream).not.toHaveBeenCalled()
+      }
+      expect(b.open).not.toHaveBeenCalled()
+    } finally {
+      cleanup()
+      for (const dispose of disposals.reverse()) await dispose()
+    }
+  })
+
+  it.each(['available', 'transport failure', 'missing'] as const)('restores a card source Original after reopening its topic: %s', async outcome => {
+    const source = knowledgeSource()
+    const b = await bench({ 'session-a': session('session-a') })
+    const topic = { topicId: 'source-topic', title: '来源研究', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    const card: KnowledgeCard = { cardId: 'source-card', topicIds: [topic.topicId], revisions: [{
+      revisionId: 'source-revision', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: knowledgeContent(), sources: [source],
+    }] }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+    b.readKnowledge.mockResolvedValue({ ok: true, value: card })
+    b.readHistory.mockImplementation(async request => {
+      const later = request.anchorSeq === 20 || request.afterSeq === 10
+      return { ok: true, value: { kind: 'original', sessionId: source.sessionId,
+        turns: knowledgeSource(later ? 2 : 1).source.turns, hasEarlier: later, hasLater: !later } }
+    })
+    const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
+    mount(b.slots, b.sessionsStore, 'session-a')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="card:source-card"]')).not.toBeNull() })
+    fireEvent.click(nodeButton('session-a'))
+    fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+    await screen.findByText('原文 1')
+    fireEvent.click(screen.getByRole('button', { name: '加载更晚的讨论' }))
+    await screen.findByText('原文 2')
+    screen.getByTestId('topic-source-panel').scrollTop = 160
+    fireEvent.scroll(screen.getByTestId('topic-source-panel'))
+    expect(loadWorkingPosition(key)).toMatchObject({ selected: 'session-a', tab: 'history',
+      history: { 'session-a': 20 }, historyScroll: { 'session-a': 160 } })
+    switchTab('Chat')
+    if (outcome === 'transport failure') b.readHistory.mockRejectedValueOnce(new Error('Connection lost'))
+    if (outcome === 'missing') b.readHistory.mockResolvedValueOnce({ ok: true, value: {
+      kind: 'unavailable', sessionId: source.sessionId, turns: [], hasEarlier: false, hasLater: false,
+    } })
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', anchorSeq: 20 }, expect.any(AbortSignal)) })
+    if (outcome === 'missing') {
+      await screen.findByText(zh['position.unavailable'])
+      expect(screen.queryByTestId('topic-source-panel')).toBeNull()
+      expect(loadWorkingPosition(key)).toMatchObject({ selected: null, history: {}, historyScroll: {} })
+      b.readHistory.mockResolvedValueOnce({ ok: true, value: { kind: 'excerpt', sessionId: source.sessionId,
+        turns: source.source.turns, hasEarlier: false, hasLater: false } })
+      fireEvent.click(nodeButton('session-a'))
+      fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+      await screen.findByText(zh['history.excerptHint'])
+      expect(screen.getByText('原文 1')).toBeTruthy()
+      expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', source: source.source }, expect.any(AbortSignal))
+    } else {
+      if (outcome === 'transport failure') {
+        await screen.findByRole('alert')
+        expect(screen.getByText('原文 1')).toBeTruthy()
+        expect(screen.getByText(zh['history.excerpt'])).toBeTruthy()
+        expect(loadWorkingPosition(key).historyScroll?.['session-a']).toBe(160)
+        fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+      }
+      await screen.findByText('原文 2')
+      expect(screen.getByTestId('topic-source-panel').scrollTop).toBe(160)
+      fireEvent.doubleClick(document.querySelector('[data-node-kind="knowledge"]')!)
+      const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
+      fireEvent.click(await within(dialog).findByRole('button', { name: '查看来源原文' }))
+      await within(within(dialog).getByRole('region', { name: '讨论原文' })).findByText('原文 1')
+      expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', source: source.source }, expect.any(AbortSignal))
+    }
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
+  it('restores an explicitly reopened topic and its unsaved arrangement, then returns to the list if it disappeared', async () => {
+    const fixture = researchTopicFixture()
+    const a = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }
+    const bTopic = { ...a, topic: { ...a.topic, topicId: fixture.b.topic.topicId, title: '研究 B' } }
+    const b = await bench({ ...fixture.rows, viewed: session('viewed') })
+    b.listTopics.mockResolvedValue({ ok: true, value: [a.topic, bTopic.topic] })
+    b.readTopic.mockImplementation(async request => ({ ok: true, value: request.topicId === a.topic.topicId ? a : bTopic }))
+    mount(b.slots, b.sessionsStore, 'viewed')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await screen.findByRole('combobox', { name: '选择研究主题' })
+    fireEvent.change(screen.getByRole('combobox', { name: '选择研究主题' }), { target: { value: bTopic.topic.topicId } })
+    await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
+    const node = nodeButton('source-0001')
+    fireEvent.pointerDown(node, { pointerId: 7, clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(node, { pointerId: 7, clientX: 320, clientY: 280 })
+    fireEvent.pointerUp(node, { pointerId: 7 })
+    const left = nodeButton('source-0001').style.left
+    fireEvent.click(nodeButton('source-0001'))
+    fireEvent.click(nodeButton('source-0001'))
+    expect(screen.getByTestId('topic-source-panel')).toBeTruthy()
+    switchTab('Chat')
+    switchTab('Graph')
+    expect(screen.queryByRole('combobox', { name: '选择研究主题' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await screen.findByTestId('topic-source-panel')
+    expect((screen.getByRole('combobox', { name: '选择研究主题' }) as HTMLSelectElement).value).toBe(bTopic.topic.topicId)
+    expect(nodeButton('source-0001').style.left).toBe(left)
+    expect((screen.getByRole('button', { name: zh['topic.saveArrangement'] }) as HTMLButtonElement).disabled).toBe(false)
+    expect(b.writeTopic).not.toHaveBeenCalled()
+    switchTab('Chat')
+    b.listTopics.mockResolvedValue({ ok: true, value: [a.topic] })
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await screen.findByText('上次的研究主题已不可用，请从列表选择主题。')
+    expect(document.querySelector('[data-node-id]')).toBeNull()
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
+  it('requeries restored search conditions and discards a late response after closing', async () => {
+    const b = await bench(FIXTURE)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: zh['search.open'] }))
+    fireEvent.change(screen.getByRole('textbox', { name: zh['search.query'] }), { target: { value: '研究结论' } })
+    fireEvent.click(screen.getByRole('checkbox', { name: zh['search.includeArchived'] }))
+    fireEvent.click(screen.getByRole('button', { name: zh['search.submit'] }))
+    await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledTimes(1) })
+    fireEvent.click(screen.getByRole('button', { name: zh['search.close'] }))
+    const late = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphSearch/search']>>>()
+    b.searchDiscussion.mockReturnValueOnce(late.promise)
+    fireEvent.click(screen.getByRole('button', { name: zh['search.open'] }))
+    await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledTimes(2) })
+    expect(b.searchDiscussion.mock.calls[1]![0]).toEqual({ query: '研究结论', scope: { kind: 'directory', cwd: '/w' }, includeArchived: true })
+    fireEvent.click(screen.getByRole('button', { name: zh['search.close'] }))
+    expect(b.searchDiscussion.mock.calls[1]![1]!.aborted).toBe(true)
+    await act(async () => { late.resolve({ ok: true, value: { kind: 'results', hits: [] } }) })
+    fireEvent.click(screen.getByRole('button', { name: zh['search.open'] }))
+    await waitFor(() => { expect(b.searchDiscussion).toHaveBeenCalledTimes(3) })
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
+  it('isolates Hosts and same-directory Workspaces, clears missing selections, and tolerates corrupt browser state', async () => {
+    const b = await bench(FIXTURE)
+    const first = workspacesState([workspace('first', '/w', ['root'])])
+    mount(b.slots, b.sessionsStore, 'root', first)
+    switchTab('Graph')
+    stubSize(1000, 600)
+    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    fireEvent.click(nodeButton('branchChild'))
+    const scale = screen.getByRole('button', { name: '缩放至 100%' }).textContent
+    cleanup()
+    mount(b.slots, b.sessionsStore, 'root', workspacesState([workspace('second', '/w', ['root'])]))
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    cleanup()
+    const anotherHost = await bench(FIXTURE, 'another-host')
+    mount(anotherHost.slots, anotherHost.sessionsStore, 'root', first)
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    cleanup()
+    const { branchChild: _, ...remaining } = FIXTURE
+    b.sessionsStore.set(listState(remaining))
+    mount(b.slots, b.sessionsStore, 'root', first)
+    switchTab('Graph')
+    await screen.findByText(zh['position.unavailable'])
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    expect(b.open).not.toHaveBeenCalled()
+    cleanup()
+    localStorage.setItem('dsh.session-graph.position.["test-host","workspace:first",null]', '{broken')
+    mount(b.slots, b.sessionsStore, 'root', first)
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
+  })
+
+  it('restores viewport, selection and Original position after reopening without navigating', async () => {
+    const b = await bench(FIXTURE)
+    const turn = { turn: 8, startSeq: 80, endSeq: 89, startedAt: 1000, messages: [{ role: 'user' as const, seq: 81, text: '研究位置' }] }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'root', turns: [turn], hasEarlier: false, hasLater: false } })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Graph')
+    stubSize(1000, 600)
+    fireEvent.click(screen.getByRole('button', { name: '放大' }))
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    await screen.findByText('研究位置')
+    const panel = screen.getByTestId('session-graph-panel')
+    panel.scrollTop = 380
+    fireEvent.scroll(panel)
+    const scale = screen.getByRole('button', { name: '缩放至 100%' }).textContent
+    const position = screen.getByRole('group', { name: zh['canvas.description'] }).style.backgroundPosition
+    switchTab('Chat')
+    switchTab('Graph')
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
+    expect(screen.getByRole('group', { name: zh['canvas.description'] }).style.backgroundPosition).toBe(position)
+    await screen.findByText('研究位置')
+    expect(screen.getByTestId('session-graph-panel').scrollTop).toBe(380)
+    expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'root', anchorSeq: 80 }, expect.any(AbortSignal))
+    expect(b.open).not.toHaveBeenCalled()
+    switchTab('Chat')
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'unavailable', sessionId: 'root', turns: [], hasEarlier: false, hasLater: false } })
+    switchTab('Graph')
+    await screen.findByText(zh['position.unavailable'])
+    expect(screen.queryByTestId('session-graph-panel')).toBeNull()
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
+  })
+})
+
+describe('Research reuse registered Graph workflow', () => {
+  it('previews one turn and waits for admission before opening the same target after a failed send', async () => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'A', source: { startSeq: 10, endSeq: 14,
+      turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: '所选原文' }] }] } }
+    const record: ResearchReuseRecord = { operationId: 'reuse-one', requestHash: 'a'.repeat(64), requestId: 'request-one',
+      targetSessionId: 'research-target', targetCreated: false, stage: 'prepared', workspace: { id: 'b', title: '目标 B', cwd: '/b' },
+      createdAt: 1000, question: '新研究问题', materials: [{ kind: 'turn', source }], promptText: '预览中的完整发送内容', budgetChars: 32_000 }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: source.source.turns, hasEarlier: false, hasLater: false } })
+    b.prepareReuse.mockResolvedValue({ ok: true, value: record })
+    b.submitReuse.mockResolvedValueOnce({ ok: true, value: { ...record, targetCreated: true, stage: 'created', error: 'Admission failed' } })
+    const receipt = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphReuse/submit']>>>()
+    b.submitReuse.mockReturnValueOnce(receipt.promise)
+    mount(b.slots, b.sessionsStore, 'a', workspacesState([{ workspaceId: 'b', title: '目标 B', path: '/b', sessionIds: [], createdAt: '', updatedAt: '' }]))
+    switchTab('Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '将所选轮次加入材料' }))
+    fireEvent.click(screen.getByRole('button', { name: '材料（1）' }))
+    const dialog = await screen.findByRole('dialog', { name: '开始新讨论' })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '新问题' }), { target: { value: '新研究问题' } })
+    fireEvent.change(within(dialog).getByRole('combobox', { name: '目标工作区' }), { target: { value: 'b' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览发送内容' }))
+    await within(dialog).findByText('预览中的完整发送内容')
+    expect(b.submitReuse).not.toHaveBeenCalled()
+    expect(b.prepareReuse.mock.calls[0]![0]).toMatchObject({ workspaceId: 'b', question: '新研究问题',
+      materials: [{ kind: 'turn', sessionId: 'a', startSeq: 10, endSeq: 14 }] })
+    fireEvent.click(within(dialog).getByRole('button', { name: '确认并开始讨论' }))
+    await within(dialog).findByRole('button', { name: '打开目标会话' })
+    expect(b.open).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '重试发送' }))
+    expect(b.open).not.toHaveBeenCalled()
+    await act(async () => { receipt.resolve({ ok: true, value: { ...record, targetCreated: true, stage: 'accepted', acceptedAt: 2000 } }) })
+    expect(b.open).toHaveBeenCalledExactlyOnceWith(id('research-target'))
+    expect(b.submitReuse.mock.calls.map(call => call[0])).toEqual([{ operationId: 'reuse-one' }, { operationId: 'reuse-one' }])
+  })
+})
+
+describe('Knowledge Cards registered Graph workflow', () => {
+  it('shows extraction scope, cancels late generation and keeps edited drafts when generating another batch', async () => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'Discussion A', source: { startSeq: 10, endSeq: 14,
+      turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: '明确的测试证据' }] }] } }
+    const preview: ExtractionPreparation = { preparationId: 'preview-one', selected: source, included: source, omitted: [], budgetChars: 20_000,
+      materialText: '明确的测试证据', route: { provider: 'fixture', model: 'fixed-v1' } }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: source.source.turns, hasEarlier: false, hasLater: false } })
+    b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
+    const output = { provider: 'fixture', model: 'fixed-v1', drafts: [{ cardId: 'card-ai', revisionId: 'revision-ai', invalidCitations: 1, needsVerification: true,
+      content: { title: 'AI 初稿', question: '', conclusion: '模型结论', rationale: '', openQuestions: '', kind: 'method' as const, status: 'draft' as const }, sources: [],
+    }] }
+    const late = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphKnowledge/extract']>>>()
+    b.extractKnowledge.mockReturnValueOnce(late.promise)
+    b.extractKnowledge.mockResolvedValue({ ok: true, value: output })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
+    const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
+    await within(dialog).findByText('明确的测试证据')
+    expect(b.extractKnowledge).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '取消生成' }))
+    expect(b.extractKnowledge.mock.calls[0]![1]!.aborted).toBe(true)
+    await act(async () => { late.resolve({ ok: true, value: output }) })
+    expect(within(dialog).queryByRole('textbox', { name: '结论' })).toBeNull()
+    fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
+    const conclusion = await within(dialog).findByRole('textbox', { name: '结论' }) as HTMLTextAreaElement
+    fireEvent.change(conclusion, { target: { value: '人工改写，必须保留' } })
+    expect(within(dialog).getByText('待验证：请核对推论并补充有效来源。')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: '追加一组草稿' }))
+    await waitFor(() => { expect(within(dialog).getAllByRole('textbox', { name: '结论' })).toHaveLength(2) })
+    expect(conclusion.value).toBe('人工改写，必须保留')
+    expect(b.saveKnowledge).not.toHaveBeenCalled()
+  })
+  it('finds a card through the shared search entry and draws an explicit source relation in its topic', async () => {
+    const b = await bench({ a: session('a') })
+    const fixture = researchTopicFixture()
+    // Large-topic behavior has its own 1,000-reference acceptance below.
+    const topic = { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) }
+    const card: KnowledgeCard = { cardId: 'card-one', topicIds: [topic.topicId], revisions: [{
+      revisionId: 'revision-one', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: { title: '可重用的方法', question: '', conclusion: '先核验来源', rationale: '', openQuestions: '', kind: 'method', status: 'draft' },
+      sources: [{ sessionId: 'a', title: 'A', source: { startSeq: 10, endSeq: 14,
+        turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user', seq: 11, text: '证据' }] }] } }],
+    }] }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: fixture.a.sources.slice(0, 2) } })
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+    b.readKnowledge.mockResolvedValue({ ok: true, value: card })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-kind="knowledge"]')).not.toBeNull() })
+    expect(document.querySelectorAll('[data-edge-kind="source"]')).toHaveLength(1)
+    b.readHistory.mockRejectedValueOnce(new Error('Transport unavailable'))
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+    const sourcePanel = within(screen.getByTestId('topic-source-panel'))
+    await sourcePanel.findByRole('alert')
+    expect(sourcePanel.getByText('证据')).toBeTruthy()
+    expect(sourcePanel.getByText(zh['history.excerpt'])).toBeTruthy()
+    fireEvent.doubleClick(document.querySelector('[data-node-kind="knowledge"]')!)
+    expect(b.open).not.toHaveBeenCalled()
+    const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
+    await within(dialog).findByText('先核验来源')
+    fireEvent.click(within(dialog).getByRole('button', { name: '关闭卡片' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '搜索内容' }), { target: { value: 'knowledge' } })
+    fireEvent.change(screen.getByRole('textbox', { name: '关键词' }), { target: { value: '方法' } })
+    fireEvent.click(screen.getByRole('button', { name: '搜索知识卡片' }))
+    await screen.findByRole('button', { name: /可重用的方法/ })
+    expect(b.searchDiscussion).not.toHaveBeenCalled()
+    expect(b.searchKnowledge).toHaveBeenLastCalledWith({ query: '方法' }, expect.any(AbortSignal))
+  })
+  it('retains an edited draft after a failed save and retries the same card before reading the saved source', async () => {
+    const b = await bench({ a: session('a') })
+    const turn = { turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000,
+      messages: [{ role: 'user' as const, seq: 11, text: '需要保存的讨论' }] }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: [turn], hasEarlier: false, hasLater: false } })
+    b.saveKnowledge.mockRejectedValueOnce(new Error('Connection failed'))
+    b.saveKnowledge.mockImplementationOnce(async request => ({ ok: true, value: {
+      cardId: request.cardId, topicIds: [], revisions: [{ revisionId: request.revisionId, requestHash: 'a'.repeat(64),
+        number: 1, savedAt: 1000, content: request.content,
+        sources: [{ sessionId: 'a', title: 'Source A', source: { startSeq: 10, endSeq: 14, turns: [turn] } }],
+      }],
+    } }))
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存为知识卡片' }))
+    const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '卡片标题' }), { target: { value: '证据方法' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '结论' }), { target: { value: '保留精确轮次' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存修订' }))
+    await within(dialog).findByRole('alert')
+    expect((within(dialog).getByRole('textbox', { name: '结论' }) as HTMLTextAreaElement).value).toBe('保留精确轮次')
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存修订' }))
+    await within(dialog).findByRole('button', { name: '编辑卡片' })
+    expect(b.saveKnowledge.mock.calls[1]![0]).toEqual(b.saveKnowledge.mock.calls[0]![0])
+    expect(b.saveKnowledge.mock.calls[0]![0]).toMatchObject({ sources: [{ kind: 'discussion', sessionId: 'a', startSeq: 10, endSeq: 14 }] })
+    expect(within(dialog).getByText('保留精确轮次')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: '导出 Markdown' }))
+    expect(within(screen.getByRole('dialog', { name: '导出 Markdown' })).getByRole('checkbox', { name: '证据方法' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭导出' }))
+    expect(within(screen.getByRole('dialog', { name: '知识卡片' })).getByText('保留精确轮次')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: '查看来源原文' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'a', source: { startSeq: 10, endSeq: 14, turns: [turn] } }, expect.any(AbortSignal)) })
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '编辑卡片' }))
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '结论' }), { target: { value: '丢弃的修改' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '放弃编辑' }))
+    expect(within(dialog).getByText('保留精确轮次')).toBeTruthy()
+    expect(within(dialog).queryByText('丢弃的修改')).toBeNull()
+    expect(b.saveKnowledge).toHaveBeenCalledTimes(2)
+  })
+})
 
 describe('Research Topics registered Graph workflow', () => {
   describe('creation with an uncertain response', () => {
@@ -477,9 +966,20 @@ const tConversation: ConversationSessionHeaderProps['t'] =
   key => (conversationZh as Record<string, string>)[key] ?? key
 
 /** Real-stack bench: root Context + real SlotRegistry ring + the plugin fiber. */
-async function bench(byId: Record<string, SessionSummary>) {
+async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host') {
   const ctx = new Context()
   const slots = new SlotRegistry(ctx)
+  const saveKnowledge = vi.fn<(request: KnowledgeSave, signal?: AbortSignal) => Promise<{ ok: true; value: KnowledgeCard }>>()
+  const searchKnowledge = vi.fn(async () => ({ ok: true as const, value: [] as readonly KnowledgeCard[] }))
+  const readKnowledge = vi.fn(async () => ({ ok: true as const, value: null as KnowledgeCard | null }))
+  const membershipKnowledge = vi.fn()
+  const prepareExtraction = vi.fn<TypertRemoteMap['sessionGraphKnowledge/prepareExtraction']>()
+  const prepareExport = vi.fn<TypertRemoteMap['sessionGraphKnowledge/prepareExport']>()
+  const extractKnowledge = vi.fn<TypertRemoteMap['sessionGraphKnowledge/extract']>()
+  const prepareReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/prepare']>()
+  const submitReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/submit']>()
+  const readReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/read']>()
+  const sessionReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/forSession']>(async () => ({ ok: true, value: [] }))
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
   const fork = vi.fn(async () => id('branched'))
@@ -541,6 +1041,10 @@ async function bench(byId: Record<string, SessionSummary>) {
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
+  ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
+    hostIdentity: async () => ({ ok: true, value: { hostId } }),
+    membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
+  ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -548,7 +1052,9 @@ async function bench(byId: Record<string, SessionSummary>) {
   await fiber
   return {
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
-    listTopics, readTopic, writeTopic,
+    listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
+    prepareExtraction, extractKnowledge, prepareExport,
+    prepareReuse, submitReuse, readReuse, sessionReuse,
   }
 }
 
@@ -1211,7 +1717,7 @@ describe('free viewport controls', () => {
   })
 
   it('fits persisted negative positions after the entry surface settles', async () => {
-    localStorage.setItem('dsh.session-graph.layout./w', JSON.stringify({
+    localStorage.setItem('dsh.session-graph.layout.["test-host","/w",null]', JSON.stringify({
       v: 1,
       positions: { branchChild: { x: -1_000, y: -1_000 } },
       collapsed: [],
@@ -1277,7 +1783,7 @@ describe('node drag and position persistence', () => {
     const after = nodeButton('branchChild').style.left
     expect(after).not.toBe(before)
     // The drag landed in the Directory Scope's Session Arrangement.
-    const stored = localStorage.getItem('dsh.session-graph.layout./w')
+    const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toBeTruthy()
     expect(stored).toContain('branchChild')
     // The drag gesture did not select or navigate.
@@ -1309,7 +1815,7 @@ describe('node drag and position persistence', () => {
     switchTab('Graph')
     expect(nodeButton('branchChild').style.left).toBe(moved)
     cleanup()
-    localStorage.setItem('dsh.session-graph.layout./w', '{corrupt')
+    localStorage.setItem('dsh.session-graph.layout.["test-host","/w",null]', '{corrupt')
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Graph')
     // Corrupt storage falls back to the auto layout's depth row.
@@ -1328,7 +1834,7 @@ describe('node drag and position persistence', () => {
     fireEvent.click(node)
     expect(node.getAttribute('aria-selected')).toBe('true')
     expect(b.open).not.toHaveBeenCalled()
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('rolls back a node drag when the pointer sequence is canceled', async () => {
@@ -1344,7 +1850,7 @@ describe('node drag and position persistence', () => {
     expect(nodeButton('branchChild').style.left).toBe(before.left)
     expect(nodeButton('branchChild').style.top).toBe(before.top)
     expect(document.querySelector('[data-testid^="session-graph-guide-"]')).toBeNull()
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('keeps Session Arrangements separate for Workspaces that share a directory', async () => {
@@ -1370,7 +1876,7 @@ describe('node drag and position persistence', () => {
     expect(nodeButton('branchChild').style.left).toBe('0px')
   })
 
-  it('migrates a legacy path Arrangement into its Workspace identity', async () => {
+  it('leaves layouts without a Host identity untouched instead of assigning them to a Workspace', async () => {
     localStorage.setItem('dsh.session-graph.layout./w', JSON.stringify({
       v: 1,
       positions: { branchChild: { x: 160, y: 200 } },
@@ -1381,13 +1887,13 @@ describe('node drag and position persistence', () => {
     const namedScope = workspacesState([workspace('stable', '/w', ['root'])])
     mount(b.slots, b.sessionsStore, 'root', namedScope)
     switchTab('Graph')
-    expect(nodeButton('branchChild').style.left).toBe('160px')
+    expect(nodeButton('branchChild').style.left).toBe('0px')
 
     cleanup()
     localStorage.removeItem('dsh.session-graph.layout./w')
     mount(b.slots, b.sessionsStore, 'root', namedScope)
     switchTab('Graph')
-    expect(nodeButton('branchChild').style.left).toBe('160px')
+    expect(nodeButton('branchChild').style.left).toBe('0px')
   })
 })
 
@@ -1432,7 +1938,7 @@ describe('cluster frames', () => {
     expect(root.style.left).toBe('0px')
     expect(branchChild.style.left).toBe('0px')
     expect(parseFloat(branchChild.style.top) - parseFloat(root.style.top)).toBe(64)
-    const stored = localStorage.getItem('dsh.session-graph.layout./w')
+    const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toContain('"collapsed":["root"]')
     // A collapsed member still selects normally.
     fireEvent.click(branchChild)
@@ -1478,7 +1984,7 @@ describe('cluster drag', () => {
     // cluster drag would arrive dead (jsdom has no setPointerCapture, so
     // the no-pan assertion is the regression's proxy).
     expect(content().style.transform).toBe(transformBefore)
-    expect(localStorage.getItem('dsh.session-graph.layout./w'))
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]'))
       .toContain('"offsets":{"root":{"dx":60,"dy":40}}')
     expect(b.open).not.toHaveBeenCalled()
   })
@@ -1516,7 +2022,7 @@ describe('cluster drag', () => {
     fireEvent.pointerDown(node, { pointerId: 24, clientX: 200, clientY: 200 })
     fireEvent.pointerMove(node, { pointerId: 24, clientX: 210, clientY: 200 })
     fireEvent.pointerUp(node, { pointerId: 24 })
-    const stored = JSON.parse(localStorage.getItem('dsh.session-graph.layout./w')!) as {
+    const stored = JSON.parse(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')!) as {
       positions: Record<string, { x: number; y: number }>
     }
     expect(stored.positions['branchChild']).toEqual({ x: 10, y: 120 })
@@ -1532,7 +2038,7 @@ describe('cluster drag', () => {
     fireEvent.pointerMove(toggle, { pointerId: 25, clientX: 360, clientY: 140 })
     fireEvent.pointerUp(toggle, { pointerId: 25 })
     expect(nodeButton('root').style.left).toBe('0px')
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('rolls back a cluster drag when the pointer sequence is canceled', async () => {
@@ -1547,7 +2053,7 @@ describe('cluster drag', () => {
     fireEvent.pointerCancel(title, { pointerId: 28 })
     expect(nodeButton('root').style.left).toBe('0px')
     expect(nodeButton('root').style.top).toBe('0px')
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toBeNull()
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toBeNull()
   })
 
   it('raises the grabbed cluster frame above overlapping frames', async () => {
@@ -1583,16 +2089,16 @@ describe('relayout button', () => {
     expect(nodeButton('branchChild').style.left).not.toBe('0px')
     fireEvent.click(screen.getByRole('button', { name: '重新布局' }))
     expect(nodeButton('branchChild').style.left).toBe('0px')
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toContain('"positions":{}')
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toContain('"positions":{}')
     // Collapsed clusters survive the relayout.
     fireEvent.click(document.querySelector('[data-cluster-id="root"] button')!)
-    expect(localStorage.getItem('dsh.session-graph.layout./w')).toContain('"collapsed":["root"]')
+    expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toContain('"collapsed":["root"]')
   })
 })
 
 describe('reset and minimap', () => {
   it('reset clears manual layout and collapse, then fits the view', async () => {
-    localStorage.setItem('dsh.session-graph.layout./w', JSON.stringify({
+    localStorage.setItem('dsh.session-graph.layout.["test-host","/w",null]', JSON.stringify({
       v: 1,
       positions: {},
       collapsed: ['root'],
@@ -1613,7 +2119,7 @@ describe('reset and minimap', () => {
     // Manual position and collapse both cleared; node returns to the auto grid.
     expect(nodeButton('branchChild').style.left).toBe('0px')
     expect(nodeButton('branchChild').style.top).toBe('120px')
-    const stored = localStorage.getItem('dsh.session-graph.layout./w')
+    const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toContain('"positions":{}')
     expect(stored).toContain('"collapsed":[]')
     // The cleared graph, rather than the previous far-away graph, owns Fit.
@@ -1745,6 +2251,9 @@ describe('discussion search through the registered Graph view', () => {
     await act(async () => { workspaceStore.set(workspacesState(action === 'register' ? [a] : [])) })
     const expected = action === 'register' ? { kind: 'workspace', workspaceId: 'a' } : { kind: 'all' }
     expect((screen.getByRole('combobox', { name: '搜索范围' }) as HTMLSelectElement).value).toBe(action === 'register' ? 'workspace:a' : 'all')
+    // A different scope identity restores its own conditions, not the previous scope's draft.
+    expect((screen.getByRole('textbox', { name: '正文关键词' }) as HTMLInputElement).value).toBe('')
+    fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     await screen.findByText('所选范围内没有匹配的讨论。')
     expect(b.searchDiscussion).toHaveBeenCalledWith({ query: 'needle', scope: expected, includeArchived: false }, expect.any(AbortSignal))
@@ -1824,7 +2333,8 @@ describe('discussion search through the registered Graph view', () => {
       await new Promise<void>(resolve => { release = resolve })
       return { ok: true, value: { kind: 'results', hits: [hit('旧查询结果')] } }
     })
-    b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('新查询结果')] } })
+    // Reopening now performs a fresh search before the next explicit submission.
+    b.searchDiscussion.mockResolvedValue({ ok: true, value: { kind: 'results', hits: [hit('新查询结果')] } })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
@@ -3040,5 +3550,85 @@ describe('title filter', () => {
     fireEvent.keyDown(input, { key: 'Escape' })
     expect(input.value).toBe('')
     expect(document.activeElement).not.toBe(input)
+  })
+})
+
+
+describe('Working position live updates', () => {
+  it.each(['empty on entry', 'last card detached'])('clears a stale card selection when a topic is %s and preserves its viewport', async state => {
+    const b = await bench({ viewed: session('viewed') })
+    const topic = { topicId: 'topic-empty', title: '空主题恢复', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    const card: KnowledgeCard = { cardId: 'removed-card', topicIds: [topic.topicId], revisions: [{
+      revisionId: 'revision-one', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: { title: '临时卡片', question: '', conclusion: '保留成果', rationale: '', openQuestions: '', kind: 'method', status: 'draft' }, sources: [],
+    }] }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: state === 'empty on entry' ? [] : [card] })
+    const scopeKey = JSON.stringify(['test-host', '/w', null])
+    const topicKey = JSON.stringify(['test-host', scopeKey, topic.topicId])
+    const storageKey = 'dsh.session-graph.position.' + topicKey
+    const viewport = { scale: 1.3, panX: 10, panY: 20 }
+    localStorage.setItem('dsh.session-graph.position.' + scopeKey, JSON.stringify({ v: 1, topicId: topic.topicId }))
+    localStorage.setItem(storageKey, JSON.stringify({ v: 1, selected: 'card:removed-card', viewport }))
+    mount(b.slots, b.sessionsStore, 'viewed')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    if (state === 'last card detached') {
+      await screen.findByRole('button', { name: zh['knowledge.edit'] })
+      b.searchKnowledge.mockResolvedValue({ ok: true, value: [] })
+      fireEvent.click(screen.getByRole('button', { name: zh['topic.refresh'] }))
+    }
+    await screen.findByText(zh['topic.noReferences'])
+    await waitFor(() => { expect(JSON.parse(localStorage.getItem(storageKey)!)).toMatchObject({ selected: null, viewport }) })
+    const notice = screen.getByText(zh['position.unavailable'])
+    fireEvent.click(within(notice).getByRole('button', { name: zh['panel.close'] }))
+    expect(screen.queryByText(zh['position.unavailable'])).toBeNull()
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+    fireEvent.click(screen.getByRole('button', { name: zh['topic.refresh'] }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="card:removed-card"]')).not.toBeNull() })
+    expect(screen.queryByRole('button', { name: zh['knowledge.edit'] })).toBeNull()
+    expect(JSON.parse(localStorage.getItem(storageKey)!)).toMatchObject({ selected: null, viewport })
+  })
+
+  it('restores the separate topic arrangement after a live Workspace identity change', async () => {
+    const fixture = researchTopicFixture()
+    const tiny = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }
+    const b = await bench({ ...fixture.rows, viewed: session('viewed') })
+    b.listTopics.mockResolvedValue({ ok: true, value: [tiny.topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: tiny })
+    const workspaceStore = createSnapshotStore(workspacesState([workspace('first', '/w', ['viewed'])]))
+    const secondKey = JSON.stringify(['test-host', JSON.stringify(['test-host', 'workspace:second', null]), tiny.topic.topicId])
+    localStorage.setItem('dsh.session-graph.layout.' + secondKey, JSON.stringify({ v: 1, positions: { 'source-0001': { x: 900, y: 700 } }, collapsed: [], offsets: {} }))
+    mount(b.slots, b.sessionsStore, 'viewed', workspaceStore)
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
+    const node = nodeButton('source-0001')
+    fireEvent.pointerDown(node, { pointerId: 7, clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(node, { pointerId: 7, clientX: 320, clientY: 280 })
+    fireEvent.pointerUp(node, { pointerId: 7 })
+    const oldLeft = nodeButton('source-0001').style.left
+    await act(async () => { workspaceStore.set(workspacesState([workspace('second', '/w', ['viewed'])])) })
+    await waitFor(() => { expect(nodeButton('source-0001').style.left).toBe('900px') })
+    expect(nodeButton('source-0001').style.left).not.toBe(oldLeft)
+  })
+  it('clears a restored topic source when its saved Original boundary is unavailable', async () => {
+    const fixture = researchTopicFixture()
+    const tiny = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }
+    const b = await bench({ ...fixture.rows, viewed: session('viewed') })
+    b.listTopics.mockResolvedValue({ ok: true, value: [tiny.topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: tiny })
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'unavailable', sessionId: 'source-0001', turns: [], hasEarlier: false, hasLater: false } })
+    const scopeKey = JSON.stringify(['test-host', '/w', null])
+    const topicKey = JSON.stringify(['test-host', scopeKey, tiny.topic.topicId])
+    localStorage.setItem('dsh.session-graph.position.' + scopeKey, JSON.stringify({ v: 1, topicId: tiny.topic.topicId }))
+    localStorage.setItem('dsh.session-graph.position.' + topicKey, JSON.stringify({ v: 1, selected: 'source-0001', tab: 'history', history: { 'source-0001': 80 } }))
+    mount(b.slots, b.sessionsStore, 'viewed')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenCalled() })
+    await waitFor(() => { expect(screen.queryByTestId('topic-source-panel')).toBeNull() })
+    expect(screen.getByText(zh['position.unavailable'])).toBeTruthy()
   })
 })

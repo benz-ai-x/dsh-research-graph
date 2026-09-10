@@ -17,7 +17,7 @@ import type { SessionDigest } from '../session-digest.ts'
 import { SessionHistory } from './SessionHistory.tsx'
 import { containsSessionReferenceUri } from '../session-merge.ts'
 import { CLUSTER_COLORS } from './clusters.ts'
-import type { ClusterInfo, DisplayStatus, GraphNode } from './graph-model.ts'
+import type { ClusterInfo, DisplayStatus, GraphNode, SessionGraphNode } from './graph-model.ts'
 import { branchLineage, matchFilter } from './graph-model.ts'
 import {
   CARD_H, NODE_W, type ContentBounds, type LaidOutGraph, type LaidOutNode,
@@ -36,6 +36,7 @@ import {
   fitViewport, initialViewport, minimapProjection, panBy, resizeViewport, zoomAt,
 } from './viewport.ts'
 import styles from './GraphView.module.css'
+import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** Screen movement below this many px stays a click, not a drag. */
 const DRAG_THRESHOLD = 3
@@ -165,8 +166,10 @@ function NodeCard({
   onHoverNode: (key: string | null) => void
 }) {
   const { node, key, x, y } = laid
-  const badge = node.subagentCount > 0
-    ? `${t('node.subagents', { count: node.subagentCount })}${node.runningSubagents > 0 ? ` (${t('node.running', { count: node.runningSubagents })})` : ''}`
+  const session = node.kind === 'knowledge' ? undefined : node
+  const source = session?.topicSource
+  const badge = session !== undefined && session.subagentCount > 0
+    ? `${t('node.subagents', { count: session.subagentCount })}${session.runningSubagents > 0 ? ` (${t('node.running', { count: session.runningSubagents })})` : ''}`
     : ''
   return (
     <>
@@ -175,17 +178,19 @@ function NodeCard({
         className={clsx(
           styles.node,
           styles.sessionNode,
+          node.kind === 'knowledge' ? styles.knowledgeNode : null,
           selected ? styles.nodeSelected : null,
           mergeOrder === undefined ? null : styles.nodeMergeSelected,
-          node.displayStatus === 'waiting-input' ? styles.nodePending : null,
+          session?.displayStatus === 'waiting-input' ? styles.nodePending : null,
           badgeHovered ? styles.badgeHovered : null,
           dimClass,
         )}
         style={{ left: `${x}px`, top: `${y}px` }}
         data-node-id={key}
-        data-display-status={node.displayStatus}
+        data-node-kind={node.kind ?? 'session'}
+        data-display-status={session?.displayStatus}
         data-merge-selected={mergeOrder}
-        aria-current={node.viewed ? 'true' : undefined}
+        aria-current={session?.viewed ? 'true' : undefined}
         aria-selected={selected || mergeOrder !== undefined}
         onPointerDown={gestures.onPointerDown}
         onPointerMove={gestures.onPointerMove}
@@ -197,19 +202,20 @@ function NodeCard({
         onMouseLeave={() => { onHoverNode(null) }}
       >
         <span
-          className={clsx(styles.dot, node.displayStatus === 'running' ? styles.dotPulse : null)}
+          className={clsx(styles.dot, session?.displayStatus === 'running' ? styles.dotPulse : null)}
           style={{ background: `var(${clusterColor})` }}
         />
         <span className={styles.body}>
           <span className={styles.title}>
-            {node.blank ? t('node.newSession') : node.title}
+            {session?.blank ? t('node.newSession') : node.title}
           </span>
           <span className={styles.nodeMeta}>
-            <span className={clsx(styles.time, node.topicSource === undefined ? null : styles.topicSourceLabel)}
-              title={node.topicSource?.workspace?.title || node.topicSource?.cwd}>{node.topicSource === undefined ? timeLabel(node.updatedAt, now, t)
-              : node.topicSource.workspace?.title || node.topicSource.cwd || t('topic.noWorkspace')}</span>
-            {node.topicSource?.archived ? <span className={styles.badge}>{t('search.archived')}</span> : null}
-            {node.topicSource?.status === 'unavailable' ? <span className={styles.badge}>{t('topic.unavailable')}</span> : null}
+            {node.kind === 'knowledge' ? <span>{t('knowledge.title')} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</span> : null}
+            <span className={clsx(styles.time, source === undefined ? null : styles.topicSourceLabel)}
+              title={source?.workspace?.title || source?.cwd}>{source === undefined ? timeLabel(node.updatedAt, now, t)
+              : source.workspace?.title || source.cwd || t('topic.noWorkspace')}</span>
+            {source?.archived ? <span className={styles.badge}>{t('search.archived')}</span> : null}
+            {source?.status === 'unavailable' ? <span className={styles.badge}>{t('topic.unavailable')}</span> : null}
             {badge !== ''
               ? (
                 <span
@@ -230,14 +236,14 @@ function NodeCard({
       <span
         className={clsx(styles.nodePort, dimClass)}
         style={{ left: `${x + NODE_W / 2}px`, top: `${y}px` }}
-        data-session-port="input"
+        data-session-port={node.kind === 'knowledge' ? undefined : 'input'}
         data-port-id={`${key}:input`}
         aria-hidden="true"
       />
       <span
         className={clsx(styles.nodePort, dimClass)}
         style={{ left: `${x + NODE_W / 2}px`, top: `${y + CARD_H}px` }}
-        data-session-port="output"
+        data-session-port={node.kind === 'knowledge' ? undefined : 'output'}
         data-port-id={`${key}:output`}
         aria-hidden="true"
       />
@@ -299,7 +305,7 @@ function digestErrorLabel(code: string | undefined, t: Translate): string {
 function DigestSection({
   node, entry, now, t, onGenerate,
 }: {
-  node: GraphNode
+  node: SessionGraphNode
   entry: DigestEntry | undefined
   now: number
   t: Translate
@@ -461,9 +467,9 @@ function DigestSection({
 }
 
 function SelectedSessionPanel({
-  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose, onAddToTopic,
+  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose, onAddToTopic, workingKey, onUnavailable,
 }: {
-  node: GraphNode | undefined
+  node: SessionGraphNode | undefined
   branchedFrom: string | undefined
   mergeSourceTitles: ReadonlyMap<string, string>
   now: number
@@ -474,8 +480,11 @@ function SelectedSessionPanel({
   onReadHistory: GraphViewInjected['readSessionHistory']
   onClose: () => void
   onAddToTopic: ((id: SessionId) => void) | undefined
+  workingKey: string | undefined
+  onUnavailable: () => void
 }): ReactElement | null {
-  const [tab, setTab] = useState<'digest' | 'history'>('digest')
+  const [tab, setTab] = useState<'digest' | 'history'>(() => loadWorkingPosition(workingKey).tab ?? 'digest')
+  useEffect(() => { saveWorkingPosition(workingKey, { tab }) }, [workingKey, tab])
   const tabId = useId()
   const digestTab = useRef<HTMLButtonElement>(null)
   const historyTab = useRef<HTMLButtonElement>(null)
@@ -575,6 +584,7 @@ function SelectedSessionPanel({
       aria-label={t('panel.title')}
       data-canvas-overlay=""
       data-testid="session-graph-panel"
+      data-working-scroll=""
     >
       <div className={styles.panelHeader}>
         <div className={styles.panelHeading}>{t('panel.title')}</div>
@@ -670,7 +680,7 @@ function SelectedSessionPanel({
       </div>
       <div id={`${tabId}-content`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
         {tab === 'history'
-          ? <SessionHistory key={node.id} sessionId={node.id} read={onReadHistory} t={t} />
+          ? <SessionHistory key={node.id} sessionId={node.id} workingKey={workingKey} onUnavailable={onUnavailable} read={onReadHistory} t={t} />
           : <DigestSection
             node={node}
             entry={digestBySession[node.id]}
@@ -828,7 +838,7 @@ const CARD_H_MAP = 4
  */
 export function GraphCanvas({
   laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory,
-  onMerge, onRetryMerge, topic, onAddToTopic,
+  onMerge, onRetryMerge, topic, onAddToTopic, workingKey,
 }: {
   laid: LaidOutGraph
   clusters: readonly ClusterInfo[]
@@ -845,11 +855,14 @@ export function GraphCanvas({
   topic?: {
     readonly arrangement: LayoutState
     readonly onArrange: (state: LayoutState) => void
-    readonly renderInspector: (node: GraphNode | undefined, onClose: () => void) => ReactElement | null
+    readonly renderInspector: (node: GraphNode | undefined, onClose: () => void, onUnavailable: () => void) => ReactElement | null
+    readonly openCard?: (cardId: string) => void
   }
+  workingKey?: string
 }): ReactElement {
+  const [restored] = useState(() => loadWorkingPosition(workingKey))
   const surfaceRef = useRef<HTMLDivElement | null>(null)
-  const [viewport, setViewport] = useState(initialViewport)
+  const [viewport, setViewport] = useState(() => restored.viewport ?? initialViewport())
   const [viewSize, setViewSize] = useState({ width: 0, height: 0 })
   const viewSizeRef = useRef(viewSize)
   useEffect(() => {
@@ -908,7 +921,18 @@ export function GraphCanvas({
     previous: ClusterOffset | undefined
   } | null>(null)
   const suppressClickRef = useRef(false)
-  const [selected, setSelected] = useState<SessionId | null>(null)
+  const [selected, setSelected] = useState<string | null>(restored.selected ?? null)
+  const restoringSelection = useRef(restored.selected)
+  const [unavailableSelection, setUnavailableSelection] = useState(false)
+  useEffect(() => {
+    if (selected === null) return
+    const node = laid.nodes.find(entry => entry.key === selected)?.node
+    const restoring = restoringSelection.current === selected
+    restoringSelection.current = undefined
+    if (node !== undefined && !(restoring && node.kind !== 'knowledge' && node.topicSource?.status === 'unavailable' && node.retainedSource === undefined)) return
+    setSelected(null)
+    setUnavailableSelection(true)
+  }, [selected, laid])
   const [mergeMode, setMergeMode] = useState(false)
   const [mergeSources, setMergeSources] = useState<readonly SessionId[]>([])
   const [mergeInstruction, setMergeInstruction] = useState('')
@@ -953,7 +977,8 @@ export function GraphCanvas({
   }
   const [hoverNode, setHoverNode] = useState<string | null>(null)
   const [hoverEdge, setHoverEdge] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(restored.query ?? '')
+  useEffect(() => { saveWorkingPosition(workingKey, { viewport, selected, query }) }, [workingKey, viewport, selected, query])
   // Set for the duration of one programmatic viewport jump (fit, locate,
   // 100%): the content layer CSS-transitions the transform. Gestures
   // (wheel, drags, minimap) never set it — they must stay immediate.
@@ -985,7 +1010,7 @@ export function GraphCanvas({
   // fit the manual bounds, the auto grid fits its own).
   const fittedRef = useRef(false)
   useEffect(() => {
-    fittedRef.current = false
+    fittedRef.current = restored.viewport !== undefined
   }, [arrangement.key])
 
   // Arrow-key navigation: move focus to the geometrically nearest node in
@@ -994,7 +1019,7 @@ export function GraphCanvas({
     const active = document.activeElement?.closest('[data-node-id]') as HTMLElement | null
     const from = active !== null
       ? shown.nodes.find(entry => entry.key === active.dataset.nodeId)
-      : shown.nodes.find(entry => entry.node.viewed) ?? shown.nodes[0]
+      : shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed) ?? shown.nodes[0]
     if (from === undefined) return
     let best: { key: string; distance: number } | undefined
     for (const entry of shown.nodes) {
@@ -1129,7 +1154,7 @@ export function GraphCanvas({
     }
   }
 
-  const nodeGestures = (id: SessionId, clusterId: SessionId, originX: number, originY: number): NodeGestureHandlers => ({
+  const nodeGestures = (id: string, clusterId: string, originX: number, originY: number): NodeGestureHandlers => ({
     onPointerDown: (event) => {
       hidePreview()
       // A new pointer sequence cannot be the prior drag's trailing click.
@@ -1208,9 +1233,11 @@ export function GraphCanvas({
       if (mergeMode) {
         if (mergeRun.phase === 'submitting'
           || (mergeRun.phase === 'error' && mergeRun.failure.targetSessionId !== undefined)) return
-        setMergeSources(current => current.includes(id)
-          ? current.filter(sourceId => sourceId !== id)
-          : current.length < 3 ? [...current, id] : current)
+        const node = shownByKey.get(id)?.node
+        if (node === undefined || node.kind === 'knowledge') return
+        setMergeSources(current => current.includes(node.id)
+          ? current.filter(sourceId => sourceId !== node.id)
+          : current.length < 3 ? [...current, node.id] : current)
         setMergeRun({ phase: 'idle' })
         return
       }
@@ -1218,7 +1245,9 @@ export function GraphCanvas({
     },
     onDoubleClick: () => {
       if (mergeMode) return
-      onOpen(id)
+      const node = shownByKey.get(id)?.node
+      if (node?.kind === 'knowledge') topic?.openCard?.(node.card.cardId)
+      else if (node !== undefined) onOpen(node.id)
     },
   })
 
@@ -1595,7 +1624,7 @@ export function GraphCanvas({
                   onMouseLeave={() => { setHoverEdge(null) }}
                 />
                 <path
-                  className={merge ? styles.edgeMerge : styles.edgeBranch}
+                  className={edge.kind === 'source' ? styles.edgeSource : merge ? styles.edgeMerge : styles.edgeBranch}
                   data-edge-kind={edge.kind}
                   d={path}
                 />
@@ -1647,7 +1676,7 @@ export function GraphCanvas({
             t={t}
             gestures={nodeGestures(laidNode.node.id, laidNode.node.clusterId, laidNode.x, laidNode.y)}
             selected={selected === laidNode.node.id}
-            mergeOrder={mergeSources.includes(laidNode.node.id)
+            mergeOrder={laidNode.node.kind !== 'knowledge' && mergeSources.includes(laidNode.node.id)
               ? mergeSources.indexOf(laidNode.node.id) + 1
               : undefined}
             onHoverBadge={setBadgeHover}
@@ -1719,7 +1748,7 @@ export function GraphCanvas({
           type="button"
           aria-label={t('toolbar.locate')}
           onClick={() => {
-            const viewed = shown.nodes.find(entry => entry.node.viewed)
+            const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
             if (viewed !== undefined) locateNode(viewed.key)
           }}
         >
@@ -1878,8 +1907,10 @@ export function GraphCanvas({
         )
         : null}
       {topic === undefined ? <SelectedSessionPanel
+        workingKey={workingKey}
+        onUnavailable={() => { setSelected(null); setUnavailableSelection(true) }}
         onAddToTopic={onAddToTopic}
-        node={mergeMode ? undefined : selectedNode}
+        node={mergeMode || selectedNode?.kind === 'knowledge' ? undefined : selectedNode}
         branchedFrom={selected === null ? undefined : branchSource.get(selected)}
         mergeSourceTitles={new Map(shown.nodes.map(entry => [entry.key, entry.node.title]))}
         now={now}
@@ -1889,7 +1920,9 @@ export function GraphCanvas({
         onGenerateDigest={onGenerateDigest}
         onReadHistory={onReadHistory}
         onClose={() => { setSelected(null) }}
-      /> : topic.renderInspector(selectedNode, () => { setSelected(null) })}
+      /> : topic.renderInspector(selectedNode, () => { setSelected(null) }, () => { setSelected(null); setUnavailableSelection(true) })}
+      {unavailableSelection ? <div className={styles.reuseNotice} data-canvas-overlay="" role="status">{t('position.unavailable')}
+        <button type="button" onClick={() => { setUnavailableSelection(false) }}>{t('panel.close')}</button></div> : null}
       {showMinimap
         ? (
           <Minimap
@@ -1923,7 +1956,8 @@ export function GraphCanvas({
             right: selectedNode === undefined ? 12 : INSPECTOR_RIGHT_INSET,
           },
         })
-        const status = displayStatusLabel(entry.node.displayStatus, t)
+        const session = entry.node.kind === 'knowledge' ? undefined : entry.node
+        const status = displayStatusLabel(session?.displayStatus, t)
         const branched = branchSource.get(entry.key)
         return (
           <div
@@ -1934,13 +1968,13 @@ export function GraphCanvas({
             aria-hidden="true"
           >
             <div className={styles.previewTitle}>
-              {entry.node.blank ? t('node.newSession') : entry.node.title}
+              {session?.blank ? t('node.newSession') : entry.node.title}
             </div>
             {status !== '' ? <div className={styles.previewStatus}>{status}</div> : null}
             <div className={styles.previewMeta}>
               {timeLabel(entry.node.updatedAt, now, t)}
-              {entry.node.subagentCount > 0
-                ? ` · ${t('panel.subagents', { count: entry.node.subagentCount })}`
+              {session !== undefined && session.subagentCount > 0
+                ? ` · ${t('panel.subagents', { count: session.subagentCount })}`
                 : ''}
             </div>
             {branched !== undefined

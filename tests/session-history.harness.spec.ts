@@ -61,6 +61,31 @@ function addTurn(session: Session, turn: number, prompt: string, answer: string)
 }
 
 describe('Session History public Host interface', () => {
+  it('restores exact range boundaries without an excerpt or the normal page limit', async () => {
+    const ctx = await historyHost()
+    await ctx.plugin(TypertGatewayService)
+    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    for (let turn = 1; turn <= 13; turn++) addTurn(session, turn, `Question ${turn}`, `Answer ${turn}`)
+    ctx.effect(() => ctx.sessions.enter(session))
+    const before = await ctx.sessionController.inspect(session.id)
+    const invoke = (request: unknown) => ctx.typertGateway.invoke({ namespace: 'sessionGraphHistory', method: 'read',
+      args: { request }, signal: new AbortController().signal })
+    const request = { sessionId: session.id, range: { startSeq: 0, endSeq: 71 } }
+    const result = await invoke(request)
+    expect(result.kind).toBe('original')
+    expect(result.turns.map(turn => turn.turn)).toEqual(Array.from({ length: 12 }, (_, index) => index + 1))
+    expect(result.hasLater).toBe(true)
+    expect((await invoke({ sessionId: session.id, anchorSeq: 0 })).turns).toHaveLength(10)
+    expect((await invoke({ ...request, range: { startSeq: 0, endSeq: 70 } })).kind).toBe('unavailable')
+    for (const invalid of [{ ...request, anchorSeq: 0 }, { ...request, source: { ...request.range, turns: result.turns } },
+      { ...request, range: { startSeq: 0, endSeq: 0 } }, { ...request, range: { startSeq: -1, endSeq: 71 } },
+      { ...request, range: { ...request.range, extra: true } }]) {
+      await expect(invoke(invalid)).rejects.toThrow('Invalid Session History request')
+    }
+    expect(await ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(ctx.llm.stream).not.toHaveBeenCalled()
+  })
+
   it('reads original discussion through the real browser Gateway with carrier cancellation', async () => {
     const ctx = await historyHost()
     await ctx.plugin(TypertGatewayService)

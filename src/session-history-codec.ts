@@ -1,6 +1,6 @@
 /** Small shared wire codecs; keep Host libraries out of the lazy browser bundle. */
 import type {
-  SessionDiscussionSource, SessionHistoryMessage, SessionHistoryRequest, SessionHistoryResult, SessionHistoryTurn,
+  SessionDiscussionRange, SessionDiscussionSource, SessionHistoryMessage, SessionHistoryRequest, SessionHistoryResult, SessionHistoryTurn,
 } from './session-history.ts'
 
 function invalid(): never { throw new TypeError('Invalid Session History value') }
@@ -56,10 +56,17 @@ function source(value: unknown): SessionDiscussionSource {
   return result
 }
 
+function range(value: unknown): SessionDiscussionRange {
+  const item = object(value, ['startSeq', 'endSeq'])
+  const result = { startSeq: sequence(item.startSeq), endSeq: sequence(item.endSeq) }
+  if (result.endSeq <= result.startSeq) return invalid()
+  return result
+}
+
 function parseRequest(value: unknown): SessionHistoryRequest {
-  const item = object(value, ['sessionId', 'anchorSeq', 'beforeSeq', 'afterSeq', 'limit', 'source'])
+  const item = object(value, ['sessionId', 'anchorSeq', 'beforeSeq', 'afterSeq', 'limit', 'source', 'range'])
   const sessionId = string(item.sessionId)
-  if (sessionId === '' || [item.anchorSeq, item.beforeSeq, item.afterSeq, item.source].filter(value => value !== undefined).length > 1) return invalid()
+  if (sessionId === '' || [item.anchorSeq, item.beforeSeq, item.afterSeq, item.source, item.range].filter(value => value !== undefined).length > 1) return invalid()
   const limit = item.limit === undefined ? undefined : sequence(item.limit)
   if (limit !== undefined && (limit < 1 || limit > 20)) return invalid()
   return {
@@ -69,6 +76,7 @@ function parseRequest(value: unknown): SessionHistoryRequest {
     ...(item.afterSeq === undefined ? {} : { afterSeq: sequence(item.afterSeq) }),
     ...(limit === undefined ? {} : { limit }),
     ...(item.source === undefined ? {} : { source: source(item.source) }),
+    ...(item.range === undefined ? {} : { range: range(item.range) }),
   }
 }
 

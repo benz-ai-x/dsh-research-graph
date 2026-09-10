@@ -55,6 +55,8 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphHistory: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphHistory']
       sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
       sessionGraphTopics: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTopics']
+      sessionGraphKnowledge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphKnowledge']
+      sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']
     }
     readonly invariants: {
       register: (packageName: string, installer: unknown) => () => void
@@ -70,6 +72,21 @@ declare module '@deepseek-ai/cordis' {
       ) => void) => () => void
     }
     readonly sessionController: {
+      page: (request: {
+        readonly address: { readonly kind: 'session'; readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId }
+        readonly throughSeq: number
+      }, signal: AbortSignal) => Promise<unknown>
+      create: (request: {
+        readonly sessionId?: import('@deepseek-ai/dsh-session/types').SessionId
+        readonly workspaceId?: import('@deepseek-ai/dsh-workspace/types').WorkspaceId
+        readonly cwd?: string
+      }) => Promise<{ readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId }>
+      prompt: (request: {
+        readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId
+        readonly requestId: import('@deepseek-ai/dsh-api-session-controller').SessionRequestId
+        readonly mode: 'queue' | 'steer'
+        readonly content: readonly { readonly type: 'text'; readonly text: string }[]
+      }, signal: AbortSignal) => Promise<{ readonly accepted: true }>
       resolveAgent: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<
         | { readonly agent: import('@deepseek-ai/dsh-agent').Agent }
         | { readonly error: { readonly message: string } }

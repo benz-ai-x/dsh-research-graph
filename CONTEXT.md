@@ -4,6 +4,8 @@ Session Graph helps a person understand, navigate, arrange, and branch the linea
 
 Research Topics are separate Host-owned collections of references. The plugin owns their names, membership, and arrangements; it does not take ownership of the Sessions those references address.
 
+Knowledge Cards are Host-owned, editable research results with immutable revisions and retained discussion sources. They participate in Topic Graphs without becoming Sessions or creating Session Lineage.
+
 ## Language
 
 ### Scope
@@ -100,6 +102,34 @@ _Avoid_: Session Cluster, neighborhood
 
 ### Arrangement and discovery
 
+**Knowledge Card**:
+A durable identity for a conclusion, method, hypothesis, or question on one Host. Its latest revision is searchable by title and body; membership in Research Topics is explicit and independent of source directories. Removing membership, Reset, or layout cleanup does not delete the card.
+_Avoid_: Session Digest, Canvas Session, copied session
+
+**Card Revision**:
+One immutable saved version of a Knowledge Card's text, type, draft/confirmed status, and sources. Editing appends a revision; retrying the identical save identity is idempotent. Historical references retain the addressed revision even after later edits.
+_Avoid_: Mutable draft, Session Snapshot, latest content
+
+**Knowledge Source**:
+A Discussion Source captured by the Host at exact completed turn boundaries when a Card Revision is saved. It retains Session identity, display labels, event boundaries, dates, and readable user/assistant excerpts. Original reading prefers those exact boundaries and clearly distinguishes retained excerpts when the original is unavailable.
+_Avoid_: Verified conclusion, tool evidence, similar text
+
+**Source Relation**:
+A directed provenance link from an addressed Session to a Knowledge Card. Its saved revision records the precise Knowledge Sources. It does not create a Branch or Merge Relation, add model context, or imply that the source is a member of the Research Topic.
+_Avoid_: Branch, Merge Relation, Topic Reference
+
+**Extraction Snapshot**:
+The Host-retained selection and exact included direct discussion text shown before an explicit AI extraction. A character budget admits only whole completed turns and lists omitted ranges. Generated drafts and corrected citations can address this frozen material across Host restart; the snapshot does not itself create a Knowledge Card or claim that its statements are true.
+_Avoid_: Full-session summary, verified tool evidence, saved card
+
+**Research Material**:
+An explicitly selected saved Card Revision or one complete Discussion Turn, frozen for a new discussion. A card contributes its own content and source labels; original discussion must be selected separately. One new discussion uses one to three ordered materials within the visible message budget.
+_Avoid_: Whole Research Topic, inherited context, Session Snapshot
+
+**Reuse Relation**:
+A durable provenance record from selected Research Materials to an independent target Session, created only after Harness acknowledges native prompt admission. It retains the exact material, versions, boundaries and message shown in preview. Prepared and created attempts recover uncertain submissions without claiming usage. Admission does not mean the model has answered.
+_Avoid_: Branch, Merge Relation, generated answer, preview
+
 **Research Topic**:
 A named collection with a stable identity on one Host, containing references to Sessions across Workspaces. One Session can belong to several topics. Topic membership and arrangement survive Host restart without changing Session ownership, archive state, lineage, or model context.
 _Avoid_: Workspace, Session Cluster, merged context
@@ -111,6 +141,12 @@ _Avoid_: Session Snapshot, copied discussion, knowledge card
 **Topic Graph**:
 The projection of a Research Topic's references, including archived and unavailable sources. It shows only Branch and Merge relations supported by Harness facts. Being visible here does not make a source a Canvas Session in a Workspace Scope.
 _Avoid_: Global graph, Workspace Scope, Session Cluster
+
+**Research Export**:
+A standalone Markdown artifact from an explicit set of saved Knowledge Card revisions. Preview freezes the latest selected revisions and their retained source ranges; download uses exactly those bytes. Original availability is checked and annotated without replacing saved excerpts. An export never creates knowledge, sends model context, or changes Session history.
+
+**Working Position**:
+Browser-local presentation for a persistent Host and explicit graph scope: viewport, selected identity, valid Original cursor/scroll, search conditions, and unsaved topic arrangement. It contains no source excerpts or authoritative knowledge. Restored search conditions trigger fresh reads. Opening a different Viewed Session never implicitly selects an old Research Topic.
 
 **Session Arrangement**:
 The placement and collapse choices a person applies to one graph scope; they change presentation only, never Session Lineage or activity. Each Workspace Scope owns a separate Session Arrangement even when Workspaces share a directory, while a Directory Scope owns the arrangement for its directory. Each Research Topic owns a separately saved arrangement in Host storage; Reset and Relayout affect presentation, not its Topic References.

@@ -38,6 +38,8 @@ import type { SessionMergeProjection } from './session-merge-projection.ts'
 import { SessionGraphHistoryService } from './session-history-host.ts'
 import { SessionGraphSearchService } from './session-search-host.ts'
 import { ResearchTopicsService, RESEARCH_TOPIC_DOMAIN } from './research-topics-host.ts'
+import { KnowledgeService, KNOWLEDGE_DOMAIN } from './knowledge-host.ts'
+import { ResearchReuseService, RESEARCH_REUSE_DOMAIN } from './research-reuse-host.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -46,6 +48,8 @@ declare module '@deepseek-ai/cordis' {
     sessionGraphHistory: SessionGraphHistoryService
     sessionGraphSearch: SessionGraphSearchService
     sessionGraphTopics: ResearchTopicsService
+    sessionGraphKnowledge: KnowledgeService
+    sessionGraphReuse: ResearchReuseService
   }
 }
 
@@ -316,6 +320,24 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
         serviceCtx => new ResearchTopicsService(serviceCtx, domain),
         'session-graph.topics-service',
       )
+    } catch (error) {
+      await domain.close()
+      throw error
+    }
+  })
+  await ctx.inject(['storageDomain', 'sessionQuery', 'sessionGraphTopics'], async knowledgeCtx => {
+    const domain = await knowledgeCtx.storageDomain.open(KNOWLEDGE_DOMAIN)
+    try {
+      await provideQuiescentRemoteService(knowledgeCtx, serviceCtx => new KnowledgeService(serviceCtx, domain, resolvedConfig), 'session-graph.knowledge-service')
+    } catch (error) {
+      await domain.close()
+      throw error
+    }
+  })
+  await ctx.inject(['storageDomain', 'sessionGraphKnowledge', 'workspaceRegistry', 'sessionQuery'], async reuseCtx => {
+    const domain = await reuseCtx.storageDomain.open(RESEARCH_REUSE_DOMAIN)
+    try {
+      await provideQuiescentRemoteService(reuseCtx, serviceCtx => new ResearchReuseService(serviceCtx, domain), 'session-graph.reuse-service')
     } catch (error) {
       await domain.close()
       throw error

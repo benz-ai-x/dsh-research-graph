@@ -21,6 +21,7 @@ interface ViewDefinition {
   readonly id: string
   readonly label: () => string
   readonly inject: () => {
+    readonly hostId: string
     readonly openSession: (id: string) => void
     readonly branchSession: (id: string) => Promise<void>
     readonly generateSessionDigest: (
@@ -39,7 +40,7 @@ interface ViewDefinition {
 interface FakeContext {
   inject: (
     services: readonly string[],
-    apply: (ctx: FakeContext) => void,
+    apply: (ctx: FakeContext) => void | Promise<void>,
   ) => Promise<void> & { dispose: () => Promise<void> }
   effect: (install: () => unknown, label: string) => void
   locale: {
@@ -75,6 +76,9 @@ interface FakeContext {
     }
     sessionGraphMerge: {
       submit: (request: unknown, signal: AbortSignal) => Promise<unknown>
+    }
+    sessionGraphKnowledge: {
+      hostIdentity: (signal: AbortSignal) => Promise<unknown>
     }
   }
 }
@@ -165,10 +169,10 @@ describe('tsdown client artifact', () => {
             $mount: mountRemote,
             sessionGraphDigest: digestRemote,
             sessionGraphMerge: mergeRemote,
+            sessionGraphKnowledge: { hostIdentity: async () => ({ ok: true, value: { hostId: 'host-one' } }) },
           },
         }
-        apply(injectedCtx)
-        const fiber = Promise.resolve() as Promise<void> & { dispose: () => Promise<void> }
+        const fiber = Promise.resolve(apply(injectedCtx)) as Promise<void> & { dispose: () => Promise<void> }
         fiber.dispose = async () => {
           for (const dispose of uiDisposers.reverse()) await dispose()
         }
@@ -254,6 +258,9 @@ describe('tsdown client artifact', () => {
         get sessionGraphMerge() {
           throw new Error('cannot get property "remote.sessionGraphMerge" without inject')
         },
+        get sessionGraphKnowledge() {
+          throw new Error('cannot get property "remote.sessionGraphKnowledge" without inject')
+        },
       },
     }
 
@@ -263,10 +270,12 @@ describe('tsdown client artifact', () => {
       'slots', 'sessions', 'workspaces', 'locale',
       'remote.sessionGraphDigest', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
       'remote.sessionGraphSearch', 'remote.sessionGraphTopics',
+      'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse',
     ]])
     expect(views).toHaveLength(1)
     expect(views[0]).toMatchObject({ name: 'conversation.view', id: 'graph' })
     expect(views[0]?.label()).toBe('Graph')
+    expect(views[0]?.inject().hostId).toBe('host-one')
     await views[0]?.inject().branchSession('source')
     expect(forkRequests).toEqual([{ sessionId: 'source', increaseTitle: true }])
     const controller = new AbortController()

@@ -17,13 +17,21 @@ import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-in
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { DiscussionSearch } from './DiscussionSearch.tsx'
 import { ResearchTopics } from './ResearchTopics.tsx'
+import { KnowledgeProvider, useKnowledge } from './Knowledge.tsx'
+import type { KnowledgeApi } from './knowledge-remote.ts'
+import { ResearchReuseEntry, ResearchReuseProvider } from './ResearchReuse.tsx'
+import type { ResearchReuseApi } from './research-reuse-remote.ts'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
 import { layoutSessionGraph } from './layout.ts'
 import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
+import { workingPositionKey } from './working-position.ts'
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  readonly hostId: string
+  readonly reuse: ResearchReuseApi
+  readonly knowledge: KnowledgeApi
   topics: {
     readonly list: (signal: AbortSignal) => Promise<readonly ResearchTopic[]>
     readonly read: (request: { readonly topicId: string }, signal: AbortSignal) => Promise<ResearchTopicSnapshot>
@@ -68,10 +76,21 @@ export type GraphViewProps =
  * @param props - the composed view props (standard kit, inject face, locale seat).
  * @returns the tab body element.
  */
-export function GraphView({
+export function GraphView(props: GraphViewProps): ReactElement {
+  const workspaces = props.useWorkspaces(state => state)
+  return <div className={styles.knowledgeBoundary}><ResearchReuseProvider key={props.sessionId} api={props.reuse}
+    workspaces={workspaces.items} viewedId={props.sessionId} openSession={props.openSession} t={props.t}>
+    <KnowledgeProvider api={props.knowledge}
+    topics={props.topics} read={props.readSessionHistory} t={props.t}>
+    <GraphViewBody {...props} />
+  </KnowledgeProvider></ResearchReuseProvider></div>
+}
+
+function GraphViewBody({
   sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
-  openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, t,
+  hostId, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, reuse, t,
 }: GraphViewProps): ReactElement {
+  const knowledgeContext = useKnowledge()
   const sessions = useSessions(state => state)
   const pendingInteractions = useSessionPendingInteraction(state => state)
   const workspaces = useWorkspaces(state => state)
@@ -101,6 +120,8 @@ export function GraphView({
   const laid = useMemo(() => layoutSessionGraph(graph), [graph])
 
   const now = Date.now()
+  const workingKey = workingPositionKey(hostId, scope?.arrangement.key ?? `viewed:${sessionId}`)
+  const searchKey = topicMode ? workingPositionKey(hostId, workingKey, knowledgeContext?.topicId ?? 'topic-list') : workingKey
 
   return (
     // The free canvas owns its viewport. Extend the view behind the floating
@@ -110,6 +131,7 @@ export function GraphView({
         ref={element => { if (element !== null) element.inert = searchOpen || adding !== undefined }}>
         <div className={styles.header}>
           <button className={styles.searchEntry} type="button" ref={searchButton} onClick={() => { setSearchOpen(true) }}>{t('search.open')}</button>
+          <ResearchReuseEntry t={t} />
           <button className={styles.searchEntry} type="button" aria-pressed={topicMode}
             onClick={() => { setTopicMode(value => !value) }}>{t(topicMode ? 'topic.back' : 'topic.title')}</button>
           <span className={styles.count}>
@@ -128,13 +150,13 @@ export function GraphView({
             {SESSION_GRAPH_BUILD_LABEL}
           </span>
         </div>
-        {topicMode ? <ResearchTopics api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
-          actions: { topics, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
+        {topicMode ? <ResearchTopics key={workingKey} api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
+          workingKey, actions: { hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas
-          laid={laid}
+          key={workingKey} workingKey={workingKey} laid={laid}
           clusters={graph.clusters}
-          arrangement={scope.arrangement}
+          arrangement={{ key: workingKey, legacyKey: undefined }}
           now={now}
           t={t}
           onOpen={openSession}
@@ -147,8 +169,8 @@ export function GraphView({
         />}
       </div>
       {searchOpen ? <div className={styles.searchLayer} aria-hidden={adding !== undefined || undefined}
-        ref={element => { if (element !== null) element.inert = adding !== undefined }}><DiscussionSearch key={sessionId}
-        initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
+        ref={element => { if (element !== null) element.inert = adding !== undefined }}><DiscussionSearch key={searchKey}
+        workingKey={searchKey} initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
         workspaces={workspaces.items} search={searchDiscussion} read={readSessionHistory} open={openSession} t={t}
         onAddToTopic={addToTopic}
         onClose={() => { setSearchOpen(false); queueMicrotask(() => { searchButton.current?.focus() }) }} /></div> : null}

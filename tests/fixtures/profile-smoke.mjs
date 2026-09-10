@@ -1,18 +1,30 @@
 /** Real profile acceptance: replace only model transport, retain the complete Host. */
 import assert from 'node:assert/strict'
-import { writeFile, rename } from 'node:fs/promises'
+import { writeFile, rename, mkdir } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionPersistence', 'typertGateway']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
 
 export function apply(ctx) {
   let calls = 0
+  const modelRequests = []
   class FixtureAdapter extends LlmAdapter {
     async *stream(options) {
       options.signal?.throwIfAborted()
       calls += 1
+      modelRequests.push({ sessionId: options.sessionId, messages: options.messages })
+      if (options.system?.startsWith('Extract up to five')) {
+        const material = JSON.parse(options.messages[0].content[0].text)
+        yield { type: 'text-delta', index: 0, text: JSON.stringify({ cards: [{ title: 'Packed AI draft', question: 'What is supported?',
+          conclusion: 'Only included discussion is supported.', rationale: '', openQuestions: 'Verify the claim.', kind: 'hypothesis',
+          citations: [{ startSeq: material.turns[0].startSeq, endSeq: material.turns[0].endSeq }] }] }) }
+        yield { type: 'finish', reason: { kind: 'stop' } }
+        return
+      }
       const text = options.system?.startsWith('Create a concise digest')
         ? JSON.stringify({ overview: 'Fixture digest.', keyOutcomes: ['Fixture completed.'], openItems: [] })
         : 'Fixture response.'
@@ -53,6 +65,13 @@ export function apply(ctx) {
     assert.equal(history.kind, 'original')
     assert.equal(history.sessionId, sourceIds[1])
     assert.equal(history.turns.length, 1)
+    const restoredRange = await ctx.typertGateway.invoke({
+      namespace: 'sessionGraphHistory', method: 'read',
+      args: { request: { sessionId: sourceIds[1], range: {
+        startSeq: history.turns[0].startSeq, endSeq: history.turns[0].endSeq,
+      } } }, signal,
+    })
+    assert.deepEqual(restoredRange, history)
     assert.deepEqual(history.turns[0].messages.map(message => [message.role, message.text]), [
       ['user', secondPrompt], ['assistant', 'Fixture response.'],
     ])
@@ -96,6 +115,53 @@ export function apply(ctx) {
     assert.equal(digest.kind, 'ready')
     assert.equal(digest.digest.overview, 'Fixture digest.')
     sourceIds.forEach((id, index) => assert.deepEqual(ctx.agents.get(id).session.snapshotEvents(), before[index]))
+    const knowledge = (method, request) => ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method, args: { request }, signal })
+    const reuse = (method, request) => ctx.typertGateway.invoke({ namespace: 'sessionGraphReuse', method, args: { request }, signal })
+    const cardRequest = { cardId: randomUUID(), revisionId: randomUUID(), topicId,
+      content: { title: 'Packed card', question: '', conclusion: 'Fixed original card revision.', rationale: '', openQuestions: '', kind: 'method', status: 'confirmed' },
+      sources: [{ kind: 'discussion', sessionId: sourceIds[1], startSeq: history.turns[0].startSeq, endSeq: history.turns[0].endSeq }] }
+    const callsBeforeCard = calls
+    const card = await knowledge('save', cardRequest)
+    assert.equal(calls, callsBeforeCard)
+    const exportPreview = await knowledge('prepareExport', { cardIds: [card.cardId] })
+    assert.ok(exportPreview.markdown.includes('Fixed original card revision.'))
+    assert.ok(exportPreview.markdown.includes(secondPrompt))
+    assert.equal(calls, callsBeforeCard)
+    const extractedSource = await knowledge('prepareExtraction', { source: cardRequest.sources[0], budgetChars: 20_000 })
+    const drafts = await knowledge('extract', { preparationId: extractedSource.preparationId, provider: 'graph-fixture', model: 'fixture' })
+    assert.equal(drafts.drafts[0].content.status, 'draft')
+    assert.equal(drafts.drafts[0].invalidCitations, 0)
+    assert.equal(drafts.drafts[0].sources.length, 1)
+    const targetPath = join(process.cwd(), 'research-target')
+    await mkdir(targetPath, { recursive: true })
+    const targetWorkspace = await ctx.workspaceRegistry.create(targetPath, 'Reuse target')
+    await ctx.agentDefaultModel.saveSelection({ provider: 'graph-fixture', model: 'fixture' })
+    const firstHistory = await ctx.sessionGraphHistory.read({ sessionId: sourceIds[0] }, signal)
+    const preview = await reuse('prepare', { operationId: randomUUID(), workspaceId: targetWorkspace.id, question: 'Continue using these explicit materials.', materials: [
+      { kind: 'card', cardId: card.cardId, revisionId: card.revisions[0].revisionId },
+      { kind: 'turn', sessionId: sourceIds[0], startSeq: firstHistory.turns[0].startSeq, endSeq: firstHistory.turns[0].endSeq },
+    ] })
+    assert.equal(preview.stage, 'prepared')
+    assert.deepEqual(await reuse('read', { operationId: preview.operationId }), preview)
+    assert.deepEqual(await reuse('forSession', { sessionId: preview.targetSessionId }), [])
+    await knowledge('save', { ...cardRequest, revisionId: randomUUID(), content: { ...cardRequest.content, conclusion: 'Later card revision must not replace the preview.' } })
+    assert.ok(!exportPreview.markdown.includes('Later card revision'))
+    assert.ok((await knowledge('prepareExport', { cardIds: [card.cardId] })).markdown.includes('Later card revision'))
+    const sent = await reuse('submit', { operationId: preview.operationId })
+    assert.equal(sent.stage, 'accepted', sent.error)
+    const reused = await waitForTurn(sent.targetSessionId)
+    assert.equal(reused.header.cwd, targetWorkspace.path)
+    assert.equal(reused.header.parentSession, undefined)
+    const exact = modelRequests.filter(request => request.sessionId === sent.targetSessionId)
+    assert.ok(exact.length > 0)
+    assert.ok(exact.some(request => request.messages.some(message => message.role === 'user'
+      && message.content.some(part => part.type === 'text' && part.text === preview.promptText))))
+    assert.ok(!preview.promptText.includes(secondPrompt), 'card selection must not add its original discussion')
+    assert.ok(!preview.promptText.includes('Later card revision'))
+    await reuse('submit', { operationId: preview.operationId })
+    assert.equal(reused.snapshotEvents().filter(event => event.type === 'user/message' && event.data.source.rpcId === sent.requestId).length, 1)
+    assert.equal((await reuse('forSession', { sessionId: sent.targetSessionId }))[0].promptText, preview.promptText)
+    sourceIds.forEach((id, index) => assert.deepEqual(ctx.agents.get(id).session.snapshotEvents(), before[index]))
     const reader = await ctx.sessionPersistence.open(targetSessionId, 'read')
     assert.ok(reader)
     try {
@@ -105,7 +171,8 @@ export function apply(ctx) {
       await reader.close()
     }
     assert.ok(calls >= 4)
-    return { ok: true, sources: sourceIds.length, durableTopics: true, durableMerge: true, readonlyDigest: true, readonlyHistory: true, readonlySearch: true, fixtureModelCalls: calls }
+    return { ok: true, sources: sourceIds.length, durableTopics: true, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
+      acceptedReuse: true, frozenMarkdown: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {
