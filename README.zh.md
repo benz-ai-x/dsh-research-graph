@@ -37,7 +37,7 @@ Branch 连接的 Canvas Session 组成可移动会话簇，Merge Session 保留�
 ## 快速开始
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1
+dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-rc.1
 dsh web
 ```
 
@@ -47,11 +47,12 @@ dsh web
 
 | Session Graph | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
+| [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
 | [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 
-从当前适配开始，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-alpha.1` 对应插件 `0.1.5-alpha.1`。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
+在与 DSH 对齐的发布线上，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-rc.1` 对应插件 `0.1.5-rc.1`。下文介绍的研究工作流随本次 RC 发布；已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
 
 本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
@@ -112,7 +113,7 @@ dsh web
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1
+dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-rc.1
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -127,7 +128,7 @@ dsh --profile web --dump-config
 <summary>从固定 GitHub tag 安装源码</summary>
 
 ```sh
-dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5-alpha.1
+dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5-rc.1
 ```
 
 profile 显式授权前，pnpm 会阻止 git 依赖执行 `prepare` 脚本。首次 GitHub 安装会以 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` 退出；把 dsh 打印的完整键复制到 `$DSH_HOME/profiles/web/pnpm-workspace.yaml` 的 `allowBuilds` 下，再次执行命令。这项权限允许包代码在 agent 沙箱之外执行，因此应先检查源码，并继续锁定该 tag 或 commit。
@@ -208,7 +209,7 @@ Viewed Session 的图范围身份变化时（例如目录变为具名工作区�
 <a id="enable-discussion-search"></a>
 ### 启用讨论搜索
 
-DSH `0.1.5-alpha.1` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
+DSH `0.1.5-rc.1` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
 
 ```yaml
 - id: session-query-sqlite
