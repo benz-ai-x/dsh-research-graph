@@ -10,6 +10,7 @@ import styles from './GraphView.module.css'
 import { KnowledgeExtraction } from './KnowledgeExtraction.tsx'
 import type { ExtractionDraft, ExtractionPreparation } from '../knowledge-extraction.ts'
 import { useResearchReuse } from './ResearchReuse.tsx'
+import { KnowledgeExport, type ExportChoice } from './KnowledgeExport.tsx'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 interface KnowledgeContextValue {
@@ -20,6 +21,7 @@ interface KnowledgeContextValue {
   readonly create: (source?: KnowledgeDiscussionAddress) => void
   readonly open: (cardId: string) => void
   readonly extract: (source: KnowledgeDiscussionAddress) => void
+  readonly exportCards: (cards: readonly ExportChoice[]) => void
 }
 const KnowledgeContext = createContext<KnowledgeContextValue | undefined>(undefined)
 export function useKnowledge(): KnowledgeContextValue | undefined { return useContext(KnowledgeContext) }
@@ -33,6 +35,8 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
   readonly children: ReactNode
 }): ReactElement {
   const [dialog, setDialog] = useState<{ readonly cardId?: string; readonly source?: KnowledgeDiscussionAddress; readonly extraction?: KnowledgeDiscussionAddress }>()
+  const [exporting, setExporting] = useState<readonly ExportChoice[]>()
+  const exportTrigger = useRef<HTMLElement>()
   const [refresh, setRefresh] = useState(0)
   const [topicId, selectTopic] = useState<string>()
   const trigger = useRef<HTMLElement>()
@@ -44,21 +48,38 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
     setDialog(undefined)
     queueMicrotask(() => { trigger.current?.focus() })
   }
+  const closeExport = (): void => {
+    setExporting(undefined)
+    queueMicrotask(() => { exportTrigger.current?.focus() })
+  }
+  const title = dialog?.extraction !== undefined ? 'extract.title' : 'knowledge.title'
   return <KnowledgeContext.Provider value={{ api, refresh, topicId, selectTopic,
     create: source => { open(source === undefined ? {} : { source }) }, open: cardId => { open({ cardId }) },
-    extract: extraction => { open({ extraction }) } }}>
-    <div className={styles.knowledgeRoot} aria-hidden={dialog !== undefined || undefined}
-      ref={element => { if (element !== null) element.inert = dialog !== undefined }}>{children}</div>
-    {dialog === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal="true" aria-label={t(dialog.extraction === undefined ? 'knowledge.title' : 'extract.title')}
+    extract: extraction => { open({ extraction }) }, exportCards: cards => {
+      if (document.activeElement instanceof HTMLElement) exportTrigger.current = document.activeElement
+      setExporting(cards)
+    } }}>
+    <div className={styles.knowledgeRoot} aria-hidden={dialog !== undefined || exporting !== undefined || undefined}
+      ref={element => { if (element !== null) element.inert = dialog !== undefined || exporting !== undefined }}>{children}</div>
+    {dialog === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal={exporting === undefined} aria-label={t(title)}
+      aria-hidden={exporting !== undefined || undefined} ref={element => { if (element !== null) element.inert = exporting !== undefined }}
       onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); close() }
         retainDialogFocus(event)
       }}>
-      <div className={styles.searchHeader}><h2>{t(dialog.extraction === undefined ? 'knowledge.title' : 'extract.title')}</h2><button type="button" autoFocus onClick={close}>{t('knowledge.close')}</button></div>
+      <div className={styles.searchHeader}><h2>{t(title)}</h2><button type="button" autoFocus onClick={close}>{t('knowledge.close')}</button></div>
       {dialog.extraction === undefined ? <KnowledgeEditor key={dialog.cardId ?? 'new'} cardId={dialog.cardId} source={dialog.source} topicId={topicId}
         api={api} topics={topics} read={read} t={t} close={close} changed={() => { setRefresh(value => value + 1) }} />
         : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} t={t}
           changed={() => { setRefresh(value => value + 1) }} />}
+    </section>}
+    {exporting === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal="true" aria-label={t('export.title')}
+      onKeyDown={event => {
+        if (event.key === 'Escape') { event.stopPropagation(); closeExport() }
+        retainDialogFocus(event)
+      }}>
+      <div className={styles.searchHeader}><h2>{t('export.title')}</h2><button type="button" autoFocus onClick={closeExport}>{t('export.close')}</button></div>
+      <KnowledgeExport cards={exporting} api={api} t={t} />
     </section>}
   </KnowledgeContext.Provider>
 }
@@ -83,6 +104,7 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
 }): ReactElement {
   const [identity] = useState(() => cardId ?? draft?.cardId ?? crypto.randomUUID())
   const reuse = useResearchReuse()
+  const knowledge = useKnowledge()
   const [card, setCard] = useState<KnowledgeCard>()
   const [version, setVersion] = useState('')
   const [content, setContent] = useState<KnowledgeContent>(draft?.content ?? EMPTY_CONTENT)
@@ -216,6 +238,9 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
             reuse.add({ kind: 'card', cardId: identity, revisionId: revision.revisionId },
               `${revision.content.title} · ${t('knowledge.versionNumber', { number: revision.number })}`)
           }}>{t('reuse.addCard')}</button>}
+          {knowledge === undefined ? null : <button type="button" onClick={() => {
+            knowledge.exportCards([{ cardId: identity, title: revision.content.title }])
+          }}>{t('export.title')}</button>}
           {selectedTopic === '' ? null : <button type="button" disabled={busy} onClick={() => {
             void commit(signal => api.membership({ cardId: identity, topicId: selectedTopic, attached: !card!.topicIds.includes(selectedTopic) }, signal))
           }}>{t(card!.topicIds.includes(selectedTopic) ? 'knowledge.detach' : 'knowledge.attach')}</button>}</div>

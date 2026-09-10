@@ -49,6 +49,51 @@ import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
+describe('Markdown export in the registered Graph', () => {
+  it('previews selected cards, retries failure, and downloads the frozen text until another preview', async () => {
+    const b = await bench({ a: session('a') })
+    const card = (cardId: string, title: string): KnowledgeCard => ({ cardId, topicIds: ['topic-a'], revisions: [{
+      revisionId: `revision-${cardId}`, requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: { title, question: '', conclusion: '结论', rationale: '', openQuestions: '', kind: 'conclusion', status: 'draft' }, sources: [],
+    }] })
+    const cards = [card('card-a', '成果 A'), card('card-b', '成果 B')]
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: cards })
+    b.listTopics.mockResolvedValue({ ok: true, value: [{ topicId: 'topic-a', title: '导出主题', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic: { topicId: 'topic-a', title: '导出主题', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }, sources: [] } })
+    const frozen = { filename: '成果A.md', markdown: '# 成果 A\n\n第一版\n', cards: [{ cardId: 'card-a', revisionId: 'revision-one', number: 1, title: '成果 A' }] }
+    b.prepareExport.mockRejectedValueOnce(new Error('Storage temporarily unavailable'))
+    b.prepareExport.mockResolvedValue({ ok: true, value: frozen })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="card:card-a"]')).not.toBeNull() })
+    fireEvent.click(screen.getByRole('button', { name: '导出 Markdown' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '成果 B' }))
+    expect(b.prepareExport).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown' }))
+    await screen.findByText('Storage temporarily unavailable')
+    expect((screen.getByRole('button', { name: '下载 Markdown' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown' }))
+    await waitFor(() => { expect((screen.getByRole('textbox', { name: 'Markdown 预览' }) as HTMLTextAreaElement).value).toBe(frozen.markdown) })
+    expect(b.prepareExport).toHaveBeenLastCalledWith({ cardIds: ['card-a'] }, expect.any(AbortSignal))
+    const objectUrl = vi.fn((_blob: Blob) => 'blob:export-preview')
+    vi.stubGlobal('URL', class extends URL { static createObjectURL = objectUrl; static revokeObjectURL = vi.fn() })
+    let filename = ''
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () { filename = this.download })
+    b.prepareExport.mockResolvedValue({ ok: true, value: { ...frozen, markdown: '# 成果 A\n\n第二版\n' } })
+    fireEvent.click(screen.getByRole('button', { name: '下载 Markdown' }))
+    expect(filename).toBe(frozen.filename)
+    const blob = objectUrl.mock.calls[0]![0] as Blob
+    const text = await new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => { resolve(String(reader.result)) }; reader.readAsText(blob) })
+    expect(text).toBe(frozen.markdown)
+    expect(b.prepareExport).toHaveBeenCalledTimes(2)
+    fireEvent.click(screen.getByRole('button', { name: '预览 Markdown' }))
+    await waitFor(() => { expect((screen.getByRole('textbox', { name: 'Markdown 预览' }) as HTMLTextAreaElement).value).toContain('第二版') })
+    expect(b.saveKnowledge).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+  })
+})
+
 describe('Working position in the registered Graph', () => {
   it('restores an explicitly reopened topic and its unsaved arrangement, then returns to the list if it disappeared', async () => {
     const fixture = researchTopicFixture()
@@ -320,6 +365,10 @@ describe('Knowledge Cards registered Graph workflow', () => {
     expect(b.saveKnowledge.mock.calls[1]![0]).toEqual(b.saveKnowledge.mock.calls[0]![0])
     expect(b.saveKnowledge.mock.calls[0]![0]).toMatchObject({ sources: [{ kind: 'discussion', sessionId: 'a', startSeq: 10, endSeq: 14 }] })
     expect(within(dialog).getByText('保留精确轮次')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: '导出 Markdown' }))
+    expect(within(screen.getByRole('dialog', { name: '导出 Markdown' })).getByRole('checkbox', { name: '证据方法' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '关闭导出' }))
+    expect(within(screen.getByRole('dialog', { name: '知识卡片' })).getByText('保留精确轮次')).toBeTruthy()
     fireEvent.click(within(dialog).getByRole('button', { name: '查看来源原文' }))
     await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'a', source: { startSeq: 10, endSeq: 14, turns: [turn] } }, expect.any(AbortSignal)) })
     expect(b.open).not.toHaveBeenCalled()
@@ -772,6 +821,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const readKnowledge = vi.fn(async () => ({ ok: true as const, value: null as KnowledgeCard | null }))
   const membershipKnowledge = vi.fn()
   const prepareExtraction = vi.fn<TypertRemoteMap['sessionGraphKnowledge/prepareExtraction']>()
+  const prepareExport = vi.fn<TypertRemoteMap['sessionGraphKnowledge/prepareExport']>()
   const extractKnowledge = vi.fn<TypertRemoteMap['sessionGraphKnowledge/extract']>()
   const prepareReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/prepare']>()
   const submitReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/submit']>()
@@ -840,7 +890,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
   ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
     hostIdentity: async () => ({ ok: true, value: { hostId } }),
-    membership: membershipKnowledge, prepareExtraction, extract: extractKnowledge } as never)
+    membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
   ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
@@ -850,7 +900,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   return {
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
-    prepareExtraction, extractKnowledge,
+    prepareExtraction, extractKnowledge, prepareExport,
     prepareReuse, submitReuse, readReuse, sessionReuse,
   }
 }

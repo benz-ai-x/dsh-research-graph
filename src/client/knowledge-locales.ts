@@ -1,4 +1,9 @@
 export const knowledgeZh = {
+  'export.title': '导出 Markdown', 'export.close': '关闭导出', 'export.choose': '选择导出的卡片',
+  'export.preview': '预览 Markdown', 'export.download': '下载 Markdown', 'export.markdown': 'Markdown 预览',
+  'export.hint': '选择 1–50 张卡片，预览将读取它们最新的已保存修订及来源摘录。文件最多 8 MB，不调用模型。',
+  'export.frozen': '下载使用本次预览；重新预览才读取更新后的修订。',
+  'export.error': '导出失败，可保留选择后重试。', 'export.loading': '正在准备导出…',
   'extract.title': '提炼知识', 'extract.preview': '预览纳入材料', 'extract.budget': '材料字符预算',
   'extract.selected': '所选范围', 'extract.included': '实际纳入范围', 'extract.omitted': '省略的轮次',
   'extract.noneOmitted': '所选范围全部纳入', 'extract.provider': '模型提供方', 'extract.model': '模型',
@@ -30,6 +35,11 @@ export const knowledgeZh = {
 } as const
 export type KnowledgeKey = keyof typeof knowledgeZh
 export const knowledgeEn: Record<KnowledgeKey, string> = {
+  'export.title': 'Export Markdown', 'export.close': 'Close export', 'export.choose': 'Choose cards to export',
+  'export.preview': 'Preview Markdown', 'export.download': 'Download Markdown', 'export.markdown': 'Markdown preview',
+  'export.hint': 'Select 1–50 cards. Preview reads their latest saved revisions and retained source excerpts. Files are limited to 8 MB. No model is called.',
+  'export.frozen': 'Download uses this preview. Preview again to read updated revisions.',
+  'export.error': 'Export failed. Your selection is kept for retry.', 'export.loading': 'Preparing export…',
   'extract.title': 'Extract knowledge', 'extract.preview': 'Preview included material', 'extract.budget': 'Material character budget',
   'extract.selected': 'Selected range', 'extract.included': 'Included range', 'extract.omitted': 'Omitted turns',
   'extract.noneOmitted': 'Entire selected range included', 'extract.provider': 'Model provider', 'extract.model': 'Model',

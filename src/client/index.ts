@@ -147,6 +147,11 @@ async function registerUi(ctx: Context): Promise<void> {
         },
       },
       knowledge: {
+        prepareExport: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.prepareExport(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
         prepareExtraction: async (request, signal) => {
           const result = await ctx.remote.sessionGraphKnowledge.prepareExtraction(request, signal)
           if (!result.ok) throw new Error(result.error.message)

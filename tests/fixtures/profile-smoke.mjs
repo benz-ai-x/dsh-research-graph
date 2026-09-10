@@ -116,6 +116,10 @@ export function apply(ctx) {
     const callsBeforeCard = calls
     const card = await knowledge('save', cardRequest)
     assert.equal(calls, callsBeforeCard)
+    const exportPreview = await knowledge('prepareExport', { cardIds: [card.cardId] })
+    assert.ok(exportPreview.markdown.includes('Fixed original card revision.'))
+    assert.ok(exportPreview.markdown.includes(secondPrompt))
+    assert.equal(calls, callsBeforeCard)
     const extractedSource = await knowledge('prepareExtraction', { source: cardRequest.sources[0], budgetChars: 20_000 })
     const drafts = await knowledge('extract', { preparationId: extractedSource.preparationId, provider: 'graph-fixture', model: 'fixture' })
     assert.equal(drafts.drafts[0].content.status, 'draft')
@@ -131,6 +135,8 @@ export function apply(ctx) {
     assert.equal(preview.stage, 'prepared')
     assert.deepEqual(await reuse('forSession', { sessionId: preview.targetSessionId }), [])
     await knowledge('save', { ...cardRequest, revisionId: randomUUID(), content: { ...cardRequest.content, conclusion: 'Later card revision must not replace the preview.' } })
+    assert.ok(!exportPreview.markdown.includes('Later card revision'))
+    assert.ok((await knowledge('prepareExport', { cardIds: [card.cardId] })).markdown.includes('Later card revision'))
     const sent = await reuse('submit', { operationId: preview.operationId })
     assert.equal(sent.stage, 'accepted', sent.error)
     const reused = await waitForTurn(sent.targetSessionId)
@@ -156,7 +162,7 @@ export function apply(ctx) {
     }
     assert.ok(calls >= 4)
     return { ok: true, sources: sourceIds.length, durableTopics: true, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
-      acceptedReuse: true, readonlyDigest: true, readonlyHistory: true, readonlySearch: true, fixtureModelCalls: calls }
+      acceptedReuse: true, frozenMarkdown: true, readonlyDigest: true, readonlyHistory: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {

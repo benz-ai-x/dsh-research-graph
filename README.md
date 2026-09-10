@@ -157,6 +157,12 @@ Open a non-blank session and choose **Graph** beside the standard conversation t
 
 Keyboard shortcuts work while the canvas is focused: `+` and `-` zoom, `0` restores 100%, and `1` fits the graph.
 
+## Export research as Markdown
+
+Choose **Export Markdown** on a saved card or Research Topic, select 1–50 cards, then **Preview Markdown**. The Host reads the selected cards' latest saved revisions and freezes their content and exact source ranges. **Download Markdown** writes the same preview bytes; later edits only appear after another preview. Unsaved card edits are not exported, and opening or closing export preserves the current card/extraction editor.
+
+The standalone file contains questions, conclusions, reasons, open questions, kind/status, revision identities and times, readable discussion excerpts with Session identities/titles/times, and a source relation list. Missing/unreadable originals, incomplete ranges, and originals differing from saved sources are marked explicitly. Excerpts cover only selected ranges. Chinese text, multiline content, and embedded code fences are retained. Export calls no model and changes no source records. Files are limited to 8 MB; failures preserve the selection for retry.
+
 ## Return to your working position
 
 Reopen Graph to restore its pan, zoom, arrangement, selected material, and valid Original page/scroll position. Reopening search restores the conditions and queries the Host again; results are never cached as working state. Missing selections are cleared with a notice while the valid viewport stays in place. A missing topic returns to the topic list.

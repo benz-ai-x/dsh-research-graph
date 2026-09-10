@@ -142,6 +142,9 @@ _Avoid_: Session Snapshot, copied discussion, knowledge card
 The projection of a Research Topic's references, including archived and unavailable sources. It shows only Branch and Merge relations supported by Harness facts. Being visible here does not make a source a Canvas Session in a Workspace Scope.
 _Avoid_: Global graph, Workspace Scope, Session Cluster
 
+**Research Export**:
+A standalone Markdown artifact from an explicit set of saved Knowledge Card revisions. Preview freezes the latest selected revisions and their retained source ranges; download uses exactly those bytes. Original availability is checked and annotated without replacing saved excerpts. An export never creates knowledge, sends model context, or changes Session history.
+
 **Working Position**:
 Browser-local presentation for a persistent Host and explicit graph scope: viewport, selected identity, valid Original cursor/scroll, search conditions, and unsaved topic arrangement. It contains no source excerpts or authoritative knowledge. Restored search conditions trigger fresh reads. Opening a different Viewed Session never implicitly selects an old Research Topic.
 

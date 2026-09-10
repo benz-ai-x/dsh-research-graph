@@ -5,8 +5,11 @@ import { knowledgeCardSchema, knowledgeListSchema, knowledgeMembershipSchema, kn
 import { extractionPreparationRequestSchema, extractionRequestSchema } from '../knowledge-codec.ts'
 import { extractionPreparationSchema, extractionResultSchema } from '../knowledge-extraction-codec.ts'
 import type { ExtractionPreparation, ExtractionPreparationRequest, ExtractionRequest, ExtractionResult } from '../knowledge-extraction.ts'
+import type { KnowledgeExportRequest, KnowledgeExportResult } from '../knowledge-export.ts'
+import { knowledgeExportRequestSchema, knowledgeExportResultSchema } from '../knowledge-export-codec.ts'
 
 export interface KnowledgeApi {
+  readonly prepareExport: (request: KnowledgeExportRequest, signal: AbortSignal) => Promise<KnowledgeExportResult>
   readonly prepareExtraction: (request: ExtractionPreparationRequest, signal: AbortSignal) => Promise<ExtractionPreparation>
   readonly extract: (request: ExtractionRequest, signal: AbortSignal) => Promise<ExtractionResult>
   readonly read: (request: { readonly cardId: string }, signal: AbortSignal) => Promise<KnowledgeCard | null>
@@ -17,6 +20,7 @@ export interface KnowledgeApi {
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteMap {
+    'sessionGraphKnowledge/prepareExport': (request: KnowledgeExportRequest, signal?: AbortSignal) => Promise<RemoteResult<KnowledgeExportResult>>
     'sessionGraphKnowledge/hostIdentity': (signal?: AbortSignal) => Promise<RemoteResult<{ readonly hostId: string }>>
     'sessionGraphKnowledge/prepareExtraction': (request: ExtractionPreparationRequest, signal?: AbortSignal) => Promise<RemoteResult<ExtractionPreparation>>
     'sessionGraphKnowledge/extract': (request: ExtractionRequest, signal?: AbortSignal) => Promise<RemoteResult<ExtractionResult>>
@@ -27,6 +31,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   }
   interface TypertRemoteNamespaceMap {
     sessionGraphKnowledge: {
+      prepareExport: TypertRemoteMap['sessionGraphKnowledge/prepareExport']
       hostIdentity: TypertRemoteMap['sessionGraphKnowledge/hostIdentity']
       prepareExtraction: TypertRemoteMap['sessionGraphKnowledge/prepareExtraction']
       extract: TypertRemoteMap['sessionGraphKnowledge/extract']
@@ -42,6 +47,7 @@ const PACKAGE_NAME = '@benz-ai-x/dsh-client-ui-session-graph'
 export const KNOWLEDGE_REMOTE: TypertRemoteContribution = {
   package: PACKAGE_NAME,
   descriptors: [
+    { method: 'prepareExport', request: knowledgeExportRequestSchema, result: knowledgeExportResultSchema },
     { method: 'hostIdentity', request: undefined, result: knowledgeHostIdentitySchema },
     { method: 'prepareExtraction', request: extractionPreparationRequestSchema, result: extractionPreparationSchema },
     { method: 'extract', request: extractionRequestSchema, result: extractionResultSchema },

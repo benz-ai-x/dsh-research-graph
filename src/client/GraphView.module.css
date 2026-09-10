@@ -1409,6 +1409,23 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.exportChoices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.exportPreview {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 320px;
+  resize: vertical;
+  font: 12px/1.6 monospace;
+}
+
 .historyIdentity {
   overflow-wrap: anywhere;
   font-size: 11px;

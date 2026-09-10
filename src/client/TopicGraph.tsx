@@ -84,6 +84,9 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     <div className={styles.topicControls}><button type="button" disabled={phase === 'loading'}
       onClick={() => { setRevision(value => value + 1) }}>{t('topic.refresh')}</button>
       <button type="button" onClick={() => { knowledge.create() }}>{t('knowledge.new')}</button>
+      <button type="button" disabled={phase !== 'ready' || cards.length === 0} onClick={() => {
+        knowledge.exportCards(cards.map(card => ({ cardId: card.cardId, title: card.revisions.at(-1)!.content.title })))
+      }}>{t('export.title')}</button>
       {cards.length > 0 ? <span>{t('knowledge.sourceRelation')}</span> : null}</div>
     {phase === 'loading' ? <div className={styles.topicControls} role="status">{t('topic.loading')} <button type="button" onClick={() => {
       active.current?.abort()
@@ -106,6 +109,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
             <h3>{node.title}</h3><p className={styles.historyText}>{node.card.revisions.at(-1)!.content.conclusion}</p>
             <p>{t('knowledge.versionNumber', { number: node.card.revisions.at(-1)!.number })} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</p>
             <button type="button" onClick={() => { knowledge.open(node.card.cardId) }}>{t('knowledge.edit')}</button>
+            <button type="button" onClick={() => { knowledge.exportCards([{ cardId: node.card.cardId, title: node.title }]) }}>{t('export.title')}</button>
           </aside> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
             busy={busy} onClose={onClose} t={t} /> }} />}

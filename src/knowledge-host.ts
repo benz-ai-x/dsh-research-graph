@@ -13,6 +13,9 @@ import { knowledgeCardSchema, knowledgeMembershipSchema, knowledgeReadSchema, kn
   extractionPreparationRequestSchema, extractionRequestSchema, knowledgeContentSchema } from './knowledge-codec.ts'
 import { readKnowledgeDiscussion } from './knowledge-discussion.ts'
 import { extractionPreparationSchema } from './knowledge-extraction-codec.ts'
+import { discussionTurns } from './session-discussion.ts'
+import { renderKnowledgeExport, type ExportCard, type ExportSourceStatus, type KnowledgeExportRequest, type KnowledgeExportResult } from './knowledge-export.ts'
+import { knowledgeExportRequestSchema } from './knowledge-export-codec.ts'
 
 const cardStorageSchema: z.ZodType<KnowledgeCard> = z.unknown().transform((value, context) => {
   try { return knowledgeCardSchema.parse(value) } catch {
@@ -57,6 +60,46 @@ export class KnowledgeService extends TypertRemoteService {
       })
       this.tail = operation.then(() => {}, () => {})
       return operation
+    })
+  }
+
+  @Remote('prepareExport')
+  prepareExport(request: KnowledgeExportRequest, signal: AbortSignal): Promise<KnowledgeExportResult> {
+    return this.run(signal, async combined => {
+      const command = knowledgeExportRequestSchema.parse(request)
+      let size = 0
+      // Freeze every selected revision before the first asynchronous source read.
+      const selected = command.cardIds.map(cardId => {
+        const revision = this.domain.table('cards').get(cardId)?.revisions.at(-1)
+        if (revision === undefined) throw new Error(`Knowledge Card ${cardId} is unavailable`)
+        size += Buffer.byteLength(JSON.stringify(revision), 'utf8')
+        if (size > 8_000_000) throw new Error('Export exceeds 8 MB; select fewer cards')
+        return { cardId, revision }
+      })
+      const reading = AbortSignal.any([combined, AbortSignal.timeout(this.config.timeoutMs)])
+      const cards: ExportCard[] = []
+      for (const card of selected) {
+        const sourceStatuses: ExportSourceStatus[] = []
+        for (const source of card.revision.sources) {
+          let snapshot: Awaited<ReturnType<Context['sessionController']['inspect']>>
+          try { snapshot = await this.ctx.sessionController.inspect(source.sessionId as SessionId, reading) } catch {
+            reading.throwIfAborted()
+            sourceStatuses.push('unavailable')
+            continue
+          }
+          reading.throwIfAborted()
+          const turns = discussionTurns(snapshot.events)
+          const start = turns.findIndex(turn => turn.startSeq === source.source.startSeq)
+          const end = turns.findIndex(turn => turn.endSeq === source.source.endSeq)
+          sourceStatuses.push(start < 0 || end < start || turns.slice(start, end + 1).some(turn => turn.endSeq === null) ? 'incomplete'
+            : JSON.stringify(turns.slice(start, end + 1)) === JSON.stringify(source.source.turns) ? 'available' : 'changed')
+        }
+        cards.push({ ...card, sourceStatuses })
+      }
+      const result = renderKnowledgeExport(cards)
+      if (Buffer.byteLength(result.markdown, 'utf8') > 8_000_000) throw new Error('Export exceeds 8 MB; select fewer cards')
+      reading.throwIfAborted()
+      return result
     })
   }
 
