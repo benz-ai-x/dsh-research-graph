@@ -123,6 +123,7 @@
 
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   flex: none;
@@ -1619,6 +1620,11 @@
   flex-direction: column;
   gap: 6px;
   margin-bottom: 10px;
+}
+
+.knowledgeBody label:has(> input[type='checkbox']) {
+  flex-direction: row;
+  align-items: center;
 }
 
 .knowledgeBody input, .knowledgeBody textarea, .knowledgeBody select {
