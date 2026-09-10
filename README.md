@@ -175,6 +175,8 @@ The standalone file contains questions, conclusions, reasons, open questions, ki
 
 Reopen Graph to restore its pan, zoom, arrangement, selected material, and valid Original page/scroll position. Reopening search restores the conditions and queries the Host again; results are never cached as working state. Missing selections are cleared with a dismissible notice while the valid viewport stays in place, including when the last card leaves a topic empty. A missing topic returns to the topic list.
 
+Source nodes contributed by Knowledge Cards also resume their last valid Original position. Clicking a source inside a card still opens that revision's exact saved range. If restoring a topic's Original fails to connect, its retained excerpt remains available; retry restores the saved scroll only after the original is verified.
+
 Presentation state belongs to the same browser and is isolated by persistent Host identity, Workspace identity (even when directories match) or Directory Scope, and topic identity. A newly Viewed Session still opens its own scope; choose **Research Topics** explicitly to return to a remembered topic. Reset and Relayout retain their existing meaning and do not delete saved knowledge, sources, or reuse receipts. Clearing browser storage loses working positions and unsaved arrangements, while Host records remain available. Older arrangements without a Host identity are left untouched and are not automatically assigned to the current Host.
 
 ## Organize Research Topics

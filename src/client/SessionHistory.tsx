@@ -10,11 +10,13 @@ import { useResearchReuse } from './ResearchReuse.tsx'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, workingKey, onUnavailable, read, t }: {
+export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t }: {
   readonly sessionId: string
   readonly anchorSeq?: number
   readonly highlightSeq?: number
   readonly source?: SessionDiscussionSource
+  /** Topic provenance is a fallback; an explicitly opened source still wins. */
+  readonly retainedSource?: SessionDiscussionSource
   readonly workingKey?: string | undefined
   readonly onUnavailable?: (() => void) | undefined
   readonly read: GraphViewInjected['readSessionHistory']
@@ -22,16 +24,21 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, wor
 }): ReactElement {
   const knowledge = useKnowledge()
   const reuse = useResearchReuse()
-  const [result, setResult] = useState<SessionHistoryResult | undefined>(() => source === undefined ? undefined : {
-    kind: 'excerpt', sessionId, turns: source.turns, hasEarlier: false, hasLater: false,
+  const [result, setResult] = useState<SessionHistoryResult | undefined>(() => {
+    const excerpt = source ?? retainedSource
+    return excerpt === undefined ? undefined : {
+      kind: 'excerpt', sessionId, turns: excerpt.turns, hasEarlier: false, hasLater: false,
+    }
   })
   const element = useRef<HTMLElement>(null)
   const initialScroll = useRef(anchorSeq === undefined && source === undefined ? loadWorkingPosition(workingKey).historyScroll?.[sessionId] : undefined)
   const unavailable = useRef(onUnavailable)
   unavailable.current = onUnavailable
   const [request, setRequest] = useState<SessionHistoryRequest>(() => {
+    if (source !== undefined) return { sessionId, source }
     const anchor = anchorSeq ?? loadWorkingPosition(workingKey).history?.[sessionId]
-    return { sessionId, ...(source !== undefined ? { source } : anchor === undefined ? {} : { anchorSeq: anchor }) }
+    if (anchor !== undefined) return { sessionId, anchorSeq: anchor }
+    return { sessionId, ...(retainedSource === undefined ? {} : { source: retainedSource }) }
   })
   const [loading, setLoading] = useState(true)
   const [selection, setSelection] = useState<SessionDiscussionSource>()
@@ -73,7 +80,7 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, wor
     return () => { controller.abort() }
   }, [request, read])
   useLayoutEffect(() => {
-    if (loading || result === undefined) return
+    if (loading || result?.kind !== 'original') return
     const panel = element.current?.closest<HTMLElement>('[data-working-scroll]')
     if (panel == null) return
     if (initialScroll.current !== undefined) {

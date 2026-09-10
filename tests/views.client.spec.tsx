@@ -43,6 +43,8 @@ import packageMetadata from '../package.json'
 import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { knowledgeContent, knowledgeSource } from './fixtures/knowledge-client.ts'
+import { loadWorkingPosition, workingPositionKey } from '../src/client/working-position.ts'
 import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
 import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
 import type { ResearchReuseRecord } from '../src/research-reuse.ts'
@@ -95,6 +97,75 @@ describe('Markdown export in the registered Graph', () => {
 })
 
 describe('Working position in the registered Graph', () => {
+  it.each(['available', 'transport failure', 'missing'] as const)('restores a card source Original after reopening its topic: %s', async outcome => {
+    const source = knowledgeSource()
+    const b = await bench({ 'session-a': session('session-a') })
+    const topic = { topicId: 'source-topic', title: '来源研究', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    const card: KnowledgeCard = { cardId: 'source-card', topicIds: [topic.topicId], revisions: [{
+      revisionId: 'source-revision', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: knowledgeContent(), sources: [source],
+    }] }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+    b.readKnowledge.mockResolvedValue({ ok: true, value: card })
+    b.readHistory.mockImplementation(async request => {
+      const later = request.anchorSeq === 20 || request.afterSeq === 10
+      return { ok: true, value: { kind: 'original', sessionId: source.sessionId,
+        turns: knowledgeSource(later ? 2 : 1).source.turns, hasEarlier: later, hasLater: !later } }
+    })
+    const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
+    mount(b.slots, b.sessionsStore, 'session-a')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="card:source-card"]')).not.toBeNull() })
+    fireEvent.click(nodeButton('session-a'))
+    fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+    await screen.findByText('原文 1')
+    fireEvent.click(screen.getByRole('button', { name: '加载更晚的讨论' }))
+    await screen.findByText('原文 2')
+    screen.getByTestId('topic-source-panel').scrollTop = 160
+    fireEvent.scroll(screen.getByTestId('topic-source-panel'))
+    expect(loadWorkingPosition(key)).toMatchObject({ selected: 'session-a', tab: 'history',
+      history: { 'session-a': 20 }, historyScroll: { 'session-a': 160 } })
+    switchTab('Chat')
+    if (outcome === 'transport failure') b.readHistory.mockRejectedValueOnce(new Error('Connection lost'))
+    if (outcome === 'missing') b.readHistory.mockResolvedValueOnce({ ok: true, value: {
+      kind: 'unavailable', sessionId: source.sessionId, turns: [], hasEarlier: false, hasLater: false,
+    } })
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', anchorSeq: 20 }, expect.any(AbortSignal)) })
+    if (outcome === 'missing') {
+      await screen.findByText(zh['position.unavailable'])
+      expect(screen.queryByTestId('topic-source-panel')).toBeNull()
+      expect(loadWorkingPosition(key)).toMatchObject({ selected: null, history: {}, historyScroll: {} })
+      b.readHistory.mockResolvedValueOnce({ ok: true, value: { kind: 'excerpt', sessionId: source.sessionId,
+        turns: source.source.turns, hasEarlier: false, hasLater: false } })
+      fireEvent.click(nodeButton('session-a'))
+      fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+      await screen.findByText(zh['history.excerptHint'])
+      expect(screen.getByText('原文 1')).toBeTruthy()
+      expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', source: source.source }, expect.any(AbortSignal))
+    } else {
+      if (outcome === 'transport failure') {
+        await screen.findByRole('alert')
+        expect(screen.getByText('原文 1')).toBeTruthy()
+        expect(screen.getByText(zh['history.excerpt'])).toBeTruthy()
+        expect(loadWorkingPosition(key).historyScroll?.['session-a']).toBe(160)
+        fireEvent.click(screen.getByRole('button', { name: '重试读取' }))
+      }
+      await screen.findByText('原文 2')
+      expect(screen.getByTestId('topic-source-panel').scrollTop).toBe(160)
+      fireEvent.doubleClick(document.querySelector('[data-node-kind="knowledge"]')!)
+      const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
+      fireEvent.click(await within(dialog).findByRole('button', { name: '查看来源原文' }))
+      await within(within(dialog).getByRole('region', { name: '讨论原文' })).findByText('原文 1')
+      expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', source: source.source }, expect.any(AbortSignal))
+    }
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
   it('restores an explicitly reopened topic and its unsaved arrangement, then returns to the list if it disappeared', async () => {
     const fixture = researchTopicFixture()
     const a = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }

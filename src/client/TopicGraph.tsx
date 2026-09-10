@@ -145,6 +145,6 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailab
       <button type="button" className={styles.panelSecondaryAction} onClick={() => { setReading(value => !value) }}>{t(reading ? 'topic.closeOriginal' : 'topic.readOriginal')}</button>
       {remove === undefined ? null : <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>}
     </div>
-    {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { source: node.retainedSource })} read={read} t={t} /> : null}
+    {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { retainedSource: node.retainedSource })} read={read} t={t} /> : null}
   </aside>
 }
