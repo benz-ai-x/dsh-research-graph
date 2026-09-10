@@ -43,8 +43,84 @@ import packageMetadata from '../package.json'
 import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
 
 const id = (value: string): SessionId => value as SessionId
+
+describe('Knowledge Cards registered Graph workflow', () => {
+  it('finds a card through the shared search entry and draws an explicit source relation in its topic', async () => {
+    const b = await bench({ a: session('a') })
+    const fixture = researchTopicFixture()
+    const topic = fixture.a.topic
+    const card: KnowledgeCard = { cardId: 'card-one', topicIds: [topic.topicId], revisions: [{
+      revisionId: 'revision-one', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
+      content: { title: '可重用的方法', question: '', conclusion: '先核验来源', rationale: '', openQuestions: '', kind: 'method', status: 'draft' },
+      sources: [{ sessionId: 'a', title: 'A', source: { startSeq: 10, endSeq: 14,
+        turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user', seq: 11, text: '证据' }] }] } }],
+    }] }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: fixture.a })
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+    b.readKnowledge.mockResolvedValue({ ok: true, value: card })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-kind="knowledge"]')).not.toBeNull() })
+    expect(document.querySelectorAll('[data-edge-kind="source"]')).toHaveLength(1)
+    fireEvent.doubleClick(document.querySelector('[data-node-kind="knowledge"]')!)
+    expect(b.open).not.toHaveBeenCalled()
+    const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
+    await within(dialog).findByText('先核验来源')
+    fireEvent.click(within(dialog).getByRole('button', { name: '关闭卡片' }))
+    fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '搜索内容' }), { target: { value: 'knowledge' } })
+    fireEvent.change(screen.getByRole('textbox', { name: '关键词' }), { target: { value: '方法' } })
+    fireEvent.click(screen.getByRole('button', { name: '搜索知识卡片' }))
+    await screen.findByRole('button', { name: /可重用的方法/ })
+    expect(b.searchDiscussion).not.toHaveBeenCalled()
+    expect(b.searchKnowledge).toHaveBeenLastCalledWith({ query: '方法' }, expect.any(AbortSignal))
+  })
+  it('retains an edited draft after a failed save and retries the same card before reading the saved source', async () => {
+    const b = await bench({ a: session('a') })
+    const turn = { turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000,
+      messages: [{ role: 'user' as const, seq: 11, text: '需要保存的讨论' }] }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: [turn], hasEarlier: false, hasLater: false } })
+    b.saveKnowledge.mockRejectedValueOnce(new Error('Connection failed'))
+    b.saveKnowledge.mockImplementationOnce(async request => ({ ok: true, value: {
+      cardId: request.cardId, topicIds: [], revisions: [{ revisionId: request.revisionId, requestHash: 'a'.repeat(64),
+        number: 1, savedAt: 1000, content: request.content,
+        sources: [{ sessionId: 'a', title: 'Source A', source: { startSeq: 10, endSeq: 14, turns: [turn] } }],
+      }],
+    } }))
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存为知识卡片' }))
+    const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '卡片标题' }), { target: { value: '证据方法' } })
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '结论' }), { target: { value: '保留精确轮次' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存修订' }))
+    await within(dialog).findByRole('alert')
+    expect((within(dialog).getByRole('textbox', { name: '结论' }) as HTMLTextAreaElement).value).toBe('保留精确轮次')
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存修订' }))
+    await within(dialog).findByRole('button', { name: '编辑卡片' })
+    expect(b.saveKnowledge.mock.calls[1]![0]).toEqual(b.saveKnowledge.mock.calls[0]![0])
+    expect(b.saveKnowledge.mock.calls[0]![0]).toMatchObject({ sources: [{ kind: 'discussion', sessionId: 'a', startSeq: 10, endSeq: 14 }] })
+    expect(within(dialog).getByText('保留精确轮次')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: '查看来源原文' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'a', source: { startSeq: 10, endSeq: 14, turns: [turn] } }, expect.any(AbortSignal)) })
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '编辑卡片' }))
+    fireEvent.change(within(dialog).getByRole('textbox', { name: '结论' }), { target: { value: '丢弃的修改' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '放弃编辑' }))
+    expect(within(dialog).getByText('保留精确轮次')).toBeTruthy()
+    expect(within(dialog).queryByText('丢弃的修改')).toBeNull()
+    expect(b.saveKnowledge).toHaveBeenCalledTimes(2)
+  })
+})
 
 describe('Research Topics registered Graph workflow', () => {
   describe('creation with an uncertain response', () => {
@@ -480,6 +556,10 @@ const tConversation: ConversationSessionHeaderProps['t'] =
 async function bench(byId: Record<string, SessionSummary>) {
   const ctx = new Context()
   const slots = new SlotRegistry(ctx)
+  const saveKnowledge = vi.fn<(request: KnowledgeSave, signal?: AbortSignal) => Promise<{ ok: true; value: KnowledgeCard }>>()
+  const searchKnowledge = vi.fn(async () => ({ ok: true as const, value: [] as readonly KnowledgeCard[] }))
+  const readKnowledge = vi.fn(async () => ({ ok: true as const, value: null as KnowledgeCard | null }))
+  const membershipKnowledge = vi.fn()
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
   const fork = vi.fn(async () => id('branched'))
@@ -541,6 +621,7 @@ async function bench(byId: Record<string, SessionSummary>) {
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
+  ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge, membership: membershipKnowledge } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -548,7 +629,7 @@ async function bench(byId: Record<string, SessionSummary>) {
   await fiber
   return {
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
-    listTopics, readTopic, writeTopic,
+    listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
   }
 }
 

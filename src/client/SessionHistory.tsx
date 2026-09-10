@@ -5,17 +5,21 @@ import type {
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
 import styles from './GraphView.module.css'
+import { useKnowledge } from './Knowledge.tsx'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sessionId, anchorSeq, highlightSeq, read, t }: {
+export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, read, t }: {
   readonly sessionId: string
   readonly anchorSeq?: number
   readonly highlightSeq?: number
+  readonly source?: SessionDiscussionSource
   readonly read: GraphViewInjected['readSessionHistory']
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
+  const knowledge = useKnowledge()
   const [result, setResult] = useState<SessionHistoryResult>()
-  const [request, setRequest] = useState<SessionHistoryRequest>({ sessionId, ...(anchorSeq === undefined ? {} : { anchorSeq }) })
+  const [request, setRequest] = useState<SessionHistoryRequest>({ sessionId,
+    ...(source !== undefined ? { source } : anchorSeq === undefined ? {} : { anchorSeq }) })
   const [loading, setLoading] = useState(true)
   const [selection, setSelection] = useState<SessionDiscussionSource>()
   const [failed, setFailed] = useState(false)
@@ -104,6 +108,9 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, read, t }: 
           <strong>{t('history.selected', { first: selection.turns[0]?.turn, last: selection.turns.at(-1)?.turn })}</strong>
           <div className={styles.historyIdentity}>{t('history.boundary', { start: selection.startSeq, end: selection.endSeq })}</div>
           <button type="button" disabled={loading} onClick={() => { setRequest({ sessionId, source: selection }) }}>{t('history.review')}</button>
+          {knowledge === undefined ? null : <button type="button" disabled={loading || result?.kind !== 'original'} onClick={() => {
+            knowledge.create({ kind: 'discussion', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq })
+          }}>{t('knowledge.create')}</button>}
           <button type="button" onClick={() => {
             setSelection(undefined)
             setIncompleteRange(false)

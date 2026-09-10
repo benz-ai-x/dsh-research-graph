@@ -1,0 +1,13 @@
+# Keep Knowledge Cards and their revisions in Host storage
+
+Issue #6 adds editable Knowledge Cards alongside Research Topic Session references. The `session_graph_knowledge` domain stores one atomic record per card. Browser cache is presentation data; deleting it cannot erase cards, their immutable revisions, source excerpts, or topic memberships.
+
+Each save carries a stable card identity and a distinct revision identity. The Host serializes writes, normalizes and hashes the command, and checks an existing revision before reading its sources. Repeating the same save returns the current card without appending a revision or restoring removed membership. Reusing a revision identity for a different command fails. After an uncertain response, the editor retains the card identity; an amended draft uses a new revision identity. Card creation and its optional initial topic membership share one durable write.
+
+The Host resolves discussion addresses against actual completed Harness turns. It captures only direct user/assistant discussion; it does not request a model, mutate Session logs, or overwrite Session Digests. Retained sources can be reused by addressing a saved card revision and source index, so editing still works after the original disappears. Each save permits up to 32 sources and 4 MB of source JSON; over-limit selections fail without silent cropping. Invalid durable data fails visibly.
+
+Membership belongs to the card identity, separately from revision content. Search uses latest card titles and bodies across the connected Host or an explicit topic. It never derives card scope from a source directory. Membership writes preserve every revision; topic layout operations do not access the card domain.
+
+Topic Graphs now contain a discriminated union of Session and Knowledge nodes. Card node identities are namespaced, and Session navigation, Branch, and Merge actions require a Session node. Source Relations have their own edge kind and visual style. A source outside explicit topic membership can appear as a provenance endpoint; removing a Topic Reference does not erase the source recorded by a card. The card inspector reads saved revisions and opens exact source ranges with retained-excerpt fallback.
+
+Public validation uses real Host storage and Gateway invocations, plus the registered Graph view. It covers durable reopen, immutable edits, same-save retries, changed-command rejection, source loss, detach/search/reattach, editor failure recovery, source navigation, mixed nodes and typed edges. Batch #6–#10 consolidates full Harness, browser and packed-profile acceptance at delivery, as requested by the maintainer.

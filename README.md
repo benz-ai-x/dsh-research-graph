@@ -55,6 +55,14 @@ From this adaptation onward, the plugin version exactly matches its target DSH v
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
+## Knowledge Cards
+
+In **Graph → Original**, select completed turns and choose **Save as Knowledge Card**. Edit the title, question, conclusion, reasons/conditions, open questions, type and draft/confirmed status; optionally choose a Research Topic. Manual creation does not call a model or change the source Session. You can also create a card from the topic controls or the Knowledge Cards search tab.
+
+Cards appear in topic graphs with a distinct Source Relation. Open a card to inspect any saved revision, read its retained excerpt, or check the exact original turns. Unavailable originals remain clearly labelled as retained excerpts. Edits append immutable revisions; a failed save preserves the draft, and retrying it does not create another card. Discarding edits returns to saved content.
+
+Use the existing discussion search entry and choose **Knowledge Cards** to search card titles and bodies across this Host or the selected topic. Topic membership is independent of source directories. Removing a card from a topic preserves its content, revisions and sources; search can find and reattach it. Cards live in Host storage and survive browser-cache clearing and Host restart. Reset and Relayout only affect presentation. Each save supports up to 32 sources and 4 MB of source text JSON; reduce the selected range if it exceeds that limit.
+
 ## What it adds
 
 | Capability | What you get |

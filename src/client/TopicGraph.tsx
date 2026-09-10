@@ -4,7 +4,8 @@ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controlle
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ResearchTopic, ResearchTopicSnapshot } from '../research-topic.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
-import type { GraphNode } from './graph-model.ts'
+import type { SessionGraphNode } from './graph-model.ts'
+import type { KnowledgeCard } from '../knowledge.ts'
 import type { LayoutState } from './layout-store.ts'
 import type { SessionGraphKey } from './locales.ts'
 import { deriveTopicGraph } from './graph-model.ts'
@@ -12,6 +13,8 @@ import { layoutSessionGraph } from './layout.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import styles from './GraphView.module.css'
+import { useKnowledge } from './Knowledge.tsx'
+import { withKnowledgeCards } from './knowledge-graph.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
@@ -33,24 +36,29 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   readonly busy: boolean
   readonly t: Translate
 }): ReactElement {
+  const knowledge = useKnowledge()!
+  const [cards, setCards] = useState<readonly KnowledgeCard[]>([])
   const [snapshot, setSnapshot] = useState<ResearchTopicSnapshot>()
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error' | 'canceled'>('loading')
   const [revision, setRevision] = useState(0)
   const active = useRef<AbortController>()
   const membership = JSON.stringify(topic.references.map(reference => reference.sessionId))
   const read = context.actions.topics.read
+  const searchCards = knowledge.api.search
   useEffect(() => {
     const controller = new AbortController()
     active.current = controller
     setPhase('loading')
     setSnapshot(undefined)
-    void read({ topicId: topic.topicId }, controller.signal).then(value => {
+    void Promise.all([read({ topicId: topic.topicId }, controller.signal),
+      searchCards({ query: '', topicId: topic.topicId }, controller.signal)]).then(([value, found]) => {
       if (controller.signal.aborted) return
       setSnapshot(value)
+      setCards(found)
       setPhase('ready')
     }, () => { if (!controller.signal.aborted) setPhase('error') })
     return () => { controller.abort() }
-  }, [topic.topicId, membership, read, revision])
+  }, [topic.topicId, membership, read, searchCards, revision, knowledge.refresh])
   const graph = useMemo(() => {
     if (snapshot === undefined) return undefined
     const archived = new Set<string>(context.workspaces.archivedSessionIds)
@@ -62,8 +70,8 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         ...source.workspace, title: workspaceTitles.get(source.workspace.id) || source.workspace.title,
       } }),
     }))
-    return deriveTopicGraph({ sources, topic }, context.sessions, context.viewedId, context.pendingInteractions)
-  }, [snapshot, topic, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions])
+    return withKnowledgeCards(deriveTopicGraph({ sources, topic }, context.sessions, context.viewedId, context.pendingInteractions), cards, context.sessions, archived)
+  }, [snapshot, topic, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions, cards])
   const laid = useMemo(() => graph === undefined ? undefined : layoutSessionGraph(graph), [graph])
   const open = (id: SessionId): void => {
     const source = graph?.nodes.get(id)?.topicSource
@@ -71,7 +79,9 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   }
   return <div className={styles.topicGraph}>
     <div className={styles.topicControls}><button type="button" disabled={phase === 'loading'}
-      onClick={() => { setRevision(value => value + 1) }}>{t('topic.refresh')}</button></div>
+      onClick={() => { setRevision(value => value + 1) }}>{t('topic.refresh')}</button>
+      <button type="button" onClick={() => { knowledge.create() }}>{t('knowledge.new')}</button>
+      {cards.length > 0 ? <span>{t('knowledge.sourceRelation')}</span> : null}</div>
     {phase === 'loading' ? <div className={styles.topicControls} role="status">{t('topic.loading')} <button type="button" onClick={() => {
       active.current?.abort()
       setPhase('canceled')
@@ -86,17 +96,24 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
-        topic={{ arrangement, onArrange, renderInspector: (node, onClose) => node === undefined ? null
-          : <TopicSourcePanel key={node.id} node={node} read={context.actions.readSessionHistory} open={open}
-            remove={() => { remove(node.id) }} busy={busy} onClose={onClose} t={t} /> }} />}
+        topic={{ arrangement, onArrange, openCard: knowledge.open, renderInspector: (node, onClose) => node === undefined ? null
+          : node.kind === 'knowledge' ? <aside className={`${styles.panel} ${styles.topicSourcePanel}`} data-canvas-overlay="" aria-label={t('knowledge.title')}>
+            <div className={styles.panelHeader}><strong>{t('knowledge.title')}</strong>
+              <button type="button" onClick={onClose} aria-label={t('panel.close')}>×</button></div>
+            <h3>{node.title}</h3><p className={styles.historyText}>{node.card.revisions.at(-1)!.content.conclusion}</p>
+            <p>{t('knowledge.versionNumber', { number: node.card.revisions.at(-1)!.number })} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</p>
+            <button type="button" onClick={() => { knowledge.open(node.card.cardId) }}>{t('knowledge.edit')}</button>
+          </aside> : <TopicSourcePanel key={node.id} node={node} read={context.actions.readSessionHistory} open={open}
+            remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
+            busy={busy} onClose={onClose} t={t} /> }} />}
   </div>
 }
 
 function TopicSourcePanel({ node, read, open, remove, busy, onClose, t }: {
-  readonly node: GraphNode
+  readonly node: SessionGraphNode
   readonly read: GraphViewInjected['readSessionHistory']
   readonly open: GraphViewInjected['openSession']
-  readonly remove: () => void
+  readonly remove: (() => void) | undefined
   readonly busy: boolean
   readonly onClose: () => void
   readonly t: Translate
@@ -115,8 +132,8 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, t }: {
     <div className={styles.panelActions}>
       <button type="button" className={styles.panelPrimaryAction} onClick={() => { open(node.id) }} disabled={source?.status !== 'listed' || source.archived}>{t('panel.open')}</button>
       <button type="button" className={styles.panelSecondaryAction} onClick={() => { setReading(value => !value) }}>{t(reading ? 'topic.closeOriginal' : 'topic.readOriginal')}</button>
-      <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>
+      {remove === undefined ? null : <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>}
     </div>
-    {reading ? <SessionHistory sessionId={node.id} read={read} t={t} /> : null}
+    {reading ? <SessionHistory sessionId={node.id} {...(node.retainedSource === undefined ? {} : { source: node.retainedSource })} read={read} t={t} /> : null}
   </aside>
 }

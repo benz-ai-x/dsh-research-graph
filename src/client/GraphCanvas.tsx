@@ -17,7 +17,7 @@ import type { SessionDigest } from '../session-digest.ts'
 import { SessionHistory } from './SessionHistory.tsx'
 import { containsSessionReferenceUri } from '../session-merge.ts'
 import { CLUSTER_COLORS } from './clusters.ts'
-import type { ClusterInfo, DisplayStatus, GraphNode } from './graph-model.ts'
+import type { ClusterInfo, DisplayStatus, GraphNode, SessionGraphNode } from './graph-model.ts'
 import { branchLineage, matchFilter } from './graph-model.ts'
 import {
   CARD_H, NODE_W, type ContentBounds, type LaidOutGraph, type LaidOutNode,
@@ -175,6 +175,7 @@ function NodeCard({
         className={clsx(
           styles.node,
           styles.sessionNode,
+          node.kind === 'knowledge' ? styles.knowledgeNode : null,
           selected ? styles.nodeSelected : null,
           mergeOrder === undefined ? null : styles.nodeMergeSelected,
           node.displayStatus === 'waiting-input' ? styles.nodePending : null,
@@ -183,6 +184,7 @@ function NodeCard({
         )}
         style={{ left: `${x}px`, top: `${y}px` }}
         data-node-id={key}
+        data-node-kind={node.kind ?? 'session'}
         data-display-status={node.displayStatus}
         data-merge-selected={mergeOrder}
         aria-current={node.viewed ? 'true' : undefined}
@@ -205,6 +207,7 @@ function NodeCard({
             {node.blank ? t('node.newSession') : node.title}
           </span>
           <span className={styles.nodeMeta}>
+            {node.kind === 'knowledge' ? <span>{t('knowledge.title')} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</span> : null}
             <span className={clsx(styles.time, node.topicSource === undefined ? null : styles.topicSourceLabel)}
               title={node.topicSource?.workspace?.title || node.topicSource?.cwd}>{node.topicSource === undefined ? timeLabel(node.updatedAt, now, t)
               : node.topicSource.workspace?.title || node.topicSource.cwd || t('topic.noWorkspace')}</span>
@@ -230,14 +233,14 @@ function NodeCard({
       <span
         className={clsx(styles.nodePort, dimClass)}
         style={{ left: `${x + NODE_W / 2}px`, top: `${y}px` }}
-        data-session-port="input"
+        data-session-port={node.kind === 'knowledge' ? undefined : 'input'}
         data-port-id={`${key}:input`}
         aria-hidden="true"
       />
       <span
         className={clsx(styles.nodePort, dimClass)}
         style={{ left: `${x + NODE_W / 2}px`, top: `${y + CARD_H}px` }}
-        data-session-port="output"
+        data-session-port={node.kind === 'knowledge' ? undefined : 'output'}
         data-port-id={`${key}:output`}
         aria-hidden="true"
       />
@@ -463,7 +466,7 @@ function DigestSection({
 function SelectedSessionPanel({
   node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose, onAddToTopic,
 }: {
-  node: GraphNode | undefined
+  node: SessionGraphNode | undefined
   branchedFrom: string | undefined
   mergeSourceTitles: ReadonlyMap<string, string>
   now: number
@@ -846,6 +849,7 @@ export function GraphCanvas({
     readonly arrangement: LayoutState
     readonly onArrange: (state: LayoutState) => void
     readonly renderInspector: (node: GraphNode | undefined, onClose: () => void) => ReactElement | null
+    readonly openCard?: (cardId: string) => void
   }
 }): ReactElement {
   const surfaceRef = useRef<HTMLDivElement | null>(null)
@@ -908,7 +912,7 @@ export function GraphCanvas({
     previous: ClusterOffset | undefined
   } | null>(null)
   const suppressClickRef = useRef(false)
-  const [selected, setSelected] = useState<SessionId | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
   const [mergeMode, setMergeMode] = useState(false)
   const [mergeSources, setMergeSources] = useState<readonly SessionId[]>([])
   const [mergeInstruction, setMergeInstruction] = useState('')
@@ -1129,7 +1133,7 @@ export function GraphCanvas({
     }
   }
 
-  const nodeGestures = (id: SessionId, clusterId: SessionId, originX: number, originY: number): NodeGestureHandlers => ({
+  const nodeGestures = (id: string, clusterId: string, originX: number, originY: number): NodeGestureHandlers => ({
     onPointerDown: (event) => {
       hidePreview()
       // A new pointer sequence cannot be the prior drag's trailing click.
@@ -1208,9 +1212,11 @@ export function GraphCanvas({
       if (mergeMode) {
         if (mergeRun.phase === 'submitting'
           || (mergeRun.phase === 'error' && mergeRun.failure.targetSessionId !== undefined)) return
-        setMergeSources(current => current.includes(id)
-          ? current.filter(sourceId => sourceId !== id)
-          : current.length < 3 ? [...current, id] : current)
+        const node = shownByKey.get(id)?.node
+        if (node === undefined || node.kind === 'knowledge') return
+        setMergeSources(current => current.includes(node.id)
+          ? current.filter(sourceId => sourceId !== node.id)
+          : current.length < 3 ? [...current, node.id] : current)
         setMergeRun({ phase: 'idle' })
         return
       }
@@ -1218,7 +1224,9 @@ export function GraphCanvas({
     },
     onDoubleClick: () => {
       if (mergeMode) return
-      onOpen(id)
+      const node = shownByKey.get(id)?.node
+      if (node?.kind === 'knowledge') topic?.openCard?.(node.card.cardId)
+      else if (node !== undefined) onOpen(node.id)
     },
   })
 
@@ -1595,7 +1603,7 @@ export function GraphCanvas({
                   onMouseLeave={() => { setHoverEdge(null) }}
                 />
                 <path
-                  className={merge ? styles.edgeMerge : styles.edgeBranch}
+                  className={edge.kind === 'source' ? styles.edgeSource : merge ? styles.edgeMerge : styles.edgeBranch}
                   data-edge-kind={edge.kind}
                   d={path}
                 />
@@ -1647,7 +1655,7 @@ export function GraphCanvas({
             t={t}
             gestures={nodeGestures(laidNode.node.id, laidNode.node.clusterId, laidNode.x, laidNode.y)}
             selected={selected === laidNode.node.id}
-            mergeOrder={mergeSources.includes(laidNode.node.id)
+            mergeOrder={laidNode.node.kind !== 'knowledge' && mergeSources.includes(laidNode.node.id)
               ? mergeSources.indexOf(laidNode.node.id) + 1
               : undefined}
             onHoverBadge={setBadgeHover}
@@ -1879,7 +1887,7 @@ export function GraphCanvas({
         : null}
       {topic === undefined ? <SelectedSessionPanel
         onAddToTopic={onAddToTopic}
-        node={mergeMode ? undefined : selectedNode}
+        node={mergeMode || selectedNode?.kind === 'knowledge' ? undefined : selectedNode}
         branchedFrom={selected === null ? undefined : branchSource.get(selected)}
         mergeSourceTitles={new Map(shown.nodes.map(entry => [entry.key, entry.node.title]))}
         now={now}

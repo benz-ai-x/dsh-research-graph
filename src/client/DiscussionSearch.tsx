@@ -7,6 +7,8 @@ import type { SessionGraphKey } from './locales.ts'
 import { SessionHistory } from './SessionHistory.tsx'
 import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
+import { useKnowledge } from './Knowledge.tsx'
+import { KnowledgeSearch } from './KnowledgeSearch.tsx'
 
 /** Search chooses a read-only source independently of the scope-bound canvas. */
 export function DiscussionSearch({ initialScope, workspaces, search, read, open, onClose, onAddToTopic, t }: {
@@ -19,6 +21,8 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
   readonly onAddToTopic?: (id: SessionId) => void
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
+  const knowledge = useKnowledge()
+  const [searchType, setSearchType] = useState<'discussion' | 'knowledge'>('discussion')
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState(initialScope)
   const [includeArchived, setIncludeArchived] = useState(false)
@@ -88,6 +92,11 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
         <div><h2>{t('search.title')}</h2><p>{t('search.description')}</p></div>
         <button type="button" onClick={onClose}>{t('search.close')}</button>
       </div>
+      {knowledge === undefined ? null : <label className={styles.searchForm}>{t('knowledge.searchType')}
+        <select value={searchType} onChange={event => { invalidate(); setSearchType(event.target.value as typeof searchType) }}>
+          <option value="discussion">{t('knowledge.discussions')}</option><option value="knowledge">{t('knowledge.title')}</option>
+        </select></label>}
+      {searchType === 'knowledge' ? <KnowledgeSearch t={t} /> : <>
       <form className={styles.searchForm} onSubmit={event => { event.preventDefault(); void run() }}>
         <label className={styles.searchQuery}>{t('search.query')}
           <input autoFocus value={query} maxLength={256} placeholder={t('search.placeholder')}
@@ -156,6 +165,7 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
           </>}
         </aside>
       </div>
+      </>}
     </section>
   )
 }

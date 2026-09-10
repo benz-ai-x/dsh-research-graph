@@ -5,6 +5,7 @@ import type { SessionGraphKey } from './locales.ts'
 import type { LayoutState } from './layout-store.ts'
 import { TopicGraph, type TopicGraphContext } from './TopicGraph.tsx'
 import styles from './GraphView.module.css'
+import { useKnowledge } from './Knowledge.tsx'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
@@ -16,6 +17,7 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
   readonly refresh?: number
   readonly t: Translate
 }): ReactElement {
+  const knowledge = useKnowledge()
   const [items, setItems] = useState<readonly ResearchTopic[]>([])
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   const [revision, setRevision] = useState(0)
@@ -63,6 +65,12 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     }
   }
   const selected = items.find(topic => topic.topicId === selectedId)
+  const selectTopic = knowledge?.selectTopic
+  useEffect(() => {
+    if (context === undefined) return
+    selectTopic?.(selected?.topicId)
+    return () => { selectTopic?.(undefined) }
+  }, [context === undefined, selectTopic, selected?.topicId])
   return <section className={styles.topics} aria-label={t('topic.title')}>
     <p className={styles.topicDescription}>{t('topic.description')}</p>
     {phase === 'loading' ? <p role="status">{t('topic.loading')}</p> : phase === 'error' ? <div role="alert">

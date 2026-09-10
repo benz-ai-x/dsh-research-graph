@@ -17,6 +17,8 @@ import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-in
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { DiscussionSearch } from './DiscussionSearch.tsx'
 import { ResearchTopics } from './ResearchTopics.tsx'
+import { KnowledgeProvider } from './Knowledge.tsx'
+import type { KnowledgeApi } from './knowledge-remote.ts'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
 import { layoutSessionGraph } from './layout.ts'
 import { retainDialogFocus } from './dialog-focus.ts'
@@ -24,6 +26,7 @@ import styles from './GraphView.module.css'
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  readonly knowledge: KnowledgeApi
   topics: {
     readonly list: (signal: AbortSignal) => Promise<readonly ResearchTopic[]>
     readonly read: (request: { readonly topicId: string }, signal: AbortSignal) => Promise<ResearchTopicSnapshot>
@@ -68,9 +71,16 @@ export type GraphViewProps =
  * @param props - the composed view props (standard kit, inject face, locale seat).
  * @returns the tab body element.
  */
-export function GraphView({
+export function GraphView(props: GraphViewProps): ReactElement {
+  return <div className={styles.knowledgeBoundary}><KnowledgeProvider key={props.sessionId} api={props.knowledge}
+    topics={props.topics} read={props.readSessionHistory} t={props.t}>
+    <GraphViewBody {...props} />
+  </KnowledgeProvider></div>
+}
+
+function GraphViewBody({
   sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
-  openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, t,
+  openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, t,
 }: GraphViewProps): ReactElement {
   const sessions = useSessions(state => state)
   const pendingInteractions = useSessionPendingInteraction(state => state)
@@ -129,7 +139,7 @@ export function GraphView({
           </span>
         </div>
         {topicMode ? <ResearchTopics api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
-          actions: { topics, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
+          actions: { topics, knowledge, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas
           laid={laid}

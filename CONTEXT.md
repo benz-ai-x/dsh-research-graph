@@ -4,6 +4,8 @@ Session Graph helps a person understand, navigate, arrange, and branch the linea
 
 Research Topics are separate Host-owned collections of references. The plugin owns their names, membership, and arrangements; it does not take ownership of the Sessions those references address.
 
+Knowledge Cards are Host-owned, editable research results with immutable revisions and retained discussion sources. They participate in Topic Graphs without becoming Sessions or creating Session Lineage.
+
 ## Language
 
 ### Scope
@@ -99,6 +101,22 @@ A Canvas Session together with its Branch ancestors and Branch descendants. Sibl
 _Avoid_: Session Cluster, neighborhood
 
 ### Arrangement and discovery
+
+**Knowledge Card**:
+A durable identity for a conclusion, method, hypothesis, or question on one Host. Its latest revision is searchable by title and body; membership in Research Topics is explicit and independent of source directories. Removing membership, Reset, or layout cleanup does not delete the card.
+_Avoid_: Session Digest, Canvas Session, copied session
+
+**Card Revision**:
+One immutable saved version of a Knowledge Card's text, type, draft/confirmed status, and sources. Editing appends a revision; retrying the identical save identity is idempotent. Historical references retain the addressed revision even after later edits.
+_Avoid_: Mutable draft, Session Snapshot, latest content
+
+**Knowledge Source**:
+A Discussion Source captured by the Host at exact completed turn boundaries when a Card Revision is saved. It retains Session identity, display labels, event boundaries, dates, and readable user/assistant excerpts. Original reading prefers those exact boundaries and clearly distinguishes retained excerpts when the original is unavailable.
+_Avoid_: Verified conclusion, tool evidence, similar text
+
+**Source Relation**:
+A directed provenance link from an addressed Session to a Knowledge Card. Its saved revision records the precise Knowledge Sources. It does not create a Branch or Merge Relation, add model context, or imply that the source is a member of the Research Topic.
+_Avoid_: Branch, Merge Relation, Topic Reference
 
 **Research Topic**:
 A named collection with a stable identity on one Host, containing references to Sessions across Workspaces. One Session can belong to several topics. Topic membership and arrangement survive Host restart without changing Session ownership, archive state, lineage, or model context.

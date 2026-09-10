@@ -13,6 +13,8 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionMergeProjectionSource } from '../session-merge-projection.ts'
 import type { ResearchTopicSnapshot, ResearchTopicSource } from '../research-topic.ts'
 import type { SessionArrangementIdentity } from './layout-store.ts'
+import type { KnowledgeCard } from '../knowledge.ts'
+import type { SessionDiscussionSource } from '../session-history.ts'
 
 /**
  * The graph scope the view renders. Formal Workspace membership follows the
@@ -49,7 +51,8 @@ export interface DirectoryGraphScope extends GraphScopeBase {
 export type GraphScope = WorkspaceGraphScope | DirectoryGraphScope
 
 /** One canvas node: a visible session with its folded subagent badge totals. */
-export interface GraphNode {
+export interface SessionGraphNode {
+  readonly kind?: 'session'
   readonly id: SessionId
   /** Owning cluster's root session id. */
   readonly clusterId: SessionId
@@ -67,7 +70,17 @@ export interface GraphNode {
   readonly mergeSources: readonly SessionMergeProjectionSource[]
   /** Present only for an explicit Research Topic reference. */
   readonly topicSource?: ResearchTopicSource
+  readonly retainedSource?: SessionDiscussionSource
 }
+
+/** Knowledge nodes have card identities and cannot be passed to Session actions. */
+export interface KnowledgeGraphNode extends Omit<SessionGraphNode, 'id' | 'clusterId' | 'kind'> {
+  readonly kind: 'knowledge'
+  readonly id: `card:${string}`
+  readonly clusterId: string
+  readonly card: KnowledgeCard
+}
+export type GraphNode = SessionGraphNode | KnowledgeGraphNode
 
 /** The one activity label presented when source activity facts overlap. */
 export type DisplayStatus = 'running' | 'waiting-input' | 'completed'
@@ -75,7 +88,7 @@ export type DisplayStatus = 'running' | 'waiting-input' | 'completed'
 /** One typed relationship between two Canvas Sessions. */
 export interface GraphEdge {
   readonly id: string
-  readonly kind: 'branch' | 'merge'
+  readonly kind: 'branch' | 'merge' | 'source'
   readonly from: string
   readonly to: string
 }
@@ -86,9 +99,9 @@ export interface GraphEdge {
  * Isolated Canvas Sessions form single-member clusters.
  */
 export interface ClusterInfo {
-  readonly rootId: SessionId
+  readonly rootId: string
   readonly label: string
-  readonly memberIds: readonly SessionId[]
+  readonly memberIds: readonly string[]
 }
 
 /** The derived graph: cluster partitioning plus the canvas node forest. */
@@ -373,14 +386,14 @@ function orderClustersByMerge(
 ): readonly ClusterInfo[] {
   const index = new Map(clusters.map((cluster, position) => [cluster.rootId, position]))
   const byId = new Map(clusters.map(cluster => [cluster.rootId, cluster]))
-  const outgoing = new Map<SessionId, Set<SessionId>>()
+  const outgoing = new Map<string, Set<string>>()
   const indegree = new Map(clusters.map(cluster => [cluster.rootId, 0]))
   for (const edge of edges) {
     if (edge.kind !== 'merge') continue
     const from = nodes.get(edge.from)?.clusterId
     const to = nodes.get(edge.to)?.clusterId
     if (from === undefined || to === undefined || from === to) continue
-    const targets = outgoing.get(from) ?? new Set<SessionId>()
+    const targets = outgoing.get(from) ?? new Set<string>()
     if (targets.has(to)) continue
     targets.add(to)
     outgoing.set(from, targets)
