@@ -5,7 +5,7 @@
  * stay off the canvas — their presence folds into every canvas ancestor's
  * badge counts along the uninterrupted chain. React-free; the view memoizes
  * over these functions and the layout module consumes their output.
- * @module @benz-ai-x/dsh-client-ui-session-graph/src/client/graph-model
+ * @module @benz-ai-x/dsh-research-graph/src/client/graph-model
  */
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'

@@ -1,6 +1,6 @@
-# Session Graph
+# DSH Research Graph · 研图
 
-Session Graph helps a person understand, navigate, arrange, and branch the lineage of DeepSeek Harness sessions related to the session they are viewing. It is a derived projection; DeepSeek Harness remains authoritative for sessions, workspaces, lineage, and activity.
+Research Graph organizes DeepSeek Harness discussions into Research Topics, traceable Knowledge Cards, and Research Materials for further discussion. Its Session Graph helps a person understand, navigate, arrange, and branch the lineage of sessions related to the session they are viewing. Session Graph remains a derived projection; DeepSeek Harness remains authoritative for sessions, workspaces, lineage, and activity.
 
 Research Topics are separate Host-owned collections of references. The plugin owns their names, membership, and arrangements; it does not take ownership of the Sessions those references address.
 

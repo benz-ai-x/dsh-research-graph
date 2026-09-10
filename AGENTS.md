@@ -44,7 +44,7 @@ Keep the offline history recovery executable self-contained so it runs before a 
 
 ### Issue tracker
 
-Issues and PRDs are tracked in GitHub Issues for `benz-ai-x/dsh-session-graph`. See `docs/agents/issue-tracker.md`.
+Issues and PRDs are tracked in GitHub Issues for `benz-ai-x/dsh-research-graph`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

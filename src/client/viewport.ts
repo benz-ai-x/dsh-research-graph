@@ -3,7 +3,7 @@
  * zoom, screen-space panning, and content fitting. React-free; GraphCanvas
  * owns the interaction handlers and feeds every gesture through these
  * functions so the geometry is pinned by unit tests.
- * @module @benz-ai-x/dsh-client-ui-session-graph/src/client/viewport
+ * @module @benz-ai-x/dsh-research-graph/src/client/viewport
  */
 import type { ContentBounds } from './layout.ts'
 

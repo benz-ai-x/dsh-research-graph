@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import * as SessionGraphInvariant from '@benz-ai-x/dsh-client-ui-session-graph/invariant'
+import * as SessionGraphInvariant from '@benz-ai-x/dsh-research-graph/invariant'
 
 describe('invariant companion', () => {
   it('reserves the published package name with an empty installer', async () => {
@@ -7,7 +7,7 @@ describe('invariant companion', () => {
     const register = vi.fn(() => dispose)
     const result = await SessionGraphInvariant.apply({ invariants: { register } } as never)
     expect(register).toHaveBeenCalledWith(
-      '@benz-ai-x/dsh-client-ui-session-graph',
+      '@benz-ai-x/dsh-research-graph',
       expect.any(Function),
     )
     expect(result).toBe(dispose)

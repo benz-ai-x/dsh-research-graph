@@ -1,64 +1,65 @@
 ---
-description: "DeepSeek Harness (dsh) plugin for AI agent session visualization and management: explore lineage, arrange branches, merge snapshots, and generate digests."
+description: "Research Graph for DeepSeek Harness: organize AI discussions into research topics, traceable knowledge cards, and materials for further research."
 kind: "package-bundle"
 ---
 
-# Session Graph: DeepSeek Harness Plugin
+# DSH Research Graph · 研图
 
-[![CI](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-session-graph/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-client-ui-session-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph)
+[![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
 [![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
-[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-session-graph?logo=github)](https://github.com/benz-ai-x/dsh-session-graph/releases/latest)
+[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 English | [中文](README.zh.md)
 
-**A DeepSeek Harness (dsh) plugin for visualizing and managing AI agent sessions.**
+**Turn AI discussions into traceable, reusable research knowledge in DeepSeek Harness.**
 
-Session Graph (`@benz-ai-x/dsh-client-ui-session-graph`) adds an interactive **Graph** tab to the DeepSeek Harness Web conversation view. Explore Session Lineage, navigate conversations, create Branches, merge session snapshots, and generate Session Digests on one canvas.
+Research Graph (`@benz-ai-x/dsh-research-graph`) adds an interactive **Research Graph** tab to the DeepSeek Harness Web conversation view. Organize discussions across Workspaces into Research Topics, save Knowledge Cards with exact sources, review AI extraction, and use selected materials to start another discussion.
 
-Branch-connected Canvas Sessions form movable clusters, Merge Sessions retain snapshot provenance, and Subagent Sessions fold into compact summaries. On-demand Session Digests surface outcomes and open work. Browsing, arranging, and digesting never mutate a Session log.
+The canvas also shows Session Lineage, movable Branch clusters, Merge provenance, and compact Subagent summaries. Read original discussion or generate on-demand Session Digests while preserving source Session logs.
 
 <p align="center">
-  <a href="docs/assets/session-graph-overview.png">
-    <img src="https://raw.githubusercontent.com/benz-ai-x/dsh-session-graph/main/docs/assets/session-graph-overview.png" alt="Session Graph for DeepSeek Harness showing branches, merge relations, subagent summaries, filters, and canvas controls" width="100%" />
+  <a href="docs/assets/research-graph/overview.png">
+    <img src="https://raw.githubusercontent.com/benz-ai-x/dsh-research-graph/main/docs/assets/research-graph/overview.png" alt="Research Graph for DeepSeek Harness showing research topics, discussion sources, and a Knowledge Card" width="100%" />
   </a>
 </p>
 
-<p align="center"><sub>Real Session Graph UI rendered with synthetic demo sessions.</sub></p>
+<p align="center"><sub>Research Graph rendered with synthetic research data after upgrading from the previous package name.</sub></p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph">npm</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-session-graph/releases">Releases</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-session-graph/issues">Issues</a> ·
+  <a href="https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph">npm</a> ·
+  <a href="https://github.com/benz-ai-x/dsh-research-graph/releases">Releases</a> ·
+  <a href="https://github.com/benz-ai-x/dsh-research-graph/issues">Issues</a> ·
   <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>
 </p>
 
 ## Quick start
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
 dsh web
 ```
 
-If `dsh web` is already running, stop it before restarting. Open the one-time authenticated URL printed by the command, enter a non-blank Session, and choose **Graph**. Do not share or persist the URL token.
+If `dsh web` is already running, stop it before restarting. Open the one-time authenticated URL printed by the command, enter a non-blank Session, and choose **Research Graph**. Do not share or persist the URL token.
 
 ## Compatibility
 
-| Session Graph | DeepSeek Harness | Node.js | Verification |
+| Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
-| [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
-| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
-| [`v0.1.6`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
-| [`v0.1.5`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime and package migration acceptance |
+| Previous package: [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
+| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
+| [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
+| [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 
-In the DSH-aligned release line, the plugin version exactly matches its target DSH version, including prerelease suffixes: DSH `0.1.5-rc.1` uses plugin `0.1.5-rc.1`. The research workflow described below ships in this RC release; the earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+In the DSH-aligned release line, the plugin version exactly matches its target DSH version, including prerelease suffixes: DSH `0.1.5-rc.1` uses plugin `0.1.5-rc.1`. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow described below ships in this RC release; the earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
 ## Knowledge Cards
 
-In **Graph → Original**, select completed turns and choose **Save as Knowledge Card**. Edit the title, question, conclusion, reasons/conditions, open questions, type and draft/confirmed status; optionally choose a Research Topic. Manual creation does not call a model or change the source Session. You can also create a card from the topic controls or the Knowledge Cards search tab.
+In **Research Graph → Original**, select completed turns and choose **Save as Knowledge Card**. Edit the title, question, conclusion, reasons/conditions, open questions, type and draft/confirmed status; optionally choose a Research Topic. Manual creation does not call a model or change the source Session. You can also create a card from the topic controls or the Knowledge Cards search tab.
 
 Cards appear in topic graphs with a distinct Source Relation. Open a card to inspect any saved revision, read its retained excerpt, or check the exact original turns. Unavailable originals remain clearly labelled as retained excerpts. Edits append immutable revisions; a failed save preserves the draft, and retrying it does not create another card. Discarding edits returns to saved content.
 
@@ -78,9 +79,9 @@ See the [batch acceptance and browser screenshots](docs/reviews/issues-6-10-acce
 
 Add a saved card revision or one completed original turn to **Materials**. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** shows the actual text, source boundaries, card versions and the 32,000-character total budget. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
 
-If a submission response is lost, materials stay locked while Graph checks the Host's recorded target state. **Check target status** or reopening Materials repeats that check; Retry always uses the same submission. Closing the dialog suppresses late navigation.
+If a submission response is lost, materials stay locked while Research Graph checks the Host's recorded target state. **Check target status** or reopening Materials repeats that check; Retry always uses the same submission. Closing the dialog suppresses late navigation.
 
-If target creation succeeds while the reuse log cannot be saved, Graph checks the reserved Session directly and keeps its Open and Retry actions. A failed state check keeps materials locked; retrying after storage recovers uses the same target and message.
+If target creation succeeds while the reuse log cannot be saved, Research Graph checks the reserved Session directly and keeps its Open and Retry actions. A failed state check keeps materials locked; retrying after storage recovers uses the same target and message.
 
 Confirming creates an independent Session and sends the frozen preview through native Harness admission. A failed create preserves the materials. If a target exists but sending fails, Open and Retry recover that same target and message identity. **Sent** means the Host acknowledged receipt; inspect the Session for model response status. **Materials used by this Session** reopens the frozen sources, versions and Reuse Relations after later edits, browser-cache clearing or Host restart. Source Workspace ownership and directories remain authoritative in Harness.
 
@@ -115,7 +116,7 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -124,25 +125,28 @@ Confirm that the resolved profile contains the bundle:
 dsh --profile web --dump-config
 ```
 
-The output should contain `name: '@benz-ai-x/dsh-client-ui-session-graph'`.
+The output should contain `name: '@benz-ai-x/dsh-research-graph'`.
 
-<details>
-<summary>Install a pinned GitHub source tag</summary>
+### Upgrade from the previous package name
+
+The product is now **DSH Research Graph · 研图**, and the repository is `benz-ai-x/dsh-research-graph`. The npm package is now `@benz-ai-x/dsh-research-graph`. If your web profile has `@benz-ai-x/dsh-client-ui-session-graph` installed, stop that profile, then run:
 
 ```sh
-dsh plugin --profile web add github:benz-ai-x/dsh-session-graph#v0.1.5-rc.1
+dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh web
 ```
 
-pnpm blocks a git dependency's `prepare` script until the profile explicitly permits it. The first GitHub install exits with `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`; copy the exact key printed by dsh into `$DSH_HOME/profiles/web/pnpm-workspace.yaml` under `allowBuilds`, then rerun the command. This permission executes package code outside the agent sandbox, so inspect the source and keep the tag or commit pinned.
+Use the same profile and keep its data directory. The package rename preserves the storage identities for Research Topics, Knowledge Cards, Reuse records and canvas positions. Restore any custom plugin settings under the existing `ui-session-graph` patch ID after reinstalling. Install only one package name in a profile.
 
-</details>
+The published `v0.1.5-rc.1` Git tag and earlier tags retain their original package names. For this package-name migration, use the npm package above or pack the current source into a local archive.
 
 The package contains both the browser plugin and its `cordis.patch.yml` bundle patch. The dsh plugin manager inserts it after the Session, Workspace, locale, renderer, and conversation plugins already supplied by the `web` profile. No manual `cordis.yml` edit is required.
 
 Remove it with:
 
 ```sh
-dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 ```
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
@@ -151,7 +155,7 @@ Session, LLM, and browser runtime services remain owned by the selected dsh prof
 
 ## Use the graph
 
-Open a non-blank session and choose **Graph** beside the standard conversation tabs. The Viewed Session resolves a named Workspace Scope when possible and otherwise falls back to a Directory Scope.
+Open a non-blank session and choose **Research Graph** beside the standard conversation tabs. The Viewed Session resolves a named Workspace Scope when possible and otherwise falls back to a Directory Scope.
 
 - A single click chooses the Selected Session and keeps its Branch Lineage emphasized; the closable detail inspector can open that session or create a Branch, and reports when Harness rejects the request. Click blank canvas space or press Escape to clear selection.
 - A double click opens the session in its last-used view.
@@ -174,7 +178,7 @@ The standalone file contains questions, conclusions, reasons, open questions, ki
 
 ## Return to your working position
 
-Reopen Graph to restore its pan, zoom, arrangement, selected material, and valid Original page/scroll position. Reopening search restores the conditions and queries the Host again; results are never cached as working state. Missing selections are cleared with a dismissible notice while the valid viewport stays in place, including when the last card leaves a topic empty. A missing topic returns to the topic list.
+Reopen Research Graph to restore its pan, zoom, arrangement, selected material, and valid Original page/scroll position. Reopening search restores the conditions and queries the Host again; results are never cached as working state. Missing selections are cleared with a dismissible notice while the valid viewport stays in place, including when the last card leaves a topic empty. A missing topic returns to the topic list.
 
 Source nodes contributed by Knowledge Cards also resume their last valid Original position. Reading a long source or rechecking a selected range preserves both boundaries, so reopening does not shorten it to a normal page. Clicking a source inside a card still opens that revision's exact saved range. If restoring a topic's Original fails to connect, its retained excerpt remains available; retry restores the saved scroll only after the original is verified.
 
@@ -182,7 +186,7 @@ Presentation state belongs to the same browser and is isolated by persistent Hos
 
 ## Organize Research Topics
 
-Choose **Research Topics** in the Graph header and create a named topic. In a Selected Session's details or a selected discussion search result, choose **Add to Research Topic**, select a topic, and add the source. You can create a topic in that picker too. Topics collect Session references across Workspaces on the same Host; a Session can belong to several topics.
+Choose **Research Topics** in the Research Graph header and create a named topic. In a Selected Session's details or a selected discussion search result, choose **Add to Research Topic**, select a topic, and add the source. You can create a topic in that picker too. Topics collect Session references across Workspaces on the same Host; a Session can belong to several topics.
 
 If creation fails, retrying recovers the same topic. If you edit the name before retrying, the revised name must also save before the input clears; another failure keeps that input available for retry.
 
@@ -196,7 +200,7 @@ See the [Research Topics acceptance record and screenshots](docs/reviews/issue-5
 
 ## Search discussion history
 
-Choose **Search discussions** in the Graph header, enter words or a phrase, and select a Workspace, the Viewed Session's directory, or all sessions on this Host. **Include archived** adds archived sources for reading. It does not restore them or add them to the canvas. The existing title filter continues to emphasize Canvas Sessions independently.
+Choose **Search discussions** in the Research Graph header, enter words or a phrase, and select a Workspace, the Viewed Session's directory, or all sessions on this Host. **Include archived** adds archived sources for reading. It does not restore them or add them to the canvas. The existing title filter continues to emphasize Canvas Sessions independently.
 
 Results show the session title, workspace or directory, message time, and a short passage. Each session contributes its latest matching passage from completed direct user/assistant discussion, ordered newest first. Select a result to read its exact turn in the search Inspector; the matching message is marked, and earlier/later discussion remains available. Only **Open session** changes the Viewed Session; native chat scroll positioning is not implied.
 
@@ -211,7 +215,7 @@ See the [discussion search browser acceptance record and screenshots](docs/revie
 <a id="enable-discussion-search"></a>
 ### Enable discussion search
 
-DSH `0.1.5-rc.1` disables full-text indexing by default. If Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
+DSH `0.1.5-rc.1` disables full-text indexing by default. If Research Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
 
 ```yaml
 - id: session-query-sqlite
@@ -264,7 +268,7 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 
 The tool supports plain JSONL, `.zst`, and `.zstd`. It converts only recognized legacy plugin markers, runs the official complete DSH format migration, and validates the current-format output. The source remains unchanged and existing outputs are never overwritten. Input and decompressed data default to a 128 MiB limit, configurable with `--max-bytes`; unknown fields, corrupt data, and truncated lines are rejected. Use normal DSH reading/migration for V3 logs or Sessions without a legacy marker.
 
-To let the Host use a recovered artifact, stop DSH first, then place the validated file as `session.v3.jsonl` or `session.v3.jsonl.zstd` in **that Session's original directory**, preserving the source. If a V3 file already exists, investigate the conflict before proceeding. The tool generates files without scanning or replacing live Sessions. The installed package also exposes `dsh-session-graph-migrate`.
+To let the Host use a recovered artifact, stop DSH first, then place the validated file as `session.v3.jsonl` or `session.v3.jsonl.zstd` in **that Session's original directory**, preserving the source. If a V3 file already exists, investigate the conflict before proceeding. The tool generates files without scanning or replacing live Sessions. The installed package exposes `dsh-research-graph-migrate`; the earlier `dsh-session-graph-migrate` command remains an alias.
 
 ## Generate a Session Digest
 
@@ -296,13 +300,13 @@ Most sessions need no configuration because their logs record the model route. F
 
 | Symptom | Check first |
 |---|---|
-| **Graph** tab is missing | Restart `dsh web`, open a non-blank Session, and verify the package appears in `dsh --profile web --dump-config` |
+| **Research Graph** tab is missing | Restart `dsh web`, open a non-blank Session, and verify the package appears in `dsh --profile web --dump-config` |
 | Host startup fails around a Remote error export | Install the plugin matching DSH in the compatibility table and check the resolved profile version |
 | GitHub source install reports `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | Inspect the pinned source, add the exact key printed by dsh to that profile's `allowBuilds`, and retry |
 | Digest generation reports no model route | Use a Session with a logged route or configure the `provider` and `model` fallback pair |
 | The Web URL rejects access | Open the complete authenticated URL printed by `dsh web`; do not reuse or share a stripped token |
 
-If the problem persists, include the package version shown in the Graph header, the Harness version, and the relevant Host/browser error in a [GitHub issue](https://github.com/benz-ai-x/dsh-session-graph/issues/new).
+If the problem persists, include the package version shown in the Research Graph header, the Harness version, and the relevant Host/browser error in a [GitHub issue](https://github.com/benz-ai-x/dsh-research-graph/issues/new).
 
 ## Develop and contribute
 
@@ -321,7 +325,7 @@ pnpm --dir /path/to/deepseek-harness run build:lib
 DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 ```
 
-Read [`CONTEXT.md`](CONTEXT.md) for the domain model and [`docs/adr/`](docs/adr/) for durable design decisions before changing Session, Merge, Digest, or persistence behavior. Setup or behavior changes must update both this file and [`README.zh.md`](README.zh.md). Start user-visible work from a [GitHub issue](https://github.com/benz-ai-x/dsh-session-graph/issues).
+Read [`CONTEXT.md`](CONTEXT.md) for the domain model and [`docs/adr/`](docs/adr/) for durable design decisions before changing Session, Merge, Digest, or persistence behavior. Setup or behavior changes must update both this file and [`README.zh.md`](README.zh.md). Start user-visible work from a [GitHub issue](https://github.com/benz-ai-x/dsh-research-graph/issues).
 
 `check:harness` requires matching Host and plugin versions. It checks both source and published declarations for Host and Client against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<version>` from `package.json`. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
 
@@ -339,9 +343,9 @@ Local builds derive a stable `local-<hash>` Build ID from `package.json`, `tsdow
 
 The [Publish workflow](.github/workflows/publish.yml) accepts a published GitHub Release or a manually supplied existing tag. It requires the tag to equal `v` plus the package version, reruns `pnpm run check`, packs the archive, and publishes those verified bytes under npm tag `latest` for stable versions or `next` for prereleases.
 
-The package uses an [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/) for organization `benz-ai-x`, repository `dsh-session-graph`, workflow `publish.yml`, environment `npm-publish`, and the `npm publish` action. The workflow authenticates with GitHub OIDC and must not receive a long-lived `NPM_TOKEN`; keep the GitHub environment as the deployment boundary. When bootstrapping a different package or scope, use a narrowly scoped, short-lived token only for the first publication, configure trusted publishing immediately, and then revoke the token.
+The package uses an [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/) for organization `benz-ai-x`, repository `dsh-research-graph`, workflow `publish.yml`, environment `npm-publish`, and the `npm publish` action. The workflow authenticates with GitHub OIDC and must not receive a long-lived `NPM_TOKEN`; keep the GitHub environment as the deployment boundary. When bootstrapping a different package or scope, use a narrowly scoped, short-lived token only for the first publication, configure trusted publishing immediately, and then revoke the token.
 
-For every adaptation release, set `package.json.version` and direct DSH dependencies to the full target DSH version. The plugin tag is `v<version>` and the upstream tag is `dsh-v<version>`. `check-version.mjs` rejects mismatched dependencies or release tags; `check:harness` rejects a mismatched Host version. Before release, pass `pnpm run check`, `check:harness`, and packed-profile acceptance, verify the Graph badge reads the same version, then merge and create the immutable tag and Release. Use Build IDs for local iterations against the same DSH version; never overwrite published versions or rename historical tags.
+For every adaptation release, set `package.json.version` and direct DSH dependencies to the full target DSH version. The plugin tag is `v<version>` and the upstream tag is `dsh-v<version>`. `check-version.mjs` rejects mismatched dependencies or release tags; `check:harness` rejects a mismatched Host version. Before release, pass `pnpm run check`, `check:harness`, and packed-profile acceptance, verify the Research Graph badge reads the same version, then merge and create the immutable tag and Release. Use Build IDs for local iterations against the same DSH version; never overwrite published versions or rename historical tags.
 
 The package exports two Node-facing entries and one lazy browser module. Every JavaScript entry ships a matching TypeScript declaration in the packed archive:
 
@@ -379,7 +383,7 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 
 ## Current limitations
 
-- Graph is unavailable on the no-session home screen and in a fresh blank session because neither has a conversation view ring.
+- Research Graph is unavailable on the no-session home screen and in a fresh blank session because neither has a conversation view ring.
 - The scope graph follows one Workspace or Directory Scope at a time. Research Topics span Workspaces within one Host; discussion search is a separate body-text view.
 - Pan and zoom reset on tab switch or reload; node positions, cluster offsets, and collapse state persist.
 - Session Digests are generated only on demand and cached in Host memory, not persisted as durable artifacts. A Host restart clears the cache.

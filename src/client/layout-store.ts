@@ -6,7 +6,7 @@
  * the auto layout — while writes replace the whole scope record (removed
  * sessions and expanded clusters drop out on the next save). Browser storage
  * denial and quota failures are presentation failures and never break the view.
- * @module @benz-ai-x/dsh-client-ui-session-graph/src/client/layout-store
+ * @module @benz-ai-x/dsh-research-graph/src/client/layout-store
  */
 
 /** One manually dragged node position in content px. */

@@ -8,7 +8,7 @@ import { transform } from 'lightningcss'
 import { defineConfig } from 'tsdown'
 import ts from 'typescript'
 
-const PACKAGE_NAME = '@benz-ai-x/dsh-client-ui-session-graph'
+const PACKAGE_NAME = '@benz-ai-x/dsh-research-graph'
 const PROJECT_ROOT = dirname(fileURLToPath(import.meta.url))
 const CSS_PREFIX = '\0dsh-session-graph-css:'
 const CSS_SUFFIX = '.mjs'

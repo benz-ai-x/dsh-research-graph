@@ -13,7 +13,8 @@ const manifest = JSON.parse(await readFile(join(repo, 'package.json'), 'utf8'))
 if (!process.env.DSH_HARNESS_ROOT) throw new Error('DSH_HARNESS_ROOT must point to the matching built Harness checkout')
 const harness = resolve(process.env.DSH_HARNESS_ROOT)
 assert.equal(JSON.parse(await readFile(join(harness, 'package.json'), 'utf8')).version, manifest.version)
-const archive = resolve(process.argv[2] ?? join(repo, '.artifacts', `benz-ai-x-dsh-client-ui-session-graph-${manifest.version}.tgz`))
+const archiveName = `${manifest.name.replace(/^@/, '').replace('/', '-')}-${manifest.version}.tgz`
+const archive = resolve(process.argv[2] ?? join(repo, '.artifacts', archiveName))
 await access(archive)
 const harnessRequire = createRequire(join(harness, 'package.json'))
 const launcher = ['--import', harnessRequire.resolve('tsx/esm'), join(harness, 'apps/cli/src/bin.ts')]
@@ -56,7 +57,7 @@ let app
 try {
   await command(['plugin', '--profile', 'web', 'add', archive])
   assert.ok((await command(['--profile', 'web', '--dump-config'])).includes(`name: '${manifest.name}'`))
-  assert.ok((await command(['plugin', '--profile', 'web', 'exec', 'dsh-session-graph-migrate', '--help']))
+  assert.ok((await command(['plugin', '--profile', 'web', 'exec', 'dsh-research-graph-migrate', '--help']))
     .includes('Without --output, validates only.'))
   const patch = join(root, 'smoke.patch.yml')
   await writeFile(patch, `- id: session-query-sqlite\n  config:\n    path: ':memory:'\n    openAt: first-search\n- insert:\n    - id: session-graph-smoke\n      name: ${JSON.stringify(join(repo, 'tests/fixtures/profile-smoke.mjs'))}\n`)

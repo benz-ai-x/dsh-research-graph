@@ -1,13 +1,15 @@
 {
-  "name": "@benz-ai-x/dsh-client-ui-session-graph",
-  "description": "DeepSeek Harness Web plugin for visualizing, arranging, branching, merging, and summarizing AI agent sessions on an interactive graph canvas",
+  "name": "@benz-ai-x/dsh-research-graph",
+  "description": "DeepSeek Harness plugin for organizing AI discussions into research topics, traceable knowledge cards, and reusable research materials on an interactive graph",
   "keywords": [
     "deepseek-harness",
     "deepseek",
     "dsh",
     "dsh-plugin",
     "cordis",
-    "session-graph",
+    "research-graph",
+    "research-workflow",
+    "knowledge-management",
     "session-visualization",
     "session-management",
     "ai-agent",
@@ -24,6 +26,7 @@
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "bin": {
+    "dsh-research-graph-migrate": "lib/migrate-merge-history.js",
     "dsh-session-graph-migrate": "lib/migrate-merge-history.js"
   },
   "exports": {
@@ -61,12 +64,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/benz-ai-x/dsh-session-graph.git"
+    "url": "git+https://github.com/benz-ai-x/dsh-research-graph.git"
   },
   "bugs": {
-    "url": "https://github.com/benz-ai-x/dsh-session-graph/issues"
+    "url": "https://github.com/benz-ai-x/dsh-research-graph/issues"
   },
-  "homepage": "https://github.com/benz-ai-x/dsh-session-graph#readme",
+  "homepage": "https://github.com/benz-ai-x/dsh-research-graph#readme",
   "license": "MIT",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"

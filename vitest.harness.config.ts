@@ -80,7 +80,7 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@benz-ai-x/dsh-client-ui-session-graph/client',
+        find: '@benz-ai-x/dsh-research-graph/client',
         replacement: resolve('src/client/index.ts'),
       },
       {

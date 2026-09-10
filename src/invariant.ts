@@ -1,16 +1,16 @@
 /**
- * Package-owned invariant companion for `@benz-ai-x/dsh-client-ui-session-graph`.
- * @module @benz-ai-x/dsh-client-ui-session-graph/invariant
+ * Package-owned invariant companion for `@benz-ai-x/dsh-research-graph`.
+ * @module @benz-ai-x/dsh-research-graph/invariant
  */
 
 /* jscpd:ignore-start */
 import type { Context } from '@deepseek-ai/cordis'
 import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
 
-const PACKAGE_NAME = '@benz-ai-x/dsh-client-ui-session-graph'
+const PACKAGE_NAME = '@benz-ai-x/dsh-research-graph'
 
 /** Cordis companion plugin name. */
-export const name = 'client-ui-session-graph-invariant'
+export const name = 'research-graph-invariant'
 /** Service required before the companion can reserve package ownership. */
 export const inject = ['invariants']
 

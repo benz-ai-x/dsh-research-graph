@@ -38,7 +38,7 @@ import { createConversationStore } from '@deepseek-ai/dsh-client-ui-conversation
 import { zh as conversationZh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 import { apply as localeApply, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
 import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
-import { apply, inject } from '@benz-ai-x/dsh-client-ui-session-graph/client'
+import { apply, inject } from '@benz-ai-x/dsh-research-graph/client'
 import packageMetadata from '../package.json'
 import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
@@ -67,7 +67,7 @@ describe('Markdown export in the registered Graph', () => {
     b.prepareExport.mockRejectedValueOnce(new Error('Storage temporarily unavailable'))
     b.prepareExport.mockResolvedValue({ ok: true, value: frozen })
     mount(b.slots, b.sessionsStore, 'a')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(document.querySelector('[data-node-id="card:card-a"]')).not.toBeNull() })
     fireEvent.click(screen.getByRole('button', { name: '导出 Markdown' }))
@@ -129,7 +129,7 @@ describe('Working position in the registered Graph', () => {
       }) }))
       const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
       mount(b.slots, b.sessionsStore, discussion.id)
-      switchTab('Graph')
+      switchTab('Research Graph')
       fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
       await waitFor(() => { expect(document.querySelector('[data-node-id="card:long-card"]')).not.toBeNull() })
       fireEvent.click(nodeButton(discussion.id))
@@ -151,7 +151,7 @@ describe('Working position in the registered Graph', () => {
         revisions: [...card.revisions, { ...card.revisions[0]!, revisionId: 'shorter-revision', number: 2,
           sources: [{ ...source, source: { startSeq: first.startSeq, endSeq: first.endSeq!, turns: [first] } }] }],
       }] })
-      switchTab('Graph')
+      switchTab('Research Graph')
       fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
       await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: discussion.id, range }, expect.any(AbortSignal)) })
       if (scenario === 'missing source') {
@@ -190,7 +190,7 @@ describe('Working position in the registered Graph', () => {
     })
     const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
     mount(b.slots, b.sessionsStore, 'session-a')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(document.querySelector('[data-node-id="card:source-card"]')).not.toBeNull() })
     fireEvent.click(nodeButton('session-a'))
@@ -207,7 +207,7 @@ describe('Working position in the registered Graph', () => {
     if (outcome === 'missing') b.readHistory.mockResolvedValueOnce({ ok: true, value: {
       kind: 'unavailable', sessionId: source.sessionId, turns: [], hasEarlier: false, hasLater: false,
     } })
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', anchorSeq: 20 }, expect.any(AbortSignal)) })
     if (outcome === 'missing') {
@@ -248,7 +248,7 @@ describe('Working position in the registered Graph', () => {
     b.listTopics.mockResolvedValue({ ok: true, value: [a.topic, bTopic.topic] })
     b.readTopic.mockImplementation(async request => ({ ok: true, value: request.topicId === a.topic.topicId ? a : bTopic }))
     mount(b.slots, b.sessionsStore, 'viewed')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await screen.findByRole('combobox', { name: '选择研究主题' })
     fireEvent.change(screen.getByRole('combobox', { name: '选择研究主题' }), { target: { value: bTopic.topic.topicId } })
@@ -262,7 +262,7 @@ describe('Working position in the registered Graph', () => {
     fireEvent.click(nodeButton('source-0001'))
     expect(screen.getByTestId('topic-source-panel')).toBeTruthy()
     switchTab('Chat')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(screen.queryByRole('combobox', { name: '选择研究主题' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await screen.findByTestId('topic-source-panel')
@@ -272,7 +272,7 @@ describe('Working position in the registered Graph', () => {
     expect(b.writeTopic).not.toHaveBeenCalled()
     switchTab('Chat')
     b.listTopics.mockResolvedValue({ ok: true, value: [a.topic] })
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await screen.findByText('上次的研究主题已不可用，请从列表选择主题。')
     expect(document.querySelector('[data-node-id]')).toBeNull()
@@ -282,7 +282,7 @@ describe('Working position in the registered Graph', () => {
   it('requeries restored search conditions and discards a late response after closing', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: zh['search.open'] }))
     fireEvent.change(screen.getByRole('textbox', { name: zh['search.query'] }), { target: { value: '研究结论' } })
     fireEvent.click(screen.getByRole('checkbox', { name: zh['search.includeArchived'] }))
@@ -306,27 +306,27 @@ describe('Working position in the registered Graph', () => {
     const b = await bench(FIXTURE)
     const first = workspacesState([workspace('first', '/w', ['root'])])
     mount(b.slots, b.sessionsStore, 'root', first)
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '放大' }))
     fireEvent.click(nodeButton('branchChild'))
     const scale = screen.getByRole('button', { name: '缩放至 100%' }).textContent
     cleanup()
     mount(b.slots, b.sessionsStore, 'root', workspacesState([workspace('second', '/w', ['root'])]))
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
     expect(screen.queryByTestId('session-graph-panel')).toBeNull()
     cleanup()
     const anotherHost = await bench(FIXTURE, 'another-host')
     mount(anotherHost.slots, anotherHost.sessionsStore, 'root', first)
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
     expect(screen.queryByTestId('session-graph-panel')).toBeNull()
     cleanup()
     const { branchChild: _, ...remaining } = FIXTURE
     b.sessionsStore.set(listState(remaining))
     mount(b.slots, b.sessionsStore, 'root', first)
-    switchTab('Graph')
+    switchTab('Research Graph')
     await screen.findByText(zh['position.unavailable'])
     expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
     expect(screen.queryByTestId('session-graph-panel')).toBeNull()
@@ -334,7 +334,7 @@ describe('Working position in the registered Graph', () => {
     cleanup()
     localStorage.setItem('dsh.session-graph.position.["test-host","workspace:first",null]', '{broken')
     mount(b.slots, b.sessionsStore, 'root', first)
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
   })
 
@@ -343,7 +343,7 @@ describe('Working position in the registered Graph', () => {
     const turn = { turn: 8, startSeq: 80, endSeq: 89, startedAt: 1000, messages: [{ role: 'user' as const, seq: 81, text: '研究位置' }] }
     b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'root', turns: [turn], hasEarlier: false, hasLater: false } })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '放大' }))
     fireEvent.click(nodeButton('root'))
@@ -355,7 +355,7 @@ describe('Working position in the registered Graph', () => {
     const scale = screen.getByRole('button', { name: '缩放至 100%' }).textContent
     const position = screen.getByRole('group', { name: zh['canvas.description'] }).style.backgroundPosition
     switchTab('Chat')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
     expect(screen.getByRole('group', { name: zh['canvas.description'] }).style.backgroundPosition).toBe(position)
     await screen.findByText('研究位置')
@@ -364,7 +364,7 @@ describe('Working position in the registered Graph', () => {
     expect(b.open).not.toHaveBeenCalled()
     switchTab('Chat')
     b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'unavailable', sessionId: 'root', turns: [], hasEarlier: false, hasLater: false } })
-    switchTab('Graph')
+    switchTab('Research Graph')
     await screen.findByText(zh['position.unavailable'])
     expect(screen.queryByTestId('session-graph-panel')).toBeNull()
     expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(scale)
@@ -385,7 +385,7 @@ describe('Research reuse registered Graph workflow', () => {
     const receipt = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphReuse/submit']>>>()
     b.submitReuse.mockReturnValueOnce(receipt.promise)
     mount(b.slots, b.sessionsStore, 'a', workspacesState([{ workspaceId: 'b', title: '目标 B', path: '/b', sessionIds: [], createdAt: '', updatedAt: '' }]))
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('a'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
@@ -426,7 +426,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
     b.extractKnowledge.mockReturnValueOnce(late.promise)
     b.extractKnowledge.mockResolvedValue({ ok: true, value: output })
     mount(b.slots, b.sessionsStore, 'a')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('a'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
@@ -465,7 +465,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
     b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
     b.readKnowledge.mockResolvedValue({ ok: true, value: card })
     mount(b.slots, b.sessionsStore, 'a')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(document.querySelector('[data-node-kind="knowledge"]')).not.toBeNull() })
     expect(document.querySelectorAll('[data-edge-kind="source"]')).toHaveLength(1)
@@ -502,7 +502,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
       }],
     } }))
     mount(b.slots, b.sessionsStore, 'a')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('a'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
@@ -557,7 +557,7 @@ describe('Research Topics registered Graph workflow', () => {
         throw new Error('Connection closed after durable create')
       })
       mount(b.slots, b.sessionsStore, 'a')
-      switchTab('Graph')
+      switchTab('Research Graph')
       fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
       input = await screen.findByRole('textbox', { name: '新主题名称' }) as HTMLInputElement
       fireEvent.change(input, { target: { value: '原名称 A' } })
@@ -658,7 +658,7 @@ describe('Research Topics registered Graph workflow', () => {
     b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [{ ...reference, status: 'listed', archived: false }] } })
     const workspaces = createSnapshotStore(workspacesState())
     mount(b.slots, b.sessionsStore, 'a', workspaces)
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(document.querySelectorAll('[data-node-id]')).toHaveLength(1) })
     fireEvent.click(nodeButton('a'))
@@ -683,7 +683,7 @@ describe('Research Topics registered Graph workflow', () => {
     const ui = mount(b.slots, b.sessionsStore, 'viewed', {
       ...workspacesState(), archivedSessionIds: fixture.b.sources.filter(source => source.archived).map(source => id(source.sessionId)),
     })
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(b.readTopic).toHaveBeenCalledTimes(1) })
     const topicSelect = screen.getByRole('combobox', { name: '选择研究主题' })
@@ -739,7 +739,7 @@ describe('Research Topics registered Graph workflow', () => {
     }] } })
     b.writeTopic.mockResolvedValue({ ok: true, value: { ...topic, references: [{ sessionId: 'outside', title: '跨工作区资料' }] } })
     mount(b.slots, b.sessionsStore, 'viewed')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -767,7 +767,7 @@ describe('Research Topics registered Graph workflow', () => {
       sources: [{ ...references[0]!, status: 'listed', archived: false }],
     } }))
     mount(b.slots, b.sessionsStore, 'a')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(nodeButton('a').style.left).toBe('100px') })
     fireEvent.click(screen.getByRole('button', { name: '重置布局' }))
@@ -798,7 +798,7 @@ describe('Research Topics registered Graph workflow', () => {
     const topic = { topicId: 'topic-a', title: '研究 A', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
     b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
     mount(b.slots, b.sessionsStore, 'a')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('a'))
     fireEvent.click(screen.getByRole('button', { name: '加入研究主题' }))
     await screen.findByRole('option', { name: '研究 A (0)' })
@@ -830,7 +830,7 @@ describe('Research Topics registered Graph workflow', () => {
       ...reference, status: reference.sessionId === 'missing' ? 'unavailable' : 'listed', archived: reference.sessionId === 'b',
     })) } })
     mount(b.slots, b.sessionsStore, 'a', { ...workspacesState(), archivedSessionIds: [id('b')] })
-    fireEvent.click(screen.getByRole('tab', { name: 'Graph' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Research Graph' }))
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(document.querySelectorAll('[data-node-id]')).toHaveLength(3) })
     expect(document.querySelectorAll('[data-edge-kind]')).toHaveLength(0)
@@ -862,7 +862,7 @@ describe('Research Topics registered Graph workflow', () => {
   it('retains a failed create input, retries with the same identity, and renames the saved topic', async () => {
     const b = await bench({ a: session('a') })
     mount(b.slots, b.sessionsStore, 'a')
-    fireEvent.click(screen.getByRole('tab', { name: 'Graph' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Research Graph' }))
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await screen.findByText('尚无研究主题。创建一个主题开始整理资料。')
     const input = screen.getByRole('textbox', { name: '新主题名称' })
@@ -1257,13 +1257,13 @@ describe('plugin registration', () => {
     const b = await bench(FIXTURE)
     expect(tabsOf(b.slots)).toEqual([
       { id: 'chat', label: 'Chat' },
-      { id: 'graph', label: 'Graph' },
+      { id: 'graph', label: 'Research Graph' },
     ])
     const locale = b.ctx.get('locale') as { setLocale(id: string): void }
     locale.setLocale('zh')
-    expect(tabsOf(b.slots).find(tab => tab.id === 'graph')?.label).toBe('图谱')
+    expect(tabsOf(b.slots).find(tab => tab.id === 'graph')?.label).toBe('研图')
     locale.setLocale('en')
-    expect(tabsOf(b.slots).find(tab => tab.id === 'graph')?.label).toBe('Graph')
+    expect(tabsOf(b.slots).find(tab => tab.id === 'graph')?.label).toBe('Research Graph')
   })
 
   it('fiber disposal removes the tab and leaves chat standing', async () => {
@@ -1277,18 +1277,18 @@ describe('graph tab rendering and interaction', () => {
   it('shows the package version and Build ID in the Graph header', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
-    const badge = screen.getByText(`Session Graph v${packageMetadata.version} · test-build`)
+    const badge = screen.getByText(`Research Graph v${packageMetadata.version} · test-build`)
     expect(badge.getAttribute('title')).toBe(
-      `@benz-ai-x/dsh-client-ui-session-graph v${packageMetadata.version} · build test-build`,
+      `@benz-ai-x/dsh-research-graph v${packageMetadata.version} · build test-build`,
     )
   })
 
   it('renders the scope-bound forest with Viewed Session highlight, one Branch edge, and folded summaries', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(nodeButton('root').getAttribute('aria-current')).toBe('true')
     expect(nodeButton('branchChild').getAttribute('aria-current')).toBeNull()
     // Subagent rows stay off the canvas; the root card carries the chain badge.
@@ -1337,7 +1337,7 @@ describe('graph tab rendering and interaction', () => {
       }),
     })
     mount(b.slots, b.sessionsStore, 'merged')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     expect(document.querySelectorAll('[data-edge-kind="branch"]')).toHaveLength(1)
     const mergeEdges = document.querySelectorAll('[data-edge-kind="merge"]')
@@ -1362,7 +1362,7 @@ describe('graph tab rendering and interaction', () => {
   it('renders stable input and output ports on every Canvas Session', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     for (const key of ['root', 'branchChild']) {
       const node = nodeButton(key)
@@ -1388,7 +1388,7 @@ describe('graph tab rendering and interaction', () => {
       sourceD: session('sourceD', { updatedAt: 200 }),
     })
     mount(b.slots, b.sessionsStore, 'sourceA')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
     const composer = screen.getByRole('dialog', { name: '汇聚会话' })
@@ -1419,7 +1419,7 @@ describe('graph tab rendering and interaction', () => {
       sourceB: session('sourceB', { updatedAt: 400 }),
     })
     mount(b.slots, b.sessionsStore, 'sourceA')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
     fireEvent.click(nodeButton('sourceA'))
@@ -1453,7 +1453,7 @@ describe('graph tab rendering and interaction', () => {
     }>()
     b.submitMerge.mockImplementationOnce(async () => await gate.promise)
     mount(b.slots, b.sessionsStore, 'sourceA')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
     fireEvent.click(nodeButton('sourceA'))
@@ -1515,7 +1515,7 @@ describe('graph tab rendering and interaction', () => {
       },
     })
     mount(b.slots, b.sessionsStore, 'sourceA')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
     fireEvent.click(nodeButton('sourceA'))
     fireEvent.click(nodeButton('sourceB'))
@@ -1536,7 +1536,7 @@ describe('graph tab rendering and interaction', () => {
   it('presents each Canvas Session title before its secondary metadata', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     expect(nodeButton('branchChild').textContent?.startsWith('Session branchChild')).toBe(true)
     expect(nodeButton('root').textContent?.startsWith('Session root')).toBe(true)
@@ -1545,7 +1545,7 @@ describe('graph tab rendering and interaction', () => {
   it('connects Branches at the bottom terminal of the 56px Canvas Session card', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     expect(document.querySelector('[data-edge-kind="branch"]')?.getAttribute('d'))
       .toMatch(/^M 120 56 /)
@@ -1554,7 +1554,7 @@ describe('graph tab rendering and interaction', () => {
   it('selects on single click and opens the target session on double click', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     const child = nodeButton('branchChild')
     fireEvent.click(child, { detail: 1 })
@@ -1574,14 +1574,14 @@ describe('graph tab rendering and interaction', () => {
     delete (loose as Partial<SessionSummary>).cwd
     const b = await bench({ loose })
     mount(b.slots, b.sessionsStore, 'loose')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(screen.getByText('无法确定当前查看会话的工作区或工作目录')).toBeTruthy()
   })
 
   it('labels a Directory Scope without presenting it as a Workspace', async () => {
     const b = await bench({ loose: session('loose', { cwd: '/loose' }) })
     mount(b.slots, b.sessionsStore, 'loose')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(document.body.textContent).toContain('目录范围 · 1 个会话')
     expect(document.body.textContent).not.toContain('当前目录')
   })
@@ -1600,7 +1600,7 @@ describe('free viewport controls', () => {
   it('renders the zoom controls with a percentage readout', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     // The one-shot entry fit leaves the view at its fitted scale (clamped
     // at or below 100%); the readout reflects it truthfully.
     const readout = screen.getByRole('button', { name: '缩放至 100%' })
@@ -1616,7 +1616,7 @@ describe('free viewport controls', () => {
   it('names the canvas toolbar and distinguishes Relayout from Reset', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     expect(screen.getByRole('group', { name: '画布工具' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '重新布局' })).toBeTruthy()
@@ -1638,7 +1638,7 @@ describe('free viewport controls', () => {
     stubResizeObserver()
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
 
     const surface = document.querySelector('[aria-label="会话关系图谱"]')!
@@ -1660,7 +1660,7 @@ describe('free viewport controls', () => {
   it('zooms in and out from the controls and resets to 100% on the readout', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     // Anchor at 100% first: the entry fit may leave the view below identity.
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
@@ -1677,7 +1677,7 @@ describe('free viewport controls', () => {
   it('wheel zooms toward the cursor anchor', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     fireEvent.wheel(surface(), { deltaY: -100, clientX: 400, clientY: 300 })
@@ -1687,7 +1687,7 @@ describe('free viewport controls', () => {
   it('pans on background drag without stealing node clicks', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const content = (): HTMLElement => document.querySelector('[data-node-id="root"]')!.parentElement!
     const before = content().style.transform
@@ -1708,7 +1708,7 @@ describe('free viewport controls', () => {
   it('fits the content into the surface on the fit button', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '放大' }))
     fireEvent.click(screen.getByRole('button', { name: '适应' }))
@@ -1737,7 +1737,7 @@ describe('free viewport controls', () => {
     }))
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     viewHeight = 600
 
     expect(nodeButton('branchChild').style.left).toBe('-1000px')
@@ -1777,7 +1777,7 @@ describe('node drag and position persistence', () => {
   it('drags a node, persists its position, and suppresses the click', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const before = nodeButton('branchChild').style.left
     drag('branchChild', 120, 80)
     const after = nodeButton('branchChild').style.left
@@ -1794,7 +1794,7 @@ describe('node drag and position persistence', () => {
   it('accepts the first deliberate click after a completed drag', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     drag('branchChild', 120, 80)
 
     const node = nodeButton('branchChild')
@@ -1807,17 +1807,17 @@ describe('node drag and position persistence', () => {
   it('restores persisted positions on remount and falls back on corruption', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     drag('branchChild', 120, 80)
     const moved = nodeButton('branchChild').style.left
     cleanup()
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(nodeButton('branchChild').style.left).toBe(moved)
     cleanup()
     localStorage.setItem('dsh.session-graph.layout.["test-host","/w",null]', '{corrupt')
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     // Corrupt storage falls back to the auto layout's depth row.
     expect(nodeButton('branchChild').style.left).toBe('0px')
     expect(nodeButton('branchChild').style.top).toBe('120px')
@@ -1826,7 +1826,7 @@ describe('node drag and position persistence', () => {
   it('keeps sub-threshold pointer movement a click', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const node = nodeButton('branchChild')
     fireEvent.pointerDown(node, { pointerId: 9, clientX: 200, clientY: 200 })
     fireEvent.pointerMove(node, { pointerId: 9, clientX: 202, clientY: 201 })
@@ -1840,7 +1840,7 @@ describe('node drag and position persistence', () => {
   it('rolls back a node drag when the pointer sequence is canceled', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const node = nodeButton('branchChild')
     const before = { left: node.style.left, top: node.style.top }
     fireEvent.pointerDown(node, { pointerId: 10, clientX: 200, clientY: 200 })
@@ -1861,7 +1861,7 @@ describe('node drag and position persistence', () => {
       'root',
       workspacesState([workspace('first', '/w', ['root'])]),
     )
-    switchTab('Graph')
+    switchTab('Research Graph')
     drag('branchChild', 120, 80)
     expect(nodeButton('branchChild').style.left).not.toBe('0px')
 
@@ -1872,7 +1872,7 @@ describe('node drag and position persistence', () => {
       'root',
       workspacesState([workspace('second', '/w', ['root'])]),
     )
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(nodeButton('branchChild').style.left).toBe('0px')
   })
 
@@ -1886,13 +1886,13 @@ describe('node drag and position persistence', () => {
     const b = await bench(FIXTURE)
     const namedScope = workspacesState([workspace('stable', '/w', ['root'])])
     mount(b.slots, b.sessionsStore, 'root', namedScope)
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(nodeButton('branchChild').style.left).toBe('0px')
 
     cleanup()
     localStorage.removeItem('dsh.session-graph.layout./w')
     mount(b.slots, b.sessionsStore, 'root', namedScope)
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(nodeButton('branchChild').style.left).toBe('0px')
   })
 })
@@ -1901,7 +1901,7 @@ describe('cluster frames', () => {
   it('renders a titled frame around the Session Cluster', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const frame = document.querySelector('[data-cluster-id="root"]')
     expect(frame).not.toBeNull()
     expect(frame?.querySelector('[class*="frameLabel"]')?.textContent).toBe('Session root')
@@ -1916,7 +1916,7 @@ describe('cluster frames', () => {
       lone: session('lone', { updatedAt: 200 }),
     })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(document.querySelectorAll('[data-cluster-id]')).toHaveLength(2)
     const lone = document.querySelector('[data-cluster-id="lone"]')
     expect(lone?.querySelector('[class*="frameLabel"]')?.textContent).toBe('Session lone')
@@ -1925,7 +1925,7 @@ describe('cluster frames', () => {
   it('collapses a cluster into its compact column, drops its edge, and persists', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(document.querySelectorAll('svg path')).toHaveLength(3)
     fireEvent.click(document.querySelector('[data-cluster-id="root"] button')!)
     const toggle = document.querySelector('[data-cluster-id="root"] button')!
@@ -1949,11 +1949,11 @@ describe('cluster frames', () => {
   it('restores the collapsed state from storage on remount', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(document.querySelector('[data-cluster-id="root"] button')!)
     cleanup()
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(document.querySelector('[data-cluster-id="root"] button')?.getAttribute('aria-expanded')).toBe('false')
   })
 })
@@ -1965,7 +1965,7 @@ describe('cluster drag', () => {
   it('drags a whole cluster by its frame title and persists the offset', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     const content = (): HTMLElement => document.querySelector('[data-node-id="root"]')!.parentElement!
@@ -1992,7 +1992,7 @@ describe('cluster drag', () => {
   it('restores the cluster offset on remount', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     const title = frameTitle('root')
@@ -2001,7 +2001,7 @@ describe('cluster drag', () => {
     fireEvent.pointerUp(title, { pointerId: 22 })
     cleanup()
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(nodeButton('root').style.left).toBe('40px')
     expect(nodeButton('root').style.top).toBe('30px')
   })
@@ -2009,7 +2009,7 @@ describe('cluster drag', () => {
   it('stores node drags in the cluster-local frame so offsets never double-apply', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     const title = frameTitle('root')
@@ -2031,7 +2031,7 @@ describe('cluster drag', () => {
   it('never starts a cluster drag from the collapse toggle', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const toggle = document.querySelector('[data-cluster-id="root"] button')!
     fireEvent.pointerDown(toggle, { pointerId: 25, clientX: 300, clientY: 100 })
@@ -2044,7 +2044,7 @@ describe('cluster drag', () => {
   it('rolls back a cluster drag when the pointer sequence is canceled', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const title = frameTitle('root')
     fireEvent.pointerDown(title, { pointerId: 28, clientX: 300, clientY: 100 })
@@ -2063,7 +2063,7 @@ describe('cluster drag', () => {
       lone: session('lone', { updatedAt: 200 }),
     })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(document.querySelector('[data-cluster-id="root"]')?.className).not.toContain('Raised')
     fireEvent.pointerDown(frameTitle('root'), { pointerId: 26, clientX: 300, clientY: 100 })
     expect(document.querySelector('[data-cluster-id="root"]')?.className).toContain('Raised')
@@ -2081,7 +2081,7 @@ describe('relayout button', () => {
   it('clears manual positions and returns nodes to the auto layout', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const node = nodeButton('branchChild')
     fireEvent.pointerDown(node, { pointerId: 5, clientX: 200, clientY: 200 })
     fireEvent.pointerMove(node, { pointerId: 5, clientX: 340, clientY: 260 })
@@ -2110,7 +2110,7 @@ describe('reset and minimap', () => {
       lone: session('lone', { updatedAt: 100 }),
     })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     await waitFor(() => {
       expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).not.toBe('100%')
     })
@@ -2138,7 +2138,7 @@ describe('reset and minimap', () => {
       c4: session('c4', { parentId: id('root'), updatedAt: 100 }),
     })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const minimap = screen.getByTestId('session-graph-minimap')
     expect(minimap).toBeTruthy()
@@ -2163,7 +2163,7 @@ describe('reset and minimap', () => {
   it('hides the minimap while the whole graph fits and restores it when content leaves the view', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
 
     fireEvent.click(screen.getByRole('button', { name: '适应' }))
@@ -2179,7 +2179,7 @@ describe('reset and minimap', () => {
   it('pointing the minimap recenters the surface', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const content = (): HTMLElement => document.querySelector('[data-node-id="root"]')!.parentElement!
     const before = content().style.transform
@@ -2206,7 +2206,7 @@ describe('discussion search through the registered Graph view', () => {
     })
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('A 资料')] } })
     mount(b.slots, b.sessionsStore, 'root', workspaceStore)
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.change(screen.getByRole('combobox', { name: '搜索范围' }), { target: { value: 'workspace:b' } })
@@ -2232,7 +2232,7 @@ describe('discussion search through the registered Graph view', () => {
   it('offers all-Host discussion search even when the Viewed Session has no graph scope', async () => {
     const b = await bench({ loose: session('loose', { cwd: undefined }) })
     mount(b.slots, b.sessionsStore, 'loose')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -2245,7 +2245,7 @@ describe('discussion search through the registered Graph view', () => {
     const a = workspace('a', '/w', ['root'])
     const workspaceStore = createSnapshotStore(workspacesState(action === 'remove' ? [a] : []))
     mount(b.slots, b.sessionsStore, 'root', workspaceStore)
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     await act(async () => { workspaceStore.set(workspacesState(action === 'register' ? [a] : [])) })
@@ -2262,7 +2262,7 @@ describe('discussion search through the registered Graph view', () => {
   it('keeps keyboard focus within search and restores the entry after Escape', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const entry = screen.getByRole('button', { name: '搜索正文' })
     fireEvent.click(entry)
     expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '正文关键词' }))
@@ -2286,7 +2286,7 @@ describe('discussion search through the registered Graph view', () => {
     }], nextCursor: '1f627a35-bb71-4ce5-9c56-1ca4bca83cc6:20' } })
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'stale' } })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -2308,7 +2308,7 @@ describe('discussion search through the registered Graph view', () => {
     b.searchDiscussion.mockResolvedValueOnce({ ok: false, error: { code: 'failed', message: 'Interrupted', details: {} } } as never)
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('第二页')] } })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -2336,7 +2336,7 @@ describe('discussion search through the registered Graph view', () => {
     // Reopening now performs a fresh search before the next explicit submission.
     b.searchDiscussion.mockResolvedValue({ ok: true, value: { kind: 'results', hits: [hit('新查询结果')] } })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'old' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -2364,7 +2364,7 @@ describe('discussion search through the registered Graph view', () => {
     const b = await bench(FIXTURE)
     b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'disabled' } } as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -2380,7 +2380,7 @@ describe('discussion search through the registered Graph view', () => {
     const b = await bench(FIXTURE)
     b.searchDiscussion.mockResolvedValueOnce({ ok: false, error: { code: 'failed', message: 'Index unavailable', details: {} } } as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
@@ -2404,7 +2404,7 @@ describe('discussion search through the registered Graph view', () => {
       }],
     } })
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
     fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: '知识卡片' } })
     fireEvent.change(screen.getByRole('combobox', { name: '搜索范围' }), { target: { value: 'all' } })
@@ -2437,7 +2437,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     b.readHistory.mockResolvedValueOnce(page(1) as never)
     b.readHistory.mockResolvedValueOnce(page(3) as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     await screen.findByText('Discussion 1')
@@ -2453,7 +2453,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('switches Inspector tabs with the keyboard without moving the Selected Session', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     const digest = screen.getByRole('tab', { name: '会话摘要' })
     digest.focus()
@@ -2477,7 +2477,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     b.readHistory.mockResolvedValueOnce(page(null) as never)
     b.readHistory.mockResolvedValueOnce(page(5) as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     await screen.findByText('尚未完成，不可选作固定来源')
@@ -2499,7 +2499,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     b.readHistory.mockResolvedValueOnce(page(turns.slice(0, 1), false, true) as never)
     b.readHistory.mockResolvedValueOnce(page(turns, false, false) as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     await screen.findByText('Three')
@@ -2523,7 +2523,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     b.readHistory.mockReturnValueOnce(pending.promise)
     b.readHistory.mockResolvedValueOnce(reply(action === 'switch' ? 'branchChild' : 'root', 'Newer discussion') as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     const signal = b.readHistory.mock.calls[0]![1] as AbortSignal
@@ -2560,7 +2560,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     b.readHistory.mockReturnValueOnce(pending.promise)
     b.readHistory.mockResolvedValueOnce(original)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     await screen.findByText('Retained discussion evidence.')
@@ -2601,7 +2601,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     b.readHistory.mockResolvedValueOnce({ ...original, value: { ...original.value, kind: 'excerpt' } } as never)
     b.readHistory.mockResolvedValueOnce(original as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     await screen.findByText('Keep this evidence.')
@@ -2623,7 +2623,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     b.readHistory.mockResolvedValueOnce({ ok: true, value: { kind: 'unavailable', sessionId: 'root', turns: [], hasEarlier: false, hasLater: false } } as never)
     b.readHistory.mockResolvedValueOnce({ ok: true, value: { kind: 'original', sessionId: 'root', turns: [], hasEarlier: false, hasLater: false } } as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     expect((await screen.findByRole('alert')).textContent).toContain('读取失败')
@@ -2645,7 +2645,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     ]
     b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'root', hasEarlier: false, hasLater: false, turns } } as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     await screen.findByText('First turn')
@@ -2680,7 +2680,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     } } as never)
     b.readHistory.mockResolvedValueOnce(latest as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     expect(screen.getByRole('status').textContent).toContain('正在读取原文')
@@ -2709,7 +2709,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
       }],
     } } as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('branchChild'))
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
 
@@ -2725,7 +2725,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('pressing Escape clears the Selected Session and closes its inspector', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const node = nodeButton('branchChild')
 
     fireEvent.click(node)
@@ -2740,7 +2740,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('clicking the canvas background clears the Selected Session', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const node = nodeButton('branchChild')
     const surface = document.querySelector('[aria-label="会话关系图谱"]')!
 
@@ -2756,7 +2756,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('keeps selection through the browser double-click sequence and opens exactly once', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const node = nodeButton('branchChild')
     fireEvent.click(node, { detail: 1 })
     fireEvent.click(node, { detail: 2 })
@@ -2769,7 +2769,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('selecting a node opens the summary panel with open and branch actions', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     expect(screen.queryByTestId('session-graph-panel')).toBeNull()
     fireEvent.click(nodeButton('root'))
     const panel = screen.getByTestId('session-graph-panel')
@@ -2786,7 +2786,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('keeps wheel gestures inside the Selected Session inspector out of canvas zoom', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     fireEvent.click(nodeButton('root'))
 
@@ -2806,7 +2806,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
       overview: '可拖动的长摘要。',
     }) as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
 
@@ -2859,7 +2859,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     }>()
     b.generateDigest.mockImplementationOnce(() => pending.promise)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
 
     const digest = screen.getByTestId('session-digest-section')
@@ -2912,7 +2912,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     const refresh = deferred<ReturnType<typeof digestSuccess>>()
     b.generateDigest.mockImplementationOnce(() => refresh.promise as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
 
@@ -2948,7 +2948,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('shows an empty state for a blank Session without calling the Host', async () => {
     const b = await bench({ blank: session('blank', { blank: true }) })
     mount(b.slots, b.sessionsStore, 'blank')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('blank'))
 
     expect(screen.getByTestId('session-digest-section').textContent)
@@ -2960,7 +2960,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('reopens generation after a previously empty Session receives new content', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
     await waitFor(() => {
@@ -2987,7 +2987,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
       error: { code: 'generation-failed', message: 'offline', details: {} },
     } as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
 
@@ -3013,7 +3013,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
       },
     } as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
 
@@ -3032,7 +3032,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     const pending = deferred<ReturnType<typeof digestSuccess>>()
     b.generateDigest.mockImplementationOnce(() => pending.promise as never)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
     const rootSignal = b.generateDigest.mock.calls[0]?.[1] as AbortSignal
@@ -3054,7 +3054,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('exposes a named Selected Session inspector that can be closed explicitly', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const node = nodeButton('branchChild')
 
     fireEvent.click(node)
@@ -3069,7 +3069,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('explains the Selected Session Branch source in the inspector', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.click(nodeButton('branchChild'))
     expect(screen.getByRole('complementary', { name: '会话详情' }).textContent)
@@ -3089,7 +3089,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
       workspacesState(),
       new Map([[id('running'), {}], [id('waiting'), {}]]) as SessionPendingInteractionSnapshot,
     )
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     expect(nodeButton('running').dataset.displayStatus).toBe('running')
     expect(nodeButton('running').className).not.toContain('nodePending')
@@ -3110,7 +3110,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     const b = await bench(FIXTURE)
     b.fork.mockRejectedValueOnce(new Error('branch rejected'))
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.click(nodeButton('root'))
     fireEvent.click(branchActionButton())
@@ -3124,7 +3124,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     const b = await bench(FIXTURE)
     b.fork.mockRejectedValueOnce(new Error('branch rejected'))
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.click(nodeButton('root'))
     const branchButton = branchActionButton()
@@ -3140,7 +3140,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
   it('arrow keys move focus between nodes by layout geometry', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     nodeButton('root').focus()
     // The tree grows top to bottom: the Branch child sits one row below.
     fireEvent.keyDown(document.querySelector('[aria-label="会话关系图谱"]')!, { key: 'ArrowDown' })
@@ -3156,7 +3156,7 @@ describe('hover preview card', () => {
   it('replaces a Canvas Session preview with the Selected Session inspector', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     vi.useFakeTimers()
     const node = nodeButton('branchChild')
@@ -3173,7 +3173,7 @@ describe('hover preview card', () => {
   it('does not preview the Selected Session again on hover', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     vi.useFakeTimers()
     const node = nodeButton('branchChild')
@@ -3189,7 +3189,7 @@ describe('hover preview card', () => {
   it('previews another Canvas Session without replacing the Selected Session inspector', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     vi.useFakeTimers()
 
@@ -3204,7 +3204,7 @@ describe('hover preview card', () => {
   it('shows the detail card after the hover delay and hides it on leave', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     vi.useFakeTimers()
     fireEvent.mouseEnter(nodeButton('branchChild'))
@@ -3221,7 +3221,7 @@ describe('hover preview card', () => {
   it('never opens on a quick pass-through hover', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     vi.useFakeTimers()
     fireEvent.mouseEnter(nodeButton('branchChild'))
@@ -3234,7 +3234,7 @@ describe('hover preview card', () => {
   it('hides when the node drag starts', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     vi.useFakeTimers()
     fireEvent.mouseEnter(nodeButton('branchChild'))
@@ -3250,7 +3250,7 @@ describe('drag alignment snapping', () => {
   it('snaps the dragged node to a sibling edge, shows the guide, and clears it on release', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     const node = nodeButton('branchChild')
@@ -3269,7 +3269,7 @@ describe('drag alignment snapping', () => {
   it('leaves the position untouched beyond the snap threshold', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     const node = nodeButton('branchChild')
@@ -3285,7 +3285,7 @@ describe('programmatic viewport transitions', () => {
   it('marks fit and 100% jumps with the animated class but not step zooms', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const content = (): HTMLElement => document.querySelector('[data-node-id="root"]')!.parentElement!
     fireEvent.click(screen.getByRole('button', { name: '放大' }))
@@ -3299,7 +3299,7 @@ describe('locate Viewed Session button', () => {
   it('centers the viewport on the Viewed Session after panning away', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
     const surface = document.querySelector('[aria-label="会话关系图谱"]')!
@@ -3324,7 +3324,7 @@ describe('low-zoom level of detail', () => {
   it('fades node card text below the zoom threshold and restores it above', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const content = (): HTMLElement => document.querySelector('[data-node-id="root"]')!.parentElement!
     fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
@@ -3354,7 +3354,7 @@ describe('canvas keyboard shortcuts', () => {
   it('zooms with + and -, returns to 100% with 0, and fits with 1', async () => {
     const b = await bench(WIDE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.keyDown(surface(), { key: '0' })
     expect(readout().textContent).toBe('100%')
@@ -3373,7 +3373,7 @@ describe('canvas keyboard shortcuts', () => {
   it('focuses the canvas on background pointer down so keys work without a node focused', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     fireEvent.pointerDown(surface(), { pointerId: 11, clientX: 50, clientY: 50 })
     fireEvent.pointerUp(surface(), { pointerId: 11 })
@@ -3385,7 +3385,7 @@ describe('canvas keyboard shortcuts', () => {
   it('ignores shortcut keys coming from the filter input', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const before = readout().textContent
     const input = screen.getByRole('textbox', { name: '过滤会话标题' })
@@ -3408,7 +3408,7 @@ describe('Branch Lineage highlight', () => {
   it('hovering a node dims everyone outside its branch lineage and clears on leave', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.mouseEnter(nodeButton('branchChild'))
     expect(nodeButton('lone').className).toContain('dim')
     expect(nodeButton('branchChild2').className).toContain('dim')
@@ -3423,7 +3423,7 @@ describe('Branch Lineage highlight', () => {
   it('keeps the Selected Session Branch Lineage emphasized after the pointer leaves', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.click(nodeButton('branchChild'))
 
@@ -3436,7 +3436,7 @@ describe('Branch Lineage highlight', () => {
   it('distinguishes contextual emphasis from Title Filter suppression', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
 
     fireEvent.mouseEnter(nodeButton('branchChild'))
     expect(nodeButton('lone').className).toContain('dimContext')
@@ -3453,7 +3453,7 @@ describe('Branch Lineage highlight', () => {
   it('hovering an edge dims everything except its endpoints', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const hit = document.querySelector('[data-edge-id="branch:root->branchChild"]')
     expect(hit).not.toBeNull()
     fireEvent.mouseEnter(hit!)
@@ -3468,7 +3468,7 @@ describe('Branch Lineage highlight', () => {
   it('dims a cluster frame when none of its members are emphasized', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const frame = document.querySelector('[data-cluster-id="root"]')
     expect(frame?.className).not.toContain('dim')
     fireEvent.mouseEnter(nodeButton('lone'))
@@ -3489,7 +3489,7 @@ describe('title filter', () => {
   it('announces the match count and the no-match state', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const input = screen.getByRole('textbox', { name: '过滤会话标题' })
 
     fireEvent.change(input, { target: { value: 'branchChild' } })
@@ -3503,7 +3503,7 @@ describe('title filter', () => {
   it('dims non-matching nodes as the query types and restores on clear', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const input = screen.getByRole('textbox', { name: '过滤会话标题' })
     fireEvent.change(input, { target: { value: 'branchChild' } })
     expect(nodeButton('lone').className).toContain('dim')
@@ -3520,7 +3520,7 @@ describe('title filter', () => {
   it('locates the first match on Enter, centered in the surface', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     stubSize(1000, 600)
     const input = screen.getByRole('textbox', { name: '过滤会话标题' })
     fireEvent.change(input, { target: { value: 'lone' } })
@@ -3540,7 +3540,7 @@ describe('title filter', () => {
   it('keeps typing focus in the input: arrow keys never leave for the canvas', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Graph')
+    switchTab('Research Graph')
     const input = screen.getByRole('textbox', { name: '过滤会话标题' }) as HTMLInputElement
     input.focus()
     fireEvent.keyDown(input, { key: 'ArrowLeft' })
@@ -3572,7 +3572,7 @@ describe('Working position live updates', () => {
     localStorage.setItem('dsh.session-graph.position.' + scopeKey, JSON.stringify({ v: 1, topicId: topic.topicId }))
     localStorage.setItem(storageKey, JSON.stringify({ v: 1, selected: 'card:removed-card', viewport }))
     mount(b.slots, b.sessionsStore, 'viewed')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     if (state === 'last card detached') {
       await screen.findByRole('button', { name: zh['knowledge.edit'] })
@@ -3601,7 +3601,7 @@ describe('Working position live updates', () => {
     const secondKey = JSON.stringify(['test-host', JSON.stringify(['test-host', 'workspace:second', null]), tiny.topic.topicId])
     localStorage.setItem('dsh.session-graph.layout.' + secondKey, JSON.stringify({ v: 1, positions: { 'source-0001': { x: 900, y: 700 } }, collapsed: [], offsets: {} }))
     mount(b.slots, b.sessionsStore, 'viewed', workspaceStore)
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
     const node = nodeButton('source-0001')
@@ -3625,7 +3625,7 @@ describe('Working position live updates', () => {
     localStorage.setItem('dsh.session-graph.position.' + scopeKey, JSON.stringify({ v: 1, topicId: tiny.topic.topicId }))
     localStorage.setItem('dsh.session-graph.position.' + topicKey, JSON.stringify({ v: 1, selected: 'source-0001', tab: 'history', history: { 'source-0001': 80 } }))
     mount(b.slots, b.sessionsStore, 'viewed')
-    switchTab('Graph')
+    switchTab('Research Graph')
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(b.readHistory).toHaveBeenCalled() })
     await waitFor(() => { expect(screen.queryByTestId('topic-source-panel')).toBeNull() })
