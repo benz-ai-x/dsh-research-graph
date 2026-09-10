@@ -117,6 +117,16 @@ function registerUi(ctx: Context): void {
     label: () => t('view.graph'),
     inject: (): GraphViewInjected => ({
       knowledge: {
+        prepareExtraction: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.prepareExtraction(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
+        extract: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphKnowledge.extract(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
         read: async (request, signal) => {
           const result = await ctx.remote.sessionGraphKnowledge.read(request, signal)
           if (!result.ok) throw new Error(result.error.message)

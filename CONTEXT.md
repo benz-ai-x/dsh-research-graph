@@ -118,6 +118,10 @@ _Avoid_: Verified conclusion, tool evidence, similar text
 A directed provenance link from an addressed Session to a Knowledge Card. Its saved revision records the precise Knowledge Sources. It does not create a Branch or Merge Relation, add model context, or imply that the source is a member of the Research Topic.
 _Avoid_: Branch, Merge Relation, Topic Reference
 
+**Extraction Snapshot**:
+The Host-retained selection and exact included direct discussion text shown before an explicit AI extraction. A character budget admits only whole completed turns and lists omitted ranges. Generated drafts and corrected citations can address this frozen material across Host restart; the snapshot does not itself create a Knowledge Card or claim that its statements are true.
+_Avoid_: Full-session summary, verified tool evidence, saved card
+
 **Research Topic**:
 A named collection with a stable identity on one Host, containing references to Sessions across Workspaces. One Session can belong to several topics. Topic membership and arrangement survive Host restart without changing Session ownership, archive state, lineage, or model context.
 _Avoid_: Workspace, Session Cluster, merged context

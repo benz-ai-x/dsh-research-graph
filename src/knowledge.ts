@@ -48,7 +48,13 @@ export interface KnowledgeRevisionAddress {
   readonly sourceIndex: number
 }
 
-export type KnowledgeSourceAddress = KnowledgeDiscussionAddress | KnowledgeRevisionAddress
+export interface KnowledgeExtractionAddress {
+  readonly kind: 'extraction'
+  readonly preparationId: string
+  readonly startSeq: number
+  readonly endSeq: number
+}
+export type KnowledgeSourceAddress = KnowledgeDiscussionAddress | KnowledgeRevisionAddress | KnowledgeExtractionAddress
 
 export interface KnowledgeSearch {
   readonly query: string

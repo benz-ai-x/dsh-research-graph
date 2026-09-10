@@ -44,10 +44,49 @@ import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
+import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
 describe('Knowledge Cards registered Graph workflow', () => {
+  it('shows extraction scope, cancels late generation and keeps edited drafts when generating another batch', async () => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'Discussion A', source: { startSeq: 10, endSeq: 14,
+      turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: '明确的测试证据' }] }] } }
+    const preview: ExtractionPreparation = { preparationId: 'preview-one', selected: source, included: source, omitted: [], budgetChars: 20_000,
+      materialText: '明确的测试证据', route: { provider: 'fixture', model: 'fixed-v1' } }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: source.source.turns, hasEarlier: false, hasLater: false } })
+    b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
+    const output = { provider: 'fixture', model: 'fixed-v1', drafts: [{ cardId: 'card-ai', revisionId: 'revision-ai', invalidCitations: 1, needsVerification: true,
+      content: { title: 'AI 初稿', question: '', conclusion: '模型结论', rationale: '', openQuestions: '', kind: 'method' as const, status: 'draft' as const }, sources: [],
+    }] }
+    const late = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphKnowledge/extract']>>>()
+    b.extractKnowledge.mockReturnValueOnce(late.promise)
+    b.extractKnowledge.mockResolvedValue({ ok: true, value: output })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
+    fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
+    const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
+    await within(dialog).findByText('明确的测试证据')
+    expect(b.extractKnowledge).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '取消生成' }))
+    expect(b.extractKnowledge.mock.calls[0]![1]!.aborted).toBe(true)
+    await act(async () => { late.resolve({ ok: true, value: output }) })
+    expect(within(dialog).queryByRole('textbox', { name: '结论' })).toBeNull()
+    fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
+    const conclusion = await within(dialog).findByRole('textbox', { name: '结论' }) as HTMLTextAreaElement
+    fireEvent.change(conclusion, { target: { value: '人工改写，必须保留' } })
+    expect(within(dialog).getByText('待验证：请核对推论并补充有效来源。')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: '追加一组草稿' }))
+    await waitFor(() => { expect(within(dialog).getAllByRole('textbox', { name: '结论' })).toHaveLength(2) })
+    expect(conclusion.value).toBe('人工改写，必须保留')
+    expect(b.saveKnowledge).not.toHaveBeenCalled()
+  })
   it('finds a card through the shared search entry and draws an explicit source relation in its topic', async () => {
     const b = await bench({ a: session('a') })
     const fixture = researchTopicFixture()
@@ -560,6 +599,8 @@ async function bench(byId: Record<string, SessionSummary>) {
   const searchKnowledge = vi.fn(async () => ({ ok: true as const, value: [] as readonly KnowledgeCard[] }))
   const readKnowledge = vi.fn(async () => ({ ok: true as const, value: null as KnowledgeCard | null }))
   const membershipKnowledge = vi.fn()
+  const prepareExtraction = vi.fn<TypertRemoteMap['sessionGraphKnowledge/prepareExtraction']>()
+  const extractKnowledge = vi.fn<TypertRemoteMap['sessionGraphKnowledge/extract']>()
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
   const fork = vi.fn(async () => id('branched'))
@@ -621,7 +662,8 @@ async function bench(byId: Record<string, SessionSummary>) {
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
-  ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge, membership: membershipKnowledge } as never)
+  ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
+    membership: membershipKnowledge, prepareExtraction, extract: extractKnowledge } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -630,6 +672,7 @@ async function bench(byId: Record<string, SessionSummary>) {
   return {
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
+    prepareExtraction, extractKnowledge,
   }
 }
 

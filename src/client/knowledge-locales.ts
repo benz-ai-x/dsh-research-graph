@@ -1,4 +1,14 @@
 export const knowledgeZh = {
+  'extract.title': '提炼知识', 'extract.preview': '预览纳入材料', 'extract.budget': '材料字符预算',
+  'extract.selected': '所选范围', 'extract.included': '实际纳入范围', 'extract.omitted': '省略的轮次',
+  'extract.noneOmitted': '所选范围全部纳入', 'extract.provider': '模型提供方', 'extract.model': '模型',
+  'extract.generate': '生成知识草稿', 'extract.append': '追加一组草稿', 'extract.cancel': '取消生成',
+  'extract.generating': '正在生成待审核草稿…', 'extract.verify': '待验证：请核对推论并补充有效来源。',
+  'extract.invalid': '有 {count} 个引用无效，未加入来源。请重新选择有效轮次。',
+  'extract.citation': '引用第 {turn} 轮', 'extract.review': '核对这一轮原文',
+  'extract.hint': '只读取下方纳入的讨论文字，不核查原始工具证据。有效出处不等于推论正确。',
+  'extract.preserve': '再次生成会追加草稿，保留已有编辑；所有卡片都需要逐条审核保存。',
+  'extract.snapshot': '预览固定本次材料，Host 重启后仍可按相同来源保存草稿。调整预算后请重新预览。',
   'knowledge.close': '关闭卡片', 'knowledge.query': '关键词',
   'knowledge.title': '知识卡片', 'knowledge.create': '保存为知识卡片', 'knowledge.new': '新建知识卡片',
   'knowledge.field.title': '卡片标题', 'knowledge.field.question': '核心问题', 'knowledge.field.conclusion': '结论',
@@ -20,6 +30,16 @@ export const knowledgeZh = {
 } as const
 export type KnowledgeKey = keyof typeof knowledgeZh
 export const knowledgeEn: Record<KnowledgeKey, string> = {
+  'extract.title': 'Extract knowledge', 'extract.preview': 'Preview included material', 'extract.budget': 'Material character budget',
+  'extract.selected': 'Selected range', 'extract.included': 'Included range', 'extract.omitted': 'Omitted turns',
+  'extract.noneOmitted': 'Entire selected range included', 'extract.provider': 'Model provider', 'extract.model': 'Model',
+  'extract.generate': 'Generate card drafts', 'extract.append': 'Append another draft batch', 'extract.cancel': 'Cancel generation',
+  'extract.generating': 'Generating drafts for review…', 'extract.verify': 'Needs verification: check the claim and add valid sources.',
+  'extract.invalid': '{count} invalid citations were excluded. Select valid turns to correct them.',
+  'extract.citation': 'Cite turn {turn}', 'extract.review': 'Check this original turn',
+  'extract.hint': 'Only the included discussion text is read. Raw tool evidence is not checked. Valid provenance does not prove a claim.',
+  'extract.preserve': 'Generating again appends drafts and preserves your edits. Review and save each card explicitly.',
+  'extract.snapshot': 'The preview freezes this material so drafts can still use the same sources after Host restart. Preview again after changing the budget.',
   'knowledge.close': 'Close card', 'knowledge.query': 'Keywords',
   'knowledge.title': 'Knowledge Cards', 'knowledge.create': 'Save as Knowledge Card', 'knowledge.new': 'New Knowledge Card',
   'knowledge.field.title': 'Card title', 'knowledge.field.question': 'Core question', 'knowledge.field.conclusion': 'Conclusion',

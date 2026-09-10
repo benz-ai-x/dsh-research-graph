@@ -1,5 +1,6 @@
 import type { KnowledgeCard, KnowledgeContent, KnowledgeMembership, KnowledgeSearch, KnowledgeSourceAddress, KnowledgeSave, KnowledgeSource } from './knowledge.ts'
 import { sessionHistoryRequestSchema } from './session-history-codec.ts'
+import type { ExtractionPreparationRequest, ExtractionRequest } from './knowledge-extraction.ts'
 
 function invalid(): never { throw new TypeError('Invalid Knowledge Card data') }
 function object(value: unknown, keys: readonly string[]): Record<string, unknown> {
@@ -38,7 +39,14 @@ function content(value: unknown): KnowledgeContent {
   }
 }
 function address(value: unknown): KnowledgeSourceAddress {
-  const raw = object(value, ['kind', 'sessionId', 'startSeq', 'endSeq', 'cardId', 'revisionId', 'sourceIndex'])
+  const raw = object(value, ['kind', 'sessionId', 'startSeq', 'endSeq', 'cardId', 'revisionId', 'sourceIndex', 'preparationId'])
+  if (raw.kind === 'extraction') {
+    const item = object(value, ['kind', 'preparationId', 'startSeq', 'endSeq'])
+    const startSeq = count(item.startSeq)
+    const endSeq = count(item.endSeq)
+    if (endSeq <= startSeq) return invalid()
+    return { kind: 'extraction', preparationId: uuid(item.preparationId), startSeq, endSeq }
+  }
   if (raw.kind === 'revision') {
     const item = object(value, ['kind', 'cardId', 'revisionId', 'sourceIndex'])
     return { kind: 'revision', cardId: uuid(item.cardId), revisionId: uuid(item.revisionId), sourceIndex: count(item.sourceIndex) }
@@ -94,3 +102,17 @@ export const knowledgeCardSchema = { parse(value: unknown): KnowledgeCard {
 } }
 export const knowledgeListSchema = { parse(value: unknown): readonly KnowledgeCard[] { return array(value).map(knowledgeCardSchema.parse) } }
 export const knowledgeNullableSchema = { parse(value: unknown): KnowledgeCard | null { return value === null ? null : knowledgeCardSchema.parse(value) } }
+export const knowledgeContentSchema = { parse: content }
+export const knowledgeSourceSchema = { parse: source }
+export const knowledgeAddressSchema = { parse: address }
+export const extractionPreparationRequestSchema = { parse(value: unknown): ExtractionPreparationRequest {
+  const item = object(value, ['source', 'budgetChars'])
+  const source = address(item.source)
+  const budgetChars = count(item.budgetChars)
+  if (source.kind !== 'discussion' || budgetChars < 500 || budgetChars > 64_000) return invalid()
+  return { source, budgetChars }
+} }
+export const extractionRequestSchema = { parse(value: unknown): ExtractionRequest {
+  const item = object(value, ['preparationId', 'provider', 'model'])
+  return { preparationId: uuid(item.preparationId), provider: identity(item.provider).trim(), model: identity(item.model).trim() }
+} }

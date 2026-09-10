@@ -111,6 +111,9 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, rea
           {knowledge === undefined ? null : <button type="button" disabled={loading || result?.kind !== 'original'} onClick={() => {
             knowledge.create({ kind: 'discussion', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq })
           }}>{t('knowledge.create')}</button>}
+          {knowledge === undefined ? null : <button type="button" disabled={loading || result?.kind !== 'original'} onClick={() => {
+            knowledge.extract({ kind: 'discussion', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq })
+          }}>{t('extract.title')}</button>}
           <button type="button" onClick={() => {
             setSelection(undefined)
             setIncompleteRange(false)

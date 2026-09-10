@@ -7,6 +7,8 @@ import type { SessionGraphKey } from './locales.ts'
 import { retainDialogFocus } from './dialog-focus.ts'
 import { SessionHistory } from './SessionHistory.tsx'
 import styles from './GraphView.module.css'
+import { KnowledgeExtraction } from './KnowledgeExtraction.tsx'
+import type { ExtractionDraft, ExtractionPreparation } from '../knowledge-extraction.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 interface KnowledgeContextValue {
@@ -16,6 +18,7 @@ interface KnowledgeContextValue {
   readonly selectTopic: (topicId: string | undefined) => void
   readonly create: (source?: KnowledgeDiscussionAddress) => void
   readonly open: (cardId: string) => void
+  readonly extract: (source: KnowledgeDiscussionAddress) => void
 }
 const KnowledgeContext = createContext<KnowledgeContextValue | undefined>(undefined)
 export function useKnowledge(): KnowledgeContextValue | undefined { return useContext(KnowledgeContext) }
@@ -28,7 +31,7 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
   readonly t: Translate
   readonly children: ReactNode
 }): ReactElement {
-  const [dialog, setDialog] = useState<{ readonly cardId?: string; readonly source?: KnowledgeDiscussionAddress }>()
+  const [dialog, setDialog] = useState<{ readonly cardId?: string; readonly source?: KnowledgeDiscussionAddress; readonly extraction?: KnowledgeDiscussionAddress }>()
   const [refresh, setRefresh] = useState(0)
   const [topicId, selectTopic] = useState<string>()
   const trigger = useRef<HTMLElement>()
@@ -41,17 +44,20 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
     queueMicrotask(() => { trigger.current?.focus() })
   }
   return <KnowledgeContext.Provider value={{ api, refresh, topicId, selectTopic,
-    create: source => { open(source === undefined ? {} : { source }) }, open: cardId => { open({ cardId }) } }}>
+    create: source => { open(source === undefined ? {} : { source }) }, open: cardId => { open({ cardId }) },
+    extract: extraction => { open({ extraction }) } }}>
     <div className={styles.knowledgeRoot} aria-hidden={dialog !== undefined || undefined}
       ref={element => { if (element !== null) element.inert = dialog !== undefined }}>{children}</div>
-    {dialog === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal="true" aria-label={t('knowledge.title')}
+    {dialog === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal="true" aria-label={t(dialog.extraction === undefined ? 'knowledge.title' : 'extract.title')}
       onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); close() }
         retainDialogFocus(event)
       }}>
-      <div className={styles.searchHeader}><h2>{t('knowledge.title')}</h2><button type="button" autoFocus onClick={close}>{t('knowledge.close')}</button></div>
-      <KnowledgeEditor key={dialog.cardId ?? 'new'} cardId={dialog.cardId} source={dialog.source} topicId={topicId}
+      <div className={styles.searchHeader}><h2>{t(dialog.extraction === undefined ? 'knowledge.title' : 'extract.title')}</h2><button type="button" autoFocus onClick={close}>{t('knowledge.close')}</button></div>
+      {dialog.extraction === undefined ? <KnowledgeEditor key={dialog.cardId ?? 'new'} cardId={dialog.cardId} source={dialog.source} topicId={topicId}
         api={api} topics={topics} read={read} t={t} close={close} changed={() => { setRefresh(value => value + 1) }} />
+        : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} t={t}
+          changed={() => { setRefresh(value => value + 1) }} />}
     </section>}
   </KnowledgeContext.Provider>
 }
@@ -61,7 +67,7 @@ const EMPTY_CONTENT: KnowledgeContent = {
 }
 const TEXT_FIELDS = ['title', 'question', 'conclusion', 'rationale', 'openQuestions'] as const
 
-function KnowledgeEditor({ cardId, source, topicId, api, topics, read, close, changed, t }: {
+export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, close, changed, draft, preparation, t }: {
   readonly cardId: string | undefined
   readonly source: KnowledgeDiscussionAddress | undefined
   readonly topicId: string | undefined
@@ -71,12 +77,16 @@ function KnowledgeEditor({ cardId, source, topicId, api, topics, read, close, ch
   readonly close: () => void
   readonly changed: () => void
   readonly t: Translate
+  readonly draft?: ExtractionDraft
+  readonly preparation?: ExtractionPreparation
 }): ReactElement {
-  const [identity] = useState(() => cardId ?? crypto.randomUUID())
+  const [identity] = useState(() => cardId ?? draft?.cardId ?? crypto.randomUUID())
   const [card, setCard] = useState<KnowledgeCard>()
   const [version, setVersion] = useState('')
-  const [content, setContent] = useState<KnowledgeContent>(EMPTY_CONTENT)
-  const [sources, setSources] = useState<readonly KnowledgeSourceAddress[]>(source === undefined ? [] : [source])
+  const [content, setContent] = useState<KnowledgeContent>(draft?.content ?? EMPTY_CONTENT)
+  const [sources, setSources] = useState<readonly KnowledgeSourceAddress[]>(draft?.sources ?? (source === undefined ? [] : [source]))
+  const [invalidCitations, setInvalidCitations] = useState(draft?.invalidCitations ?? 0)
+  const [citationReading, setCitationReading] = useState<number>()
   const [selectedTopic, setSelectedTopic] = useState(topicId ?? '')
   const [topicList, setTopicList] = useState<readonly ResearchTopic[]>([])
   const [topicError, setTopicError] = useState(false)
@@ -146,6 +156,8 @@ function KnowledgeEditor({ cardId, source, topicId, api, topics, read, close, ch
         const request: KnowledgeSave = { ...base, revisionId: attempt.current.revisionId }
         void commit(signal => api.save(request, signal))
       }}>
+        {draft !== undefined && sources.length === 0 ? <p role="status">{t('extract.verify')}</p> : null}
+        {invalidCitations > 0 ? <p role="alert">{t('extract.invalid', { count: invalidCitations })}</p> : null}
         {TEXT_FIELDS.map(field => <label key={field}>{t(`knowledge.field.${field}`)}
           {field === 'title' ? <input value={content[field]} maxLength={120} disabled={busy}
             onChange={event => { setContent(value => ({ ...value, [field]: event.target.value })) }} />
@@ -160,9 +172,26 @@ function KnowledgeEditor({ cardId, source, topicId, api, topics, read, close, ch
           {(['draft', 'confirmed'] as const).map(status => <option key={status} value={status}>{t(`knowledge.status.${status}`)}</option>)}
         </select></label>
         <p>{t('knowledge.sourceHint')}</p>
+        {preparation?.included.source.turns.map(turn => <div key={turn.startSeq}>
+          <label><input type="checkbox" disabled={busy} checked={sources.some(address => address.kind === 'extraction'
+            && turn.startSeq >= address.startSeq && turn.endSeq! <= address.endSeq)} onChange={event => {
+              const selected = new Set(preparation.included.source.turns.filter(item => sources.some(address => address.kind === 'extraction'
+                && item.startSeq >= address.startSeq && item.endSeq! <= address.endSeq)).map(item => item.startSeq))
+              if (event.target.checked) selected.add(turn.startSeq)
+              else selected.delete(turn.startSeq)
+              setSources(preparation.included.source.turns.filter(item => selected.has(item.startSeq)).map(item => ({
+                kind: 'extraction', preparationId: preparation.preparationId, startSeq: item.startSeq, endSeq: item.endSeq!,
+              })))
+              setInvalidCitations(0)
+            }} />{t('extract.citation', { turn: turn.turn })}</label>
+          <button type="button" onClick={() => { setCitationReading(turn.startSeq) }}>{t('extract.review')}</button>
+          {citationReading !== turn.startSeq ? null : <SessionHistory key={turn.startSeq} sessionId={preparation.included.sessionId}
+            source={{ startSeq: turn.startSeq, endSeq: turn.endSeq!, turns: [turn] }} read={read} t={t} />}
+        </div>)}
         {sources.length === 0 ? <p>{t('knowledge.noSources')}</p> : sources.map((address, index) => <div key={index}>
           <span>{address.kind === 'discussion' ? `${address.sessionId} · ${t('knowledge.sourceRange', { start: address.startSeq, end: address.endSeq })}`
-            : `${address.cardId} · ${address.revisionId} · ${address.sourceIndex + 1}`}</span>
+            : address.kind === 'revision' ? `${address.cardId} · ${address.revisionId} · ${address.sourceIndex + 1}`
+              : t('knowledge.sourceRange', { start: address.startSeq, end: address.endSeq })}</span>
           <button type="button" disabled={busy} onClick={() => { setSources(value => value.filter((_, i) => i !== index)) }}>{t('knowledge.removeSource')}</button>
         </div>)}
         <div className={styles.topicControls}><button type="submit" disabled={busy || content.title.trim() === ''}>{t('knowledge.save')}</button>

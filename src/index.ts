@@ -326,7 +326,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
   await ctx.inject(['storageDomain', 'sessionQuery', 'sessionGraphTopics'], async knowledgeCtx => {
     const domain = await knowledgeCtx.storageDomain.open(KNOWLEDGE_DOMAIN)
     try {
-      await provideQuiescentRemoteService(knowledgeCtx, serviceCtx => new KnowledgeService(serviceCtx, domain), 'session-graph.knowledge-service')
+      await provideQuiescentRemoteService(knowledgeCtx, serviceCtx => new KnowledgeService(serviceCtx, domain, resolvedConfig), 'session-graph.knowledge-service')
     } catch (error) {
       await domain.close()
       throw error
