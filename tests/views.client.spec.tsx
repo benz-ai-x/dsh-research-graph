@@ -323,6 +323,13 @@ describe('Knowledge Cards registered Graph workflow', () => {
     fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
     await waitFor(() => { expect(document.querySelector('[data-node-kind="knowledge"]')).not.toBeNull() })
     expect(document.querySelectorAll('[data-edge-kind="source"]')).toHaveLength(1)
+    b.readHistory.mockRejectedValueOnce(new Error('Transport unavailable'))
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+    const sourcePanel = within(screen.getByTestId('topic-source-panel'))
+    await sourcePanel.findByRole('alert')
+    expect(sourcePanel.getByText('证据')).toBeTruthy()
+    expect(sourcePanel.getByText(zh['history.excerpt'])).toBeTruthy()
     fireEvent.doubleClick(document.querySelector('[data-node-kind="knowledge"]')!)
     expect(b.open).not.toHaveBeenCalled()
     const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
@@ -2098,6 +2105,9 @@ describe('discussion search through the registered Graph view', () => {
     await act(async () => { workspaceStore.set(workspacesState(action === 'register' ? [a] : [])) })
     const expected = action === 'register' ? { kind: 'workspace', workspaceId: 'a' } : { kind: 'all' }
     expect((screen.getByRole('combobox', { name: '搜索范围' }) as HTMLSelectElement).value).toBe(action === 'register' ? 'workspace:a' : 'all')
+    // A different scope identity restores its own conditions, not the previous scope's draft.
+    expect((screen.getByRole('textbox', { name: '正文关键词' }) as HTMLInputElement).value).toBe('')
+    fireEvent.change(screen.getByRole('textbox', { name: '正文关键词' }), { target: { value: 'needle' } })
     fireEvent.click(screen.getByRole('button', { name: '搜索', exact: true }))
     await screen.findByText('所选范围内没有匹配的讨论。')
     expect(b.searchDiscussion).toHaveBeenCalledWith({ query: 'needle', scope: expected, includeArchived: false }, expect.any(AbortSignal))
@@ -2177,7 +2187,8 @@ describe('discussion search through the registered Graph view', () => {
       await new Promise<void>(resolve => { release = resolve })
       return { ok: true, value: { kind: 'results', hits: [hit('旧查询结果')] } }
     })
-    b.searchDiscussion.mockResolvedValueOnce({ ok: true, value: { kind: 'results', hits: [hit('新查询结果')] } })
+    // Reopening now performs a fresh search before the next explicit submission.
+    b.searchDiscussion.mockResolvedValue({ ok: true, value: { kind: 'results', hits: [hit('新查询结果')] } })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Graph')
     fireEvent.click(screen.getByRole('button', { name: '搜索正文' }))
@@ -3393,5 +3404,49 @@ describe('title filter', () => {
     fireEvent.keyDown(input, { key: 'Escape' })
     expect(input.value).toBe('')
     expect(document.activeElement).not.toBe(input)
+  })
+})
+
+
+describe('Working position live updates', () => {
+  it('restores the separate topic arrangement after a live Workspace identity change', async () => {
+    const fixture = researchTopicFixture()
+    const tiny = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }
+    const b = await bench({ ...fixture.rows, viewed: session('viewed') })
+    b.listTopics.mockResolvedValue({ ok: true, value: [tiny.topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: tiny })
+    const workspaceStore = createSnapshotStore(workspacesState([workspace('first', '/w', ['viewed'])]))
+    const secondKey = JSON.stringify(['test-host', JSON.stringify(['test-host', 'workspace:second', null]), tiny.topic.topicId])
+    localStorage.setItem('dsh.session-graph.layout.' + secondKey, JSON.stringify({ v: 1, positions: { 'source-0001': { x: 900, y: 700 } }, collapsed: [], offsets: {} }))
+    mount(b.slots, b.sessionsStore, 'viewed', workspaceStore)
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
+    const node = nodeButton('source-0001')
+    fireEvent.pointerDown(node, { pointerId: 7, clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(node, { pointerId: 7, clientX: 320, clientY: 280 })
+    fireEvent.pointerUp(node, { pointerId: 7 })
+    const oldLeft = nodeButton('source-0001').style.left
+    await act(async () => { workspaceStore.set(workspacesState([workspace('second', '/w', ['viewed'])])) })
+    await waitFor(() => { expect(nodeButton('source-0001').style.left).toBe('900px') })
+    expect(nodeButton('source-0001').style.left).not.toBe(oldLeft)
+  })
+  it('clears a restored topic source when its saved Original boundary is unavailable', async () => {
+    const fixture = researchTopicFixture()
+    const tiny = { ...fixture.a, sources: fixture.a.sources.slice(0, 2), topic: { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) } }
+    const b = await bench({ ...fixture.rows, viewed: session('viewed') })
+    b.listTopics.mockResolvedValue({ ok: true, value: [tiny.topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: tiny })
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'unavailable', sessionId: 'source-0001', turns: [], hasEarlier: false, hasLater: false } })
+    const scopeKey = JSON.stringify(['test-host', '/w', null])
+    const topicKey = JSON.stringify(['test-host', scopeKey, tiny.topic.topicId])
+    localStorage.setItem('dsh.session-graph.position.' + scopeKey, JSON.stringify({ v: 1, topicId: tiny.topic.topicId }))
+    localStorage.setItem('dsh.session-graph.position.' + topicKey, JSON.stringify({ v: 1, selected: 'source-0001', tab: 'history', history: { 'source-0001': 80 } }))
+    mount(b.slots, b.sessionsStore, 'viewed')
+    switchTab('Graph')
+    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    await waitFor(() => { expect(b.readHistory).toHaveBeenCalled() })
+    await waitFor(() => { expect(screen.queryByTestId('topic-source-panel')).toBeNull() })
+    expect(screen.getByText(zh['position.unavailable'])).toBeTruthy()
   })
 })

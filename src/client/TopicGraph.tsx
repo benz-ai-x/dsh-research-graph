@@ -102,7 +102,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
-        topic={{ arrangement, onArrange, openCard: knowledge.open, renderInspector: (node, onClose) => node === undefined ? null
+        topic={{ arrangement, onArrange, openCard: knowledge.open, renderInspector: (node, onClose, onUnavailable) => node === undefined ? null
           : node.kind === 'knowledge' ? <aside className={`${styles.panel} ${styles.topicSourcePanel}`} data-canvas-overlay="" aria-label={t('knowledge.title')}>
             <div className={styles.panelHeader}><strong>{t('knowledge.title')}</strong>
               <button type="button" onClick={onClose} aria-label={t('panel.close')}>×</button></div>
@@ -112,11 +112,12 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
             <button type="button" onClick={() => { knowledge.exportCards([{ cardId: node.card.cardId, title: node.title }]) }}>{t('export.title')}</button>
           </aside> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
-            busy={busy} onClose={onClose} t={t} /> }} />}
+            busy={busy} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} />}
   </div>
 }
 
-function TopicSourcePanel({ node, read, open, remove, busy, onClose, workingKey, t }: {
+function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailable, workingKey, t }: {
+  readonly onUnavailable: () => void
   readonly workingKey: string
   readonly node: SessionGraphNode
   readonly read: GraphViewInjected['readSessionHistory']
@@ -143,6 +144,6 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, workingKey,
       <button type="button" className={styles.panelSecondaryAction} onClick={() => { setReading(value => !value) }}>{t(reading ? 'topic.closeOriginal' : 'topic.readOriginal')}</button>
       {remove === undefined ? null : <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>}
     </div>
-    {reading ? <SessionHistory workingKey={workingKey} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { source: node.retainedSource })} read={read} t={t} /> : null}
+    {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { source: node.retainedSource })} read={read} t={t} /> : null}
   </aside>
 }

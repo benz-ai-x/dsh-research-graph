@@ -1,6 +1,6 @@
 /** Real profile acceptance: replace only model transport, retain the complete Host. */
 import assert from 'node:assert/strict'
-import { writeFile, rename } from 'node:fs/promises'
+import { writeFile, rename, mkdir } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
@@ -125,7 +125,9 @@ export function apply(ctx) {
     assert.equal(drafts.drafts[0].content.status, 'draft')
     assert.equal(drafts.drafts[0].invalidCitations, 0)
     assert.equal(drafts.drafts[0].sources.length, 1)
-    const targetWorkspace = await ctx.workspaceRegistry.create(join(process.cwd(), 'research-target'), 'Reuse target')
+    const targetPath = join(process.cwd(), 'research-target')
+    await mkdir(targetPath, { recursive: true })
+    const targetWorkspace = await ctx.workspaceRegistry.create(targetPath, 'Reuse target')
     await ctx.agentDefaultModel.saveSelection({ provider: 'graph-fixture', model: 'fixture' })
     const firstHistory = await ctx.sessionGraphHistory.read({ sessionId: sourceIds[0] }, signal)
     const preview = await reuse('prepare', { operationId: randomUUID(), workspaceId: targetWorkspace.id, question: 'Continue using these explicit materials.', materials: [

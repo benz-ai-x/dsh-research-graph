@@ -334,7 +334,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       throw error
     }
   })
-  await ctx.inject(['storageDomain', 'sessionGraphKnowledge', 'workspaceRegistry'], async reuseCtx => {
+  await ctx.inject(['storageDomain', 'sessionGraphKnowledge', 'workspaceRegistry', 'sessionQuery'], async reuseCtx => {
     const domain = await reuseCtx.storageDomain.open(RESEARCH_REUSE_DOMAIN)
     try {
       await provideQuiescentRemoteService(reuseCtx, serviceCtx => new ResearchReuseService(serviceCtx, domain), 'session-graph.reuse-service')

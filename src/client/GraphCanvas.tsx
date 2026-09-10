@@ -853,7 +853,7 @@ export function GraphCanvas({
   topic?: {
     readonly arrangement: LayoutState
     readonly onArrange: (state: LayoutState) => void
-    readonly renderInspector: (node: GraphNode | undefined, onClose: () => void) => ReactElement | null
+    readonly renderInspector: (node: GraphNode | undefined, onClose: () => void, onUnavailable: () => void) => ReactElement | null
     readonly openCard?: (cardId: string) => void
   }
   workingKey?: string
@@ -1918,7 +1918,7 @@ export function GraphCanvas({
         onGenerateDigest={onGenerateDigest}
         onReadHistory={onReadHistory}
         onClose={() => { setSelected(null) }}
-      /> : topic.renderInspector(selectedNode, () => { setSelected(null) })}
+      /> : topic.renderInspector(selectedNode, () => { setSelected(null) }, () => { setSelected(null); setUnavailableSelection(true) })}
       {unavailableSelection ? <div className={styles.reuseNotice} role="status">{t('position.unavailable')}
         <button type="button" onClick={() => { setUnavailableSelection(false) }}>{t('panel.close')}</button></div> : null}
       {showMinimap

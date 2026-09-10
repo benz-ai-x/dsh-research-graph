@@ -22,7 +22,9 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, wor
 }): ReactElement {
   const knowledge = useKnowledge()
   const reuse = useResearchReuse()
-  const [result, setResult] = useState<SessionHistoryResult>()
+  const [result, setResult] = useState<SessionHistoryResult | undefined>(() => source === undefined ? undefined : {
+    kind: 'excerpt', sessionId, turns: source.turns, hasEarlier: false, hasLater: false,
+  })
   const element = useRef<HTMLElement>(null)
   const initialScroll = useRef(anchorSeq === undefined && source === undefined ? loadWorkingPosition(workingKey).historyScroll?.[sessionId] : undefined)
   const unavailable = useRef(onUnavailable)

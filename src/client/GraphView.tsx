@@ -150,7 +150,7 @@ function GraphViewBody({
             {SESSION_GRAPH_BUILD_LABEL}
           </span>
         </div>
-        {topicMode ? <ResearchTopics api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
+        {topicMode ? <ResearchTopics key={workingKey} api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
           workingKey, actions: { hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas
