@@ -125,7 +125,7 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, wor
       {failed ? <p role="alert">{t('history.error')}</p> : null}
       {!loading && !failed && result?.kind === 'unavailable' ? <p role="alert">{t('history.unavailable')}</p> : null}
       {result?.kind === 'excerpt' ? (
-        <div role="status"><strong>{t('history.excerpt')}</strong><p>{t('history.excerptHint')}</p></div>
+        <div role="status"><strong>{t('history.excerpt')}</strong>{loading ? null : <p>{t('history.excerptHint')}</p>}</div>
       ) : null}
       {!loading && !failed && result?.kind === 'original' && result.turns.length === 0 ? <p>{t('history.empty')}</p> : null}
       {!loading && (failed || canceled || result?.kind === 'unavailable' || result?.kind === 'excerpt') ? (
