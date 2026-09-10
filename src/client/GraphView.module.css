@@ -1589,6 +1589,9 @@
   height: 100%;
 }
 
+/* Keep a covered view's search/inspector layers below its sibling dialog. */
+.knowledgeRoot[aria-hidden='true'] { isolation: isolate; }
+
 .knowledgeDialog {
   position: absolute;
   inset: 12px;
