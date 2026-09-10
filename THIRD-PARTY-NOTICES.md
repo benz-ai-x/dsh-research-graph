@@ -1,6 +1,6 @@
 # Bundled dependency notices
 
-The browser module bundles clsx. The offline history recovery command bundles the following Harness libraries and their utility dependencies. The bundled `@deepseek-ai/dsh-*` libraries are aligned to DSH `0.1.5-rc.1`.
+The browser module bundles clsx. The offline history recovery command bundles the following Harness libraries and their utility dependencies. The bundled `@deepseek-ai/dsh-*` libraries are aligned to DSH `0.1.5-rc.2`.
 
 ## @deepseek-ai/cordis, @deepseek-ai/cosmokit, @deepseek-ai/schemastery
 

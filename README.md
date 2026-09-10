@@ -37,7 +37,7 @@ The canvas also shows Session Lineage, movable Branch clusters, Merge provenance
 ## Quick start
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
 dsh web
 ```
 
@@ -47,13 +47,14 @@ If `dsh web` is already running, stop it before restarting. Open the one-time au
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime and package migration acceptance |
 | Previous package: [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
 | [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 
-In the DSH-aligned release line, the plugin version exactly matches its target DSH version, including prerelease suffixes: DSH `0.1.5-rc.1` uses plugin `0.1.5-rc.1`. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow described below ships in this RC release; the earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+In the DSH-aligned release line, the plugin version exactly matches its target DSH version, including prerelease suffixes: DSH `0.1.5-rc.2` uses plugin `0.1.5-rc.2`. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
@@ -120,7 +121,7 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -137,7 +138,7 @@ The product is now **DSH Research Graph · 研图**, and the repository is `benz
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
 dsh web
 ```
 
@@ -221,7 +222,7 @@ See the [discussion search browser acceptance record and screenshots](docs/revie
 <a id="enable-discussion-search"></a>
 ### Enable discussion search
 
-DSH `0.1.5-rc.1` disables full-text indexing by default. If Research Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
+DSH `0.1.5-rc.2` disables full-text indexing by default. If Research Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
 
 ```yaml
 - id: session-query-sqlite

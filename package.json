@@ -21,7 +21,7 @@
     "typescript",
     "react"
   ],
-  "version": "0.1.5-rc.1",
+  "version": "0.1.5-rc.2",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
@@ -107,20 +107,20 @@
     "prepublishOnly": "pnpm run check"
   },
   "dependencies": {
-    "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-typert-protocol": "0.1.5-rc.2",
     "@deepseek-ai/schemastery": "^3.18.2",
     "clsx": "^2.1.1",
     "zod": "4.4.3"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-llm": "0.1.5-rc.1"
+    "@deepseek-ai/dsh-llm": "0.1.5-rc.2"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "^4.0.2",
-    "@deepseek-ai/dsh-attachment": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-llm": "0.1.5-rc.1",
-    "@deepseek-ai/dsh-session-format-catalog": "0.1.5-rc.1",
+    "@deepseek-ai/dsh-attachment": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-llm": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-session-format-catalog": "0.1.5-rc.2",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.20.0",
     "@types/react": "~18.3.1",
