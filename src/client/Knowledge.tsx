@@ -11,6 +11,7 @@ import { KnowledgeExtraction } from './KnowledgeExtraction.tsx'
 import type { ExtractionDraft, ExtractionPreparation } from '../knowledge-extraction.ts'
 import { useResearchReuse } from './ResearchReuse.tsx'
 import { KnowledgeExport, type ExportChoice } from './KnowledgeExport.tsx'
+import { DraftGuard, useDraftProtection } from './DraftGuard.tsx'
 import { editableKnowledgeSources, changeExtractionCitation } from './knowledge-citations.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
@@ -70,18 +71,18 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
     {dialogs.map(({ id, content: dialog }, index) => {
       const covered = index !== dialogs.length - 1 || exporting !== undefined
       const title = dialog.extraction !== undefined ? 'extract.title' : 'knowledge.title'
-      return <section key={id} className={styles.knowledgeDialog} role="dialog" aria-modal={!covered} aria-label={t(title)}
+      return <DraftGuard key={id} close={close} t={t}>{requestClose => <section className={styles.knowledgeDialog} role="dialog" aria-modal={!covered} aria-label={t(title)}
       aria-hidden={covered || undefined} ref={element => { if (element !== null) element.inert = covered }}
       onKeyDown={event => {
-        if (event.key === 'Escape') { event.stopPropagation(); close() }
+        if (event.key === 'Escape') { event.stopPropagation(); requestClose() }
         retainDialogFocus(event)
       }}>
-      <div className={styles.searchHeader}><h2>{t(title)}</h2><button type="button" autoFocus onClick={close}>{t('knowledge.close')}</button></div>
+      <div className={styles.searchHeader}><h2>{t(title)}</h2><button type="button" autoFocus onClick={requestClose}>{t('knowledge.close')}</button></div>
       {dialog.extraction === undefined ? <KnowledgeEditor cardId={dialog.cardId} source={dialog.source} topicId={topicId}
         api={api} topics={topics} read={read} t={t} close={close} changed={() => { setRefresh(value => value + 1) }} />
         : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} t={t}
           changed={() => { setRefresh(value => value + 1) }} />}
-    </section>
+    </section>}</DraftGuard>
     })}
     {exporting === undefined ? null : <section className={styles.knowledgeDialog} role="dialog" aria-modal="true" aria-label={t('export.title')}
       onKeyDown={event => {
@@ -130,6 +131,9 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
   const [failed, setFailed] = useState(false)
   const [reload, setReload] = useState(0)
   const [reading, setReading] = useState<number>()
+  const baseline = useRef(JSON.stringify({ content: EMPTY_CONTENT, sources, selectedTopic }))
+  const dirty = editing && (draft !== undefined && card === undefined || JSON.stringify({ content, sources, selectedTopic }) !== baseline.current)
+  const discard = useDraftProtection(dirty, busy)
   const attempt = useRef<{ readonly payload: string; readonly revisionId: string }>()
   const write = useRef<AbortController>()
   useEffect(() => () => { write.current?.abort() }, [])
@@ -172,7 +176,7 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
       if (!controller.signal.aborted) { setBusy(false); write.current = undefined }
     }
   }
-  return <div className={styles.knowledgeBody}>
+  return <div className={`${styles.knowledgeBody} ${styles.knowledgeEditor}`}>
     {loading ? <p role="status">{t('topic.loading')}</p> : null}
     {failed || topicError ? <div role="alert">{t('knowledge.error')}
       {(!editing && card === undefined) || topicError ? <button type="button" onClick={() => { setReload(value => value + 1) }}>{t('topic.retry')}</button> : null}</div> : null}
@@ -192,11 +196,16 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
       }}>
         {draft !== undefined && sources.length === 0 ? <p role="status">{t('extract.verify')}</p> : null}
         {invalidCitations > 0 ? <p role="alert">{t('extract.invalid', { count: invalidCitations })}</p> : null}
-        {TEXT_FIELDS.map(field => <label key={field}>{t(`knowledge.field.${field}`)}
-          {field === 'title' ? <input value={content[field]} maxLength={120} disabled={busy}
+        <p className={styles.topicDescription}>{t('knowledge.formHint')}</p>
+        {(['title', 'conclusion'] as const).map(field => <label key={field}>{t(`knowledge.field.${field}`)}
+          {field === 'title' ? <input value={content[field]} required aria-required="true" maxLength={120} disabled={busy}
             onChange={event => { setContent(value => ({ ...value, [field]: event.target.value })) }} />
             : <textarea value={content[field]} maxLength={24_000} rows={3} disabled={busy}
               onChange={event => { setContent(value => ({ ...value, [field]: event.target.value })) }} />}</label>)}
+        <details className={styles.optionalFields}><summary>{t('knowledge.moreFields')}</summary>
+          {(['question', 'rationale', 'openQuestions'] as const).map(field => <label key={field}>{t(`knowledge.field.${field}`)}
+            <textarea value={content[field]} maxLength={24_000} rows={3} disabled={busy}
+              onChange={event => { setContent(value => ({ ...value, [field]: event.target.value })) }} /></label>)}
         <label>{t('knowledge.kind')}<select value={content.kind} disabled={busy}
           onChange={event => { setContent(value => ({ ...value, kind: event.target.value as KnowledgeContent['kind'] })) }}>
           {(['conclusion', 'method', 'hypothesis', 'question'] as const).map(kind => <option key={kind} value={kind}>{t(`knowledge.kind.${kind}`)}</option>)}
@@ -205,6 +214,7 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
           onChange={event => { setContent(value => ({ ...value, status: event.target.value as KnowledgeContent['status'] })) }}>
           {(['draft', 'confirmed'] as const).map(status => <option key={status} value={status}>{t(`knowledge.status.${status}`)}</option>)}
         </select></label>
+        </details>
         <p>{t('knowledge.sourceHint')}</p>
         {preparation?.included.source.turns.map(turn => <div key={turn.startSeq}>
           <label><input type="checkbox" disabled={busy} checked={sources.some(address => address.kind === 'extraction' && address.preparationId === preparation.preparationId
@@ -222,8 +232,8 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
               : t('knowledge.sourceRange', { start: address.startSeq, end: address.endSeq })}</span>
           <button type="button" disabled={busy} onClick={() => { setSources(value => value.filter((_, i) => i !== index)) }}>{t('knowledge.removeSource')}</button>
         </div>)}
-        <div className={styles.topicControls}><button type="submit" disabled={busy || content.title.trim() === ''}>{t('knowledge.save')}</button>
-          <button type="button" disabled={busy} onClick={() => { if (card === undefined) close(); else { setEditing(false); setFailed(false) } }}>{t('knowledge.cancel')}</button></div>
+        <div className={styles.editorActions}><span role="status">{t(busy ? 'topic.saving' : dirty ? 'knowledge.unsaved' : card === undefined ? 'knowledge.draftHint' : 'knowledge.noChanges')}</span><button className={styles.primaryButton} type="submit" disabled={busy || content.title.trim() === ''}>{t('knowledge.save')}</button>
+          <button type="button" disabled={busy} onClick={() => { discard(() => { if (card === undefined) close(); else { setEditing(false); setFailed(false) } }) }}>{t('knowledge.cancel')}</button></div>
       </form> : revision === undefined ? null : <>
         <label>{t('knowledge.version')}<select value={version} onChange={event => { setVersion(event.target.value); setReading(undefined) }}>
           {card!.revisions.map(item => <option key={item.revisionId} value={item.revisionId}>{t('knowledge.versionNumber', { number: item.number })}</option>)}
@@ -233,8 +243,10 @@ export function KnowledgeEditor({ cardId, source, topicId, api, topics, read, cl
         {TEXT_FIELDS.filter(field => field !== 'title').map(field => revision.content[field] === '' ? null : <section key={field}>
           <h4>{t(`knowledge.field.${field}`)}</h4><p className={styles.historyText}>{revision.content[field]}</p></section>)}
         <div className={styles.topicControls}><button type="button" disabled={busy} onClick={() => {
+          const editable = editableKnowledgeSources(identity, revision, preparation)
+          baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic })
           setContent(revision.content)
-          setSources(editableKnowledgeSources(identity, revision, preparation))
+          setSources(editable)
           setFailed(false)
           setEditing(true)
         }}>{t('knowledge.edit')}</button>

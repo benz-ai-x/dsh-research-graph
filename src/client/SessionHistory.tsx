@@ -10,7 +10,8 @@ import { useResearchReuse } from './ResearchReuse.tsx'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t }: {
+export function SessionHistory({ sourceTitle, sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t }: {
+  readonly sourceTitle?: string | undefined
   readonly sessionId: string
   readonly anchorSeq?: number
   readonly highlightSeq?: number
@@ -174,7 +175,7 @@ export function SessionHistory({ sessionId, anchorSeq, highlightSeq, source, ret
           }}>{t('extract.title')}</button>}
           {reuse === undefined ? null : <><button type="button" disabled={loading || result?.kind !== 'original' || selection.turns.length !== 1} onClick={() => {
             reuse.add({ kind: 'turn', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq },
-              `${sessionId} · ${t('history.turn', { turn: selection.turns[0]!.turn })}`)
+              `${sourceTitle || sessionId} · ${t('history.turn', { turn: selection.turns[0]!.turn })}`)
           }}>{t('reuse.addTurn')}</button>{selection.turns.length !== 1 ? <p>{t('reuse.singleTurn')}</p> : null}</>}
           <button type="button" onClick={() => {
             setSelection(undefined)

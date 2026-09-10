@@ -25,6 +25,8 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
   const [remembered] = useState(() => loadWorkingPosition(context?.workingKey).topicId)
   const [selectedId, setSelectedId] = useState(remembered ?? '')
   const [unavailable, setUnavailable] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [renaming, setRenaming] = useState(false)
   const [title, setTitle] = useState('')
   const [renames, setRenames] = useState<Record<string, string>>({})
   const [arrangements, setArrangements] = useState<Record<string, LayoutState>>({})
@@ -86,57 +88,8 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     selectTopic?.(selected?.topicId)
     return () => { selectTopic?.(undefined) }
   }, [context === undefined, selectTopic, selected?.topicId])
-  return <section className={styles.topics} aria-label={t('topic.title')}>
-    <p className={styles.topicDescription}>{t('topic.description')}</p>
-    {unavailable ? <p role="status">{t('position.topicUnavailable')}</p> : null}
-    {phase === 'loading' ? <p role="status">{t('topic.loading')}</p> : phase === 'error' ? <div role="alert">
-      {t('topic.readError')} <button type="button" onClick={() => { setRevision(value => value + 1) }}>{t('topic.retry')}</button>
-    </div> : <>
-      <form className={styles.topicControls} onSubmit={event => {
-        event.preventDefault()
-        const previous = createAttempt.current
-        const name = title.trim()
-        createAttempt.current = {
-          topicId: previous?.topicId ?? crypto.randomUUID(), title: name,
-          // An edited retry may have saved even if its response failed again.
-          rename: previous !== undefined && (previous.rename || previous.title !== name),
-        }
-        void write({ kind: 'create', topicId: createAttempt.current.topicId, title: name }).then(topic => {
-          if (topic === undefined) return
-          createAttempt.current = undefined
-          setTitle('')
-          setSelectedId(topic.topicId)
-        })
-      }}>
-        <label>{t('topic.newName')}<input value={title} maxLength={120} disabled={busy}
-          onChange={event => { setTitle(event.target.value) }} /></label>
-        <button type="submit" disabled={busy || title.trim() === ''}>{t('topic.create')}</button>
-      </form>
-      {items.length === 0 ? <p>{t('topic.empty')}</p> : <label className={styles.topicSelection}>{t('topic.choose')}
-        <select value={selectedId} disabled={busy} onChange={event => { setSelectedId(event.target.value); setFailed(false); setUnavailable(false) }}>
-          <option value="">{t('topic.choose')}</option>
-          {items.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title} ({topic.references.length})</option>)}
-        </select>
-      </label>}
-      {selected === undefined ? null : add !== undefined ? <div className={styles.topicControls}>
-        <button type="button" disabled={busy} onClick={() => {
-          void write({ kind: 'add', topicId: selected.topicId, sessionIds: [add.sessionId] }).then(topic => {
-            if (topic !== undefined) add.done()
-          })
-        }}>{t('topic.addSelected')}</button>
-      </div> : <form className={styles.topicControls} onSubmit={event => {
-        event.preventDefault()
-        void write({ kind: 'rename', topicId: selected.topicId, title: renames[selected.topicId] ?? selected.title })
-      }}>
-        <label>{t('topic.name')}<input value={renames[selected.topicId] ?? selected.title} maxLength={120} disabled={busy}
-          onChange={event => { setRenames(current => ({ ...current, [selected.topicId]: event.target.value })) }} /></label>
-        <button type="submit" disabled={busy || (renames[selected.topicId] ?? selected.title).trim() === ''}>{t('topic.rename')}</button>
-      </form>}
-    </>}
-    {busy ? <p role="status">{t('topic.saving')}</p> : null}
-    {failed ? <p role="alert">{t('topic.saveError')}</p> : null}
-    {context === undefined || selected === undefined ? null : <div className={styles.topicControls}>
-      <button type="button" disabled={phase !== 'ready' || busy || draftArrangement === undefined} onClick={() => {
+  const arrangementControls = context === undefined || selected === undefined ? null : <div className={styles.arrangementStatus}>
+      <button className={draftArrangement === undefined ? undefined : styles.primaryButton} type="button" disabled={phase !== 'ready' || busy || draftArrangement === undefined} onClick={() => {
         const arrangement = draftArrangement
         if (arrangement === undefined) return
         void write({ kind: 'arrange', topicId: selected.topicId, arrangement }).then(saved => {
@@ -153,7 +106,65 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
         })
       }}>{t('topic.saveArrangement')}</button>
       <span role="status">{t(draftArrangement === undefined ? 'topic.arrangementHint' : 'topic.unsaved')}</span>
-    </div>}
+    </div>
+  return <section className={styles.topics} aria-label={t('topic.title')}>
+    <p className={styles.topicDescription}>{t('topic.description')}</p>
+    {unavailable ? <p role="status">{t('position.topicUnavailable')}</p> : null}
+    {phase === 'loading' ? <p role="status">{t('topic.loading')}</p> : phase === 'error' ? <div role="alert">
+      {t('topic.readError')} <button type="button" onClick={() => { setRevision(value => value + 1) }}>{t('topic.retry')}</button>
+    </div> : <>
+      <div className={styles.topicToolbar}>
+      {items.length === 0 ? null : <>
+        <label className={styles.topicSelection}>{t('topic.choose')}<select value={selectedId} disabled={busy}
+          onChange={event => { setSelectedId(event.target.value); setRenaming(false); setFailed(false); setUnavailable(false) }}>
+          <option value="">{t('topic.choose')}</option>
+          {items.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title} ({topic.references.length})</option>)}
+        </select></label>
+        <button type="button" disabled={busy} aria-expanded={creating} onClick={() => { setCreating(value => !value); setRenaming(false) }}>{t('topic.new')}</button>
+        {selected === undefined || add !== undefined ? null : <button type="button" disabled={busy} aria-expanded={renaming}
+          onClick={() => { setRenaming(value => !value); setCreating(false) }}>{t('topic.rename')}</button>}
+      </>}
+      {arrangementControls}
+      </div>
+      {items.length !== 0 && !creating ? null : <form className={styles.topicControls} onSubmit={event => {
+        event.preventDefault()
+        const previous = createAttempt.current
+        const name = title.trim()
+        createAttempt.current = {
+          topicId: previous?.topicId ?? crypto.randomUUID(), title: name,
+          // An edited retry may have saved even if its response failed again.
+          rename: previous !== undefined && (previous.rename || previous.title !== name),
+        }
+        void write({ kind: 'create', topicId: createAttempt.current.topicId, title: name }).then(topic => {
+          if (topic === undefined) return
+          createAttempt.current = undefined
+          setTitle('')
+          setCreating(false)
+          setSelectedId(topic.topicId)
+        })
+      }}>
+        <label>{t('topic.newName')}<input value={title} maxLength={120} disabled={busy}
+          onChange={event => { setTitle(event.target.value) }} /></label>
+        <button type="submit" disabled={busy || title.trim() === ''}>{t('topic.create')}</button>
+      </form>}
+      {items.length === 0 ? <p>{t('topic.empty')}</p> : null}
+      {selected === undefined ? null : add !== undefined ? <div className={styles.topicControls}>
+        <button type="button" disabled={busy} onClick={() => {
+          void write({ kind: 'add', topicId: selected.topicId, sessionIds: [add.sessionId] }).then(topic => {
+            if (topic !== undefined) add.done()
+          })
+        }}>{t('topic.addSelected')}</button>
+      </div> : !renaming ? null : <form className={styles.topicControls} onSubmit={event => {
+        event.preventDefault()
+        void write({ kind: 'rename', topicId: selected.topicId, title: renames[selected.topicId] ?? selected.title }).then(saved => { if (saved !== undefined) setRenaming(false) })
+      }}>
+        <label>{t('topic.name')}<input value={renames[selected.topicId] ?? selected.title} maxLength={120} disabled={busy}
+          onChange={event => { setRenames(current => ({ ...current, [selected.topicId]: event.target.value })) }} /></label>
+        <button type="submit" disabled={busy || (renames[selected.topicId] ?? selected.title).trim() === ''}>{t('topic.applyName')}</button>
+      </form>}
+    </>}
+    {busy ? <p role="status">{t('topic.saving')}</p> : null}
+    {failed ? <p role="alert">{t('topic.saveError')}</p> : null}
     {phase !== 'ready' || selected === undefined || context === undefined ? null : <TopicGraph key={selected.topicId} topic={selected}
       context={context} arrangement={draftArrangement ?? selected.arrangement}
       onArrange={state => {

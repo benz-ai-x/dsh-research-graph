@@ -41,7 +41,7 @@ export function KnowledgeSearch({ t, workingKey }: {
       if (!controller.signal.aborted) setBusy(false)
     }
   }
-  useEffect(() => { if (restored !== undefined) void run() }, [])
+  useEffect(() => { void run() }, [])
   return <div className={styles.knowledgeBody}>
     <form className={styles.searchForm} onSubmit={event => { event.preventDefault(); void run() }}>
       <label>{t('knowledge.query')}<input autoFocus maxLength={200} value={query}
@@ -51,7 +51,7 @@ export function KnowledgeSearch({ t, workingKey }: {
         {knowledge.topicId === undefined ? null : <option value="topic">{t('knowledge.currentTopic')}</option>}
       </select></label>
       <button type="submit" disabled={busy}>{t('knowledge.search')}</button>
-      <button type="button" onClick={() => { knowledge.create() }}>{t('knowledge.new')}</button>
+      <button type="button" className={styles.primaryButton} onClick={() => { knowledge.create() }}>{t('knowledge.new')}</button>
       {busy ? <button type="button" onClick={() => { invalidate(); setCanceled(true) }}>{t('search.cancel')}</button> : null}
     </form>
     {busy || canceled ? <p role="status">{t(busy ? 'search.loading' : 'search.canceled')}</p> : null}

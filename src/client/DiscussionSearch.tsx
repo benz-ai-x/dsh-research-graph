@@ -12,7 +12,8 @@ import { KnowledgeSearch } from './KnowledgeSearch.tsx'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 /** Search chooses a read-only source independently of the scope-bound canvas. */
-export function DiscussionSearch({ initialScope, workspaces, search, read, open, onClose, onAddToTopic, workingKey, t }: {
+export function DiscussionSearch({ initialType, initialScope, workspaces, search, read, open, onClose, onAddToTopic, workingKey, t }: {
+  readonly initialType?: 'discussion' | 'knowledge' | undefined
   readonly workingKey?: string
   readonly initialScope: DiscussionSearchScope
   readonly workspaces: readonly WorkspaceView[]
@@ -25,7 +26,7 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
 }): ReactElement {
   const knowledge = useKnowledge()
   const [restored] = useState(() => loadWorkingPosition(workingKey))
-  const [searchType, setSearchType] = useState<'discussion' | 'knowledge'>(restored.searchType ?? 'discussion')
+  const [searchType, setSearchType] = useState<'discussion' | 'knowledge'>(initialType ?? restored.searchType ?? 'discussion')
   const [query, setQuery] = useState(restored.discussion?.query ?? '')
   const [scope, setScope] = useState(restored.discussion?.scope ?? initialScope)
   const [includeArchived, setIncludeArchived] = useState(restored.discussion?.includeArchived ?? false)
@@ -90,19 +91,19 @@ export function DiscussionSearch({ initialScope, workspaces, search, read, open,
   useEffect(() => { if (scopeAvailable && searchType === 'discussion' && restored.discussion?.query.trim()) void run() }, [])
 
   return (
-    <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t('search.title')}
+    <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t(searchType === 'knowledge' ? 'knowledge.search' : 'search.title')}
       onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); onClose() }
         retainDialogFocus(event)
       }}>
       <div className={styles.searchHeader}>
-        <div><h2>{t('search.title')}</h2><p>{t('search.description')}</p></div>
+        <div><h2>{t(searchType === 'knowledge' ? 'knowledge.search' : 'search.title')}</h2><p>{t(searchType === 'knowledge' ? 'knowledge.searchDescription' : 'search.description')}</p></div>
         <button type="button" onClick={onClose}>{t('search.close')}</button>
       </div>
-      {knowledge === undefined ? null : <label className={styles.searchForm}>{t('knowledge.searchType')}
-        <select value={searchType} onChange={event => { invalidate(); setSearchType(event.target.value as typeof searchType) }}>
-          <option value="discussion">{t('knowledge.discussions')}</option><option value="knowledge">{t('knowledge.title')}</option>
-        </select></label>}
+      {knowledge === undefined ? null : <div className={styles.searchTypes} role="group" aria-label={t('knowledge.searchType')}>
+        {(['discussion', 'knowledge'] as const).map(type => <button type="button" key={type} aria-pressed={searchType === type}
+          onClick={() => { invalidate(); setSearchType(type) }}>{t(type === 'discussion' ? 'knowledge.discussions' : 'knowledge.title')}</button>)}
+      </div>}
       {searchType === 'knowledge' ? <KnowledgeSearch workingKey={workingKey} t={t} /> : <>
       <form className={styles.searchForm} onSubmit={event => { event.preventDefault(); void run() }}>
         <label className={styles.searchQuery}>{t('search.query')}

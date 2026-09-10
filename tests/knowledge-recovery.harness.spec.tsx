@@ -106,5 +106,68 @@ it('previews a new extraction range independently while preserving the earlier e
   await waitFor(() => { expect(client.api.extract).toHaveBeenCalledTimes(2) })
   expect(client.api.extract.mock.lastCall![0].preparationId).toBe(preparations[1]!.preparationId)
   fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+  fireEvent.click(screen.getByRole('button', { name: '放弃未保存内容' }))
   expect((screen.getByRole('textbox', { name: '结论' }) as HTMLTextAreaElement).value).toBe('人工编辑的第一轮草稿')
+})
+
+it('protects a new draft on Escape and close, returns focus on keep, and discards only explicitly', async () => {
+  const client = knowledgeClient()
+  render(<KnowledgeProvider {...client} t={t}><Entry /></KnowledgeProvider>)
+  const entry = screen.getByRole('button', { name: '开始建卡' })
+  entry.focus()
+  fireEvent.click(entry)
+  const title = screen.getByRole('textbox', { name: '卡片标题' }) as HTMLInputElement
+  fireEvent.change(title, { target: { value: '应当保留的草稿' } })
+  title.focus()
+  fireEvent.keyDown(title, { key: 'Escape' })
+  const confirm = screen.getByRole('alertdialog', { name: '有未保存的内容' })
+  expect(document.activeElement).toBe(within(confirm).getByRole('button', { name: '继续编辑' }))
+  expect(screen.queryByRole('textbox', { name: '卡片标题' })).toBeNull()
+  fireEvent.keyDown(confirm, { key: 'Escape' })
+  await waitFor(() => { expect(document.activeElement).toBe(title) })
+  expect(title.value).toBe('应当保留的草稿')
+  expect(client.api.save).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+  fireEvent.click(screen.getByRole('button', { name: '放弃未保存内容' }))
+  expect(screen.queryByRole('dialog')).toBeNull()
+  await waitFor(() => { expect(document.activeElement).toBe(entry) })
+  fireEvent.click(entry)
+  expect((screen.getByRole('textbox', { name: '卡片标题' }) as HTMLInputElement).value).toBe('')
+})
+
+it('keeps an in-flight save mounted and closes the saved revision without a discard prompt', async () => {
+  const client = knowledgeClient()
+  let finish!: () => void
+  client.api.save.mockImplementation(request => new Promise(resolve => { finish = () => { resolve({ cardId: request.cardId, topicIds: [], revisions: [{
+    revisionId: request.revisionId, requestHash: 'a'.repeat(64), number: 1, savedAt: 1000, content: request.content, sources: [],
+  }] }) } }))
+  render(<KnowledgeProvider {...client} t={t}><Entry /></KnowledgeProvider>)
+  fireEvent.click(screen.getByRole('button', { name: '开始建卡' }))
+  fireEvent.change(screen.getByRole('textbox', { name: '卡片标题' }), { target: { value: '保存中的草稿' } })
+  fireEvent.click(screen.getByRole('button', { name: '保存修订' }))
+  fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+  expect(screen.getByText('正在处理，请等待完成后再关闭。')).toBeTruthy()
+  expect(client.api.save.mock.lastCall![1].aborted).toBe(false)
+  finish()
+  await screen.findByRole('button', { name: '编辑卡片' })
+  fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+  expect(screen.queryByRole('alertdialog')).toBeNull()
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
+it('keeps the required title and conclusion visible while optional fields retain their values', async () => {
+  const client = knowledgeClient()
+  render(<KnowledgeProvider {...client} t={t}><Entry /></KnowledgeProvider>)
+  fireEvent.click(screen.getByRole('button', { name: '开始建卡' }))
+  expect((screen.getByRole('textbox', { name: '卡片标题' }) as HTMLInputElement).required).toBe(true)
+  expect(screen.getByRole('textbox', { name: '结论' })).toBeTruthy()
+  const details = screen.getByText('补充问题、理由、类型与状态（选填）').parentElement as HTMLDetailsElement
+  expect(details.open).toBe(false)
+  fireEvent.click(details.querySelector('summary')!)
+  const question = screen.getByLabelText('核心问题') as HTMLTextAreaElement
+  fireEvent.change(question, { target: { value: '保留补充信息' } })
+  fireEvent.click(details.querySelector('summary')!)
+  fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+  fireEvent.click(screen.getByRole('button', { name: '继续编辑' }))
+  expect(question.value).toBe('保留补充信息')
 })

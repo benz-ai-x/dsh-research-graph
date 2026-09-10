@@ -1,4 +1,15 @@
 export const knowledgeZh = {
+  'topic.new': '新建主题', 'topic.applyName': '保存名称', 'knowledge.noChanges': '没有未保存的修改',
+  'knowledge.localLayout': '工作区图排列自动保留在本机；主题排列点击“保存排列”后同步到 Host。',
+  'knowledge.unsavedTitle': '有未保存的内容', 'knowledge.unsavedHint': '关闭或放弃编辑会丢失尚未保存的内容。继续编辑可以保留这些内容。',
+  'knowledge.keepEditing': '继续编辑', 'knowledge.discard': '放弃未保存内容', 'knowledge.waitForSave': '正在处理，请等待完成后再关闭。',
+  'knowledge.unsaved': '尚未保存', 'knowledge.draftHint': '填写后保存',
+  'knowledge.formHint': '标题为必填项。先记录结论，其他信息可以稍后补充。', 'knowledge.moreFields': '补充问题、理由、类型与状态（选填）',
+  'knowledge.sourceDetails': '来源标识与事件范围', 'knowledge.exactPayload': '查看完整发送文本',
+  'knowledge.searchDescription': '查找已保存的结论、方法与问题，也可以新建卡片。',
+  'knowledge.workflowHelp': '如何形成知识卡片',
+  'knowledge.workflow': '形成知识卡片：选择会话 → 查看原文 → 勾选已完成轮次 → 保存卡片或提炼知识。',
+
   'export.title': '导出 Markdown', 'export.close': '关闭导出', 'export.choose': '选择导出的卡片',
   'export.preview': '预览 Markdown', 'export.download': '下载 Markdown', 'export.markdown': 'Markdown 预览',
   'export.hint': '选择 1–50 张卡片，预览将读取它们最新的已保存修订及来源摘录。文件最多 8 MB，不调用模型。',
@@ -35,6 +46,17 @@ export const knowledgeZh = {
 } as const
 export type KnowledgeKey = keyof typeof knowledgeZh
 export const knowledgeEn: Record<KnowledgeKey, string> = {
+  'topic.new': 'New topic', 'topic.applyName': 'Save name', 'knowledge.noChanges': 'No unsaved changes',
+  'knowledge.localLayout': 'Workspace arrangements are kept on this device. Use Save arrangement to sync a topic arrangement to the Host.',
+  'knowledge.unsavedTitle': 'Unsaved content', 'knowledge.unsavedHint': 'Closing or discarding edits loses unsaved content. Continue editing to keep it.',
+  'knowledge.keepEditing': 'Keep editing', 'knowledge.discard': 'Discard unsaved content', 'knowledge.waitForSave': 'Processing. Wait for completion before closing.',
+  'knowledge.unsaved': 'Unsaved', 'knowledge.draftHint': 'Fill in and save',
+  'knowledge.formHint': 'A title is required. Start with the conclusion; add other details when ready.', 'knowledge.moreFields': 'Question, reasons, type and status (optional)',
+  'knowledge.sourceDetails': 'Source identifiers and event range', 'knowledge.exactPayload': 'View exact message text',
+  'knowledge.searchDescription': 'Find saved conclusions, methods and questions, or create a card.',
+  'knowledge.workflowHelp': 'How to create a Knowledge Card',
+  'knowledge.workflow': 'Create a Knowledge Card: select a Session → read original → select completed turns → save a card or extract knowledge.',
+
   'export.title': 'Export Markdown', 'export.close': 'Close export', 'export.choose': 'Choose cards to export',
   'export.preview': 'Preview Markdown', 'export.download': 'Download Markdown', 'export.markdown': 'Markdown preview',
   'export.hint': 'Select 1–50 cards. Preview reads their latest saved revisions and retained source excerpts. Files are limited to 8 MB. No model is called.',
