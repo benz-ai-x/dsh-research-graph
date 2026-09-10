@@ -7,7 +7,7 @@
 | 项目 | 本次记录 |
 | --- | --- |
 | 分支／基点 | `feat/issues-6-10-research-workflow`／`0c829e551d18d7b190120fedc820f28a346c9ed0` |
-| 最终功能提交 | `39b84cf`；后续为文档与截图 |
+| 最终功能提交 | `39b84cf`；后续为测试 fixture、文档与截图 |
 | 插件／Harness | `0.1.5-alpha.1`／`dsh-v0.1.5-alpha.1`，Harness `5dda764ed3aa172535a7967b06ff95d9cbfe536a` |
 | Node／项目 pnpm | `26.4.0`／`11.7.0` |
 | 浏览器 | 隔离的实际 Chrome `153.0.8010.36`，Playwright 驱动，1440×1080 与 960×900 |
@@ -32,6 +32,8 @@
 packed smoke 的真实 Gateway、Storage Domain、Session 和原生 Agent 路径覆盖：主题与人工卡片保存、提炼草稿返回、原生新讨论、固定预览、重复成功提交去重、Markdown 固定修订，以及既有 Merge、Digest、Original 和正文搜索。实际模型输入与预览首条用户消息精确相同，卡片原文没有被隐式展开，后续修订未进入旧消息；再次提交保持同一目标和单一原生 `rpcId`。提炼快照重启恢复在 `knowledge-extraction.harness.spec.ts` 验证；审核后保存与丢失响应重试在注册 UI、专门 Harness 测试及下述 Chrome 流程验证。
 
 本地原始日志在忽略目录 `.artifacts/issues-6-10/`：`check-final.log`、`check-harness-final.log`、`pack-final.log`、`smoke-final.log`。它们是可重新生成的输出，不纳入提交。对应持久测试在 `tests/`，CI 从包版本选择相同 Harness tag。
+
+PR #17 首次 CI 的三个 Node 检查及 Harness 四编译面通过，卡片搜索／来源关系界面用例在 Linux runner 超过默认 5 秒，另外 221 项通过。原因是该功能用例借用了规模 fixture 的 500 条主题引用。将其缩小到两条引用，保留全部行为断言、默认超时及独立的 1,000 引用验收后，同一本地用例由 3,327 ms 降至 180 ms；完整 standalone 171、Harness 222 项再次通过（`check-ci-fix.log`、`check-harness-ci-fix.log`）。两轴只读复核确认此调整保留规格覆盖。产品源码、最终归档和浏览器 Build 未改变。
 
 ## 浏览器操作与观察
 

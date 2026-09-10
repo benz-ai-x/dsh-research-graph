@@ -307,7 +307,8 @@ describe('Knowledge Cards registered Graph workflow', () => {
   it('finds a card through the shared search entry and draws an explicit source relation in its topic', async () => {
     const b = await bench({ a: session('a') })
     const fixture = researchTopicFixture()
-    const topic = fixture.a.topic
+    // Large-topic behavior has its own 1,000-reference acceptance below.
+    const topic = { ...fixture.a.topic, references: fixture.a.topic.references.slice(0, 2) }
     const card: KnowledgeCard = { cardId: 'card-one', topicIds: [topic.topicId], revisions: [{
       revisionId: 'revision-one', requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
       content: { title: '可重用的方法', question: '', conclusion: '先核验来源', rationale: '', openQuestions: '', kind: 'method', status: 'draft' },
@@ -315,7 +316,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
         turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user', seq: 11, text: '证据' }] }] } }],
     }] }
     b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
-    b.readTopic.mockResolvedValue({ ok: true, value: fixture.a })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: fixture.a.sources.slice(0, 2) } })
     b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
     b.readKnowledge.mockResolvedValue({ ok: true, value: card })
     mount(b.slots, b.sessionsStore, 'a')
