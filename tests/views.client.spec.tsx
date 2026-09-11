@@ -3163,6 +3163,34 @@ describe('node selection, double-click, and keyboard navigation', () => {
     expect(b.generateDigest).toHaveBeenCalledTimes(2)
   })
 
+  it('explains the digest output limit and retains the previous digest until an explicit retry succeeds', async () => {
+    const b = await bench(FIXTURE)
+    b.generateDigest.mockResolvedValueOnce(digestSuccess('root', { overview: '先前的完整摘要。' }))
+    b.generateDigest.mockResolvedValueOnce({
+      ok: false,
+      error: { code: 'output-limit', message: 'provider detail must stay private', details: {} },
+    } as never)
+    b.generateDigest.mockResolvedValueOnce(digestSuccess('root', { overview: '重试后的完整摘要。' }))
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
+    await waitFor(() => { expect(screen.getByText('先前的完整摘要。')).toBeTruthy() })
+    fireEvent.click(screen.getByRole('button', { name: '重新生成' }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('摘要达到生成上限，请提高插件的摘要输出上限后重试')
+    })
+    expect(screen.getByRole('alert').getAttribute('data-error-code')).toBe('output-limit')
+    expect(screen.getByRole('alert').getAttribute('title')).toBeNull()
+    expect(screen.getByText('先前的完整摘要。')).toBeTruthy()
+    expect(b.generateDigest).toHaveBeenCalledTimes(2)
+
+    fireEvent.click(screen.getByRole('button', { name: '重试' }))
+    await waitFor(() => { expect(screen.getByText('重试后的完整摘要。')).toBeTruthy() })
+    expect(b.generateDigest).toHaveBeenCalledTimes(3)
+  })
+
   it('explains when Session Digest generation has no usable model route', async () => {
     const b = await bench(FIXTURE)
     b.generateDigest.mockResolvedValueOnce({

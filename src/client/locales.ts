@@ -155,6 +155,7 @@ export type SessionGraphKey =
   | 'digest.error'
   | 'digest.errorRoute'
   | 'digest.errorOutput'
+  | 'digest.errorLimit'
   | 'digest.outcomes'
   | 'digest.openItems'
   | 'digest.turns'
@@ -344,6 +345,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'digest.error': '摘要生成失败，请重试',
   'digest.errorRoute': '此会话没有可用的模型路由，请配置兜底模型后重试',
   'digest.errorOutput': '模型返回的摘要格式无效，请重试',
+  'digest.errorLimit': '摘要达到生成上限，请提高插件的摘要输出上限后重试',
   'digest.outcomes': '关键结论',
   'digest.openItems': '待处理',
   'digest.turns': '基于 {count} 轮对话',
@@ -527,6 +529,7 @@ export const en: Record<SessionGraphKey, string> = {
   'digest.error': "Couldn't generate the digest. Try again",
   'digest.errorRoute': 'This Session has no usable model route. Configure a fallback model and try again',
   'digest.errorOutput': 'The model returned an invalid digest format. Try again',
+  'digest.errorLimit': 'The digest reached its output limit. Increase the plugin’s digest output limit and try again',
   'digest.outcomes': 'Key outcomes',
   'digest.openItems': 'Open items',
   'digest.turns': 'Based on {count} turns',

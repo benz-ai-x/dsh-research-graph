@@ -5,7 +5,7 @@ describe('Session Graph configuration', () => {
   it('publishes Loader defaults through one runtime Standard Schema', () => {
     expect(Config).toHaveProperty('~standard')
     expect(Config({})).toEqual({
-      maxOutputTokens: 800,
+      maxOutputTokens: 4_096,
       timeoutMs: 60_000,
     })
   })

@@ -298,6 +298,7 @@ function safeDigestFailure(error: unknown): { readonly code?: string; readonly m
 function digestErrorLabel(code: string | undefined, t: Translate): string {
   if (code === 'model-route-unavailable') return t('digest.errorRoute')
   if (code === 'invalid-model-output') return t('digest.errorOutput')
+  if (code === 'output-limit') return t('digest.errorLimit')
   return t('digest.error')
 }
 

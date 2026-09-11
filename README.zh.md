@@ -303,18 +303,20 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 
 这是一次额外模型请求，可能产生所选 provider 的常规费用。摘要文本只是只读投影：它不是对话消息，不进入 Session 日志，也不改变 Session Lineage。
 
-大多数会话无需配置，因为日志已记录模型路由。对于没有路由的旧会话或导入会话，可在 profile 的 `cordis.yml` 中覆盖已安装插件条目：
+大多数会话无需配置路由，因为日志已记录模型路由。对于没有路由的旧会话或导入会话，可在 profile 的 `cordis.patch.yml` 中覆盖已安装插件条目（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）。若文件只有空数组 `[]`，用下方列表替换；已有列表则加入这一项：
 
 ```yaml
 - id: ui-session-graph
   config:
     provider: deepseek-official
     model: deepseek-v4-flash
-    maxOutputTokens: 800
+    maxOutputTokens: 4096
     timeoutMs: 60000
 ```
 
-`provider` 与 `model` 必须成对提供，并且绝不会覆盖会话已记录的路由。`maxOutputTokens` 默认为 `800`，`timeoutMs` 默认为 `60000`。插件激活会通过对外导出的 Standard Schema 校验配置，并拒绝空白路由、缺少配对字段、非整数与非正数限制。
+`provider` 与 `model` 必须成对提供，并且绝不会覆盖会话已记录的路由。`maxOutputTokens` 默认为 `4096`，`timeoutMs` 默认为 `60000`。插件激活会通过对外导出的 Standard Schema 校验配置，并拒绝空白路由、缺少配对字段、非整数与非正数限制。
+
+输出上限为推理和结构化摘要留出空间；部分模型会将推理计入同一预算。用户显式设置的较低上限仍然生效。插件保留模型的默认推理设置，不会自动重试失败请求。触及上限时界面会明确提示，可在此覆盖项中调高 `maxOutputTokens` 后重试；被截断的内容不会进入成功缓存，刷新失败会保留上一份完整摘要。
 
 ## 故障排查
 
@@ -324,6 +326,7 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 | Host 在 Remote error 导出附近启动失败 | 按兼容表安装与 DSH 匹配的插件，并确认解析后的 profile 没有保留旧包版本 |
 | GitHub 源码安装报告 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | 检查固定版本源码，把 dsh 打印的完整键加入该 profile 的 `allowBuilds`，然后重试 |
 | 生成摘要时报告没有模型路由 | 使用日志中带路由的 Session，或配置 `provider` 与 `model` 兜底字段对 |
+| 摘要达到生成上限 | 在当前 profile 的 `cordis.patch.yml` 中为 `ui-session-graph` 调高 `maxOutputTokens`，再重试 |
 | Web URL 拒绝访问 | 打开 `dsh web` 打印的完整认证 URL；不要复用或分享被截掉 token 的地址 |
 
 若问题仍然存在，请在 [GitHub Issue](https://github.com/benz-ai-x/dsh-research-graph/issues/new) 中附上 研图页头显示的包版本、Harness 版本以及相关 Host/浏览器错误。
