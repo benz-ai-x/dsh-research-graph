@@ -3,13 +3,15 @@ import { readFileSync, existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import ts from 'typescript'
+import { releaseVersions } from './release-versions.mjs'
 
 const root = process.env.DSH_HARNESS_ROOT
 if (!root) throw new Error('DSH_HARNESS_ROOT must point to the matching Harness checkout')
 const manifest = JSON.parse(readFileSync('package.json', 'utf8'))
+const { version, dshVersion } = releaseVersions(manifest)
 const harness = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
-if (harness.version !== manifest.version) {
-  throw new Error(`Plugin ${manifest.version} requires a Harness ${manifest.version} checkout, got ${harness.version}`)
+if (harness.version !== dshVersion) {
+  throw new Error(`Plugin ${version} requires a Harness ${dshVersion} checkout, got ${harness.version}`)
 }
 const diagnosticsHost = {
   getCanonicalFileName: name => name,
