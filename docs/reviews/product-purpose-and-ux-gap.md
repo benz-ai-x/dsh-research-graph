@@ -145,4 +145,4 @@ flowchart LR
 | 跨视图/重启恢复未保存草稿 | 需要明确草稿的持久化生命周期；ADR 0010 当前仅允许浏览器保存呈现状态，不能直接把知识正文放进同一缓存 |
 | 统一自动保存主题排列 | 会改变 ADR 0006 与 ADR 0010 的显式 Host 同步决定；若选择此方向，需先修订该约定并处理并发行为 |
 
-当前的准确来源、不可变历史、明确的模型调用与发送、失败恢复继续作为新体验的基础。本评估记录产品目的、术语与差距；用户确认后的原型实施见 [Issue #23](https://github.com/benz-ai-x/dsh-research-graph/issues/23) 和[DSH 体验指南](research-workbench-prototype.md)。
+当前的准确来源、不可变历史、明确的模型调用与发送、失败恢复继续作为新体验的基础。本评估记录产品目的、术语与差距；用户确认后的原型实施见 [Issue #23](https://github.com/benz-ai-x/dsh-research-graph/issues/23) 和[DSH 体验指南](https://github.com/benz-ai-x/dsh-research-graph/blob/e890247bf548a8c77319e03a5d9cfe77befa8046/docs/reviews/research-workbench-prototype.md)。
