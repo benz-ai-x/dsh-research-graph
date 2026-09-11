@@ -99,6 +99,7 @@
     "typecheck:harness": "node scripts/check-harness-types.mjs",
     "check:harness": "pnpm run typecheck:harness && pnpm run test:harness",
     "smoke:harness": "node scripts/smoke-profile.mjs",
+    "preview:dsh": "node scripts/workbench/start.mjs",
     "pretest": "pnpm run build",
     "test": "vitest run",
     "test:harness": "vitest run --config vitest.harness.config.ts",

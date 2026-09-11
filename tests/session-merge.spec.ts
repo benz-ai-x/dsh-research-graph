@@ -23,6 +23,25 @@ function dependencies(): SessionMergeDependencies {
 }
 
 describe('Session Merge application interface', () => {
+  it('uses an explicit research Workspace for cross-workspace sources and keeps the current view open', async () => {
+    const targets: unknown[] = [], requests: unknown[] = [], opened: string[] = []
+    const merges = createSessionMergeModule({
+      ...dependencies(),
+      inspectSource: async id => ({ sessionId: id, title: id, cwd: `/${id}`, workspaceId: id, canvas: true }),
+      createTarget: async location => { targets.push(location); return 'research-target' },
+      submitMerge: async request => { requests.push(request) },
+      openTarget: id => { opened.push(id) },
+    })
+    const options = { target: { cwd: '/research', workspaceId: 'research' }, openTarget: false }
+    expect(await merges.mergeSessions(['a', 'b'], 'Compare both conditions.', new AbortController().signal, options)).toBe('research-target')
+    expect(targets).toEqual([{ cwd: '/research', workspaceId: 'research' }])
+    expect(requests[0]).toMatchObject({ targetSessionId: 'research-target', targetWorkspaceId: 'research', sourceIds: ['a', 'b'] })
+    await merges.retryMerge('research-target', ['a', 'b'], 'Compare both conditions.', new AbortController().signal, options)
+    expect(targets).toHaveLength(1)
+    expect(requests).toHaveLength(2)
+    expect(opened).toEqual([])
+  })
+
   it('rejects fewer than two source Sessions before creating a target', async () => {
     let targetCreated = false
     const mergeDependencies = dependencies()

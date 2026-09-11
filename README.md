@@ -58,13 +58,23 @@ In the DSH-aligned release line, the plugin version exactly matches its target D
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
+## Research Workbench
+
+Open **Research Graph** and switch between **Graph / Reading**. The graph supports arranging relationships and exploring directions; Reading offers a knowledge catalog, full content, exact sources, and follow-up research. Choose **Research scope → Cross-workspace topics** to collect materials on the same Host. Reading can also browse all knowledge on that Host.
+
+Switching Graph and Reading within a topic preserves the selected card, displayed revision, expanded source, reading scroll, and canvas position. Saved state is separate from verification status. **Continue discussion** carries the displayed revision; **Edit card** edits that version directly and saves a new revision. When reading an older version, the export action explicitly says **Export latest revision**; the export preview lists the actual versions.
+
+Topic graphs arrange source discussions, knowledge, and follow-ups in dependency rows while preserving Branch clusters and manual arrangements. Selecting knowledge emphasizes its immediate sources and follow-ups. Topic graphs connect discussions to knowledge through source edges, and knowledge to follow-up discussions through **Used in discussion** edges. Only Host-acknowledged admissions produce these edges. A new discussion need not be a topic member to remain traceable. Later card edits do not rewrite the version used; select follow-up research to inspect frozen materials and open its target.
+
+See the [workbench acceptance record](docs/reviews/research-workbench-acceptance.md) for this iteration's scope and evidence.
+
 ## Knowledge Cards
 
-In **Research Graph → Original**, select completed turns and choose **Save as Knowledge Card**. Edit the title, question, conclusion, reasons/conditions, open questions, type and draft/confirmed status; optionally choose a Research Topic. Manual creation does not call a model or change the source Session. The header offers **New Knowledge Card** directly and **How to create a Knowledge Card** explains the source workflow. Title is required; question, reasons, type and status are optional details. The save bar stays visible while scrolling.
+In **Research Graph → Original**, select completed turns and choose **Save as Knowledge Card**. The original prefills an editable title, question, and conclusion; a late response preserves fields you have typed or intentionally cleared. Title and conclusion are shown first, with optional details collapsed. Sources use discussion titles and turn numbers. Draft text over 24,000 characters is explicitly marked as an excerpt; the full selected source remains attached. Choose **Save knowledge**, optionally selecting a topic. Saving does not verify factual correctness. Manual creation does not call a model or modify the source Session. The header offers **New Knowledge Card**, and the save bar remains visible while scrolling.
 
 Cards appear in topic graphs with a distinct Source Relation. Open a card to inspect any saved revision, read its retained excerpt, or check the exact original turns. Unavailable originals remain clearly labelled as retained excerpts. Edits append immutable revisions; a failed save preserves the draft, and retrying it does not create another card. Escape, Close card and Discard edits ask before losing unsaved content, including generated drafts; Keep editing preserves the current form. A pending save stays mounted until it completes. Discarding edits returns to saved content. Drafts are held in the open view, not automatically saved to Host storage.
 
-Open **Knowledge Cards** directly from the header, or use **Search discussions & knowledge** and switch the visible content buttons to search card titles and bodies across this Host or the selected topic. Topic membership is independent of source directories. Removing a card from a topic preserves its content, revisions and sources; search can find and reattach it. Cards live in Host storage and survive browser-cache clearing and Host restart. Reset and Relayout only affect presentation. Each save supports up to 32 sources and 4 MB of source text JSON; reduce the selected range if it exceeds that limit.
+Open **Reading** or **More → Knowledge Cards** from the header, or use **Search discussions & knowledge** and switch the visible content buttons to search card titles and bodies across this Host or the selected topic. Topic membership is independent of source directories. Removing a card from a topic preserves its content, revisions and sources; search can find and reattach it. Cards live in Host storage and survive browser-cache clearing and Host restart. Reset and Relayout only affect presentation. Each save supports up to 32 sources and 4 MB of source text JSON; reduce the selected range if it exceeds that limit.
 
 A change of graph scope restores the new scope's saved search type and conditions, or its defaults. Returning to an earlier scope restores that scope's last choice, even after opening through **Knowledge Cards**.
 
@@ -82,13 +92,13 @@ See the [batch acceptance and browser screenshots](docs/reviews/issues-6-10-acce
 
 ## Start a discussion from selected materials
 
-Add a saved card revision or one completed original turn to **Materials**. You can also open **Materials → Choose materials** to select saved card revisions or completed discussion turns without leaving your question. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** presents the question, readable material content, card revisions and the 32,000-character total budget. **View exact message text** reveals the unchanged text submitted after confirmation. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
+Choose **Continue discussion** on a card, or add a saved card revision or one completed original turn to **More → Materials**. You can also open **Materials → Choose materials** to select saved card revisions or completed discussion turns without leaving your question. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** presents the question, readable material content, card revisions and the 32,000-character total budget. **View exact message text** reveals the unchanged text submitted after confirmation. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
 
 If a submission response is lost, materials stay locked while Research Graph checks the Host's recorded target state. **Check target status** or reopening Materials repeats that check; Retry always uses the same submission. Closing the dialog suppresses late navigation.
 
 If target creation succeeds while the reuse log cannot be saved, Research Graph checks the reserved Session directly and keeps its Open and Retry actions. A failed state check keeps materials locked; retrying after storage recovers uses the same target and message.
 
-Confirming creates an independent Session and sends the frozen preview through native Harness admission. A failed create preserves the materials. If a target exists but sending fails, Open and Retry recover that same target and message identity. **Sent** means the Host acknowledged receipt; inspect the Session for model response status. **Materials used by this Session** reopens the frozen sources, versions and Reuse Relations after later edits, browser-cache clearing or Host restart. Source Workspace ownership and directories remain authoritative in Harness.
+Confirming creates an independent Session and sends the frozen preview through native Harness admission. Success keeps the workbench open; continue organizing or explicitly choose **Open target session** to read the response. A failed create preserves the materials. If a target exists but sending fails, Open and Retry recover that same target and message identity. **Sent** means the Host acknowledged receipt; inspect the Session for model response status. **Materials used by this Session** reopens the frozen sources, versions and Reuse Relations after later edits, browser-cache clearing or Host restart. Source Workspace ownership and directories remain authoritative in Harness.
 
 ## What it adds
 
@@ -191,7 +201,7 @@ Presentation state belongs to the same browser and is isolated by persistent Hos
 
 ## Organize Research Topics
 
-Choose **Research Topics** in the Research Graph header and create a named topic. In a Selected Session's details or a selected discussion search result, choose **Add to Research Topic**, select a topic, and add the source. You can create a topic in that picker too. Topics collect Session references across Workspaces on the same Host; a Session can belong to several topics.
+Choose **Research scope → Cross-workspace topics** in Research Graph and create a named topic. In a Selected Session's details or a selected discussion search result, choose **Add to Research Topic**, select a topic, and add the source. You can create a topic in that picker too. Topics collect Session references across Workspaces on the same Host; a Session can belong to several topics.
 
 If creation fails, retrying recovers the same topic. If you edit the name before retrying, the revised name must also save before the input clears; another failure keeps that input available for retry.
 
@@ -249,12 +259,16 @@ Paging limits browser content, but the Host currently inspects one complete Sess
 
 ## Merge Sessions
 
-Choose **Merge sessions** in the canvas toolbar, then select two or three Canvas Sessions in the numbered order shown on their cards. Review or edit the Merge instruction and choose **Create Merge session**.
+Choose **Merge sessions** in the workbench header, filter by source Workspace or title, and select 2–3 sessions in order. Changing filters or closing the dialog retains the selection. Enter a question, explicitly choose a destination Workspace, then preview and confirm. Discussions from A and B can be merged into A, B, or a separate research space.
 
-- Sources must be distinct, non-blank, non-Subagent Canvas Sessions in the same Workspace or working directory.
-- Choose every source on the canvas. Merge instructions cannot contain `dsh-session:` references, because Harness reserves them for the exact source snapshot set.
+The preview identifies sources, Workspaces, question, and destination. Discussion snapshots are read on confirmation and remain subject to Harness's context budget. Source files, tool results, and runtime environments are not combined. If a topic is selected, successful capture adds sources and the target to it. A failed association retries only that step, without resubmitting the merge.
+
+The canvas retains **Merge selected sessions**, using the numbered selection order and its existing same-Workspace/directory rule.
+
+- Sources must be distinct, non-blank, non-archived, non-Subagent sessions on the same Host. Cross-workspace merges require an explicitly selected, available destination Workspace.
+- Merge instructions cannot contain `dsh-session:` references, because Harness reserves them for the exact source snapshot set.
 - Harness creates one independent target Session, gives it a source-derived title, and captures each source at an immutable event boundary. The sources and their existing Branch lineages remain unchanged.
-- At submission time the Host re-inspects the target and every source instead of trusting browser metadata. It accepts only non-archived, non-blank Canvas Session sources in the target directory, and only an unparented blank target or an exact same-source retry target.
+- At submission time the Host re-inspects the target and every source instead of trusting browser metadata. It validates canonical destination Workspace membership, directory, and source eligibility, accepting only an unparented blank target or an exact same-source retry target. Calls without an explicit destination keep the same-directory requirement.
 - The target's normal agent loop receives the edited instruction plus canonical Harness Session references. This feature does not choose a separate summary model; the target uses its normal configured model route when it processes the queued request.
 - A Merge Session remains its own Session Cluster. Branded Merge Relations show provenance from each source cluster without turning those sources into parents.
 - The Session Inspector lists the source titles and capture boundaries for a selected Merge Session. Merge provenance is projected from the target log and checkpointed in Harness's durable Projection Cache, so it survives restart and cold log replay.
@@ -344,6 +358,15 @@ pnpm --dir /path/to/deepseek-harness run build:web
 DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 ```
 
+For hands-on acceptance of the standard build, prepare the matching Harness with `build:native-system`, `build:lib`, and `build:web`, then run:
+
+```sh
+DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm preview:dsh
+pnpm preview:dsh --stop
+```
+
+The launcher packs and installs the standard plugin in an isolated DSH profile at `.artifacts/workbench-dsh/profile/`, prints its local URL, and retains research data. Examples include A/B discussions, knowledge, and follow-up research. The clearly labelled model returns fixed demo responses without paid model calls. Restarting preserves examples and manual work while existing DSH profiles remain separate. The startup URL contains a local login credential; do not publish raw logs or `state.json`.
+
 Local builds derive a stable `local-<hash>` Build ID from `package.json`, `tsdown.config.ts`, and `src/`. Release automation can replace it by setting `DSH_SESSION_GRAPH_BUILD_ID` while building.
 
 ### Release
@@ -396,7 +419,7 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 - Session Digests are generated only on demand and cached in Host memory, not persisted as durable artifacts. A Host restart clears the cache.
 - A Session without a logged model route needs a configured fallback route before it can be digested.
 - A Branch created from a Subagent Session has no Canvas Session parent edge and appears as a Root Session.
-- One Merge accepts two or three sources, and all sources must resolve in the target's working directory. Cross-Workspace Merge is not supported.
+- One Merge accepts two or three sources across Workspaces on the same Host; cross-Host merging is not supported.
 - Merge captures immutable source snapshots; later source messages do not automatically refresh an existing Merge Session.
 - Touch uses pointer-event fallbacks and has no dedicated controls.
 

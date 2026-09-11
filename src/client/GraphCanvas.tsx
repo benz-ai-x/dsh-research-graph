@@ -1113,9 +1113,14 @@ export function GraphCanvas({
     }
     const focusKey = hoverNode ?? selected
     if (focusKey === null) return null
-    const set = branchLineage(shown.nodes.map(entry => entry.node), focusKey)
+    const set = new Set(branchLineage(shown.nodes.map(entry => entry.node), focusKey))
+    if (topic !== undefined) {
+      for (const { edge } of shown.edges) {
+        if (edge.from === focusKey || edge.to === focusKey) { set.add(edge.from); set.add(edge.to) }
+      }
+    }
     return set.size === 0 ? null : { keys: set, mode: 'context' }
-  }, [filterMatches, hoverEdge, hoverNode, selected, shown])
+  }, [filterMatches, hoverEdge, hoverNode, selected, shown, topic !== undefined])
   const dimStyle = emphasis?.mode === 'filter' ? styles.dimFilter : styles.dimContext
   const emphasizedClusters = useMemo(() => new Set(shown.nodes
     .filter(entry => emphasis?.keys.has(entry.key))
@@ -1612,6 +1617,7 @@ export function GraphCanvas({
             return (
               <g
                 key={edge.id}
+                data-relation-id={edge.reuse?.operationId}
                 className={clsx(
                   styles.edgeGroup,
                   edgeDimmed(edge.from, edge.to) ? dimStyle : null,
@@ -1626,10 +1632,11 @@ export function GraphCanvas({
                   onMouseLeave={() => { setHoverEdge(null) }}
                 />
                 <path
-                  className={edge.kind === 'source' ? styles.edgeSource : merge ? styles.edgeMerge : styles.edgeBranch}
+                  className={edge.kind === 'reuse' ? styles.edgeReuse : edge.kind === 'source' ? styles.edgeSource : merge ? styles.edgeMerge : styles.edgeBranch}
                   data-edge-kind={edge.kind}
                   d={path}
                 />
+                {edge.kind === 'reuse' ? <title>{t('workbench.reuseEdge')}{edge.reuse?.revisionNumber === undefined ? '' : ` · ${t('knowledge.versionNumber', { number: edge.reuse.revisionNumber })}`}</title> : null}
                 <path
                   className={merge ? styles.edgeMergeArrow : styles.edgeBranchArrow}
                   d={`M ${cx - 6} ${to.y - 9} L ${cx} ${to.y} L ${cx + 6} ${to.y - 9} Z`}

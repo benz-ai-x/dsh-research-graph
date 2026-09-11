@@ -14,6 +14,7 @@ import type { SessionMergeProjectionSource } from '../session-merge-projection.t
 import type { ResearchTopicSnapshot, ResearchTopicSource } from '../research-topic.ts'
 import type { SessionArrangementIdentity } from './layout-store.ts'
 import type { KnowledgeCard } from '../knowledge.ts'
+import type { ResearchRelation } from '../research-relations.ts'
 import type { SessionDiscussionSource } from '../session-history.ts'
 
 /**
@@ -76,6 +77,7 @@ export interface SessionGraphNode extends GraphNodeBase {
   readonly mergeSources: readonly SessionMergeProjectionSource[]
   /** Present only for an explicit Research Topic reference. */
   readonly topicSource?: ResearchTopicSource
+  readonly reuseRelations?: readonly ResearchRelation[]
   readonly retainedSource?: SessionDiscussionSource
 }
 
@@ -93,7 +95,8 @@ export type DisplayStatus = 'running' | 'waiting-input' | 'completed'
 /** One typed relationship between two Canvas Sessions. */
 export interface GraphEdge {
   readonly id: string
-  readonly kind: 'branch' | 'merge' | 'source'
+  readonly kind: 'branch' | 'merge' | 'source' | 'reuse'
+  readonly reuse?: { readonly operationId: string; readonly revisionId?: string; readonly revisionNumber?: number }
   readonly from: string
   readonly to: string
 }

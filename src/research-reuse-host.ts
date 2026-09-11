@@ -10,6 +10,7 @@ import { containsSessionReferenceUri } from './session-merge.ts'
 import { readKnowledgeDiscussion } from './knowledge-discussion.ts'
 import { RESEARCH_MATERIAL_BUDGET, researchReusePrompt, type ResearchMaterial, type ResearchReusePreparation, type ResearchReuseRecord } from './research-reuse.ts'
 import { researchReusePreparationSchema, researchReuseReadSchema, researchReuseRecordSchema, researchReuseSessionSchema } from './research-reuse-codec.ts'
+import { researchRelations, researchRelationQuerySchema, type ResearchRelation, type ResearchRelationQuery } from './research-relations.ts'
 import { ServiceRequests } from './service-requests.ts'
 
 const recordSchema: z.ZodType<ResearchReuseRecord> = z.unknown().transform((value, context) => {
@@ -95,6 +96,15 @@ export class ResearchReuseService extends TypertRemoteService {
         .filter(record => record.targetSessionId === sessionId)
       return (await Promise.all(records.map(record => this.recoverTarget(record, combined))))
         .filter(record => record.targetCreated)
+    }))
+  }
+
+  @Remote('relations')
+  relations(request: ResearchRelationQuery, signal: AbortSignal): Promise<readonly ResearchRelation[]> {
+    return this.requests.run(signal, combined => this.serialize(async () => {
+      combined.throwIfAborted()
+      const query = researchRelationQuerySchema.parse(request)
+      return researchRelations([...this.domain.table('attempts').entries()].map(([, record]) => record), query)
     }))
   }
 

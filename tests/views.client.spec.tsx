@@ -44,7 +44,7 @@ import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { knowledgeContent, knowledgeSource } from './fixtures/knowledge-client.ts'
-import { loadWorkingPosition, workingPositionKey } from '../src/client/working-position.ts'
+import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from '../src/client/working-position.ts'
 import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
@@ -53,6 +53,38 @@ import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 const id = (value: string): SessionId => value as SessionId
 
 describe('research workflow discovery', () => {
+  it('retains an out-of-topic follow-up selection until relation recovery succeeds', async () => {
+    const b = await bench({ root: session('root'), followup: session('followup', { cwd: '/b', displayTitle: '继续验证' }) })
+    const topic = { topicId: 'research', title: '研究', references: [], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    const card: KnowledgeCard = { cardId: crypto.randomUUID(), topicIds: [topic.topicId], revisions: [{
+      revisionId: crypto.randomUUID(), requestHash: 'a'.repeat(64), number: 1, savedAt: 1000, content: knowledgeContent(), sources: [],
+    }] }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
+    b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
+    const pending = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphReuse/relations']>>>()
+    b.relationsReuse.mockImplementation(request => request.cardIds.length ? pending.promise : Promise.resolve({ ok: true, value: [] }))
+    const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
+    saveWorkingPosition(key, { selected: 'followup' })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+    await waitFor(() => { expect(b.relationsReuse).toHaveBeenCalledWith({ cardIds: [card.cardId], sessionIds: [] }, expect.any(AbortSignal)) })
+    await act(async () => { pending.reject(new Error('Relations unavailable')) })
+    expect(screen.getByRole('alert').textContent).toContain('后续研究关系读取失败')
+    expect(loadWorkingPosition(key).selected).toBe('followup')
+    b.relationsReuse.mockResolvedValue({ ok: true, value: [{ operationId: crypto.randomUUID(), targetSessionId: 'followup',
+      question: '继续验证', workspace: { id: 'b', title: '工作区 B', cwd: '/b' }, acceptedAt: 2000,
+      materials: [{ kind: 'card', cardId: card.cardId, revisionId: card.revisions[0]!.revisionId, revisionNumber: 1, title: card.revisions[0]!.content.title }],
+    }] })
+    fireEvent.click(screen.getByRole('button', { name: '重试' }))
+    await screen.findByTestId('topic-source-panel')
+    expect(screen.getByRole('heading', { name: '继续验证' })).toBeTruthy()
+    expect(loadWorkingPosition(key).selected).toBe('followup')
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
   it('opens the knowledge library directly, updates the search heading, and returns focus to its entry', async () => {
     const b = await bench({ a: session('a') })
     mount(b.slots, b.sessionsStore, 'a')
@@ -187,7 +219,7 @@ describe('Markdown export in the registered Graph', () => {
     b.prepareExport.mockResolvedValue({ ok: true, value: frozen })
     mount(b.slots, b.sessionsStore, 'a')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(document.querySelector('[data-node-id="card:card-a"]')).not.toBeNull() })
     fireEvent.click(screen.getByRole('button', { name: '导出 Markdown' }))
     fireEvent.click(screen.getByRole('checkbox', { name: '成果 B' }))
@@ -249,7 +281,7 @@ describe('Working position in the registered Graph', () => {
       const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
       mount(b.slots, b.sessionsStore, discussion.id)
       switchTab('Research Graph')
-      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
       await waitFor(() => { expect(document.querySelector('[data-node-id="card:long-card"]')).not.toBeNull() })
       fireEvent.click(nodeButton(discussion.id))
       fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
@@ -271,7 +303,7 @@ describe('Working position in the registered Graph', () => {
           sources: [{ ...source, source: { startSeq: first.startSeq, endSeq: first.endSeq!, turns: [first] } }] }],
       }] })
       switchTab('Research Graph')
-      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
       await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: discussion.id, range }, expect.any(AbortSignal)) })
       if (scenario === 'missing source') {
         await screen.findByText(zh['position.unavailable'])
@@ -310,7 +342,7 @@ describe('Working position in the registered Graph', () => {
     const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
     mount(b.slots, b.sessionsStore, 'session-a')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(document.querySelector('[data-node-id="card:source-card"]')).not.toBeNull() })
     fireEvent.click(nodeButton('session-a'))
     fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
@@ -327,7 +359,7 @@ describe('Working position in the registered Graph', () => {
       kind: 'unavailable', sessionId: source.sessionId, turns: [], hasEarlier: false, hasLater: false,
     } })
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', anchorSeq: 20 }, expect.any(AbortSignal)) })
     if (outcome === 'missing') {
       await screen.findByText(zh['position.unavailable'])
@@ -368,7 +400,7 @@ describe('Working position in the registered Graph', () => {
     b.readTopic.mockImplementation(async request => ({ ok: true, value: request.topicId === a.topic.topicId ? a : bTopic }))
     mount(b.slots, b.sessionsStore, 'viewed')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await screen.findByRole('combobox', { name: '选择研究主题' })
     fireEvent.change(screen.getByRole('combobox', { name: '选择研究主题' }), { target: { value: bTopic.topic.topicId } })
     await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
@@ -383,7 +415,7 @@ describe('Working position in the registered Graph', () => {
     switchTab('Chat')
     switchTab('Research Graph')
     expect(screen.queryByRole('combobox', { name: '选择研究主题' })).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await screen.findByTestId('topic-source-panel')
     expect((screen.getByRole('combobox', { name: '选择研究主题' }) as HTMLSelectElement).value).toBe(bTopic.topic.topicId)
     expect(nodeButton('source-0001').style.left).toBe(left)
@@ -392,7 +424,7 @@ describe('Working position in the registered Graph', () => {
     switchTab('Chat')
     b.listTopics.mockResolvedValue({ ok: true, value: [a.topic] })
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await screen.findByText('上次的研究主题已不可用，请从列表选择主题。')
     expect(document.querySelector('[data-node-id]')).toBeNull()
     expect(b.open).not.toHaveBeenCalled()
@@ -491,7 +523,7 @@ describe('Working position in the registered Graph', () => {
 })
 
 describe('Research reuse registered Graph workflow', () => {
-  it('previews one turn and waits for admission before opening the same target after a failed send', async () => {
+  it('previews one turn, stays in research after admission, and explicitly opens the same retry target', async () => {
     const b = await bench({ a: session('a') })
     const source = { sessionId: 'a', title: 'A', source: { startSeq: 10, endSeq: 14,
       turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: '所选原文' }] }] } }
@@ -524,6 +556,8 @@ describe('Research reuse registered Graph workflow', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '重试发送' }))
     expect(b.open).not.toHaveBeenCalled()
     await act(async () => { receipt.resolve({ ok: true, value: { ...record, targetCreated: true, stage: 'accepted', acceptedAt: 2000 } }) })
+    expect(b.open).not.toHaveBeenCalled()
+    fireEvent.click(within(dialog).getByRole('button', { name: '打开目标会话' }))
     expect(b.open).toHaveBeenCalledExactlyOnceWith(id('research-target'))
     expect(b.submitReuse.mock.calls.map(call => call[0])).toEqual([{ operationId: 'reuse-one' }, { operationId: 'reuse-one' }])
   })
@@ -585,7 +619,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
     b.readKnowledge.mockResolvedValue({ ok: true, value: card })
     mount(b.slots, b.sessionsStore, 'a')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(document.querySelector('[data-node-kind="knowledge"]')).not.toBeNull() })
     expect(document.querySelectorAll('[data-edge-kind="source"]')).toHaveLength(1)
     b.readHistory.mockRejectedValueOnce(new Error('Transport unavailable'))
@@ -629,10 +663,12 @@ describe('Knowledge Cards registered Graph workflow', () => {
     const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
     fireEvent.change(within(dialog).getByRole('textbox', { name: '卡片标题' }), { target: { value: '证据方法' } })
     fireEvent.change(within(dialog).getByRole('textbox', { name: '结论' }), { target: { value: '保留精确轮次' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: '保存修订' }))
+    await waitFor(() => { expect((within(dialog).getByRole('button', { name: '保存知识' }) as HTMLButtonElement).disabled).toBe(false) })
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存知识' }))
     await within(dialog).findByRole('alert')
     expect((within(dialog).getByRole('textbox', { name: '结论' }) as HTMLTextAreaElement).value).toBe('保留精确轮次')
-    fireEvent.click(within(dialog).getByRole('button', { name: '保存修订' }))
+    await waitFor(() => { expect((within(dialog).getByRole('button', { name: '保存知识' }) as HTMLButtonElement).disabled).toBe(false) })
+    fireEvent.click(within(dialog).getByRole('button', { name: '保存知识' }))
     await within(dialog).findByRole('button', { name: '编辑卡片' })
     expect(b.saveKnowledge.mock.calls[1]![0]).toEqual(b.saveKnowledge.mock.calls[0]![0])
     expect(b.saveKnowledge.mock.calls[0]![0]).toMatchObject({ sources: [{ kind: 'discussion', sessionId: 'a', startSeq: 10, endSeq: 14 }] })
@@ -678,7 +714,7 @@ describe('Research Topics registered Graph workflow', () => {
       })
       mount(b.slots, b.sessionsStore, 'a')
       switchTab('Research Graph')
-      fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
       input = await screen.findByRole('textbox', { name: '新主题名称' }) as HTMLInputElement
       fireEvent.change(input, { target: { value: '原名称 A' } })
       fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
@@ -764,7 +800,7 @@ describe('Research Topics registered Graph workflow', () => {
       fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
       await received.promise
       expect(input.disabled).toBe(true)
-      fireEvent.click(screen.getByRole('button', { name: '工作区图' }))
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'workspace' } })
       await act(async () => { response.resolve() })
       expect(screen.queryByRole('textbox', { name: '新主题名称' })).toBeNull()
       expect((await host.invoke('list')).map(topic => topic.title)).toEqual(['原名称 A'])
@@ -780,7 +816,7 @@ describe('Research Topics registered Graph workflow', () => {
     const workspaces = createSnapshotStore(workspacesState())
     mount(b.slots, b.sessionsStore, 'a', workspaces)
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(document.querySelectorAll('[data-node-id]')).toHaveLength(1) })
     fireEvent.click(nodeButton('a'))
     await act(async () => { workspaces.set({ ...workspacesState(), archivedSessionIds: [id('a')] }) })
@@ -805,7 +841,7 @@ describe('Research Topics registered Graph workflow', () => {
       ...workspacesState(), archivedSessionIds: fixture.b.sources.filter(source => source.archived).map(source => id(source.sessionId)),
     })
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(b.readTopic).toHaveBeenCalledTimes(1) })
     const topicSelect = screen.getByRole('combobox', { name: '选择研究主题' })
     const switchStarted = performance.now()
@@ -835,7 +871,7 @@ describe('Research Topics registered Graph workflow', () => {
     fireEvent.click(nodeButton('source-0999'))
     expect(screen.getByTestId('topic-source-panel').textContent).toContain('来源不可用')
     await act(async () => { lateOriginal.resolve({ ok: true, value: { kind: 'unavailable', sessionId: 'source-0990' } }) })
-    expect(screen.getByTestId('topic-source-panel').textContent).toContain('source-0999')
+    expect(screen.getByTestId('topic-source-panel').textContent).toContain('资料 0999')
     const closing = deferred<Awaited<ReturnType<TypertRemoteMap['sessionGraphTopics/read']>>>()
     b.readTopic.mockImplementationOnce(() => closing.promise)
     fireEvent.change(topicSelect, { target: { value: fixture.a.topic.topicId } })
@@ -889,7 +925,7 @@ describe('Research Topics registered Graph workflow', () => {
     } }))
     mount(b.slots, b.sessionsStore, 'a')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(nodeButton('a').style.left).toBe('100px') })
     fireEvent.click(screen.getByRole('button', { name: '重置布局' }))
     const resetPosition = nodeButton('a').style.left
@@ -952,7 +988,7 @@ describe('Research Topics registered Graph workflow', () => {
     })) } })
     mount(b.slots, b.sessionsStore, 'a', { ...workspacesState(), archivedSessionIds: [id('b')] })
     fireEvent.click(screen.getByRole('tab', { name: 'Research Graph' }))
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(document.querySelectorAll('[data-node-id]')).toHaveLength(3) })
     expect(document.querySelectorAll('[data-edge-kind]')).toHaveLength(0)
     expect(b.readHistory).not.toHaveBeenCalled()
@@ -984,7 +1020,7 @@ describe('Research Topics registered Graph workflow', () => {
     const b = await bench({ a: session('a') })
     mount(b.slots, b.sessionsStore, 'a')
     fireEvent.click(screen.getByRole('tab', { name: 'Research Graph' }))
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await screen.findByText('尚无研究主题。创建一个主题开始整理资料。')
     const input = screen.getByRole('textbox', { name: '新主题名称' })
     fireEvent.change(input, { target: { value: '跨工作区调查' } })
@@ -1102,6 +1138,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const submitReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/submit']>()
   const readReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/read']>()
   const sessionReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/forSession']>(async () => ({ ok: true, value: [] }))
+  const relationsReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/relations']>(async () => ({ ok: true, value: [] }))
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
   const fork = vi.fn(async () => id('branched'))
@@ -1166,7 +1203,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
     hostIdentity: async () => ({ ok: true, value: { hostId } }),
     membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
-  ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse } as never)
+  ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse, relations: relationsReuse } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -1176,7 +1213,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge, prepareExport,
-    prepareReuse, submitReuse, readReuse, sessionReuse,
+    prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse,
   }
 }
 
@@ -1512,7 +1549,7 @@ describe('graph tab rendering and interaction', () => {
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
 
-    fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
+    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
     const composer = screen.getByRole('dialog', { name: '汇聚会话' })
     const submit = screen.getByRole('button', { name: '创建汇聚会话' })
     expect((submit as HTMLButtonElement).disabled).toBe(true)
@@ -1543,7 +1580,7 @@ describe('graph tab rendering and interaction', () => {
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
 
-    fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
+    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
     fireEvent.click(nodeButton('sourceA'))
     fireEvent.click(nodeButton('sourceB'))
     fireEvent.change(screen.getByRole('textbox', { name: '汇聚指令' }), {
@@ -1577,7 +1614,7 @@ describe('graph tab rendering and interaction', () => {
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
 
-    fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
+    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
     fireEvent.click(nodeButton('sourceA'))
     fireEvent.click(nodeButton('sourceB'))
     fireEvent.change(screen.getByRole('textbox', { name: '汇聚指令' }), {
@@ -1638,7 +1675,7 @@ describe('graph tab rendering and interaction', () => {
     })
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '汇聚会话' }))
+    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
     fireEvent.click(nodeButton('sourceA'))
     fireEvent.click(nodeButton('sourceB'))
     fireEvent.click(screen.getByRole('button', { name: '创建汇聚会话' }))
@@ -3697,7 +3734,7 @@ describe('Working position live updates', () => {
     localStorage.setItem(storageKey, JSON.stringify({ v: 1, selected: 'card:removed-card', viewport }))
     mount(b.slots, b.sessionsStore, 'viewed')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     if (state === 'last card detached') {
       await screen.findByRole('button', { name: zh['knowledge.edit'] })
       b.searchKnowledge.mockResolvedValue({ ok: true, value: [] })
@@ -3726,7 +3763,7 @@ describe('Working position live updates', () => {
     localStorage.setItem('dsh.session-graph.layout.' + secondKey, JSON.stringify({ v: 1, positions: { 'source-0001': { x: 900, y: 700 } }, collapsed: [], offsets: {} }))
     mount(b.slots, b.sessionsStore, 'viewed', workspaceStore)
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
     const node = nodeButton('source-0001')
     fireEvent.pointerDown(node, { pointerId: 7, clientX: 200, clientY: 200 })
@@ -3750,7 +3787,7 @@ describe('Working position live updates', () => {
     localStorage.setItem('dsh.session-graph.position.' + topicKey, JSON.stringify({ v: 1, selected: 'source-0001', tab: 'history', history: { 'source-0001': 80 } }))
     mount(b.slots, b.sessionsStore, 'viewed')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '研究主题' }))
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(b.readHistory).toHaveBeenCalled() })
     await waitFor(() => { expect(screen.queryByTestId('topic-source-panel')).toBeNull() })
     expect(screen.getByText(zh['position.unavailable'])).toBeTruthy()

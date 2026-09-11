@@ -29,7 +29,7 @@ export function knowledgeClient() {
     topics: { list: vi.fn<GraphViewInjected['topics']['list']>(async () => []),
       read: vi.fn<GraphViewInjected['topics']['read']>(), write: vi.fn<GraphViewInjected['topics']['write']>() },
     read: vi.fn<GraphViewInjected['readSessionHistory']>(async request => {
-      const later = request.afterSeq === 10
+      const later = request.afterSeq === 10 || request.range?.startSeq === 20
       return { kind: 'original', sessionId: 'session-a', turns: knowledgeSource(later ? 2 : 1).source.turns,
         hasEarlier: later, hasLater: !later }
     }),

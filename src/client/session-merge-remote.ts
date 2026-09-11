@@ -46,6 +46,7 @@ function sourceIdsOf(value: unknown, label: string): readonly string[] {
 function parseRequest(value: unknown): SessionMergeSubmission {
   const request = recordOf(value, 'Session Merge request')
   return {
+    ...(request.targetWorkspaceId === undefined ? {} : { targetWorkspaceId: stringOf(request.targetWorkspaceId, 'Session Merge targetWorkspaceId') }),
     targetSessionId: stringOf(request.targetSessionId, 'Session Merge targetSessionId'),
     sourceIds: sourceIdsOf(request.sourceIds, 'Session Merge sourceIds'),
     instruction: stringOf(request.instruction, 'Session Merge instruction'),

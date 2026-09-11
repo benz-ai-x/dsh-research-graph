@@ -154,6 +154,9 @@ describe('Research material reuse public Host workflow', () => {
     expect(preview.promptText).toContain('原版本条件')
     expect(preview.promptText).toContain('只选这个完整轮次')
     expect(await invoke('forSession', { sessionId: preview.targetSessionId })).toEqual([])
+    const relationQuery = { cardIds: [card.cardId], sessionIds: [session.id, preview.targetSessionId] }
+    expect(await invoke('relations', relationQuery)).toEqual([])
+    await expect(invoke('relations', { ...relationQuery, promptText: 'unexpected' })).rejects.toThrow()
     await knowledge({ ...card, revisionId: randomUUID(), content: { ...card.content, conclusion: '后来修改的条件' } })
     expect(await invoke('prepare', request)).toEqual(preview)
 
@@ -178,6 +181,7 @@ describe('Research material reuse public Host workflow', () => {
     expect(failed).toMatchObject({ stage: 'created', targetCreated: true, targetSessionId: preview.targetSessionId, error: expect.any(String) })
     expect(await invoke('forSession', { sessionId: preview.targetSessionId })).toEqual([failed])
     expect(failed.acceptedAt).toBeUndefined()
+    expect(await invoke('relations', relationQuery)).toEqual([])
     const saved = await invoke('submit', { operationId: request.operationId })
     expect(saved).toMatchObject({ stage: 'accepted', acceptedAt: expect.any(Number), targetSessionId: preview.targetSessionId })
     expect(saved.error).toBeUndefined()
@@ -187,10 +191,27 @@ describe('Research material reuse public Host workflow', () => {
     expect(create).toHaveBeenCalledTimes(2)
     expect(await invoke('submit', { operationId: request.operationId })).toEqual(saved)
     expect(nativePrompt).toHaveBeenCalledTimes(2)
+    const relations = await invoke('relations', relationQuery)
+    expect(relations).toEqual([{
+      operationId: saved.operationId, targetSessionId: saved.targetSessionId, acceptedAt: saved.acceptedAt,
+      question: saved.question, workspace: saved.workspace,
+      materials: [
+        { kind: 'card', cardId: card.cardId, revisionId: card.revisionId, revisionNumber: 1, title: '方法 V1' },
+        { ...material, title: saved.materials[1].source.title },
+      ],
+    }])
+    expect(JSON.stringify(relations)).not.toContain('原版本条件')
+    expect(JSON.stringify(relations)).not.toContain('后来修改的条件')
+    expect(await invoke('relations', { cardIds: [], sessionIds: [] })).toEqual([])
     expect(await host.ctx.sessionController.inspect(session.id)).toEqual(before)
     await host.ctx.fiber.dispose()
     host = await topicHost(root, cleanups)
     expect(await invoke('read', { operationId: request.operationId })).toEqual(saved)
     expect(await invoke('forSession', { sessionId: preview.targetSessionId })).toEqual([saved])
+    const inspect = vi.spyOn(host.ctx.sessionController, 'inspect')
+    const activate = vi.spyOn(host.ctx.sessionController, 'create')
+    expect(await invoke('relations', relationQuery)).toEqual(relations)
+    expect(inspect).not.toHaveBeenCalled()
+    expect(activate).not.toHaveBeenCalled()
   })
 })

@@ -43,6 +43,35 @@ function dependencies(calls: string[]): SessionMergeHostDependencies {
 }
 
 describe('Session Merge Host submit', () => {
+  it('captures across directories only for the canonical explicitly chosen target Workspace', async () => {
+    const calls: string[] = []
+    const base = dependencies(calls)
+    const merges = createSessionMergeHostModule({
+      ...base,
+      resolveTarget: async (id, signal) => ({ ...await base.resolveTarget(id, signal), cwd: '/research', workspaceId: 'research' }),
+      resolveSource: async (target, id, signal) => ({ ...await base.resolveSource(target, id, signal), cwd: `/${id}` }),
+    })
+    const request = { targetSessionId: 'target', sourceIds: ['a', 'b'], instruction: 'Compare.', operationId: 'operation-1' }
+    await expect(merges.submit(request, new AbortController().signal)).rejects.toMatchObject({ code: 'cross-workspace-source' })
+    await expect(merges.submit({ ...request, targetWorkspaceId: 'wrong-workspace' }, new AbortController().signal)).rejects.toMatchObject({ code: 'invalid-target-workspace' })
+    expect(calls).toEqual([])
+    const capture = await merges.submit({ ...request, targetWorkspaceId: 'research' }, new AbortController().signal)
+    expect(capture.sources.map(source => source.sessionId)).toEqual(['a', 'b'])
+    expect(calls.at(-1)).toBe('commit:target')
+  })
+
+  it.each(['archived', 'unlocated'])('still rejects %s sources when a cross-workspace destination is explicit', async reason => {
+    const calls: string[] = [], base = dependencies(calls)
+    const merges = createSessionMergeHostModule({
+      ...base,
+      resolveTarget: async (id, signal) => ({ ...await base.resolveTarget(id, signal), workspaceId: 'research' }),
+      resolveSource: async (target, id, signal) => ({ ...await base.resolveSource(target, id, signal),
+        cwd: reason === 'unlocated' && id === 'b' ? undefined : `/${id}`, archived: reason === 'archived' && id === 'b' }),
+    })
+    await expect(merges.submit({ targetSessionId: 'target', targetWorkspaceId: 'research', sourceIds: ['a', 'b'], instruction: 'Compare.', operationId: 'operation-1' }, new AbortController().signal)).rejects.toMatchObject({ code: 'invalid-source' })
+    expect(calls).toEqual([])
+  })
+
   it('queues one explicit marker and canonical-reference prompt before persisting capture', async () => {
     const calls: string[] = []
     const merges = createSessionMergeHostModule(dependencies(calls))

@@ -286,11 +286,11 @@ export class SessionGraphMergeService extends TypertRemoteService implements Qui
   @Remote('submit')
   submit(
     request: SessionMergeSubmission,
-    callerSignal: AbortSignal,
+    signal: AbortSignal,
   ): Promise<SessionMergeProjection> {
     if (this.disposed) return Promise.reject(this.disposedFailure('resolving'))
-    const signal = AbortSignal.any([callerSignal, this.lifecycle.signal])
-    const call = this.submitAdmitted(request, callerSignal, signal)
+    const combined = AbortSignal.any([signal, this.lifecycle.signal])
+    const call = this.submitAdmitted(request, signal, combined)
     this.activeCalls.add(call)
     void call.then(
       () => { this.activeCalls.delete(call) },
