@@ -12,6 +12,9 @@ type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => str
 type ReuseMode = 'compose' | 'history'
 interface MaterialEntry { readonly selection: ResearchMaterialSelection; readonly label: string }
 interface ReuseContextValue {
+  readonly refresh: number
+  readonly inspect: (operationId: string) => void
+  readonly continueWith: (selection: ResearchMaterialSelection, label: string) => void
   readonly add: (selection: ResearchMaterialSelection, label: string) => void
   readonly contains: (selection: ResearchMaterialSelection) => boolean
   readonly count: number
@@ -21,16 +24,17 @@ interface ReuseContextValue {
 const ReuseContext = createContext<ReuseContextValue | undefined>(undefined)
 export function useResearchReuse(): ReuseContextValue | undefined { return useContext(ReuseContext) }
 
-export function ResearchReuseEntry({ t }: { readonly t: Translate }): ReactElement | null {
+export function ResearchReuseEntry({ t, compact = false }: { readonly t: Translate; readonly compact?: boolean }): ReactElement | null {
   const reuse = useResearchReuse()
   return reuse === undefined ? null : <>
     <button type="button" className={styles.searchEntry} onClick={reuse.open}>{t('reuse.materials', { count: reuse.count })}</button>
-    <button type="button" className={styles.searchEntry} onClick={reuse.history}>{t('reuse.history')}</button>
+    {compact ? null : <button type="button" className={styles.searchEntry} onClick={reuse.history}>{t('reuse.history')}</button>}
   </>
 }
 
 /** Keeps the draft and uncertain attempt alive while its dialogs are closed. */
-export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, children, picker, t }: {
+export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, children, picker, stayInResearch = false, t }: {
+  readonly stayInResearch?: boolean
   readonly api: ResearchReuseApi
   readonly workspaces: readonly WorkspaceView[]
   readonly viewedId: SessionId
@@ -39,6 +43,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
   readonly children: ReactNode
   readonly t: Translate
 }): ReactElement {
+  const [refresh, setRefresh] = useState(0)
   const [picking, setPicking] = useState(false)
   const [materials, setMaterials] = useState<readonly MaterialEntry[]>([])
   const [mode, setMode] = useState<ReuseMode>()
@@ -102,7 +107,8 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
     else {
       setFailed(undefined)
       if (destination === 'compose') setNotice('reuse.sent')
-      if (navigate) openSession(saved.targetSessionId as SessionId)
+      setRefresh(value => value + 1)
+      if (navigate && !stayInResearch) openSession(saved.targetSessionId as SessionId)
     }
   }
   const recover = async (record: ResearchReuseRecord, signal: AbortSignal, destination: ReuseMode, navigate: boolean): Promise<void> => {
@@ -147,7 +153,18 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
       return next
     })
   }
-  return <ReuseContext.Provider value={{ add, contains: selection => materials.some(item => JSON.stringify(item.selection) === JSON.stringify(selection)), count: materials.length, open: () => { show('compose') }, history }}>
+  const inspect = (operationId: string): void => {
+    show('history')
+    setRecords(undefined)
+    void perform(async signal => {
+      const record = await api.read({ operationId }, signal)
+      if (!signal.aborted) {
+        if (record === null) throw new Error(t('reuse.recoveryUnavailable'))
+        setRecords([record])
+      }
+    })
+  }
+  return <ReuseContext.Provider value={{ add, refresh, inspect, continueWith: (selection, label) => { show('compose'); add(selection, label) }, contains: selection => materials.some(item => JSON.stringify(item.selection) === JSON.stringify(selection)), count: materials.length, open: () => { show('compose') }, history }}>
     <div className={styles.knowledgeRoot} aria-hidden={mode !== undefined || undefined}
       ref={element => { if (element !== null) element.inert = mode !== undefined }}>{children}
       {notice === undefined ? null : <span className={styles.reuseNotice} role="status">{t(notice)}</span>}
@@ -196,11 +213,15 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
               }}>{t('reuse.recover')}</button></div> : null}
             {preview.stage === 'accepted' ? null : <button className={styles.primaryButton} type="button" disabled={busy} onClick={() => { submit(preview) }}>
               {t(!uncertain && preview.error === undefined ? 'reuse.confirm' : 'reuse.retry')}</button>}
+            {preview.stage === 'accepted' ? <button type="button" onClick={() => {
+              setMaterials([]); setQuestion(''); setPreview(undefined); setUncertain(false); setNotice(undefined); setPicking(true); attempt.current = undefined
+            }}>{t('workbench.newResearch')}</button> : null}
             {preview.targetCreated ? <button type="button" onClick={() => { openSession(preview.targetSessionId as SessionId) }}>{t('reuse.open')}</button> : null}
           </>}
         </> : <>
           {records?.length === 0 ? <p>{t('reuse.noHistory')}</p> : records?.map(record => <section key={record.operationId}>
             <ResearchReuseSnapshot record={record} t={t} />
+            {record.targetCreated ? <button type="button" onClick={() => { openSession(record.targetSessionId as SessionId) }}>{t('reuse.open')}</button> : null}
             {record.stage === 'accepted' ? null : <button type="button" disabled={busy} onClick={() => { submit(record) }}>{t('reuse.retry')}</button>}
           </section>)}
           {failed === undefined ? null : <button type="button" disabled={busy} onClick={history}>{t('reuse.retryHistory')}</button>}
@@ -220,7 +241,7 @@ function ResearchReuseSnapshot({ record, t }: { readonly record: ResearchReuseRe
     <p>{t('reuse.budget', { size: record.promptText.length, budget: record.budgetChars })}</p>
     {record.stage === 'accepted' ? <><h4>{t('reuse.relation')}</h4><ul>{record.materials.map((material, index) => <li key={index}>
       {material.kind === 'card' ? `${material.content.title} · ${t('knowledge.versionNumber', { number: material.revisionNumber })}`
-        : `${material.source.title} · ${t('knowledge.sourceRange', { start: material.source.source.startSeq, end: material.source.source.endSeq })}`} → {record.targetSessionId}
+        : `${material.source.title} · ${t('workbench.sourceTurns', { first: material.source.source.turns[0]?.turn, last: material.source.source.turns.at(-1)?.turn })}`} → {t('workbench.next')}
     </li>)}</ul><p>{t('reuse.answer')}</p></> : <p>{t('reuse.pending')}</p>}
     <h4>{t('reuse.question')}</h4><p className={styles.historyText}>{record.question}</p>
     {record.materials.map((material, index) => <section key={index} className={styles.materialCard}>

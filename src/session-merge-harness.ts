@@ -75,8 +75,10 @@ export function sessionMergeDependenciesFromHarness(
       if (cwd === undefined || cwd === '') {
         throw new Error(`target Session ${JSON.stringify(targetSessionId)} has no working directory`)
       }
+      const workspace = ctx.workspaceRegistry.list().find(item => item.path === cwd && item.sessionIds.includes(agent.id))
       return {
         targetSessionId,
+        ...(workspace === undefined ? {} : { workspaceId: String(workspace.id) }),
         cwd,
         ...(agent.session.header.parentSession === undefined
           ? {}

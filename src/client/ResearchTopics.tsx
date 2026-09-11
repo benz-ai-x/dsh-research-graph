@@ -3,6 +3,7 @@ import type { ResearchTopic, ResearchTopicWrite } from '../research-topic.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
 import { loadLayout, saveLayout, type LayoutState } from './layout-store.ts'
+import { KnowledgeLibrary } from './KnowledgeLibrary.tsx'
 import { TopicGraph, type TopicGraphContext } from './TopicGraph.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
@@ -11,11 +12,12 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
 /** Owns drafts and durable writes while the topic collection is open. */
-export function ResearchTopics({ api, context, add, refresh = 0, t }: {
+export function ResearchTopics({ api, context, add, refresh = 0, view = 'graph', t }: {
   readonly api: GraphViewInjected['topics']
   readonly context?: TopicGraphContext
   readonly add?: { readonly sessionId: string; readonly done: () => void }
   readonly refresh?: number
+  readonly view?: 'graph' | 'reading'
   readonly t: Translate
 }): ReactElement {
   const knowledge = useKnowledge()
@@ -88,7 +90,7 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     selectTopic?.(selected?.topicId)
     return () => { selectTopic?.(undefined) }
   }, [context === undefined, selectTopic, selected?.topicId])
-  const arrangementControls = context === undefined || selected === undefined ? null : <div className={styles.arrangementStatus}>
+  const arrangementControls = view === 'reading' || context === undefined || selected === undefined ? null : <div className={styles.arrangementStatus}>
       <button className={draftArrangement === undefined ? undefined : styles.primaryButton} type="button" disabled={phase !== 'ready' || busy || draftArrangement === undefined} onClick={() => {
         const arrangement = draftArrangement
         if (arrangement === undefined) return
@@ -165,7 +167,7 @@ export function ResearchTopics({ api, context, add, refresh = 0, t }: {
     </>}
     {busy ? <p role="status">{t('topic.saving')}</p> : null}
     {failed ? <p role="alert">{t('topic.saveError')}</p> : null}
-    {phase !== 'ready' || selected === undefined || context === undefined ? null : <TopicGraph key={selected.topicId} topic={selected}
+    {phase !== 'ready' || selected === undefined || context === undefined ? null : view === 'reading' ? <KnowledgeLibrary key={selected.topicId} workingKey={arrangementKey!} actions={context.actions} t={t} /> : <TopicGraph key={selected.topicId} topic={selected}
       context={context} arrangement={draftArrangement ?? selected.arrangement}
       onArrange={state => {
         if (arrangementKey !== undefined) saveLayout(arrangementKey, state)

@@ -23,7 +23,7 @@ async function compose() {
     targetCreated: false, stage: 'prepared', workspace: { id: 'b', title: '工作区 B', cwd: '/b' }, createdAt: 1000,
     question: '研究问题', materials: [{ kind: 'turn', source: knowledgeSource() }], promptText: '固定发送内容', budgetChars: 32_000,
   }
-  const api = { prepare: vi.fn<ResearchReuseApi['prepare']>(async () => record),
+  const api = { relations: vi.fn(async () => []), prepare: vi.fn<ResearchReuseApi['prepare']>(async () => record),
     submit: vi.fn<ResearchReuseApi['submit']>(), read: vi.fn<ResearchReuseApi['read']>(),
     forSession: vi.fn<ResearchReuseApi['forSession']>(async () => []) }
   const open = vi.fn()

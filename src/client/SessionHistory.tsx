@@ -131,7 +131,8 @@ export function SessionHistory({ sourceTitle, sessionId, anchorSeq, highlightSeq
 
   return (
     <section ref={element} aria-label={t('history.title')} className={styles.history}>
-      <div className={styles.historyIdentity}>{sessionId}</div>
+      {sourceTitle ? <strong>{sourceTitle}</strong> : null}
+      <details className={styles.historyIdentity}><summary>{t('knowledge.sourceDetails')}</summary>{sessionId}</details>
       <p className={styles.historyHint}>{t('history.scope')}</p>
       {loading ? <div role="status">
         <p>{t('history.loading')}</p>
@@ -165,7 +166,7 @@ export function SessionHistory({ sourceTitle, sessionId, anchorSeq, highlightSeq
       {selection === undefined ? <p className={styles.historyHint}>{t('history.selectHint')}</p> : (
         <div className={styles.historySelection}>
           <strong>{t('history.selected', { first: selection.turns[0]?.turn, last: selection.turns.at(-1)?.turn })}</strong>
-          <div className={styles.historyIdentity}>{t('history.boundary', { start: selection.startSeq, end: selection.endSeq })}</div>
+          <details className={styles.historyIdentity}><summary>{t('knowledge.sourceDetails')}</summary>{t('history.boundary', { start: selection.startSeq, end: selection.endSeq })}</details>
           <button type="button" disabled={loading} onClick={() => { setRequest({ sessionId, source: selection }) }}>{t('history.review')}</button>
           {knowledge === undefined ? null : <button type="button" disabled={loading || result?.kind !== 'original'} onClick={() => {
             knowledge.create({ kind: 'discussion', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq })

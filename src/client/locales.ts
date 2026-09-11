@@ -1,4 +1,5 @@
 /** `sessionGraph` namespace dictionaries (view tab label + graph chrome strings). */
+import { workbenchEn, workbenchZh, type WorkbenchKey } from './workbench-locales.ts'
 import { knowledgeEn, knowledgeZh, type KnowledgeKey } from './knowledge-locales.ts'
 import { reuseEn, reuseZh, type ReuseKey } from './research-reuse-locales.ts'
 
@@ -8,6 +9,7 @@ export const NS = 'sessionGraph'
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
   | 'position.unavailable' | 'position.topicUnavailable'
+  | WorkbenchKey
   | KnowledgeKey
   | ReuseKey
   | 'topic.title' | 'topic.back' | 'topic.description' | 'topic.loading' | 'topic.readError' | 'topic.retry'
@@ -174,7 +176,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export const zh: Record<SessionGraphKey, string> = {
   'position.unavailable': '上次选中的资料已不可用，已保留视口并清空选择。',
   'position.topicUnavailable': '上次的研究主题已不可用，请从列表选择主题。',
-  ...knowledgeZh,
+  ...knowledgeZh, ...workbenchZh,
   ...reuseZh,
   'topic.refresh': '刷新来源',
   'topic.saveArrangement': '保存排列',
@@ -289,7 +291,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'toolbar.relayout': '重新布局',
   'toolbar.reset': '重置布局',
   'toolbar.locate': '定位',
-  'toolbar.merge': '汇聚会话',
+  'toolbar.merge': '汇聚所选会话',
   'canvas.minimap': '迷你地图',
   'filter.placeholder': '过滤会话标题',
   'filter.clear': '清除过滤',
@@ -357,7 +359,7 @@ export const zh: Record<SessionGraphKey, string> = {
 export const en: Record<SessionGraphKey, string> = {
   'position.unavailable': 'The previously selected material is unavailable. The viewport is kept and selection is cleared.',
   'position.topicUnavailable': 'The previous research topic is unavailable. Choose a topic from the list.',
-  ...knowledgeEn,
+  ...knowledgeEn, ...workbenchEn,
   ...reuseEn,
   'topic.refresh': 'Refresh sources',
   'topic.saveArrangement': 'Save arrangement',

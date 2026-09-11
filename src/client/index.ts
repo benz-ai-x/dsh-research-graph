@@ -125,6 +125,11 @@ async function registerUi(ctx: Context): Promise<void> {
     inject: (): GraphViewInjected => ({
       hostId: identity.value.hostId,
       reuse: {
+        relations: async (request, signal) => {
+          const result = await ctx.remote.sessionGraphReuse.relations(request, signal)
+          if (!result.ok) throw new Error(result.error.message)
+          return result.value
+        },
         prepare: async (request, signal) => {
           const result = await ctx.remote.sessionGraphReuse.prepare(request, signal)
           if (!result.ok) throw new Error(result.error.message)
@@ -235,6 +240,14 @@ async function registerUi(ctx: Context): Promise<void> {
         instruction,
         signal,
       ) as SessionId,
+      mergeResearchSessions: async (request, signal) => {
+        const workspace = ctx.workspaces.list.getSnapshot().items.find(item => item.workspaceId === request.workspaceId)
+        if (!workspace) throw new Error('Choose an available target Workspace')
+        const options = { target: { cwd: workspace.path, workspaceId: workspace.workspaceId }, openTarget: false }
+        return (request.targetSessionId
+          ? await merges.retryMerge(request.targetSessionId, request.sourceIds, request.instruction, signal, options)
+          : await merges.mergeSessions(request.sourceIds, request.instruction, signal, options)) as SessionId
+      },
       retrySessionMerge: async (targetSessionId, sourceIds, instruction, signal) =>
         await merges.retryMerge(targetSessionId, sourceIds, instruction, signal) as SessionId,
     }),

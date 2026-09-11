@@ -5,6 +5,8 @@ import { SCALE_MAX, SCALE_MIN } from './viewport.ts'
 
 /** Browser presentation only: identities and cursors, never source text or saved knowledge. */
 export interface WorkingPosition {
+  readonly workbenchView?: 'graph' | 'reading'
+  readonly knowledgeReading?: { readonly cardId: string; readonly revisionId: string; readonly sourceIndex?: number | undefined; readonly scrollTop: number }
   readonly viewport?: Viewport
   readonly selected?: string | null
   readonly query?: string
@@ -32,6 +34,7 @@ export function loadWorkingPosition(key: string | undefined): WorkingPosition {
     const value: unknown = JSON.parse(globalThis.localStorage.getItem(`dsh.session-graph.position.${key}`) ?? 'null')
     if (!object(value) || value.v !== 1) return {}
     const viewport = value.viewport
+    const reading = value.knowledgeReading
     const discussion = value.discussion
     const scope = object(discussion) ? discussion.scope : undefined
     const validScope = object(scope) && (scope.kind === 'all'
@@ -45,6 +48,10 @@ export function loadWorkingPosition(key: string | undefined): WorkingPosition {
         && Number.isSafeInteger(range.endSeq) && (range.startSeq as number) >= 0 && (range.endSeq as number) > (range.startSeq as number))
       .map(([id, range]) => [id, { startSeq: (range as SessionDiscussionRange).startSeq, endSeq: (range as SessionDiscussionRange).endSeq }])) : undefined
     return {
+      ...(value.workbenchView === 'graph' || value.workbenchView === 'reading' ? { workbenchView: value.workbenchView } : {}),
+      ...(object(reading) && string(reading.cardId) && string(reading.revisionId) && finite(reading.scrollTop) && reading.scrollTop >= 0
+        ? { knowledgeReading: { cardId: reading.cardId, revisionId: reading.revisionId, scrollTop: reading.scrollTop,
+          ...(Number.isInteger(reading.sourceIndex) && (reading.sourceIndex as number) >= 0 && (reading.sourceIndex as number) < 32 ? { sourceIndex: reading.sourceIndex as number } : {}) } } : {}),
       ...(object(viewport) && finite(viewport.scale) && viewport.scale >= SCALE_MIN && viewport.scale <= SCALE_MAX
         && finite(viewport.panX) && finite(viewport.panY) ? { viewport: viewport as unknown as Viewport } : {}),
       ...(value.selected === null || string(value.selected) ? { selected: value.selected } : {}),

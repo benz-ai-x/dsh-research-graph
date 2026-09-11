@@ -5,7 +5,7 @@
  * standard feeds; selection stays in the graph while double-click and the
  * details panel navigate through the sessions verbs.
  */
-import { useMemo, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
@@ -16,6 +16,8 @@ import type { ResearchTopic, ResearchTopicSnapshot, ResearchTopicWrite } from '.
 import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-info.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { DiscussionSearch } from './DiscussionSearch.tsx'
+import { KnowledgeLibrary } from './KnowledgeLibrary.tsx'
+import { ResearchMerge } from './ResearchMerge.tsx'
 import { ResearchTopics } from './ResearchTopics.tsx'
 import { KnowledgeProvider, useKnowledge } from './Knowledge.tsx'
 import type { KnowledgeApi } from './knowledge-remote.ts'
@@ -26,10 +28,16 @@ import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
 import { layoutSessionGraph } from './layout.ts'
 import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
-import { workingPositionKey } from './working-position.ts'
+import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './working-position.ts'
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  readonly mergeResearchSessions?: (request: {
+    readonly sourceIds: readonly SessionId[]
+    readonly instruction: string
+    readonly workspaceId: string
+    readonly targetSessionId?: SessionId
+  }, signal: AbortSignal) => Promise<SessionId>
   readonly hostId: string
   readonly reuse: ResearchReuseApi
   readonly knowledge: KnowledgeApi
@@ -79,7 +87,7 @@ export type GraphViewProps =
  */
 export function GraphView(props: GraphViewProps): ReactElement {
   const workspaces = props.useWorkspaces(state => state)
-  return <div className={styles.knowledgeBoundary}><ResearchReuseProvider key={props.sessionId} api={props.reuse}
+  return <div className={styles.knowledgeBoundary}><ResearchReuseProvider key={props.hostId} stayInResearch api={props.reuse}
     picker={<ResearchMaterialPicker api={props.knowledge} useSessions={props.useSessions} read={props.readSessionHistory} t={props.t} />}
     workspaces={workspaces.items} viewedId={props.sessionId} openSession={props.openSession} t={props.t}>
     <KnowledgeProvider api={props.knowledge}
@@ -88,17 +96,25 @@ export function GraphView(props: GraphViewProps): ReactElement {
   </KnowledgeProvider></ResearchReuseProvider></div>
 }
 
-function GraphViewBody({
-  sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
-  hostId, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, reuse, t,
-}: GraphViewProps): ReactElement {
+function GraphViewBody(props: GraphViewProps): ReactElement {
+  const {
+    sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
+    hostId, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, reuse, t,
+  } = props
   const knowledgeContext = useKnowledge()
   const sessions = useSessions(state => state)
   const pendingInteractions = useSessionPendingInteraction(state => state)
   const workspaces = useWorkspaces(state => state)
   const [searchOpen, setSearchOpen] = useState(false)
   const [knowledgeEntryKey, setKnowledgeEntryKey] = useState<string>()
+  const workbenchKey = workingPositionKey(hostId, 'workbench')
   const [topicMode, setTopicMode] = useState(false)
+  const [view, setView] = useState<'graph' | 'reading'>(() => loadWorkingPosition(workbenchKey).workbenchView ?? 'graph')
+  const [mergeOpen, setMergeOpen] = useState(false)
+  const [mergedTarget, setMergedTarget] = useState<SessionId>()
+  const mergeTrigger = useRef<HTMLButtonElement>(null)
+  useEffect(() => { saveWorkingPosition(workbenchKey, { workbenchView: view }) }, [workbenchKey, view])
+  const closeMerge = (): void => { setMergeOpen(false); queueMicrotask(() => { mergeTrigger.current?.focus() }) }
   const [adding, setAdding] = useState<SessionId>()
   const [topicRevision, setTopicRevision] = useState(0)
   const addTrigger = useRef<HTMLElement>()
@@ -136,35 +152,40 @@ function GraphViewBody({
     // The free canvas owns its viewport. Extend the view behind the floating
     // composer so GraphCanvas's live clearance reserves the seat exactly once.
     <div className={styles.root} data-conversation-composer-overlay="">
-      <div className={styles.graphBody} aria-hidden={searchOpen || adding !== undefined || undefined}
-        ref={element => { if (element !== null) element.inert = searchOpen || adding !== undefined }}>
-        <div className={styles.header}>
-          <button className={styles.searchEntry} type="button" ref={searchButton} onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(undefined); setSearchOpen(true) }}>{t('search.open')}</button>
-          <button className={styles.searchEntry} type="button" onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(searchKey); setSearchOpen(true) }}>{t('knowledge.title')}</button>
-          <button className={styles.primaryButton} type="button" onClick={() => { knowledgeContext?.create() }}>{t('knowledge.new')}</button>
-          <ResearchReuseEntry t={t} />
-          <button className={styles.searchEntry} type="button" aria-pressed={topicMode}
-            onClick={() => { setTopicMode(value => !value) }}>{t(topicMode ? 'topic.back' : 'topic.title')}</button>
-          <span className={styles.count}>
-            {topicMode ? t('topic.title') : scope === undefined ? null : scope.kind === 'workspace'
-              ? t('scope.workspaceCount', { name: scope.label, count: graph.sessionCount })
-              : t('scope.directoryCount', { count: graph.sessionCount })}
-          </span>
-          <span className={styles.legend} aria-hidden="true">
-            {topicMode ? null : <><span className={styles.legendLineDerivation} />{t('legend.derivation')}</>}
-            <span className={styles.legendLineBranch} />
-            {t('legend.branch')}
-            <span className={styles.legendLineMerge} />
-            {t('legend.merge')}
-          </span>
-          <span className={styles.buildInfo} title={SESSION_GRAPH_BUILD_TITLE}>
-            {SESSION_GRAPH_BUILD_LABEL}
-          </span>
+      <div className={styles.graphBody} aria-hidden={searchOpen || mergeOpen || adding !== undefined || undefined}
+        ref={element => { if (element !== null) element.inert = searchOpen || mergeOpen || adding !== undefined }}>
+        <header className={styles.workbenchHeader}>
+          <div className={styles.workbenchBrand}><span aria-hidden="true">◈</span><strong>{t('workbench.title')}</strong></div>
+          <nav className={styles.workbenchViews} aria-label={t('workbench.views')}>
+            <button type="button" aria-pressed={view === 'graph'} onClick={() => { setView('graph') }}>{t('workbench.graph')}</button>
+            <button type="button" aria-pressed={view === 'reading'} onClick={() => { setView('reading') }}>{t('workbench.reading')}</button>
+          </nav>
+          <div className={styles.workbenchActions}>
+            <button className={styles.searchEntry} type="button" ref={searchButton} onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(undefined); setSearchOpen(true) }}>{t('search.open')}</button>
+            {props.mergeResearchSessions ? <button ref={mergeTrigger} className={styles.searchEntry} type="button" onClick={() => { setMergeOpen(true) }}>{t('workbench.merge')}</button> : null}
+            <button className={styles.primaryButton} type="button" onClick={() => { knowledgeContext?.create() }}><span aria-hidden="true">+ </span>{t('knowledge.new')}</button>
+            <details className={styles.workbenchMore}><summary>{t('workbench.more')}</summary><div>
+              <button className={styles.searchEntry} type="button" onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(searchKey); setSearchOpen(true) }}>{t('knowledge.title')}</button>
+              <ResearchReuseEntry t={t} />
+              <span className={styles.buildInfo} title={SESSION_GRAPH_BUILD_TITLE}>{SESSION_GRAPH_BUILD_LABEL}</span>
+              <p>{t('knowledge.localLayout')}</p>
+            </div></details>
+          </div>
+        </header>
+        <div className={styles.workbenchIntro}>
+          <div><h1>{topicMode ? t('workbench.topics') : view === 'reading' ? t('knowledge.all') : scope?.label || t('workbench.title')}</h1><p>{t('workbench.subtitle')}</p></div>
+          <div className={styles.workbenchScope}><label>{t('workbench.scope')}<select value={topicMode ? 'topics' : 'workspace'} onChange={event => { setTopicMode(event.target.value === 'topics') }}>
+            <option value="workspace">{view === 'reading' ? t('knowledge.all') : t('workbench.workspace')}</option>
+            <option value="topics">{t('workbench.topics')}</option>
+          </select></label>
+          {topicMode ? null : <span className={styles.count}>{view === 'reading' ? t('knowledge.title') : scope === undefined ? '' : t('scope.directoryCount', { count: graph.sessionCount })}</span>}
+          {topicMode || view === 'reading' ? null : <span className={styles.researchLegend} aria-hidden="true"><i className={styles.legendLineDerivation} />{t('legend.derivation')}<i className={styles.legendLineBranch} />{t('legend.branch')}<i className={styles.legendLineMerge} />{t('legend.merge')}</span>}
+          </div>
         </div>
-        <details className={styles.workflowHelp}><summary>{t('knowledge.workflowHelp')}</summary><p>{t('knowledge.workflow')}</p><p>{t('knowledge.localLayout')}</p></details>
-        {topicMode ? <ResearchTopics key={workingKey} api={topics} refresh={topicRevision} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
-          workingKey, actions: { hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
-        }} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
+        {mergedTarget ? <div className={styles.workbenchNotice} role="status">{t('workbench.mergeSaved')} <button type="button" onClick={() => { openSession(mergedTarget) }}>{t('panel.open')}</button><button type="button" onClick={() => { setMergedTarget(undefined) }} aria-label={t('panel.close')}>×</button></div> : null}
+        {topicMode ? <ResearchTopics key={workingKey} api={topics} refresh={topicRevision} view={view} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
+          workingKey, actions: { ...props, hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
+        }} t={t} /> : view === 'reading' ? <KnowledgeLibrary key={workingKey} workingKey={workingKey} actions={props} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas
           key={workingKey} workingKey={workingKey} laid={laid}
           clusters={graph.clusters}
@@ -179,7 +200,18 @@ function GraphViewBody({
           onRetryMerge={retrySessionMerge}
           onAddToTopic={addToTopic}
         />}
+        {topicMode || view === 'reading' ? <p className={styles.workbenchComposerHint}>{t('workbench.selectedHint')}</p> : null}
       </div>
+      <ResearchMerge props={props} visible={mergeOpen} close={closeMerge} completed={(target, topicId) => {
+        setMergedTarget(target)
+        setTopicRevision(value => value + 1)
+        if (topicId) {
+          saveWorkingPosition(workingKey, { topicId })
+          saveWorkingPosition(workingPositionKey(hostId, workingKey, topicId), { selected: target })
+          setTopicMode(true)
+          setView('graph')
+        }
+      }} />
       {searchOpen ? <div className={styles.searchLayer} aria-hidden={adding !== undefined || undefined}
         ref={element => { if (element !== null) element.inert = adding !== undefined }}><DiscussionSearch key={searchKey}
         workingKey={searchKey} initialType={knowledgeEntryKey === searchKey ? 'knowledge' : undefined} initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}

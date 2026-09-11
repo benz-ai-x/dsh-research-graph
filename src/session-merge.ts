@@ -9,6 +9,7 @@ export type SessionMergeErrorCode =
   | 'duplicate-source'
   | 'invalid-instruction'
   | 'invalid-source'
+  | 'invalid-target-workspace'
   | 'cross-workspace-source'
   | 'target-create-failed'
   | 'target-name-failed'
@@ -54,8 +55,15 @@ export interface SessionMergeTargetLocation {
   readonly workspaceId?: string
 }
 
+/** Explicit destination and navigation policy for a research-level Merge. */
+export interface SessionMergeOptions {
+  readonly target?: SessionMergeTargetLocation
+  readonly openTarget?: boolean
+}
+
 /** Request submitted to the Host after the target is created and named. */
 export interface SessionMergeSubmission {
+  readonly targetWorkspaceId?: string
   readonly targetSessionId: string
   readonly sourceIds: readonly string[]
   readonly instruction: string
@@ -91,12 +99,14 @@ export interface SessionMergeModule {
     sourceIds: readonly string[],
     instruction: string,
     signal: AbortSignal,
+    options?: SessionMergeOptions,
   ): Promise<string>
   retryMerge(
     targetSessionId: string,
     sourceIds: readonly string[],
     instruction: string,
     signal: AbortSignal,
+    options?: SessionMergeOptions,
   ): Promise<string>
 }
 
@@ -105,6 +115,7 @@ interface ValidatedMergeRequest {
   readonly sourceIds: readonly string[]
   readonly instruction: string
   readonly location: SessionMergeTargetLocation
+  readonly options: SessionMergeOptions
 }
 
 /** Create one Session Merge application module. */
@@ -115,6 +126,7 @@ export function createSessionMergeModule(
     sourceIds: readonly string[],
     instruction: string,
     signal: AbortSignal,
+    options: SessionMergeOptions,
   ): Promise<ValidatedMergeRequest> {
     signal.throwIfAborted()
     if (sourceIds.length < 2 || sourceIds.length > 3) {
@@ -160,7 +172,10 @@ export function createSessionMergeModule(
     const cwdSet = new Set(sources.map(source => source.cwd))
     const workspaceIds = [...new Set(sources.flatMap(source =>
       source.workspaceId === undefined ? [] : [source.workspaceId]))]
-    if (cwdSet.size !== 1 || workspaceIds.length > 1) {
+    if (options.target !== undefined && (!options.target.workspaceId?.trim() || !options.target.cwd.trim())) {
+      throw new SessionMergeError('invalid-target-workspace', 'Choose an available target Workspace', 'validating')
+    }
+    if (options.target === undefined && (cwdSet.size !== 1 || workspaceIds.length > 1)) {
       throw new SessionMergeError(
         'cross-workspace-source',
         'Session Merge sources must belong to one Workspace or working directory',
@@ -174,7 +189,8 @@ export function createSessionMergeModule(
       sources,
       sourceIds,
       instruction: normalizedInstruction,
-      location: {
+      options,
+      location: options.target ?? {
         cwd: first.cwd,
         ...(workspaceIds[0] === undefined ? {} : { workspaceId: workspaceIds[0] }),
       },
@@ -205,6 +221,7 @@ export function createSessionMergeModule(
         sourceIds: request.sourceIds,
         instruction: request.instruction,
         operationId: dependencies.createOperationId(),
+        ...(request.options.target === undefined ? {} : { targetWorkspaceId: request.options.target.workspaceId! }),
       }, signal)
     } catch (error) {
       if (signal.aborted) throw error
@@ -217,7 +234,7 @@ export function createSessionMergeModule(
     }
     signal.throwIfAborted()
     try {
-      dependencies.openTarget(targetSessionId)
+      if (request.options.openTarget !== false) dependencies.openTarget(targetSessionId)
     } catch (error) {
       throw new SessionMergeError(
         'target-open-failed',
@@ -230,8 +247,8 @@ export function createSessionMergeModule(
   }
 
   return {
-    async mergeSessions(sourceIds, instruction, signal) {
-      const request = await validate(sourceIds, instruction, signal)
+    async mergeSessions(sourceIds, instruction, signal, options = {}) {
+      const request = await validate(sourceIds, instruction, signal, options)
       let targetSessionId: string
       try {
         targetSessionId = await dependencies.createTarget(request.location, signal)
@@ -246,8 +263,8 @@ export function createSessionMergeModule(
       signal.throwIfAborted()
       return await complete(targetSessionId, request, signal)
     },
-    async retryMerge(targetSessionId, sourceIds, instruction, signal) {
-      const request = await validate(sourceIds, instruction, signal)
+    async retryMerge(targetSessionId, sourceIds, instruction, signal, options = {}) {
+      const request = await validate(sourceIds, instruction, signal, options)
       return await complete(targetSessionId, request, signal)
     },
   }

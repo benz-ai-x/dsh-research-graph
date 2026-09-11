@@ -80,7 +80,7 @@ describe('current Harness public APIs', () => {
       await ctx.plugin(SessionStore)
       const session = ctx.sessions.create(undefined, { meta: { cwd: '/test' } })
       ctx.provide('sessionController', { resolveAgent: async () => ({ agent: { id: session.id, session } }) })
-      ctx.provide('workspaceRegistry', { archivedSessionIds: [] })
+      ctx.provide('workspaceRegistry', { archivedSessionIds: [], list: () => [] })
       const target = await sessionMergeDependenciesFromHarness(ctx)
         .resolveTarget(session.id, new AbortController().signal)
       expect(target).toMatchObject({ targetSessionId: session.id, cwd: '/test', events: [] })
