@@ -57,6 +57,13 @@ export interface GraphViewInjected {
     instruction: string,
     signal: AbortSignal,
   ) => Promise<SessionId>
+  /** Research-level Merge with an explicit Workspace, without leaving the current view. */
+  readonly mergeResearchSessions?: (request: {
+    readonly sourceIds: readonly SessionId[]
+    readonly instruction: string
+    readonly workspaceId: string
+    readonly targetSessionId?: SessionId
+  }, signal: AbortSignal) => Promise<SessionId>
   /** Retry a failed Merge using its already-created target Session. */
   retrySessionMerge: (
     targetSessionId: SessionId,

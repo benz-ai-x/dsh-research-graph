@@ -19,6 +19,7 @@ export class SessionMergeHostError extends Error {
       | 'invalid-source-count'
       | 'invalid-source'
       | 'invalid-target'
+      | 'invalid-target-workspace'
       | 'duplicate-source'
       | 'cross-workspace-source'
       | 'source-resolution-mismatch'
@@ -51,6 +52,7 @@ export interface SessionMergeHostEvent {
 
 export interface SessionMergeHostTarget {
   readonly targetSessionId: string
+  readonly workspaceId?: string
   readonly cwd: string
   readonly parentSessionId?: string
   readonly origin?: 'subagent'
@@ -204,6 +206,9 @@ export function createSessionMergeHostModule(
           'resolving',
         )
       }
+      if (request.targetWorkspaceId !== undefined && (!request.targetWorkspaceId.trim() || target.workspaceId !== request.targetWorkspaceId)) {
+        throw new SessionMergeHostError('invalid-target-workspace', 'The Merge target no longer belongs to the selected Workspace', 'resolving')
+      }
       const existing = dependencies.currentCapture(target)
       if (existing !== null) {
         if (existing.sources.length !== request.sourceIds.length
@@ -244,7 +249,7 @@ export function createSessionMergeHostModule(
         )
       }
       const invalidSource = sources.find(source =>
-        source.origin === 'subagent' || source.archived || source.blank)
+        source.origin === 'subagent' || source.archived || source.blank || !source.cwd?.trim())
       if (invalidSource !== undefined) {
         throw new SessionMergeHostError(
           'invalid-source',
@@ -252,7 +257,7 @@ export function createSessionMergeHostModule(
           'resolving',
         )
       }
-      if (sources.some(source => source.cwd !== target.cwd)) {
+      if (request.targetWorkspaceId === undefined && sources.some(source => source.cwd !== target.cwd)) {
         throw new SessionMergeHostError(
           'cross-workspace-source',
           'Session Merge sources must share the target working directory',

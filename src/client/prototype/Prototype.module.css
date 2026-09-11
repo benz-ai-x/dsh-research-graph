@@ -195,7 +195,7 @@
   .topbar { gap: 8px; }
   .brand strong { font-size: 15px; }
   .topicSelect { max-width: calc(100% - 145px); flex: 1; padding-left: 8px; }
-  .searchBox { order: 3; width: auto; flex: 1 1 calc(100% - 190px); margin-left: 0; }
+  .searchBox { order: 3; width: auto; flex: 1 1 calc(100% - 290px); margin-left: 0; }
   .topActions { order: 4; flex: none; }
   .workspaceHeader { margin-bottom: 10px; }
   .workspaceHeader h1 { font-size: 19px; }
@@ -215,3 +215,27 @@
   .surface { min-height: 240px; }
 }
 @media (prefers-reduced-motion: reduce) { .root button { transition: none; } }
+
+.mergeBody { min-width: 0; }
+.mergeBody .pinnedActions { bottom: 0; margin-bottom: 0; }
+.mergeBody h2 { margin-top: 14px; }
+.mergeBody .detailSection h3 small { font-size: 11px; font-weight: 400; color: var(--p-muted); }
+.mergeFilters { display: flex; flex-wrap: wrap; gap: 10px; }
+.mergeFilters .field { flex: 1 1 140px; margin: 4px 0 10px; }
+.mergeChoices { max-height: 245px; overflow: auto; border: 1px solid var(--p-line); border-radius: 8px; }
+.mergeChoice { display: flex; gap: 10px; padding: 12px; align-items: center; cursor: pointer; border-bottom: 1px solid var(--p-line); }
+.mergeChoice:last-child { border-bottom: 0; }
+.mergeChoice:has(input:checked) { background: var(--p-tint); }
+.mergeChoice input { flex: 0 0 auto; width: 16px; height: 16px; }
+.mergeChoice span, .mergeSource div { min-width: 0; }
+.mergeChoice strong, .mergeSource strong { display: block; font-size: 12px; font-weight: 500; line-height: 1.6; }
+.mergeChoice small, .mergeSource small, .sessionWorkspace { display: block; color: var(--p-muted); font-size: 11px; margin-top: 4px; }
+.mergeSelections { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.mergeSelections button { font-size: 10px; white-space: normal; text-align: left; }
+.mergeSource { display: flex; gap: 10px; border: 1px solid var(--p-line); border-radius: 8px; padding: 12px; margin-bottom: 8px; align-items: start; }
+.mergeSource > svg { flex: 0 0 auto; margin-top: 2px; }
+.mergeError { color: var(--color-danger, #b42318); padding: 10px; border: 1px solid currentColor; border-radius: 6px; }
+.mergeEdge path { stroke-width: 2; }
+@container (min-width: 761px) {
+  .root[data-task='merge'] :is(.mapLayout, .pathLayout) { grid-template-columns: minmax(0, 1fr) minmax(380px, 48%); }
+}

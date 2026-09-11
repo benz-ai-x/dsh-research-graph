@@ -46,6 +46,8 @@ pnpm prototype:dsh
 
 启动器使用 `DSH_HARNESS_ROOT` 或相邻的匹配版本工作树，自动构建、打包、安装到独立 web profile，准备样例研究并打印本地登录链接。打开一条样例讨论，选择 **研图 · 原型**；通过底部切换器、文本框之外的左右方向键或 `?variant=A|B|C` 比较布局。模型提供明确标注的演示回答，不产生付费调用；保存、原文回看、材料准备和新讨论提交使用真实 DSH。体验数据保留在 `.artifacts/prototype-dsh/profile/`，用 `pnpm prototype:dsh --stop` 停止，再次启动即可继续。请保密终端打印的登录令牌。
 
+新增 **跨工作区汇聚会话**：从同一 DSH Host 的不同工作区选择 2–3 个会话，明确新会话的目标工作区，预览后确认。新会话使用 DSH 原生会话快照，图中保留各来源工作区及真实汇聚关系；来源文件与执行环境不会合并。原型已预置“跨工作区：缓存方案对照”体验主题。
+
 详见[人工体验指南](docs/reviews/research-workbench-prototype.md)及[已确认的产品方向](docs/reviews/product-purpose-and-ux-gap.md)。普通构建保留原有研图，只有 `DSH_RESEARCH_GRAPH_PROTOTYPE=1` 才启用原型；本分支不是新发布版本。
 
 ## 快速开始

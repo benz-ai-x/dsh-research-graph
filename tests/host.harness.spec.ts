@@ -3,6 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import SessionStore from '@deepseek-ai/dsh-session'
+import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionProjectionCache from '@deepseek-ai/dsh-session-projection-cache'
@@ -342,7 +344,7 @@ describe('Session Graph Host integration', () => {
     ctx.provide('sessionController', {
       resolveAgent: async () => ({ agent }),
       inspect: async (sessionId: SessionId) => ({
-        meta: { id: sessionId, cwd: '/workspace' },
+        meta: { id: sessionId, cwd: `/${sessionId}` },
         events: [{ type: 'turn/start', data: { turn: 1 } }],
       }),
     })
@@ -364,19 +366,18 @@ describe('Session Graph Host integration', () => {
       onChanged: () => () => {},
     })
     ctx.provide('sessionProjectionCache', { write })
-    ctx.provide('workspaceRegistry', { archivedSessionIds: [] })
+    ctx.provide('workspaceRegistry', { archivedSessionIds: [], list: () => [{ id: 'research', path: '/workspace', sessionIds: [id('target-session')] }] })
+    await ctx.plugin(TypertRegistry)
+    await ctx.plugin(TypertGatewayService)
 
     await apply(ctx)
     await new Promise(resolve => setImmediate(resolve))
-    const service = ctx.get('sessionGraphMerge') as {
-      submit: (request: Readonly<Record<string, unknown>>, signal: AbortSignal) => Promise<unknown>
-    }
-    const result = await service.submit({
-      targetSessionId: 'target-session',
-      sourceIds: ['source-a', 'source-b'],
-      instruction: 'Compare conclusions.',
-      operationId: 'operation-1',
-    }, new AbortController().signal)
+    // Source-mode discovery recognizes the final parameter named signal.
+    // A direct service call would conceal a missing cancellation wire argument.
+    const result = await ctx.typertGateway.invoke({ namespace: 'sessionGraphMerge', method: 'submit', args: { request: {
+      targetSessionId: 'target-session', targetWorkspaceId: 'research',
+      sourceIds: ['source-a', 'source-b'], instruction: 'Compare conclusions.', operationId: 'operation-1',
+    } }, signal: new AbortController().signal })
 
     expect(result).toEqual(capture)
     expect(queued).toHaveLength(2)
@@ -472,7 +473,7 @@ describe('Session Graph Host integration', () => {
         await commitBarrier
       },
     })
-    ctx.provide('workspaceRegistry', { archivedSessionIds: [] })
+    ctx.provide('workspaceRegistry', { archivedSessionIds: [], list: () => [] })
 
     await apply(ctx)
     await new Promise(resolve => setImmediate(resolve))
@@ -598,7 +599,7 @@ describe('Session Graph Host integration', () => {
     ctx.provide('sessionController', {
       resolveAgent: async () => ({ agent }),
     })
-    ctx.provide('workspaceRegistry', { archivedSessionIds: [] })
+    ctx.provide('workspaceRegistry', { archivedSessionIds: [], list: () => [] })
     const dependencies = sessionMergeDependenciesFromHarness(ctx)
 
     const target = await dependencies.resolveTarget(

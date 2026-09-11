@@ -65,7 +65,7 @@ An independent Canvas Session with no parent Session, initialized from an explic
 _Avoid_: Aggregated session, merged branch, combined thread
 
 **Merge Source**:
-A Canvas Session selected to contribute one snapshot to a Merge Session. At submission time the Host confirms that every source is non-blank, non-archived, not a Subagent Session, and shares the target working directory; browser metadata is never authoritative for eligibility.
+A non-blank, non-archived Canvas Session on the connected Host selected to contribute an immutable snapshot to a Merge Session. Merge Sources can belong to different Workspaces; the Merge Session has one explicitly chosen destination Workspace, whose files and execution environment remain separate from the source discussions.
 _Avoid_: Parent session, input branch
 
 **Session Snapshot**:

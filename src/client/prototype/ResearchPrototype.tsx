@@ -9,6 +9,7 @@ import type { ResearchMaterialSelection, ResearchReuseRecord } from '../../resea
 import type { SessionHistoryResult, SessionHistoryTurn } from '../../session-history.ts'
 import { SESSION_GRAPH_BUILD_LABEL } from '../build-info.ts'
 import { Glyph, VariantA, VariantB, VariantC, type PrototypeNode, type PrototypeEdge } from './PrototypeViews.tsx'
+import { useResearchMerge } from './ResearchMerge.tsx'
 import styles from './Prototype.module.css'
 
 const VARIANTS = ['A', 'B', 'C'] as const
@@ -39,7 +40,7 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
   const [revisionId, setRevisionId] = useState<string>()
   const [query, setQuery] = useState('')
   const [comparisons, setComparisons] = useState<readonly string[]>([])
-  const [pane, setPane] = useState<'inspect' | 'edit' | 'history' | 'compose' | 'extract'>('inspect')
+  const [pane, setPane] = useState<'inspect' | 'edit' | 'history' | 'compose' | 'extract' | 'merge'>('inspect')
   const [detailOpen, setDetailOpen] = useState(false)
   const [busy, setBusy] = useState('正在读取研究资料…')
   const busyRef = useRef(false)
@@ -61,6 +62,25 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
   const topic = topics.find(item => item.topicId === topicId)
   const card = cards.find(item => `card:${item.cardId}` === selected)
   const revision = card?.revisions.find(item => item.revisionId === revisionId) ?? (card ? latest(card) : undefined)
+  const researchMerge = useResearchMerge(props, topic, async (target, preparation) => {
+    if (preparation.topicId) await props.topics.write({ kind: 'add', topicId: preparation.topicId, sessionIds: [...preparation.sources.map(source => source.id), target] }, lifetime.current.signal)
+    await refresh()
+    if (preparation.topicId) setTopicId(preparation.topicId)
+    setSelected(target)
+    setQuery('')
+    setNotice('汇聚会话已创建，来源与汇聚关系已保留。')
+    openHistory(target, `汇聚：${preparation.instruction}`)
+  })
+  function openMerge(sourceId?: string): void {
+    researchMerge.open(sourceId)
+    setPane('merge')
+    setDetailOpen(true)
+  }
+  function sessionWorkspace(id: string): string {
+    const row = sessions.byId[id as SessionId]
+    return workspaces.find(item => item.sessionIds?.includes(id as SessionId))?.title
+      ?? workspaces.find(item => item.path === row?.cwd)?.title ?? row?.cwd ?? '来源工作区不可用'
+  }
 
   async function refresh(): Promise<void> {
     const signal = lifetime.current.signal
@@ -94,8 +114,9 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
   }, [props.hostId])
   useEffect(() => {
     if (topicId === undefined && topics.length) setTopicId(topics[0]!.topicId)
-    if (!selected && cards.length) setSelected(`card:${cards[0]!.cardId}`)
-  }, [topics, cards])
+    const first = cards.find(item => !topicId || item.topicIds.includes(topicId))
+    if (topicId !== undefined && !selected && first) setSelected(`card:${first.cardId}`)
+  }, [topics, cards, topicId])
   useEffect(() => {
     if (!draft) return
     const protect = (event: BeforeUnloadEvent): void => { event.preventDefault(); event.returnValue = '' }
@@ -130,12 +151,21 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
   }, [variant])
 
   const accepted = records.filter(item => item.stage === 'accepted')
-  const targets = new Set(accepted.map(item => item.targetSessionId))
+  const merges = sessions.ids.flatMap(id => {
+    const projection = sessions.byId[id]?.projectionValues?.sessionGraphMerge
+    return projection ? [{ targetId: id, ...projection }] : []
+  })
+  const targets = new Set([...accepted.map(item => item.targetSessionId), ...merges.map(item => item.targetId)])
   const scopedCards = cards.filter(item => !topicId || item.topicIds.includes(topicId))
   const referenceIds = new Set(topic ? topic.references.map(ref => ref.sessionId) : sessions.ids)
   for (const item of scopedCards) for (const source of latest(item).sources) referenceIds.add(source.sessionId)
   for (const item of accepted) if (item.materials.some(material => material.kind === 'card' && scopedCards.some(value => value.cardId === material.cardId))) referenceIds.add(item.targetSessionId)
+  for (const merge of merges) if (referenceIds.has(merge.targetId) || merge.sources.some(source => referenceIds.has(source.sessionId))) {
+    referenceIds.add(merge.targetId)
+    for (const source of merge.sources) referenceIds.add(source.sessionId)
+  }
   const edges: PrototypeEdge[] = [
+    ...merges.flatMap(merge => merge.sources.map(source => ({ from: source.sessionId, to: merge.targetId, kind: 'merge' as const, label: '汇聚' }))),
     ...scopedCards.flatMap(item => latest(item).sources.map(source => ({ from: source.sessionId, to: `card:${item.cardId}`, kind: 'source' as const, label: '提炼自' }))),
     ...accepted.flatMap(item => item.materials.flatMap(material => material.kind === 'card' ? [{ from: `card:${material.cardId}`, to: item.targetSessionId, kind: 'reuse' as const, label: '沿用' }] : [])),
   ]
@@ -144,7 +174,8 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
       const row = sessions.byId[id as SessionId]
       const saved = topic?.references.find(ref => ref.sessionId === id)
       const reuse = accepted.find(item => item.targetSessionId === id)
-      return { id, kind: 'session' as const, title: reuse?.question ?? row?.displayTitle ?? saved?.title ?? '已保存的讨论来源', summary: reuse ? `沿用 ${reuse.materials.length} 条研究材料` : '打开原文，留下有价值的内容', date: row?.updatedAt ?? 0, stage: targets.has(id) ? 2 : 0 }
+      const merge = merges.find(item => item.targetId === id)
+      return { id, kind: 'session' as const, workspace: sessionWorkspace(id), merged: !!merge, title: reuse?.question ?? row?.displayTitle ?? saved?.title ?? '已保存的讨论来源', summary: merge ? `汇聚 ${merge.sources.length} 个会话 · ${sessionWorkspace(id)}` : reuse ? `沿用 ${reuse.materials.length} 条研究材料` : `打开原文 · ${sessionWorkspace(id)}`, date: row?.updatedAt ?? 0, stage: targets.has(id) ? 2 : 0 }
     }),
     ...scopedCards.map(item => ({ id: `card:${item.cardId}`, kind: 'card' as const, title: latest(item).content.title, summary: latest(item).content.conclusion, date: latest(item).savedAt, stage: latest(item).sources.some(source => targets.has(source.sessionId)) ? 3 : 1 })),
   ]
@@ -261,10 +292,14 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
         await refresh()
       }) }}>保存知识</button><button type="button" className={styles.quiet} disabled={!!busy} onClick={() => { setDraft(undefined); setPane('inspect') }}>放弃草稿</button></div>
     </div>
+  } else if (pane === 'merge') {
+    detail = <div className={styles.detail}>{back}{researchMerge.panel}</div>
   } else if (pane === 'history') {
     const sourceRecord = accepted.find(item => item.targetSessionId === history?.sessionId)
+    const mergedFrom = merges.find(item => item.targetId === history?.sessionId)
     detail = <div className={styles.detail}>{back}<div className={styles.detailTop}><span className={styles.eyebrow}>{historySource ? '回到知识形成的那一刻' : '讨论原文'}</span></div><h2>{historyTitle}</h2>
       <div className={styles.metadata}><span>{historyLoading ? '正在读取…' : history?.kind === 'excerpt' ? '原会话不可用 · 展示保存时的摘录' : history?.kind === 'original' ? '来自 DSH 原始讨论' : '暂时没有可读取的内容'}</span></div>
+      {mergedFrom ? <section className={styles.detailSection}><h3>这次汇聚来自哪些会话</h3><p className={styles.formHint}>使用提交时的会话快照；点击来源可以回看原讨论。</p>{mergedFrom.sources.map(source => <button className={styles.sourceLink} type="button" key={source.sessionId} onClick={() => { select(source.sessionId) }}><Glyph name="session" size={15} /><div><strong>{sessions.byId[source.sessionId as SessionId]?.displayTitle ?? '来源讨论'}</strong><small>{sessionWorkspace(source.sessionId)}</small></div><Glyph name="arrow" size={14} /></button>)}</section> : null}
       {sourceRecord ? <details><summary>这次讨论沿用了哪些知识</summary>{sourceRecord.materials.map((material, index) => material.kind === 'card' ? <p key={index}>{material.content.title} · 第 {material.revisionNumber} 版<br />{material.content.conclusion}</p> : null)}</details> : null}
       {history?.turns.map(turn => <section className={styles.turn} key={turn.startSeq}><div className={styles.turnTitle}><span>第 {turn.turn} 轮</span><span>{date(turn.startedAt)}{turn.endSeq === null ? ' · 进行中' : ''}</span></div>
         {turn.messages.map(message => {
@@ -278,7 +313,7 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
       </section>)}
       {history && !history.turns.length ? <p className={styles.formHint}>讨论刚刚开始，回答完成后刷新即可阅读。</p> : null}
       {history?.hasEarlier || history?.hasLater ? <p className={styles.formHint}>当前展示所选范围；完整上下文可以在 DSH 会话中阅读。</p> : null}
-      <div className={styles.detailActions}><button type="button" onClick={() => { openHistory(history?.sessionId ?? (historySource?.sessionId ?? selected), historyTitle, historySource) }}>刷新原文</button>{history ? <button type="button" onClick={() => { props.openSession(history.sessionId as SessionId) }}>在 DSH 中打开</button> : null}</div>
+      <div className={styles.detailActions}>{props.mergeResearchSessions && history?.kind === 'original' ? <button type="button" onClick={() => { openMerge(history.sessionId) }}>与其他会话汇聚</button> : null}<button type="button" onClick={() => { openHistory(history?.sessionId ?? (historySource?.sessionId ?? selected), historyTitle, historySource) }}>刷新原文</button>{history ? <button type="button" onClick={() => { props.openSession(history.sessionId as SessionId) }}>在 DSH 中打开</button> : null}</div>
     </div>
   } else if (pane === 'extract' && preparation) {
     detail = <div className={styles.detail}>{back}<span className={styles.eyebrow}>先看材料，再交给 AI</span><h2>把这段讨论整理成知识</h2><p className={styles.bodyText}>只整理下面已选中的原文。生成后仍由你修改和决定保存。</p>
@@ -320,13 +355,13 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
   } else detail = <div className={styles.empty}><Glyph name="card" size={32} /><h3>选择一条知识，打开新的可能</h3><p>读一段讨论，留下你想再次使用的内容。</p><button type="button" onClick={() => { startDraft() }}>写下一个发现</button></div>
 
   const viewProps = { nodes, edges, selected, comparisons, select, compare, detail, create: () => { startDraft() } }
-  return <div className={styles.root} data-detail={detailOpen} data-conversation-composer-overlay="" data-research-prototype={variant}>
+  return <div className={styles.root} data-detail={detailOpen} data-task={pane} data-conversation-composer-overlay="" data-research-prototype={variant}>
     <header className={styles.topbar}><div className={styles.brand}><span className={styles.brandMark}><Glyph name="graph" /></span><strong>研图<small>体验原型</small></strong></div>
-      <label className={styles.topicSelect}><select aria-label="研究主题" value={topicId ?? ''} onChange={event => { setTopicId(event.target.value); setQuery('') }}><option value="">全部研究</option>{topics.map(item => <option key={item.topicId} value={item.topicId}>{item.title}</option>)}</select></label>
+      <label className={styles.topicSelect}><select aria-label="研究主题" value={topicId ?? ''} onChange={event => { setTopicId(event.target.value); setQuery(''); setSelected(''); setPane('inspect'); setDetailOpen(false) }}><option value="">全部研究</option>{topics.map(item => <option key={item.topicId} value={item.topicId}>{item.title}</option>)}</select></label>
       <label className={styles.searchBox}><Glyph name="search" size={15} /><input aria-label="查找知识和讨论" placeholder="查找知识、内容和来源" value={query} onChange={event => { setQuery(event.target.value) }} />{query ? <button className={styles.iconButton} type="button" aria-label="清空搜索" onClick={() => { setQuery('') }}><Glyph name="close" size={12} /></button> : null}</label>
-      <div className={styles.topActions}><button type="button" className={styles.quiet} disabled={!!busy} onClick={() => { void run('正在刷新…', refresh) }}>刷新</button><button type="button" onClick={() => { startDraft() }}><Glyph name="plus" size={14} />新建卡片</button></div>
+      <div className={styles.topActions}>{props.mergeResearchSessions ? <button type="button" disabled={!!busy} onClick={() => { openMerge() }}><Glyph name="graph" size={14} />汇聚会话</button> : null}<button type="button" className={styles.quiet} disabled={!!busy} onClick={() => { void run('正在刷新…', refresh) }}>刷新</button><button type="button" onClick={() => { startDraft() }}><Glyph name="plus" size={14} />新建卡片</button></div>
     </header>
-    <div className={styles.workspaceHeader}><div><h1>{topic?.title ?? '让思考留下来，继续生长'}</h1><p>{searchText ? `找到 ${nodes.length} 项相关内容` : '从讨论中留下知识，带着知识探索下一个问题。'}</p></div><div className={styles.workspaceMeta}><span><strong>{referenceIds.size}</strong>讨论</span><span><strong>{scopedCards.length}</strong>知识</span><span><strong>{edges.filter(edge => edge.kind === 'reuse' && allNodes.some(node => node.id === edge.from)).length}</strong>沿用</span></div></div>
+    <div className={styles.workspaceHeader}><div><h1>{topic?.title ?? '让思考留下来，继续生长'}</h1><p>{searchText ? `找到 ${nodes.length} 项相关内容` : '从讨论中留下知识，带着知识探索下一个问题。'}</p></div><div className={styles.workspaceMeta}><span><strong>{referenceIds.size}</strong>讨论</span><span><strong>{scopedCards.length}</strong>知识</span>{merges.some(item => referenceIds.has(item.targetId)) ? <span><strong>{merges.filter(item => referenceIds.has(item.targetId)).length}</strong>汇聚</span> : null}<span><strong>{edges.filter(edge => edge.kind === 'reuse' && allNodes.some(node => node.id === edge.from)).length}</strong>沿用</span></div></div>
     {error ? <div className={styles.error} role="alert">{error}<button className={styles.quiet} type="button" onClick={() => { setError('') }}>关闭提示</button></div> : null}
     {busy || notice ? <div className={styles.notice} role="status"><span>{busy || notice}</span>{!busy ? <button type="button" className={styles.iconButton} aria-label="关闭提示" onClick={() => { setNotice('') }}><Glyph name="close" size={13} /></button> : null}</div> : null}
     {draft && pane !== 'edit' ? <div className={styles.notice}><span>一份未保存的卡片草稿</span><button type="button" onClick={() => { setPane('edit'); setDetailOpen(true) }}>继续编辑</button></div> : null}
@@ -334,6 +369,6 @@ export function ResearchPrototype(props: GraphViewProps): ReactElement {
     {comparisons.length ? <div className={styles.comparisonBar}><strong>已选 {comparisons.length} 条知识作为研究材料</strong><button type="button" onClick={() => { setComparisons([]) }}>清空</button><button className={styles.primary} type="button" onClick={() => { compose(comparisons) }}>带着它们继续<Glyph name="arrow" size={14} /></button></div> : null}
     <main className={styles.surface}>{variant === 'A' ? <VariantA {...viewProps} /> : variant === 'B' ? <VariantB {...viewProps} /> : <VariantC {...viewProps} />}</main>
     <div className={styles.switcherRow}><nav className={styles.switcher} aria-label="原型布局切换"><button type="button" aria-label="上一个布局" onClick={() => { switchVariant(VARIANTS[(VARIANTS.indexOf(variant) + 2) % 3]!) }}>←</button><span>PROTOTYPE</span>{VARIANTS.map(key => <button type="button" key={key} aria-pressed={variant === key} onClick={() => { switchVariant(key) }}>{key} · {NAMES[key]}</button>)}<button type="button" aria-label="下一个布局" onClick={() => { switchVariant(VARIANTS[(VARIANTS.indexOf(variant) + 1) % 3]!) }}>→</button></nav><button className={styles.stateButton} type="button" onClick={() => { setShowState(value => !value) }}>体验说明</button></div>
-    {showState ? <aside className={styles.statePanel}><h3>真实 DSH 数据 · 演示模型</h3><p className={styles.formHint}>此独立体验环境使用演示回答，不调用付费模型。保存、来源定位和新讨论均由 DSH 处理。切换布局保留当前内容与草稿。</p><pre>{JSON.stringify({ variant, topicId, selected, pane, comparisons, draft, preparation, preview, materials, question, workspaceId, busy, error }, null, 2)}</pre><small>{SESSION_GRAPH_BUILD_LABEL}</small><button type="button" onClick={() => { setShowState(false) }}>收起</button></aside> : null}
+    {showState ? <aside className={styles.statePanel}><h3>真实 DSH 数据 · 演示模型</h3><p className={styles.formHint}>此独立体验环境使用演示回答，不调用付费模型。保存、来源定位和新讨论均由 DSH 处理。切换布局保留当前内容与草稿。</p><pre>{JSON.stringify({ variant, topicId, selected, pane, comparisons, draft, preparation, preview, materials, question, workspaceId, busy, error, merge: researchMerge.state }, null, 2)}</pre><small>{SESSION_GRAPH_BUILD_LABEL}</small><button type="button" onClick={() => { setShowState(false) }}>收起</button></aside> : null}
   </div>
 }

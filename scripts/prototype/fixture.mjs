@@ -6,7 +6,7 @@ import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 
 export const name = 'research-workbench-prototype-fixture'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'workspaceRegistry', 'sessionGraphTopics', 'sessionGraphHistory', 'sessionGraphKnowledge', 'sessionGraphReuse', 'agentDefaultModel']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'workspaceRegistry', 'sessionGraphTopics', 'sessionGraphHistory', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphMerge', 'agentDefaultModel']
 
 export function apply(ctx) {
   const root = process.env.RESEARCH_PROTOTYPE_ROOT
@@ -37,7 +37,7 @@ export function apply(ctx) {
         }] }) }
       } else {
         const researchQuestion = userText.match(/# Research question \/ 研究问题\n([^\n]+)/)?.[1]
-        const content = researchQuestion?.includes('反例') ? '可以先构造一个反例：缓存命中率很高，但权限撤销通知没有及时到达某个节点。此时性能表现很好，一致性要求却没有满足。\n\n把“请求耗时”和“权限撤销后是否仍能访问”作为两个独立观察项，再讨论是否接受这个风险。\n\n这是用于体验研究流程的固定示例，没有执行实验。'
+        const content = userText.includes('跨工作区汇聚：') ? '把两个工作区的讨论放在一起，可以同时看到性能收益与权限一致性这两个维度。先保留各自的适用条件，再用相同负载和权限撤销事件验证组合方案。\n\n来源讨论继续保留在各自工作区；后续实验使用这个新会话所属工作区的文件与执行环境。' : researchQuestion?.includes('反例') ? '可以先构造一个反例：缓存命中率很高，但权限撤销通知没有及时到达某个节点。此时性能表现很好，一致性要求却没有满足。\n\n把“请求耗时”和“权限撤销后是否仍能访问”作为两个独立观察项，再讨论是否接受这个风险。\n\n这是用于体验研究流程的固定示例，没有执行实验。'
           : researchQuestion ? answers[2] : userText.includes('体验种子：低延迟') ? answers[0]
           : userText.includes('体验种子：权限') ? answers[1] : answers[2]
         for (const paragraph of content.split('\n\n')) {
@@ -105,7 +105,47 @@ export function apply(ctx) {
       fixture = { topicId, workspaceId: String(workspace.id), sources, cardIds: cards.map(card => card.cardId), targetSessionId: sent.targetSessionId }
       await writeFile(join(root, 'baseline.json'), JSON.stringify(fixture, null, 2))
     }
-    await writeFile(join(root, 'fixture-ready.json'), JSON.stringify(fixture))
+    let crossWorkspace
+    try { crossWorkspace = JSON.parse(await readFile(join(root, 'cross-workspace.json'), 'utf8')) } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+      const signal = AbortSignal.timeout(120000)
+      const spaces = []
+      for (const [directory, title] of [['research-a', '工作区 A · 响应性能'], ['research-b', '工作区 B · 权限一致性'], ['research-hub', '研究汇聚空间']]) {
+        const path = join(root, directory)
+        await mkdir(path, { recursive: true })
+        const workspace = await ctx.workspaceRegistry.create(path, title)
+        spaces.push(workspace)
+      }
+      const topicId = randomUUID()
+      await ctx.sessionGraphTopics.write({ kind: 'create', topicId, title: '跨工作区：缓存方案对照' }, signal)
+      const sources = []
+      for (const [index, workspace] of spaces.slice(0, 2).entries()) {
+        const { sessionId } = await ctx.sessionController.create({ workspaceId: workspace.id })
+        await ctx.sessionController.selectModel({ sessionId, provider, model })
+        await ctx.sessionController.prompt({ requestId: randomUUID(), sessionId, mode: 'queue', content: [{ type: 'text', text: index === 0
+          ? '体验种子：低延迟。工作区 A 正在研究缓存怎样改善响应速度，应该观察什么？'
+          : '体验种子：权限。工作区 B 正在研究权限撤销后的缓存失效，应该保持哪些约束？' }] }, signal)
+        await completed(sessionId)
+        const title = index === 0 ? 'A 的发现：响应速度与缓存收益' : 'B 的发现：权限撤销与一致性'
+        await ctx.sessionController.rename({ sessionId, title })
+        sources.push({ sessionId, title, workspaceId: String(workspace.id), beforeEvents: (await ctx.sessionController.inspect(sessionId)).events.length })
+      }
+      const targetWorkspace = spaces[2]
+      const { sessionId: targetSessionId } = await ctx.sessionController.create({ workspaceId: targetWorkspace.id })
+      await ctx.sessionController.selectModel({ sessionId: targetSessionId, provider, model })
+      const projection = await ctx.sessionGraphMerge.submit({ operationId: randomUUID(), sourceIds: sources.map(source => source.sessionId),
+        targetSessionId, targetWorkspaceId: String(targetWorkspace.id), instruction: '跨工作区汇聚：对照缓存性能与权限一致性，保留条件差异，提出一个组合方案。' }, signal)
+      await completed(targetSessionId)
+      await ctx.sessionController.rename({ sessionId: targetSessionId, title: '汇聚：缓存性能与权限边界' })
+      const target = await ctx.sessionController.inspect(targetSessionId)
+      if (target.meta.cwd !== targetWorkspace.path || target.meta.parentSession !== undefined) throw new Error('Cross-workspace Merge target has an unexpected location or parent')
+      for (const source of sources) if ((await ctx.sessionController.inspect(source.sessionId)).events.length !== source.beforeEvents) throw new Error('Cross-workspace Merge modified a source')
+      if (projection.sources.map(source => source.sessionId).join(',') !== sources.map(source => source.sessionId).join(',')) throw new Error('Cross-workspace capture did not match the selected sources')
+      await ctx.sessionGraphTopics.write({ kind: 'add', topicId, sessionIds: [...sources.map(source => source.sessionId), targetSessionId] }, signal)
+      crossWorkspace = { topicId, sources, targetSessionId, targetWorkspaceId: String(targetWorkspace.id), targetPath: targetWorkspace.path, projection }
+      await writeFile(join(root, 'cross-workspace.json'), JSON.stringify(crossWorkspace, null, 2))
+    }
+    await writeFile(join(root, 'fixture-ready.json'), JSON.stringify({ ...fixture, crossWorkspace }))
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void prepare().catch(async error => { await writeFile(join(root, 'fixture-error.txt'), error.stack ?? String(error)) })

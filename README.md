@@ -46,6 +46,8 @@ pnpm prototype:dsh
 
 The launcher uses `DSH_HARNESS_ROOT` or the matching sibling checkout, builds and packs the prototype, installs it into an isolated web profile, seeds sample research, and prints a local login URL. Open a sample discussion and select **研图 · 原型**. Use the bottom switcher, left/right arrows outside text fields, or `?variant=A|B|C`. The demo model returns labelled examples without paid calls; storage, history, material preparation, and new discussion admission run through DSH. Data is retained in `.artifacts/prototype-dsh/profile/`. Stop with `pnpm prototype:dsh --stop` and run the start command again to resume. Treat the printed login token as private.
 
+The prototype also supports **cross-workspace Session Merge**: select two or three Sessions on the connected DSH Host, choose the destination Workspace, review, and confirm. Native Harness snapshots preserve provenance and the graph shows actual Merge Relations across Workspaces. Source files and execution environments are not combined. The “跨工作区：缓存方案对照” topic supplies a ready-to-use example.
+
 See the [experience guide](docs/reviews/research-workbench-prototype.md) and [approved product direction](docs/reviews/product-purpose-and-ux-gap.md). Normal builds keep the existing Graph view; only `DSH_RESEARCH_GRAPH_PROTOTYPE=1` enables this prototype. It is not a new release.
 
 ## Quick start

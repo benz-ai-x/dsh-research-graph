@@ -9,13 +9,15 @@ export interface PrototypeNode {
   readonly summary: string
   readonly stage: number
   readonly date: number
+  readonly workspace?: string
+  readonly merged?: boolean
 }
 
 export interface PrototypeEdge {
   readonly from: string
   readonly to: string
   readonly label: string
-  readonly kind: 'source' | 'reuse'
+  readonly kind: 'source' | 'reuse' | 'merge'
 }
 
 export interface PrototypeViewProps {
@@ -47,7 +49,7 @@ export function Glyph({ name, size = 18 }: { readonly name: string; readonly siz
 }
 
 function NodeLabel({ node }: { readonly node: PrototypeNode }): ReactElement {
-  return <span className={styles.nodeLabel}><Glyph name={node.kind} size={14} />{node.kind === 'card' ? '知识' : node.stage === 2 ? '继续探索' : '讨论'}</span>
+  return <span className={styles.nodeLabel}><Glyph name={node.kind} size={14} />{node.kind === 'card' ? '知识' : node.merged ? '汇聚会话' : node.stage === 2 ? '继续探索' : '讨论'}</span>
 }
 
 export function VariantA(props: PrototypeViewProps): ReactElement {
@@ -90,14 +92,14 @@ export function VariantA(props: PrototypeViewProps): ReactElement {
       <div className={styles.world} style={{ width: world.width, height: world.height, transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
         {['从讨论出发', '留下有价值的知识', '带着知识继续', '形成新的发现'].slice(0, columns).map((title, index) =>
           <div className={styles.columnTitle} key={title} style={{ left: index * 290 + 24 }}><span>0{index + 1}</span>{title}</div>)}
-        <svg className={styles.edges} width={world.width} height={world.height} aria-label="来源与实际沿用关系">
+        <svg className={styles.edges} width={world.width} height={world.height} aria-label="来源、汇聚与实际沿用关系">
           <defs><marker id="prototype-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 7 3.5 0 7" fill="none" stroke="currentColor" /></marker></defs>
           {props.edges.map((edge, index) => {
             const from = positions.get(edge.from), to = positions.get(edge.to)
             if (!from || !to) return null
             const x1 = from.x + 228, y1 = from.y + 61, x2 = to.x, y2 = to.y + 61
             const active = edge.from === props.selected || edge.to === props.selected
-            return <g key={`${edge.from}:${edge.to}:${index}`} className={`${styles.edge} ${edge.kind === 'reuse' ? styles.reuseEdge : ''} ${active ? styles.activeEdge : ''}`}>
+            return <g key={`${edge.from}:${edge.to}:${index}`} className={`${styles.edge} ${edge.kind === 'reuse' ? styles.reuseEdge : edge.kind === 'merge' ? styles.mergeEdge : ''} ${active ? styles.activeEdge : ''}`}>
               <path d={`M${x1} ${y1} C${x1 + 38} ${y1}, ${x2 - 38} ${y2}, ${x2} ${y2}`} markerEnd="url(#prototype-arrow)" />
               <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 9} textAnchor="middle">{edge.label}</text>
             </g>
@@ -127,7 +129,7 @@ export function VariantB(props: PrototypeViewProps): ReactElement {
       </button>)}
       <button type="button" className={styles.newCatalog} onClick={props.create}><Glyph name="plus" />写下一个新发现</button>
       <div className={styles.catalogHeading}><span>本主题的讨论</span></div>
-      {props.nodes.filter(node => node.kind === 'session').map(node => <button className={styles.sessionRow} type="button" key={node.id} onClick={() => { props.select(node.id) }}><Glyph name="session" size={16} /><span>{node.title}</span></button>)}
+      {props.nodes.filter(node => node.kind === 'session').map(node => <button className={styles.sessionRow} type="button" key={node.id} onClick={() => { props.select(node.id) }}><Glyph name="session" size={16} /><span>{node.title}<small className={styles.sessionWorkspace}>{node.workspace}</small></span></button>)}
     </section>
     <article className={styles.readingDesk} aria-label="知识阅读区"><div className={styles.paperTop}>RESEARCH NOTES<span>让值得留下的思考，随时可用。</span></div>{props.detail}</article>
   </div>

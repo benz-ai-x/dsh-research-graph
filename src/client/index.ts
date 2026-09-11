@@ -239,6 +239,14 @@ async function registerUi(ctx: Context): Promise<void> {
         instruction,
         signal,
       ) as SessionId,
+      mergeResearchSessions: async (request, signal) => {
+        const workspace = ctx.workspaces.list.getSnapshot().items.find(item => item.workspaceId === request.workspaceId)
+        if (!workspace) throw new Error('Choose an available target Workspace')
+        const options = { target: { cwd: workspace.path, workspaceId: workspace.workspaceId }, openTarget: false }
+        return (request.targetSessionId
+          ? await merges.retryMerge(request.targetSessionId, request.sourceIds, request.instruction, signal, options)
+          : await merges.mergeSessions(request.sourceIds, request.instruction, signal, options)) as SessionId
+      },
       retrySessionMerge: async (targetSessionId, sourceIds, instruction, signal) =>
         await merges.retryMerge(targetSessionId, sourceIds, instruction, signal) as SessionId,
     }),
