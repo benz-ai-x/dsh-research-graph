@@ -33,6 +33,7 @@ function filesUnder(directory: string): string[] {
 /** A reproducible Build ID that changes whenever browser build inputs change. */
 function localBuildId(): string {
   const hash = createHash('sha256')
+  hash.update(`research-prototype:${process.env.DSH_RESEARCH_GRAPH_PROTOTYPE === '1'}\0`)
   const inputs = [
     resolve(PROJECT_ROOT, 'package.json'),
     resolve(PROJECT_ROOT, 'tsdown.config.ts'),
@@ -178,6 +179,7 @@ export default defineConfig([
     define: {
       __SESSION_GRAPH_VERSION__: JSON.stringify(packageManifest.version),
       __SESSION_GRAPH_BUILD_ID__: JSON.stringify(BUILD_ID),
+      __DSH_RESEARCH_PROTOTYPE__: JSON.stringify(process.env.DSH_RESEARCH_GRAPH_PROTOTYPE === '1'),
       'process.env': '{}',
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
       'import.meta.env.MODE': JSON.stringify(process.env.NODE_ENV ?? 'production'),

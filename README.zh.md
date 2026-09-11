@@ -34,6 +34,20 @@ kind: "package-bundle"
   <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>
 </p>
 
+## 下一代产品原型（本分支）
+
+`prototype/research-workbench` 在 DSH 现有研图标签内提供 **A 图谱工作台、B 知识书桌、C 研究路径**。三种布局共用真实保存的知识、准确来源和已接收的沿用关系。这是 [#23](https://github.com/benz-ai-x/dsh-research-graph/issues/23) 的体验原型，最终布局等待人工体验反馈。
+
+安装本项目依赖，并准备已完成 `build:native-system`、`build:lib`、`build:web` 的匹配 DSH `0.1.5-rc.2` 工作树后，运行：
+
+```sh
+pnpm prototype:dsh
+```
+
+启动器使用 `DSH_HARNESS_ROOT` 或相邻的匹配版本工作树，自动构建、打包、安装到独立 web profile，准备样例研究并打印本地登录链接。打开一条样例讨论，选择 **研图 · 原型**；通过底部切换器、文本框之外的左右方向键或 `?variant=A|B|C` 比较布局。模型提供明确标注的演示回答，不产生付费调用；保存、原文回看、材料准备和新讨论提交使用真实 DSH。体验数据保留在 `.artifacts/prototype-dsh/profile/`，用 `pnpm prototype:dsh --stop` 停止，再次启动即可继续。请保密终端打印的登录令牌。
+
+详见[人工体验指南](docs/reviews/research-workbench-prototype.md)及[已确认的产品方向](docs/reviews/product-purpose-and-ux-gap.md)。普通构建保留原有研图，只有 `DSH_RESEARCH_GRAPH_PROTOTYPE=1` 才启用原型；本分支不是新发布版本。
+
 ## 快速开始
 
 ```sh

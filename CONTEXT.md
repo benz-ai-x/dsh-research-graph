@@ -1,6 +1,6 @@
 # DSH Research Graph · 研图
 
-Research Graph organizes DeepSeek Harness discussions into Research Topics, traceable Knowledge Cards, and Research Materials for further discussion. Its Session Graph helps a person understand, navigate, arrange, and branch the lineage of sessions related to the session they are viewing. Session Graph remains a derived projection; DeepSeek Harness remains authoritative for sessions, workspaces, lineage, and activity.
+Research Graph is a visual research space for turning human–AI discussions into knowledge that people can revisit, reuse, and connect to develop further ideas. Research Topics organize discussions and Knowledge Cards; the Session Graph remains a derived projection of DeepSeek Harness, which is authoritative for Sessions, Workspaces, Session Lineage, and activity.
 
 Research Topics are separate Host-owned collections of references. The plugin owns their names, membership, and arrangements; it does not take ownership of the Sessions those references address.
 
@@ -103,7 +103,8 @@ _Avoid_: Session Cluster, neighborhood
 ### Arrangement and discovery
 
 **Knowledge Card**:
-A durable identity for a conclusion, method, hypothesis, or question on one Host. Its latest revision is searchable by title and body; membership in Research Topics is explicit and independent of source directories. Removing membership, Reset, or layout cleanup does not delete the card.
+A conclusion, method, hypothesis, or question that a person chooses to retain and reuse, with a durable identity, editable content, and discussion sources when supplied. Its Research Topic membership is explicit and independent of source location; retaining a card does not establish the correctness of its claims.
+Its latest revision is searchable by title and body. Removing topic membership, Reset, or layout cleanup does not delete the card.
 _Avoid_: Session Digest, Canvas Session, copied session
 
 **Card Revision**:

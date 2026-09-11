@@ -34,6 +34,20 @@ The canvas also shows Session Lineage, movable Branch clusters, Merge provenance
   <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>
 </p>
 
+## Next-generation prototype (this branch)
+
+`prototype/research-workbench` contains three alternative layouts inside DSH's existing Graph tab: **A Spatial workbench**, **B Knowledge reading desk**, and **C Research path**. They share real saved knowledge, exact discussion sources, and accepted reuse relations. This is an experience prototype for [#23](https://github.com/benz-ai-x/dsh-research-graph/issues/23); the final layout awaits human feedback.
+
+With dependencies installed and a matching DSH `0.1.5-rc.2` checkout built (`build:native-system`, `build:lib`, `build:web`), run:
+
+```sh
+pnpm prototype:dsh
+```
+
+The launcher uses `DSH_HARNESS_ROOT` or the matching sibling checkout, builds and packs the prototype, installs it into an isolated web profile, seeds sample research, and prints a local login URL. Open a sample discussion and select **研图 · 原型**. Use the bottom switcher, left/right arrows outside text fields, or `?variant=A|B|C`. The demo model returns labelled examples without paid calls; storage, history, material preparation, and new discussion admission run through DSH. Data is retained in `.artifacts/prototype-dsh/profile/`. Stop with `pnpm prototype:dsh --stop` and run the start command again to resume. Treat the printed login token as private.
+
+See the [experience guide](docs/reviews/research-workbench-prototype.md) and [approved product direction](docs/reviews/product-purpose-and-ux-gap.md). Normal builds keep the existing Graph view; only `DSH_RESEARCH_GRAPH_PROTOTYPE=1` enables this prototype. It is not a new release.
+
 ## Quick start
 
 ```sh

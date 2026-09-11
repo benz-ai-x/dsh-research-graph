@@ -23,6 +23,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { createSessionMergeModule } from '../session-merge.ts'
 import { GraphView, type GraphViewInjected } from './GraphView.tsx'
+import { ResearchPrototype } from './prototype/ResearchPrototype.tsx'
 import { NS, en, zh } from './locales.ts'
 import { SESSION_DIGEST_REMOTE } from './session-digest-remote.ts'
 import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
@@ -36,6 +37,9 @@ export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
 /** Required services: the conversation view slot, the sessions list, and the locale service. */
 export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'remote']
+
+declare const __DSH_RESEARCH_PROTOTYPE__: boolean
+const PROTOTYPE = typeof __DSH_RESEARCH_PROTOTYPE__ !== 'undefined' && __DSH_RESEARCH_PROTOTYPE__
 
 const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
   package: SESSION_DIGEST_REMOTE.package,
@@ -121,7 +125,7 @@ async function registerUi(ctx: Context): Promise<void> {
     id: 'graph',
     order: 20,
     locale: NS,
-    label: () => t('view.graph'),
+    label: () => PROTOTYPE ? '研图 · 原型' : t('view.graph'),
     inject: (): GraphViewInjected => ({
       hostId: identity.value.hostId,
       reuse: {
@@ -238,7 +242,7 @@ async function registerUi(ctx: Context): Promise<void> {
       retrySessionMerge: async (targetSessionId, sourceIds, instruction, signal) =>
         await merges.retryMerge(targetSessionId, sourceIds, instruction, signal) as SessionId,
     }),
-  }, GraphView))
+  }, PROTOTYPE ? ResearchPrototype : GraphView))
 }
 
 /**
