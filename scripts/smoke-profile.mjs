@@ -7,12 +7,14 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
+import { releaseVersions } from './release-versions.mjs'
 
 const repo = dirname(dirname(fileURLToPath(import.meta.url)))
 const manifest = JSON.parse(await readFile(join(repo, 'package.json'), 'utf8'))
+const { dshVersion } = releaseVersions(manifest)
 if (!process.env.DSH_HARNESS_ROOT) throw new Error('DSH_HARNESS_ROOT must point to the matching built Harness checkout')
 const harness = resolve(process.env.DSH_HARNESS_ROOT)
-assert.equal(JSON.parse(await readFile(join(harness, 'package.json'), 'utf8')).version, manifest.version)
+assert.equal(JSON.parse(await readFile(join(harness, 'package.json'), 'utf8')).version, dshVersion)
 const archiveName = `${manifest.name.replace(/^@/, '').replace('/', '-')}-${manifest.version}.tgz`
 const archive = resolve(process.argv[2] ?? join(repo, '.artifacts', archiveName))
 await access(archive)
@@ -85,7 +87,7 @@ try {
   assert.ok(!(await command(['--profile', 'web', '--dump-config'])).includes(manifest.name))
   const profile = JSON.parse(await readFile(join(env.DSH_HOME, 'profiles/web/package.json'), 'utf8'))
   assert.equal(profile.dependencies?.[manifest.name], undefined)
-  console.log(JSON.stringify({ ...report, version: manifest.version, packedInstall: true, removed: true }))
+  console.log(JSON.stringify({ ...report, version: manifest.version, dshVersion, packedInstall: true, removed: true }))
 } catch (error) {
   throw new Error(`${error.message}${app ? `\n${redact(app.output())}` : ''}`, { cause: error })
 } finally {

@@ -37,7 +37,7 @@ The canvas also shows Session Lineage, movable Branch clusters, Merge provenance
 ## Quick start
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.1
 dsh web
 ```
 
@@ -47,6 +47,7 @@ If `dsh web` is already running, stop it before restarting. Open the one-time au
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.1` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime and package migration acceptance |
 | Previous package: [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
@@ -54,7 +55,7 @@ If `dsh web` is already running, stop it before restarting. Open the one-time au
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 
-In the DSH-aligned release line, the plugin version exactly matches its target DSH version, including prerelease suffixes: DSH `0.1.5-rc.2` uses plugin `0.1.5-rc.2`. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
@@ -131,7 +132,7 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.1
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -148,7 +149,7 @@ The product is now **DSH Research Graph · 研图**, and the repository is `benz
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.1
 dsh web
 ```
 
@@ -166,7 +167,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
 
-Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the plugin version.
+Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.1.5-rc.2` for plugin `0.1.5-rc.2.1`).
 
 ## Use the graph
 
@@ -348,7 +349,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 Read [`CONTEXT.md`](CONTEXT.md) for the domain model and [`docs/adr/`](docs/adr/) for durable design decisions before changing Session, Merge, Digest, or persistence behavior. Setup or behavior changes must update both this file and [`README.zh.md`](README.zh.md). Start user-visible work from a [GitHub issue](https://github.com/benz-ai-x/dsh-research-graph/issues).
 
-`check:harness` requires matching Host and plugin versions. It checks both source and published declarations for Host and Client against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<version>` from `package.json`. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
+`check:harness` requires the Host version to equal the exact target pinned by `peerDependencies["@deepseek-ai/dsh-llm"]` in `package.json`. It checks both source and published declarations for Host and Client against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<dsh-version>` using the validated DSH peer pin, independently of the plugin revision. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
 
 Build an installable archive with:
 
@@ -375,7 +376,7 @@ The [Publish workflow](.github/workflows/publish.yml) accepts a published GitHub
 
 The package uses an [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/) for organization `benz-ai-x`, repository `dsh-research-graph`, workflow `publish.yml`, environment `npm-publish`, and the `npm publish` action. The workflow authenticates with GitHub OIDC and must not receive a long-lived `NPM_TOKEN`; keep the GitHub environment as the deployment boundary. When bootstrapping a different package or scope, use a narrowly scoped, short-lived token only for the first publication, configure trusted publishing immediately, and then revoke the token.
 
-For every adaptation release, set `package.json.version` and direct DSH dependencies to the full target DSH version. The plugin tag is `v<version>` and the upstream tag is `dsh-v<version>`. `check-version.mjs` rejects mismatched dependencies or release tags; `check:harness` rejects a mismatched Host version. Before release, pass `pnpm run check`, `check:harness`, and packed-profile acceptance, verify the Research Graph badge reads the same version, then merge and create the immutable tag and Release. Use Build IDs for local iterations against the same DSH version; never overwrite published versions or rename historical tags.
+For the first adaptation to a DSH release, set `package.json.version` to the full target DSH version. Further releases on the same DSH prerelease append one positive integer, such as `0.1.5-rc.2.1`, then `0.1.5-rc.2.2`; all direct DSH dependencies remain pinned to `0.1.5-rc.2`. The exact `@deepseek-ai/dsh-llm` peer pin is the canonical compatibility target. The plugin tag is `v<plugin-version>` and the upstream tag is `dsh-v<dsh-version>`. `check-version.mjs` rejects malformed revisions, dependency drift, and mismatched release tags; its `--dsh-version` option prints the validated target for CI. `check:harness`, packed acceptance, and the preview launcher all use this same target. Before release, pass `pnpm run check`, `check:harness`, and packed-profile acceptance, verify the Research Graph badge reads the same version, then merge and create the immutable tag and Release. Use Build IDs for unpublished local iterations; never overwrite published versions or rename historical tags.
 
 The package exports two Node-facing entries and one lazy browser module. Every JavaScript entry ships a matching TypeScript declaration in the packed archive:
 

@@ -37,7 +37,7 @@ kind: "package-bundle"
 ## 快速开始
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.1
 dsh web
 ```
 
@@ -47,6 +47,7 @@ dsh web
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.1` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 与包名迁移验收 |
 | 旧包：[`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
@@ -54,7 +55,7 @@ dsh web
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 
-在与 DSH 对齐的发布线上，插件版本与目标 DSH 版本完全一致，包括预发布后缀：DSH `0.1.5-rc.2` 对应插件 `0.1.5-rc.2`。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。研究工作流已随 `0.1.5-rc.1` 发布；`0.1.5-rc.2` 加入首轮 UI/UX 修复，包括草稿保护、直接选择材料和搜索范围恢复。已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
+在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。研究工作流已随 `0.1.5-rc.1` 发布；`0.1.5-rc.2` 加入首轮 UI/UX 修复，包括草稿保护、直接选择材料和搜索范围恢复。`0.1.5-rc.2.1` 加入研究工作台、完整知识阅读与跨工作区汇聚。已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
 
 本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
@@ -131,7 +132,7 @@ dsh web
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.1
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -148,7 +149,7 @@ dsh --profile web --dump-config
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.1
 dsh web
 ```
 
@@ -166,7 +167,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
 
-Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到插件版本。
+Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.1.5-rc.2.1` 对应 DSH `0.1.5-rc.2`）。
 
 ## 使用图谱
 
@@ -346,7 +347,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 修改 Session、Merge、Digest 或持久化行为前，请先阅读 [`CONTEXT.md`](CONTEXT.md) 的领域模型与 [`docs/adr/`](docs/adr/) 的持久设计决策。安装方式或产品行为变化时必须同时更新本文与 [`README.md`](README.md)。面向用户的工作应从 [GitHub Issue](https://github.com/benz-ai-x/dsh-research-graph/issues) 开始。
 
-`check:harness` 要求宿主与插件版本相同。它用该 checkout 构建的真实公开声明检查 Host/Client 源码及打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并从 `package.json` 自动选择 `dsh-v<version>`。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件。History 读取还经过与浏览器相同的 RPC Gateway，覆盖传输层提供的取消信号；仅模型传输使用固定响应。
+`check:harness` 要求宿主版本与 `package.json` 中 `peerDependencies["@deepseek-ai/dsh-llm"]` 固定的目标版本一致。它用该 checkout 构建的真实公开声明检查 Host/Client 源码及打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并根据校验后的 DSH peer 依赖选择 `dsh-v<dsh-version>`，不受插件修订号影响。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件。History 读取还经过与浏览器相同的 RPC Gateway，覆盖传输层提供的取消信号；仅模型传输使用固定响应。
 
 使用以下命令构建可安装归档：
 
@@ -356,7 +357,7 @@ pnpm --dir /path/to/deepseek-harness run build:web
 DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness
 ```
 
-人工体验正式构建（要求同版本 Harness 已完成 `build:native-system`、`build:lib`、`build:web`）：
+人工体验正式构建（要求目标 DSH 版本的 Harness 已完成 `build:native-system`、`build:lib`、`build:web`）：
 
 ```sh
 DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm preview:dsh
@@ -373,7 +374,7 @@ pnpm preview:dsh --stop
 
 本包使用 [npm trusted publisher](https://docs.npmjs.com/trusted-publishers/)：organization 为 `benz-ai-x`、repository 为 `dsh-research-graph`、workflow 为 `publish.yml`、environment 为 `npm-publish`，仅允许 `npm publish` action。工作流通过 GitHub OIDC 认证，不应再接收长期 `NPM_TOKEN`；保留 GitHub environment 作为发布边界。若为其他包名或 scope 做首次发布，只在首次引导时使用权限范围尽量小、有效期尽量短的令牌，随后立即配置 trusted publishing 并吊销该令牌。
 
-每次适配发布都必须把 `package.json.version` 及直接引用的 DSH 依赖更新为目标 DSH 的完整版本；插件 tag 为 `v<version>`，上游 tag 为 `dsh-v<version>`。`check-version.mjs` 会拒绝依赖或发布 tag 不一致，`check:harness` 会拒绝宿主版本不一致。发布前完成 `pnpm run check`、`check:harness` 和打包 profile 验收，并确认 研图页头徽标读取同一版本，再合入变更、创建不可移动的 tag 和 Release。相同 DSH 版本下的本地迭代使用 Build ID 区分，不覆盖已发布版本或重命名历史标签。
+首次适配 DSH 版本时，`package.json.version` 使用目标 DSH 的完整版本。同一 DSH 预发布版下的后续发布追加一个正整数修订号，如 `0.1.5-rc.2.1`、`0.1.5-rc.2.2`；所有直接 DSH 依赖仍固定为 `0.1.5-rc.2`。`@deepseek-ai/dsh-llm` 的精确 peer 依赖是兼容目标的唯一来源。插件 tag 为 `v<plugin-version>`，上游 tag 为 `dsh-v<dsh-version>`。`check-version.mjs` 拒绝无效修订号、依赖漂移及发布 tag 不一致，`--dsh-version` 输出校验后的目标供 CI 使用；`check:harness`、打包验收和预览启动器都使用这一目标。发布前完成 `pnpm run check`、`check:harness` 和打包 profile 验收，并确认 研图页头徽标读取同一版本，再合入变更、创建不可移动的 tag 和 Release。尚未发布的本地迭代使用 Build ID 区分，不覆盖已发布版本或重命名历史标签。
 
 本包导出两个 Node 侧入口和一个惰性加载的浏览器模块；实际打包归档中的每个 JavaScript 入口都带有匹配的 TypeScript 声明：
 
