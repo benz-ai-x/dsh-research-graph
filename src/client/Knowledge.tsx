@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import type { KnowledgeCard, KnowledgeContent, KnowledgeDiscussionAddress, KnowledgeSave, KnowledgeSourceAddress } from '../knowledge.ts'
 import type { ResearchTopic } from '../research-topic.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
@@ -14,6 +14,7 @@ import { KnowledgeExport, type ExportChoice } from './KnowledgeExport.tsx'
 import { DraftGuard, useDraftProtection } from './DraftGuard.tsx'
 import { knowledgePrefill } from './knowledge-prefill.ts'
 import { editableKnowledgeSources, changeExtractionCitation } from './knowledge-citations.ts'
+import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 interface KnowledgeContextValue {
@@ -26,6 +27,8 @@ interface KnowledgeContextValue {
   readonly edit: (cardId: string, revisionId: string) => void
   readonly extract: (source: KnowledgeDiscussionAddress) => void
   readonly exportCards: (cards: readonly ExportChoice[]) => void
+  readonly saved: { readonly cardId: string; readonly title: string; readonly hasSources: boolean } | undefined
+  readonly dismissSaved: () => void
 }
 const KnowledgeContext = createContext<KnowledgeContextValue | undefined>(undefined)
 export function useKnowledge(): KnowledgeContextValue | undefined { return useContext(KnowledgeContext) }
@@ -47,22 +50,31 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
   const [dialogs, setDialogs] = useState<readonly KnowledgeDialog[]>([])
   const [exporting, setExporting] = useState<readonly ExportChoice[]>()
   const exportTrigger = useRef<HTMLElement>()
+  const returnFocus = useRef<HTMLElement>()
+  useLayoutEffect(() => {
+    // An async save can close before React removes inert from the reader.
+    // Restore focus only after that commit, without moving the source scroll.
+    const trigger = returnFocus.current
+    if (trigger === undefined) return
+    returnFocus.current = undefined
+    if (trigger.isConnected) trigger.focus({ preventScroll: true })
+  }, [dialogs, exporting])
   const [refresh, setRefresh] = useState(0)
   const [topicId, selectTopic] = useState<string>()
+  const [saved, setSaved] = useState<KnowledgeContextValue['saved']>()
   const open = (content: KnowledgeDialog['content']): void => {
     const dialog = { id: crypto.randomUUID(), content, trigger: document.activeElement instanceof HTMLElement ? document.activeElement : undefined }
     setDialogs(current => [...current, dialog])
   }
   const close = (): void => {
-    const trigger = dialogs.at(-1)?.trigger
+    returnFocus.current = dialogs.at(-1)?.trigger
     setDialogs(current => current.slice(0, -1))
-    queueMicrotask(() => { trigger?.focus() })
   }
   const closeExport = (): void => {
+    returnFocus.current = exportTrigger.current
     setExporting(undefined)
-    queueMicrotask(() => { exportTrigger.current?.focus() })
   }
-  return <KnowledgeContext.Provider value={{ api, refresh, topicId, selectTopic,
+  return <KnowledgeContext.Provider value={{ api, refresh, topicId, selectTopic, saved, dismissSaved: () => { setSaved(undefined) },
     create: source => { open(source === undefined ? {} : { source }) }, open: cardId => { open({ cardId }) },
     edit: (cardId, editRevisionId) => { open({ cardId, editRevisionId }) },
     extract: extraction => { open({ extraction }) }, exportCards: cards => {
@@ -74,15 +86,22 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
     {dialogs.map(({ id, content: dialog }, index) => {
       const covered = index !== dialogs.length - 1 || exporting !== undefined
       const title = dialog.extraction !== undefined ? 'extract.title' : 'knowledge.title'
-      return <DraftGuard key={id} close={close} t={t}>{requestClose => <section className={styles.knowledgeDialog} role="dialog" aria-modal={!covered} aria-label={t(title)}
+      const capturing = dialog.source !== undefined && dialog.cardId === undefined
+      return <DraftGuard key={id} close={close} t={t}>{requestClose => <section className={`${styles.knowledgeDialog} ${capturing ? styles.captureDialog : ''}`} role="dialog" aria-modal={!covered} aria-label={t(title)}
       aria-hidden={covered || undefined} ref={element => { if (element !== null) element.inert = covered }}
       onKeyDown={event => {
         if (event.key === 'Escape') { event.stopPropagation(); requestClose() }
         retainDialogFocus(event)
       }}>
       <div className={styles.searchHeader}><h2>{t(title)}</h2><button type="button" autoFocus onClick={requestClose}>{t('knowledge.close')}</button></div>
+      {!covered && saved !== undefined && !capturing && (dialog.cardId !== undefined || dialog.extraction !== undefined)
+        && saved.cardId !== dialog.cardId ? <KnowledgeSavedNotice t={t} /> : null}
       {dialog.extraction === undefined ? <KnowledgeEditor cardId={dialog.cardId} editRevisionId={dialog.editRevisionId} source={dialog.source} topicId={topicId}
-        api={api} topics={topics} read={read} t={t} close={close} changed={() => { setRefresh(value => value + 1) }} />
+        api={api} topics={topics} read={read} t={t} close={close} changed={() => { setRefresh(value => value + 1) }} onSaved={card => {
+          const revision = card.revisions.at(-1)!
+          setSaved({ cardId: card.cardId, title: revision.content.title, hasSources: revision.sources.length > 0 })
+          if (capturing) close()
+        }} />
         : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} t={t}
           changed={() => { setRefresh(value => value + 1) }} />}
     </section>}</DraftGuard>
@@ -98,12 +117,26 @@ export function KnowledgeProvider({ api, topics, read, t, children }: {
   </KnowledgeContext.Provider>
 }
 
+/** A concrete saved result remains available after returning to the source reader. */
+export function KnowledgeSavedNotice({ t }: { readonly t: Translate }): ReactElement | null {
+  const knowledge = useKnowledge()
+  if (knowledge?.saved === undefined) return null
+  const saved = knowledge.saved
+  return <div className={styles.savedDiscovery} role="status">
+    <span className={styles.savedDiscoveryMark} aria-hidden="true">✓</span>
+    <div><strong title={saved.title}>{t('reading.savedTitle', { title: saved.title })}</strong>
+      {saved.hasSources ? <span>{t('reading.sourceSaved')}</span> : null}</div>
+    <button type="button" onClick={() => { knowledge.open(saved.cardId) }}>{t('reading.viewSaved')}</button>
+    <button type="button" aria-label={t('reading.dismissSaved')} onClick={knowledge.dismissSaved}>×</button>
+  </div>
+}
+
 const EMPTY_CONTENT: KnowledgeContent = {
   title: '', question: '', conclusion: '', rationale: '', openQuestions: '', kind: 'conclusion', status: 'draft',
 }
 const TEXT_FIELDS = ['title', 'question', 'conclusion', 'rationale', 'openQuestions'] as const
 
-export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, topics, read, close, changed, draft, preparation, t }: {
+export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, topics, read, close, changed, onSaved, draft, preparation, t }: {
   readonly cardId: string | undefined
   readonly editRevisionId?: string | undefined
   readonly source: KnowledgeDiscussionAddress | undefined
@@ -113,6 +146,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
   readonly read: GraphViewInjected['readSessionHistory']
   readonly close: () => void
   readonly changed: () => void
+  readonly onSaved?: (card: KnowledgeCard) => void
   readonly t: Translate
   readonly draft?: ExtractionDraft
   readonly preparation?: ExtractionPreparation
@@ -205,6 +239,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
       setReading(undefined)
       attempt.current = undefined
       changed()
+      onSaved?.(saved)
     } catch { if (!controller.signal.aborted) setFailed(true) } finally {
       if (!controller.signal.aborted) { setBusy(false); write.current = undefined }
     }
@@ -214,10 +249,10 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
     {failed || topicError ? <div role="alert">{t('knowledge.error')}
       {(cardId !== undefined && card === undefined) || topicError ? <button type="button" onClick={() => { setReload(value => value + 1) }}>{t('topic.retry')}</button> : null}</div> : null}
     {loading || (cardId !== undefined && card === undefined) ? null : <>
-      <label>{t('knowledge.topic')}<select value={selectedTopic} disabled={busy} onChange={event => { setSelectedTopic(event.target.value) }}>
+      {!editing ? <label>{t('knowledge.topic')}<select value={selectedTopic} disabled={busy} onChange={event => { setSelectedTopic(event.target.value) }}>
         <option value="">{t('knowledge.noTopic')}</option>
         {topicList.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}
-      </select></label>
+      </select></label> : null}
       {editing ? <form className={styles.knowledgeForm} onSubmit={event => {
         event.preventDefault()
         if (busy || prefilling) return
@@ -230,16 +265,20 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
       }}>
         {draft !== undefined && sources.length === 0 ? <p role="status">{t('extract.verify')}</p> : null}
         {invalidCitations > 0 ? <p role="alert">{t('extract.invalid', { count: invalidCitations })}</p> : null}
-        <p className={styles.topicDescription}>{t('knowledge.formHint')}</p>
+        <p className={styles.topicDescription}>{t(source === undefined ? 'knowledge.formHint' : 'reading.captureHint')}</p>
         {prefilling ? <p role="status">{t('workbench.prefill')}</p> : null}
         {prefillError ? <p role="status">{t('workbench.prefillError')} <button type="button" onClick={() => { setPrefillAttempt(value => value + 1) }}>{t('topic.retry')}</button></p> : null}
         {prefillInfo?.truncated ? <p role="status">{t('workbench.prefillTruncated')}</p> : null}
         {(['title', 'conclusion'] as const).map(field => <label key={field}>{t(`knowledge.field.${field}`)}
           {field === 'title' ? <input value={content[field]} required aria-required="true" maxLength={120} disabled={busy}
             onChange={event => { editedFields.current.add(field); setContent(value => ({ ...value, [field]: event.target.value })) }} />
-            : <textarea value={content[field]} maxLength={24_000} rows={3} disabled={busy}
+            : <textarea value={content[field]} maxLength={24_000} rows={8} disabled={busy}
               onChange={event => { editedFields.current.add(field); setContent(value => ({ ...value, [field]: event.target.value })) }} />}</label>)}
         <details className={styles.optionalFields}><summary>{t('knowledge.moreFields')}</summary>
+          <label>{t('knowledge.topic')}<select value={selectedTopic} disabled={busy} onChange={event => { setSelectedTopic(event.target.value) }}>
+            <option value="">{t('knowledge.noTopic')}</option>
+            {topicList.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title}</option>)}
+          </select></label>
           {(['question', 'rationale', 'openQuestions'] as const).map(field => <label key={field}>{t(`knowledge.field.${field}`)}
             <textarea value={content[field]} maxLength={24_000} rows={3} disabled={busy}
               onChange={event => { editedFields.current.add(field); setContent(value => ({ ...value, [field]: event.target.value })) }} /></label>)}
@@ -281,7 +320,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
         <h3>{revision.content.title}</h3>
         <p>{t(`knowledge.kind.${revision.content.kind}`)} · {t(`knowledge.status.${revision.content.status}`)} · {t('knowledge.savedAt', { time: new Date(revision.savedAt).toLocaleString() })}</p>
         {TEXT_FIELDS.filter(field => field !== 'title').map(field => revision.content[field] === '' ? null : <section key={field}>
-          <h4>{t(`knowledge.field.${field}`)}</h4><p className={styles.historyText}>{revision.content[field]}</p></section>)}
+          <h4>{t(`knowledge.field.${field}`)}</h4><ResearchMarkdown text={revision.content[field]} t={t} /></section>)}
         <div className={styles.topicControls}><button type="button" disabled={busy} onClick={() => {
           const editable = editableKnowledgeSources(identity, revision, preparation)
           baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic })

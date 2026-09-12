@@ -17,14 +17,14 @@ import { knowledgeClient, knowledgeContent, knowledgeSource, knowledgeTranslate 
 afterEach(cleanup)
 
 describe('Research Workbench user actions', () => {
-  it('restores the displayed revision, expanded original, and scroll when remounting the shared reader', async () => {
+  it('restores the same card and source position but starts a different card at the beginning', async () => {
     const client = knowledgeClient()
     const key = randomUUID()
     const card: KnowledgeCard = { cardId: randomUUID(), topicIds: [], revisions: [1, 2].map(number => ({
       revisionId: randomUUID(), requestHash: 'a'.repeat(64), number, savedAt: number * 1000,
       content: knowledgeContent(`研究结论第 ${number} 版`), sources: [knowledgeSource()],
     })) }
-    const view = (mode: string) => <article key={mode} data-working-scroll="" data-testid="reader-seat"><KnowledgeReader workingKey={key} card={card} relations={[]} read={client.read} t={t} /></article>
+    const view = (mode: string, shownCard = card) => <article key={mode} data-working-scroll="" data-testid="reader-seat"><KnowledgeReader key={shownCard.cardId} workingKey={key} card={shownCard} relations={[]} read={client.read} t={t} /></article>
     const rendered = render(view('reading'))
     fireEvent.change(screen.getByRole('combobox', { name: '修订版本' }), { target: { value: card.revisions[0]!.revisionId } })
     fireEvent.click(screen.getByRole('button', { name: /查看来源原文/ }))
@@ -35,6 +35,12 @@ describe('Research Workbench user actions', () => {
     expect((screen.getByRole('combobox', { name: '修订版本' }) as HTMLSelectElement).value).toBe(card.revisions[0]!.revisionId)
     expect(screen.getByRole('region', { name: '讨论原文' })).toBeDefined()
     expect(screen.getByTestId('reader-seat').scrollTop).toBe(360)
+    const other: KnowledgeCard = { ...card, cardId: randomUUID(), revisions: [{ ...card.revisions[0]!,
+      revisionId: randomUUID(), content: knowledgeContent('另一个发现'), sources: [],
+    }] }
+    rendered.rerender(view('graph', other))
+    expect(screen.getByRole('heading', { name: '另一个发现' })).toBeDefined()
+    expect(screen.getByTestId('reader-seat').scrollTop).toBe(0)
   })
 
   it('opens the displayed revision for editing in one action and retries a failed read before allowing edits', async () => {

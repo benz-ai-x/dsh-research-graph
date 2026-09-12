@@ -12,9 +12,12 @@ import clsx from 'clsx'
 import {
   useCallback, useEffect, useId, useMemo, useRef, useState, type ReactElement,
 } from 'react'
+import { createPortal } from 'react-dom'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionDigest } from '../session-digest.ts'
 import { SessionHistory } from './SessionHistory.tsx'
+import { InspectorFrame } from './InspectorFrame.tsx'
+import { ActionMenu } from './ActionMenu.tsx'
 import { containsSessionReferenceUri } from '../session-merge.ts'
 import { CLUSTER_COLORS } from './clusters.ts'
 import type { ClusterInfo, DisplayStatus, GraphNode, SessionGraphNode } from './graph-model.ts'
@@ -103,8 +106,20 @@ const PREVIEW_W = 240
 const PREVIEW_H = 112
 /** Screen inset occupied by the filter and canvas controls. */
 const PREVIEW_TOP_INSET = 56
-/** Right-side canvas inset occupied by the Selected Session inspector. */
-const INSPECTOR_RIGHT_INSET = 444
+
+/** Share the live reading-panel clearance across graph commands and previews. */
+function measureCanvasRoom(surface: HTMLElement | null): {
+  readonly width: number
+  readonly height: number
+  readonly rightInset: number
+} | undefined {
+  if (surface === null) return undefined
+  const { width, height } = surface.getBoundingClientRect()
+  const readerWidth = surface.querySelector<HTMLElement>('[data-reading-panel]')?.getBoundingClientRect().width ?? 0
+  const rightInset = readerWidth > 0 ? readerWidth + 24 : 0
+  // Narrow reading overlays the graph; its commands retain the full canvas.
+  return { width: width > 760 ? Math.max(240, width - rightInset) : width, height, rightInset }
+}
 
 /** Restore one record key to its pre-gesture value, removing a previously absent key. */
 function restoreEntry<T>(
@@ -257,12 +272,6 @@ interface ReadyDigestEntry {
   readonly sourceUpdatedAt: number
 }
 
-interface DigestScrollDrag {
-  readonly pointerId: number
-  readonly startY: number
-  readonly startScrollTop: number
-  moved: boolean
-}
 
 type DigestEntry =
   | { readonly phase: 'generating'; readonly requestId: number; readonly previous?: ReadyDigestEntry }
@@ -312,7 +321,6 @@ function DigestSection({
   t: Translate
   onGenerate: (refresh: boolean) => void
 }): ReactElement {
-  const scrollDragRef = useRef<DigestScrollDrag | null>(null)
   const ready = priorReady(entry)
   const emptyStale = entry?.phase === 'empty' && node.updatedAt > entry.sourceUpdatedAt
   const stale = (ready !== undefined && node.updatedAt > ready.sourceUpdatedAt) || emptyStale
@@ -322,55 +330,6 @@ function DigestSection({
       <div
         className={styles.digestBody}
         data-testid="session-digest-scroll"
-        onPointerDown={(event) => {
-          if (event.button !== 0
-            || event.currentTarget.scrollHeight <= event.currentTarget.clientHeight) return
-          event.stopPropagation()
-          event.preventDefault()
-          scrollDragRef.current = {
-            pointerId: event.pointerId,
-            startY: event.clientY,
-            startScrollTop: event.currentTarget.scrollTop,
-            moved: false,
-          }
-          if (typeof event.currentTarget.setPointerCapture === 'function') {
-            event.currentTarget.setPointerCapture(event.pointerId)
-          }
-        }}
-        onPointerMove={(event) => {
-          const drag = scrollDragRef.current
-          if (drag === null || drag.pointerId !== event.pointerId) return
-          event.stopPropagation()
-          const delta = drag.startY - event.clientY
-          if (!drag.moved && Math.abs(delta) < DRAG_THRESHOLD) return
-          drag.moved = true
-          event.preventDefault()
-          event.currentTarget.dataset.dragging = 'true'
-          event.currentTarget.scrollTop = drag.startScrollTop + delta
-        }}
-        onPointerUp={(event) => {
-          const drag = scrollDragRef.current
-          if (drag === null || drag.pointerId !== event.pointerId) return
-          event.stopPropagation()
-          scrollDragRef.current = null
-          delete event.currentTarget.dataset.dragging
-          if (typeof event.currentTarget.releasePointerCapture === 'function'
-            && (typeof event.currentTarget.hasPointerCapture !== 'function'
-              || event.currentTarget.hasPointerCapture(event.pointerId))) {
-            event.currentTarget.releasePointerCapture(event.pointerId)
-          }
-        }}
-        onPointerCancel={(event) => {
-          if (scrollDragRef.current?.pointerId !== event.pointerId) return
-          event.stopPropagation()
-          scrollDragRef.current = null
-          delete event.currentTarget.dataset.dragging
-        }}
-        onLostPointerCapture={(event) => {
-          if (scrollDragRef.current?.pointerId !== event.pointerId) return
-          scrollDragRef.current = null
-          delete event.currentTarget.dataset.dragging
-        }}
       >
         <p className={styles.digestOverview}>{ready.digest.overview}</p>
         {ready.digest.keyOutcomes.length === 0
@@ -579,27 +538,9 @@ function SelectedSessionPanel({
   if (node === undefined) return null
   const status = displayStatusLabel(node.displayStatus, t)
   return (
-    <div
-      className={styles.panel}
-      role="complementary"
-      aria-label={t('panel.title')}
-      data-canvas-overlay=""
-      data-testid="session-graph-panel"
-      data-working-scroll=""
-    >
-      <div className={styles.panelHeader}>
-        <div className={styles.panelHeading}>{t('panel.title')}</div>
-        <button
-          type="button"
-          className={styles.panelClose}
-          aria-label={t('panel.close')}
-          onClick={onClose}
-        >
-          ×
-        </button>
-      </div>
-      <div className={styles.panelTitle}>{node.blank ? t('node.newSession') : node.title}</div>
-      <div className={styles.panelMeta}>
+    <InspectorFrame label={t('panel.title')} title={node.blank ? t('node.newSession') : node.title}
+      workingKey={workingKey} testId="session-graph-panel" onClose={onClose} t={t}
+      meta={<div className={styles.panelMeta}>
         <span>{timeLabel(node.updatedAt, now, t)}</span>
         {status === ''
           ? null
@@ -607,36 +548,8 @@ function SelectedSessionPanel({
         {node.subagentCount > 0
           ? <span>{t('panel.subagents', { count: node.subagentCount })}</span>
           : null}
-      </div>
-      {branchedFrom === undefined
-        ? null
-        : <div className={styles.panelRelation}>{t('node.branchedFrom', { name: branchedFrom })}</div>}
-      {node.mergeSources.length === 0
-        ? null
-        : (
-          <section className={styles.mergeRelations} aria-labelledby="session-graph-merge-sources">
-            <div id="session-graph-merge-sources" className={styles.mergeRelationsTitle}>
-              {t('panel.mergeSources')}
-            </div>
-            <ol>
-              {node.mergeSources.map((source, index) => (
-                <li key={source.sessionId}>
-                  <span className={styles.mergeSourceOrder}>{index + 1}</span>
-                  <span className={styles.mergeRelationSource}>
-                    {mergeSourceTitles.get(source.sessionId)
-                      ?? t('panel.mergeUnavailable', { id: source.sessionId })}
-                  </span>
-                  <span className={styles.mergeRelationSnapshot}>
-                    {source.capturedThroughSeq === null
-                      ? t('panel.mergeCompleteSnapshot')
-                      : t('panel.mergeCapturedThrough', { seq: source.capturedThroughSeq })}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-      <div
+      </div>}
+      tabs={<div
         role="tablist"
         aria-label={t('panel.title')}
         className={styles.historyTabs}
@@ -678,19 +591,8 @@ function SelectedSessionPanel({
         >
           {t('history.tab')}
         </button>
-      </div>
-      <div id={`${tabId}-content`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
-        {tab === 'history'
-          ? <SessionHistory key={node.id} sessionId={node.id} workingKey={workingKey} onUnavailable={onUnavailable} read={onReadHistory} t={t} />
-          : <DigestSection
-            node={node}
-            entry={digestBySession[node.id]}
-            now={now}
-            t={t}
-            onGenerate={generateDigest}
-          />}
-      </div>
-      <div className={styles.panelActions}>
+      </div>}
+      actions={<><div className={styles.panelActions}>
         {onAddToTopic === undefined ? null : <button type="button" className={styles.panelSecondaryAction}
           onClick={() => { onAddToTopic(node.id) }}>{t('topic.add')}</button>}
         <button
@@ -716,8 +618,48 @@ function SelectedSessionPanel({
       </div>
       {branchErrorFor === node.id
         ? <div className={styles.panelError} role="alert">{t('panel.branchError')}</div>
-        : null}
-    </div>
+        : null}</>}
+    >
+      {branchedFrom === undefined
+        ? null
+        : <div className={styles.panelRelation}>{t('node.branchedFrom', { name: branchedFrom })}</div>}
+      {node.mergeSources.length === 0
+        ? null
+        : (
+          <section className={styles.mergeRelations} aria-labelledby="session-graph-merge-sources">
+            <div id="session-graph-merge-sources" className={styles.mergeRelationsTitle}>
+              {t('panel.mergeSources')}
+            </div>
+            <ol>
+              {node.mergeSources.map((source, index) => (
+                <li key={source.sessionId}>
+                  <span className={styles.mergeSourceOrder}>{index + 1}</span>
+                  <span className={styles.mergeRelationSource}>
+                    {mergeSourceTitles.get(source.sessionId)
+                      ?? t('panel.mergeUnavailable', { id: source.sessionId })}
+                  </span>
+                  <span className={styles.mergeRelationSnapshot}>
+                    {source.capturedThroughSeq === null
+                      ? t('panel.mergeCompleteSnapshot')
+                      : t('panel.mergeCapturedThrough', { seq: source.capturedThroughSeq })}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+      <div id={`${tabId}-content`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
+        {tab === 'history'
+          ? <SessionHistory key={node.id} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} workingKey={workingKey} onUnavailable={onUnavailable} read={onReadHistory} t={t} />
+          : <DigestSection
+            node={node}
+            entry={digestBySession[node.id]}
+            now={now}
+            t={t}
+            onGenerate={generateDigest}
+          />}
+      </div>
+    </InspectorFrame>
   )
 }
 
@@ -839,7 +781,7 @@ const CARD_H_MAP = 4
  */
 export function GraphCanvas({
   laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory,
-  onMerge, onRetryMerge, topic, onAddToTopic, workingKey,
+  onMerge, onRetryMerge, topic, onAddToTopic, workingKey, toolbarTarget,
 }: {
   laid: LaidOutGraph
   clusters: readonly ClusterInfo[]
@@ -854,12 +796,14 @@ export function GraphCanvas({
   onRetryMerge: GraphViewInjected['retrySessionMerge']
   onAddToTopic?: (id: SessionId) => void
   topic?: {
+    readonly actions?: ReactElement
     readonly arrangement: LayoutState
     readonly onArrange: (state: LayoutState) => void
     readonly renderInspector: (node: GraphNode | undefined, onClose: () => void, onUnavailable: () => void) => ReactElement | null
     readonly openCard?: (cardId: string) => void
   }
   workingKey?: string
+  readonly toolbarTarget: HTMLElement | null
 }): ReactElement {
   const [restored] = useState(() => loadWorkingPosition(workingKey))
   const surfaceRef = useRef<HTMLDivElement | null>(null)
@@ -871,6 +815,9 @@ export function GraphCanvas({
     if (surface === null) return
     const measure = (): void => {
       const rect = surface.getBoundingClientRect()
+      // A temporarily hidden Host view has no viewport to recenter. Keep the
+      // last visible size so showing it again cannot shift the camera twice.
+      if (rect.width <= 0 || rect.height <= 0) return
       const next = { width: rect.width, height: rect.height }
       const previous = viewSizeRef.current
       if (next.width === previous.width && next.height === previous.height) return
@@ -1056,10 +1003,10 @@ export function GraphCanvas({
     let settledFrame: number | undefined
     const layoutFrame = window.requestAnimationFrame(() => {
       settledFrame = window.requestAnimationFrame(() => {
-        const rect = surfaceRef.current?.getBoundingClientRect()
-        if (rect === undefined) return
+        const room = measureCanvasRoom(surfaceRef.current)
+        if (room === undefined) return
         fittedRef.current = true
-        setViewport(fitViewport(bounds, rect.width, rect.height, FIT_PADDING))
+        setViewport(fitViewport(bounds, room.width, room.height, FIT_PADDING))
       })
     })
     return () => {
@@ -1259,6 +1206,13 @@ export function GraphCanvas({
     },
   })
 
+  const closeInspector = (): void => {
+    const node = [...(surfaceRef.current?.querySelectorAll<HTMLElement>('[data-node-id]') ?? [])]
+      .find(element => element.dataset.nodeId === selected)
+    setSelected(null)
+    queueMicrotask(() => { (node ?? surfaceRef.current)?.focus({ preventScroll: true }) })
+  }
+
   // Wheel is non-passive so the canvas can swallow the gesture before the
   // page scrolls; React's synthetic listener cannot opt out.
   useEffect(() => {
@@ -1312,17 +1266,17 @@ export function GraphCanvas({
   }, [])
 
   const zoomFromCenter = (factor: number): void => {
-    const rect = surfaceRef.current?.getBoundingClientRect()
-    if (rect === undefined) return
-    setViewport(current => zoomAt(current, rect.width / 2, rect.height / 2, factor))
+    const room = measureCanvasRoom(surfaceRef.current)
+    if (room === undefined) return
+    setViewport(current => zoomAt(current, room.width / 2, room.height / 2, factor))
   }
 
   /** Fit one complete content box into the current surface. */
   const fitBounds = (target: ContentBounds): void => {
-    const rect = surfaceRef.current?.getBoundingClientRect()
-    if (rect === undefined) return
+    const room = measureCanvasRoom(surfaceRef.current)
+    if (room === undefined) return
     glide()
-    setViewport(fitViewport(target, rect.width, rect.height, FIT_PADDING))
+    setViewport(fitViewport(target, room.width, room.height, FIT_PADDING))
   }
 
   const fit = (): void => { fitBounds(bounds) }
@@ -1345,12 +1299,12 @@ export function GraphCanvas({
 
   /** Center the viewport on one content point (the minimap verb). */
   const recenter = (contentX: number, contentY: number): void => {
-    const rect = surfaceRef.current?.getBoundingClientRect()
-    if (rect === undefined) return
+    const room = measureCanvasRoom(surfaceRef.current)
+    if (room === undefined) return
     setViewport(current => ({
       ...current,
-      panX: rect.width / 2 - contentX * current.scale,
-      panY: rect.height / 2 - contentY * current.scale,
+      panX: room.width / 2 - contentX * current.scale,
+      panY: room.height / 2 - contentY * current.scale,
     }))
   }
 
@@ -1500,6 +1454,7 @@ export function GraphCanvas({
     <div
       ref={surfaceRef}
       className={styles.viewport}
+      data-reader-open={selectedNode !== undefined}
       role="group"
       aria-label={t('canvas.description')}
       tabIndex={-1}
@@ -1743,50 +1698,76 @@ export function GraphCanvas({
           )
           : null}
       </div>
-      <div className={styles.controls} role="group" aria-label={t('toolbar.label')}>
-        <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
-        <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>
-          {`${Math.round(viewport.scale * 100)}%`}
-        </button>
-        <button type="button" aria-label={t('toolbar.zoomIn')} onClick={() => { zoomFromCenter(CONTROL_STEP) }}>+</button>
+      {toolbarTarget === null ? null : createPortal(<div className={styles.controls} data-canvas-overlay="" role="group" aria-label={t('toolbar.label')}
+        onPointerDown={event => { event.stopPropagation() }} onKeyDown={event => { event.stopPropagation() }}>
+        <div className={styles.canvasZoom}>
+          <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
+          <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>
+            {`${Math.round(viewport.scale * 100)}%`}
+          </button>
+          <button type="button" aria-label={t('toolbar.zoomIn')} onClick={() => { zoomFromCenter(CONTROL_STEP) }}>+</button>
+        </div>
+        <div className={styles.canvasNavigation}>
+          <span className={styles.controlDivider} aria-hidden="true" />
+          <button type="button" aria-label={t('toolbar.fit')} onClick={fit}>{t('toolbar.fit')}</button>
+          <button
+            type="button"
+            aria-label={t('toolbar.locate')}
+            onClick={() => {
+              const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
+              if (viewed !== undefined) locateNode(viewed.key)
+            }}
+          >
+            {t('toolbar.locate')}
+          </button>
+        </div>
         <span className={styles.controlDivider} aria-hidden="true" />
-        <button type="button" aria-label={t('toolbar.fit')} onClick={fit}>{t('toolbar.fit')}</button>
-        <button type="button" aria-label={t('toolbar.relayout')} onClick={relayout}>{t('toolbar.relayout')}</button>
-        <button type="button" aria-label={t('toolbar.reset')} onClick={reset}>{t('toolbar.reset')}</button>
-        <span className={styles.controlDivider} aria-hidden="true" />
-        <button
-          type="button"
-          aria-label={t('toolbar.locate')}
-          onClick={() => {
-            const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
-            if (viewed !== undefined) locateNode(viewed.key)
-          }}
-        >
-          {t('toolbar.locate')}
-        </button>
-        <span className={styles.controlDivider} aria-hidden="true" />
-        {topic === undefined ? <button
-          type="button"
-          className={styles.mergeToolbarAction}
-          aria-label={t('toolbar.merge')}
-          aria-pressed={mergeMode}
-          disabled={mergeRun.phase === 'submitting'}
-          onClick={() => {
-            if (mergeMode) {
-              closeMerge()
-              return
-            }
-            hidePreview()
-            setSelected(null)
-            setMergeSources([])
-            setMergeInstruction(t('merge.defaultInstruction'))
-            setMergeRun({ phase: 'idle' })
-            setMergeMode(true)
-          }}
-        >
-          {t('toolbar.merge')}
-        </button> : null}
-      </div>
+        <ActionMenu label={t('reading.canvasOptions')}>
+          <div className={styles.canvasMenuZoom} data-menu-keep-open="" role="group" aria-label={t('reading.zoom')}>
+            <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
+            <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>{`${Math.round(viewport.scale * 100)}%`}</button>
+            <button type="button" aria-label={t('toolbar.zoomIn')} onClick={() => { zoomFromCenter(CONTROL_STEP) }}>+</button>
+          </div>
+          <div className={styles.canvasMenuNavigation}>
+            <button type="button" onClick={fit}>{t('toolbar.fit')}</button>
+            <button type="button" onClick={() => {
+              const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
+              if (viewed !== undefined) locateNode(viewed.key)
+            }}>{t('toolbar.locate')}</button>
+          </div>
+          <button type="button" onClick={relayout}>{t('toolbar.relayout')}</button>
+          <button type="button" onClick={reset}>{t('toolbar.reset')}</button>
+          {topic?.actions}
+          {topic === undefined ? <button
+            type="button"
+            className={styles.mergeToolbarAction}
+            aria-label={t('toolbar.merge')}
+            aria-pressed={mergeMode}
+            disabled={mergeRun.phase === 'submitting'}
+            onClick={() => {
+              if (mergeMode) {
+                closeMerge()
+                return
+              }
+              hidePreview()
+              setSelected(null)
+              setMergeSources([])
+              setMergeInstruction(t('merge.defaultInstruction'))
+              setMergeRun({ phase: 'idle' })
+              setMergeMode(true)
+            }}
+          >
+            {t('toolbar.merge')}
+          </button> : null}
+          <div className={styles.canvasLegend} aria-label={t('reading.legend')}>
+            <span><i className={styles.legendLineDerivation} />{t('legend.derivation')}</span>
+            <span><i className={styles.legendLineBranch} />{t('legend.branch')}</span>
+            <span><i className={styles.legendLineMerge} />{t('legend.merge')}</span>
+            {topic === undefined ? null : <><span><i className={styles.legendSource} />{t('knowledge.sourceRelation')}</span>
+              <span><i className={styles.legendReuse} />{t('workbench.reuseEdge')}</span></>}
+          </div>
+        </ActionMenu>
+      </div>, toolbarTarget)}
       {mergeMode
         ? (
           <div
@@ -1929,8 +1910,13 @@ export function GraphCanvas({
         onBranch={onBranch}
         onGenerateDigest={onGenerateDigest}
         onReadHistory={onReadHistory}
-        onClose={() => { setSelected(null) }}
-      /> : topic.renderInspector(selectedNode, () => { setSelected(null) }, () => { setSelected(null); setUnavailableSelection(true) })}
+        onClose={closeInspector}
+      /> : topic.renderInspector(selectedNode, closeInspector, () => { setSelected(null); setUnavailableSelection(true) })}
+      {topic === undefined && shown.nodes.length === 1 && selectedNode === undefined && !mergeMode ? <div className={styles.firstDiscovery} data-canvas-overlay="">
+        <span className={styles.workbenchEyebrow}>{t('reading.discussionCount', { count: 1 })}</span>
+        <h2>{t('reading.firstTitle')}</h2><p>{t('reading.firstHint')}</p>
+        <button type="button" onClick={() => { setSelected(shown.nodes[0]!.node.id) }}>{t('reading.openDiscussion')} <span aria-hidden="true">→</span></button>
+      </div> : null}
       {unavailableSelection ? <div className={styles.reuseNotice} data-canvas-overlay="" role="status">{t('position.unavailable')}
         <button type="button" onClick={() => { setUnavailableSelection(false) }}>{t('panel.close')}</button></div> : null}
       {showMinimap
@@ -1963,7 +1949,7 @@ export function GraphCanvas({
           surface: viewSize,
           insets: {
             top: PREVIEW_TOP_INSET,
-            right: selectedNode === undefined ? 12 : INSPECTOR_RIGHT_INSET,
+            right: selectedNode === undefined ? 12 : measureCanvasRoom(surfaceRef.current)?.rightInset || 12,
           },
         })
         const session = entry.node.kind === 'knowledge' ? undefined : entry.node

@@ -6,14 +6,17 @@ import type { SessionGraphKey } from './locales.ts'
 import { useKnowledge } from './Knowledge.tsx'
 import { useResearchReuse } from './ResearchReuse.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
+import { InspectorFrame } from './InspectorFrame.tsx'
+import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 import styles from './GraphView.module.css'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
 /** One reader for graph inspection and the knowledge desk, with revision-specific actions. */
-export function KnowledgeReader({ card, relations, read, workingKey, t }: {
+export function KnowledgeReader({ card, relations, read, workingKey, inspector, t }: {
   readonly workingKey?: string | undefined
+  readonly inspector?: { readonly onClose: () => void }
   readonly card: KnowledgeCard
   readonly relations: readonly ResearchRelation[]
   readonly read: GraphViewInjected['readSessionHistory']
@@ -28,7 +31,7 @@ export function KnowledgeReader({ card, relations, read, workingKey, t }: {
   const [version, setVersion] = useState(restored?.revisionId ?? '')
   const [source, setSource] = useState<number | undefined>(restored?.sourceIndex)
   const element = useRef<HTMLDivElement>(null)
-  const initialScroll = useRef(restored?.scrollTop)
+  const initialScroll = useRef<number | undefined>(restored?.scrollTop ?? 0)
   useLayoutEffect(() => {
     const panel = element.current?.closest<HTMLElement>('[data-working-scroll]')
     if (initialScroll.current !== undefined && panel) { panel.scrollTop = initialScroll.current; initialScroll.current = undefined }
@@ -41,18 +44,13 @@ export function KnowledgeReader({ card, relations, read, workingKey, t }: {
   }, [workingKey, card.cardId, version, source])
   const revision = card.revisions.find(item => item.revisionId === version) ?? card.revisions.at(-1)!
   const next = relations.filter(item => item.materials.some(material => material.kind === 'card' && material.cardId === card.cardId))
-  return <div ref={element} className={styles.knowledgeReading}>
-    <span className={styles.workbenchEyebrow}>{t('knowledge.title')}</span>
-    <h2>{revision.content.title}</h2>
-    <div className={styles.readingMeta}><span>{t('workbench.saved')}</span><span>{t(revision.content.status === 'confirmed' ? 'workbench.confirmed' : 'workbench.verify')}</span>
+  const meta = <div className={styles.readingMeta}><span>{t('workbench.saved')}</span><span>{t(revision.content.status === 'confirmed' ? 'workbench.confirmed' : 'workbench.verify')}</span>
       <span>{t(`knowledge.kind.${revision.content.kind}`)}</span>
       <label>{t('knowledge.version')}<select value={version} onChange={event => { setVersion(event.target.value); setSource(undefined) }}>
         <option value="">{t('knowledge.versionNumber', { number: card.revisions.at(-1)!.number })}</option>
         {card.revisions.slice(0, -1).map(item => <option key={item.revisionId} value={item.revisionId}>{t('knowledge.versionNumber', { number: item.number })}</option>)}
       </select></label></div>
-    {(['question', 'conclusion', 'rationale', 'openQuestions'] as const).map(field => revision.content[field] ? <section key={field}>
-      {field === 'conclusion' ? null : <h3>{t(`knowledge.field.${field}`)}</h3>}<p className={styles.historyText}>{revision.content[field]}</p></section> : null)}
-    <div className={styles.readingActions}>
+  const actions = <div className={styles.readingActions}>
       {reuse ? <button className={styles.primaryButton} type="button" onClick={() => {
         reuse.continueWith({ kind: 'card', cardId: card.cardId, revisionId: revision.revisionId },
           `${revision.content.title} · ${t('knowledge.versionNumber', { number: revision.number })}`)
@@ -60,6 +58,13 @@ export function KnowledgeReader({ card, relations, read, workingKey, t }: {
       <button type="button" onClick={() => { knowledge?.edit(card.cardId, revision.revisionId) }}>{t('knowledge.edit')}</button>
       <button type="button" onClick={() => { knowledge?.exportCards([{ cardId: card.cardId, title: card.revisions.at(-1)!.content.title }]) }}>{t(version ? 'workbench.exportLatest' : 'export.title')}</button>
     </div>
+  const content = <div ref={element} className={styles.knowledgeReading}>
+    {inspector === undefined ? <><span className={styles.workbenchEyebrow}>{t('knowledge.title')}</span>
+    <h2>{revision.content.title}</h2></> : null}
+    {inspector === undefined ? meta : null}
+    {(['question', 'conclusion', 'rationale', 'openQuestions'] as const).map(field => revision.content[field] ? <section key={field}>
+      {field === 'conclusion' ? null : <h3>{t(`knowledge.field.${field}`)}</h3>}<ResearchMarkdown text={revision.content[field]} t={t} /></section> : null)}
+    {inspector === undefined ? actions : null}
     <section className={styles.readingSources}><h3>{t('workbench.original')}</h3>
       {revision.sources.length ? revision.sources.map((item, index) => <section key={index}>
         <button className={styles.readingSourceLink} type="button" aria-expanded={source === index} onClick={() => { setSource(source === index ? undefined : index) }}>
@@ -78,4 +83,6 @@ export function KnowledgeReader({ card, relations, read, workingKey, t }: {
       }) : <p className={styles.searchMeta}>{t('workbench.nextEmpty')}</p>}
     </section>
   </div>
+  return inspector === undefined ? content : <InspectorFrame label={t('knowledge.title')} title={revision.content.title}
+    meta={meta} actions={actions} workingKey={workingKey} onClose={inspector.onClose} closeLabel={t('reading.close')} t={t}>{content}</InspectorFrame>
 }

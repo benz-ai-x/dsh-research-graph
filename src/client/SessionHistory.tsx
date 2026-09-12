@@ -8,10 +8,12 @@ import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
 import { useResearchReuse } from './ResearchReuse.tsx'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
+import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sourceTitle, sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t }: {
+export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t }: {
   readonly sourceTitle?: string | undefined
+  readonly showSourceTitle?: boolean
   readonly sessionId: string
   readonly anchorSeq?: number
   readonly highlightSeq?: number
@@ -129,11 +131,25 @@ export function SessionHistory({ sourceTitle, sessionId, anchorSeq, highlightSeq
     setSelection({ startSeq, endSeq, turns })
   }
 
+  const captureTurn = (turn: SessionHistoryTurn): void => {
+    if (loading || result?.kind !== 'original' || turn.endSeq === null) return
+    knowledge?.create({ kind: 'discussion', sessionId, startSeq: turn.startSeq, endSeq: turn.endSeq })
+  }
+
+  const captureButton = (turn: SessionHistoryTurn): ReactElement | null => knowledge === undefined || turn.endSeq === null ? null : (
+    <button type="button" className={styles.captureTurn} disabled={loading || result?.kind !== 'original'}
+      aria-label={t('reading.captureTurn', { turn: turn.turn })} onClick={() => { captureTurn(turn) }}>
+      <span aria-hidden="true">＋</span> {t('reading.capture')}
+    </button>
+  )
+
   return (
-    <section ref={element} aria-label={t('history.title')} className={styles.history}>
-      {sourceTitle ? <strong>{sourceTitle}</strong> : null}
-      <details className={styles.historyIdentity}><summary>{t('knowledge.sourceDetails')}</summary>{sessionId}</details>
-      <p className={styles.historyHint}>{t('history.scope')}</p>
+    <section ref={element} aria-label={t('history.title')} className={styles.history} data-has-selection={selection !== undefined}>
+      {sourceTitle && showSourceTitle ? <strong>{sourceTitle}</strong> : null}
+      <details className={styles.historyHelp}><summary>{t('reading.originalInfo')}</summary>
+        <p>{t('history.scope')}</p><p>{t('history.selectHint')}</p>
+        <details className={styles.historyIdentity}><summary>{t('knowledge.sourceDetails')}</summary>{sessionId}</details>
+      </details>
       {loading ? <div role="status">
         <p>{t('history.loading')}</p>
         <button type="button" onClick={() => {
@@ -163,7 +179,7 @@ export function SessionHistory({ sourceTitle, sessionId, anchorSeq, highlightSeq
           if (afterSeq !== undefined) setRequest({ sessionId, afterSeq })
         }}>{t('history.later')}</button>
       </div>
-      {selection === undefined ? <p className={styles.historyHint}>{t('history.selectHint')}</p> : (
+      {selection === undefined ? null : (
         <div className={styles.historySelection}>
           <strong>{t('history.selected', { first: selection.turns[0]?.turn, last: selection.turns.at(-1)?.turn })}</strong>
           <details className={styles.historyIdentity}><summary>{t('knowledge.sourceDetails')}</summary>{t('history.boundary', { start: selection.startSeq, end: selection.endSeq })}</details>
@@ -186,21 +202,26 @@ export function SessionHistory({ sourceTitle, sessionId, anchorSeq, highlightSeq
       )}
       {incompleteRange ? <p role="status">{t('history.incompleteRange')}</p> : null}
       {result?.turns.map(turn => (
-        <article key={turn.startSeq}>
-          <h3>{t('history.turn', { turn: turn.turn })}</h3>
-          <label>
+        <article key={turn.startSeq} className={styles.discussionTurn}>
+          <header className={styles.turnHeader}>
+          <h3><label className={styles.turnSelection}>
             <input type="checkbox" disabled={loading || turn.endSeq === null || result.kind !== 'original'}
               checked={selection !== undefined && turn.startSeq >= selection.startSeq && turn.startSeq <= selection.endSeq}
-              onChange={() => { select(turn) }} />
-            {t('history.selectTurn', { turn: turn.turn })}
-          </label>
+              aria-label={t('history.selectTurn', { turn: turn.turn })} onChange={() => { select(turn) }} />
+            {t('history.turn', { turn: turn.turn })}
+          </label></h3>
+          {captureButton(turn)}
+          </header>
           {turn.endSeq === null ? <p>{t('history.unfinished')}</p> : null}
           {turn.messages.map(message => (
-            <div key={message.seq} className={message.seq === highlightSeq ? styles.historyMatch : undefined}>
-              <strong>{t(message.role === 'user' ? 'history.user' : 'history.assistant')}</strong>
-              <p className={styles.historyText}>{message.text}</p>
+            <div key={message.seq} className={`${styles.discussionMessage} ${message.seq === highlightSeq ? styles.historyMatch : ''}`} data-role={message.role}>
+              <strong className={styles.messageRole}>{t(message.role === 'user' ? 'history.user' : 'history.assistant')}</strong>
+              <ResearchMarkdown text={message.text} t={t} />
             </div>
           ))}
+          {knowledge === undefined || turn.endSeq === null ? null : <footer className={styles.turnFooter}>
+            <span>{t('reading.source', { turn: turn.turn })}</span>{captureButton(turn)}
+          </footer>}
         </article>
       ))}
     </section>

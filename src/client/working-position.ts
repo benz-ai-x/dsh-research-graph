@@ -5,6 +5,8 @@ import { SCALE_MAX, SCALE_MIN } from './viewport.ts'
 
 /** Browser presentation only: identities and cursors, never source text or saved knowledge. */
 export interface WorkingPosition {
+  readonly inspectorExpanded?: boolean
+  readonly inspectorWidth?: number | undefined
   readonly workbenchView?: 'graph' | 'reading'
   readonly knowledgeReading?: { readonly cardId: string; readonly revisionId: string; readonly sourceIndex?: number | undefined; readonly scrollTop: number }
   readonly viewport?: Viewport
@@ -48,6 +50,8 @@ export function loadWorkingPosition(key: string | undefined): WorkingPosition {
         && Number.isSafeInteger(range.endSeq) && (range.startSeq as number) >= 0 && (range.endSeq as number) > (range.startSeq as number))
       .map(([id, range]) => [id, { startSeq: (range as SessionDiscussionRange).startSeq, endSeq: (range as SessionDiscussionRange).endSeq }])) : undefined
     return {
+      ...(typeof value.inspectorExpanded === 'boolean' ? { inspectorExpanded: value.inspectorExpanded } : {}),
+      ...(finite(value.inspectorWidth) && value.inspectorWidth >= 320 && value.inspectorWidth <= 32768 ? { inspectorWidth: value.inspectorWidth } : {}),
       ...(value.workbenchView === 'graph' || value.workbenchView === 'reading' ? { workbenchView: value.workbenchView } : {}),
       ...(object(reading) && string(reading.cardId) && string(reading.revisionId) && finite(reading.scrollTop) && reading.scrollTop >= 0
         ? { knowledgeReading: { cardId: reading.cardId, revisionId: reading.revisionId, scrollTop: reading.scrollTop,
