@@ -12,6 +12,7 @@ import { deriveTopicGraph } from './graph-model.ts'
 import { layoutResearchGraph } from './research-layout.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
+import { InspectorFrame } from './InspectorFrame.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
 import { KnowledgeReader } from './KnowledgeReader.tsx'
@@ -82,8 +83,21 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     return withResearchRelations(withKnowledgeCards(deriveTopicGraph({ sources, topic }, context.sessions, context.viewedId, context.pendingInteractions), cards, context.sessions, archived), relations.relations, context.sessions, context.workspaces)
   }, [snapshot, topic, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions, cards, relations.relations])
   const laid = useMemo(() => graph === undefined ? undefined : layoutResearchGraph(graph), [graph])
+  // Keep the last complete graph while a save refreshes cards and relations.
+  // An incomplete relation result must not unmount the reader or clear selection.
+  const [presented, setPresented] = useState<{
+    readonly graph: NonNullable<typeof graph>
+    readonly laid: NonNullable<typeof laid>
+    readonly relations: typeof relations.relations
+    readonly membership: string
+  }>()
+  useEffect(() => {
+    if (phase === 'ready' && !relations.loading && !relations.failed && graph !== undefined && laid !== undefined) {
+      setPresented({ graph, laid, relations: relations.relations, membership })
+    }
+  }, [phase, relations.loading, relations.failed, graph, laid, relations.relations, membership])
   const open = (id: SessionId): void => {
-    const node = graph?.nodes.get(id)
+    const node = presented?.graph.nodes.get(id)
     const source = node?.kind === 'knowledge' ? undefined : node?.topicSource
     if (source?.status === 'listed' && !source.archived) context.actions.openSession(id)
   }
@@ -104,20 +118,17 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
       {t(phase === 'error' ? 'topic.readError' : 'topic.canceled')}
       <button type="button" onClick={() => { setRevision(value => value + 1) }}>{t('topic.retry')}</button>
     </div> : null}
-    {phase !== 'ready' || relations.loading || relations.failed || graph === undefined || laid === undefined ? null : <>
-      {graph.nodes.size === 0 ? <p>{t('topic.noReferences')}</p> : null}
-      <GraphCanvas key={`${workingKey}:${membership}`} workingKey={workingKey} laid={laid} clusters={graph.clusters}
+    {presented === undefined ? null : <>
+      {presented.graph.nodes.size === 0 ? <p>{t('topic.noReferences')}</p> : null}
+      <GraphCanvas key={`${workingKey}:${presented.membership}`} workingKey={workingKey} laid={presented.laid} clusters={presented.graph.clusters}
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
         topic={{ arrangement, onArrange, openCard: knowledge.open, renderInspector: (node, onClose, onUnavailable) => node === undefined ? null
-          : node.kind === 'knowledge' ? <aside className={`${styles.panel} ${styles.topicSourcePanel}`} data-working-scroll="" data-canvas-overlay="" aria-label={t('knowledge.title')}>
-            <div className={styles.panelHeader}><strong>{t('knowledge.title')}</strong>
-              <button type="button" onClick={onClose} aria-label={t('panel.close')}>×</button></div>
-            <KnowledgeReader key={node.card.cardId} workingKey={workingKey} card={node.card} relations={relations.relations} read={context.actions.readSessionHistory} t={t} />
-          </aside> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
+          : node.kind === 'knowledge' ? <KnowledgeReader key={node.card.cardId} inspector={{ onClose }} workingKey={workingKey}
+            card={node.card} relations={presented.relations} read={context.actions.readSessionHistory} t={t} /> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
-            sessions={context.sessions} workspaces={context.workspaces} busy={busy} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} /></>}
+            sessions={context.sessions} workspaces={context.workspaces} busy={busy || phase !== 'ready' || relations.loading || relations.failed} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} /></>}
   </div>
 }
 
@@ -139,20 +150,16 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailab
   const [reading, setReading] = useState(() => loadWorkingPosition(workingKey).selected === node.id && loadWorkingPosition(workingKey).tab === 'history')
   useEffect(() => { saveWorkingPosition(workingKey, { tab: reading ? 'history' : 'digest' }) }, [workingKey, reading])
   const source = node.topicSource
-  return <aside className={`${styles.panel} ${styles.topicSourcePanel}`} data-working-scroll="" data-canvas-overlay="" data-testid="topic-source-panel" aria-label={t('topic.source')}>
-    <div className={styles.panelHeader}><span className={styles.panelHeading}>{t('topic.source')}</span>
-      <button type="button" className={styles.panelClose} aria-label={t('panel.close')} onClick={onClose}>×</button></div>
-    <h3 className={styles.panelTitle}>{node.title}</h3>
-    <div className={styles.panelMeta}><span>{source?.workspace?.title || source?.cwd || t('topic.noWorkspace')}</span>
-      {source?.archived ? <span>{t('search.archived')}</span> : null}</div>
-
-    {source?.status === 'unavailable' ? <div role="status">{t('topic.unavailable')}</div> : null}
-    {source?.archived ? <div role="status">{t('topic.archivedReading')}</div> : null}
-    <div className={styles.panelActions}>
+  return <InspectorFrame label={t('topic.source')} title={node.title} workingKey={workingKey}
+    testId="topic-source-panel" onClose={onClose} t={t}
+    meta={<div className={styles.panelMeta}><span>{source?.workspace?.title || source?.cwd || t('topic.noWorkspace')}</span>
+      {source?.archived ? <span>{t('search.archived')}</span> : null}</div>} actions={<div className={styles.panelActions}>
       <button type="button" className={styles.panelPrimaryAction} onClick={() => { open(node.id) }} disabled={source?.status !== 'listed' || source.archived}>{t('panel.open')}</button>
       <button type="button" className={styles.panelSecondaryAction} onClick={() => { setReading(value => !value) }}>{t(reading ? 'topic.closeOriginal' : 'topic.readOriginal')}</button>
       {remove === undefined ? null : <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>}
-    </div>
+    </div>}>
+    {source?.status === 'unavailable' ? <div role="status">{t('topic.unavailable')}</div> : null}
+    {source?.archived ? <div role="status">{t('topic.archivedReading')}</div> : null}
     {node.mergeSources.length ? <section className={styles.readingSources}><h3>{t('workbench.mergeFrom')}</h3><p>{t('workbench.mergeCaptured')}</p>{node.mergeSources.map(item => {
       const session = sessions.byId[item.sessionId as SessionId]
       const workspace = workspaces.items.find(workspace => workspace.sessionIds.includes(item.sessionId as SessionId))
@@ -167,6 +174,7 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailab
       </section>
     })}</section> : null}
     {node.reuseRelations?.map(item => <button className={styles.readingSourceLink} type="button" key={item.operationId} onClick={() => { reuse?.inspect(item.operationId) }}><strong>{t('workbench.frozen')}</strong><small>{item.question}</small></button>)}
-    {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sourceTitle={node.title} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { retainedSource: node.retainedSource })} read={read} t={t} /> : null}
-  </aside>
+    {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { retainedSource: node.retainedSource })} read={read} t={t} /> : null}
+
+  </InspectorFrame>
 }

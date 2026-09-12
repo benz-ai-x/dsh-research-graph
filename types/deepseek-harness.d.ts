@@ -95,6 +95,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+declare module '@deepseek-ai/dsh-client-ui-primitives' {
+  export function MarkdownText(props: {
+    readonly text: string
+    readonly labels: { readonly code: { readonly copyLabel: string; readonly copiedLabel: string }; readonly footnotes: string }
+  }): import('react').ReactElement
+}
+
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
   type SessionListState = import('@deepseek-ai/dsh-api-session-controller/client').SessionListState

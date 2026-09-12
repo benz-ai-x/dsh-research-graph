@@ -2,9 +2,9 @@
 import { randomUUID } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { KnowledgeEditor, KnowledgeProvider, useKnowledge } from '../src/client/Knowledge.tsx'
+import { KnowledgeEditor, KnowledgeProvider, KnowledgeSavedNotice, useKnowledge } from '../src/client/Knowledge.tsx'
 import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
-import type { KnowledgeRevision } from '../src/knowledge.ts'
+import type { KnowledgeCard, KnowledgeRevision } from '../src/knowledge.ts'
 import { knowledgeClient, knowledgeContent, knowledgeSource, knowledgeTranslate as t } from './fixtures/knowledge-client.ts'
 
 afterEach(cleanup)
@@ -13,7 +13,7 @@ const address = { kind: 'discussion' as const, sessionId: 'session-a', startSeq:
 function Entry() {
   const knowledge = useKnowledge()!
   return <><button onClick={() => { knowledge.create(address) }}>开始建卡</button>
-    <button onClick={() => { knowledge.extract(address) }}>开始提炼</button></>
+    <button onClick={() => { knowledge.extract(address) }}>开始提炼</button><KnowledgeSavedNotice t={t} /></>
 }
 
 it('preserves saved citations when adding another turn and only removes the explicitly unchecked turn', async () => {
@@ -54,17 +54,20 @@ it('preserves saved citations when adding another turn and only removes the expl
   expect(client.read).not.toHaveBeenCalled()
 })
 
-it('opens a distinct card from a saved card source and returns to the first card after closing it', async () => {
+it('saves a distinct card from a saved source and returns to the first reader with confirmation', async () => {
   const client = knowledgeClient()
-  client.api.save.mockImplementation(async request => ({ cardId: request.cardId, topicIds: [], revisions: [{
+  const cards = new Map<string, KnowledgeCard>()
+  client.api.read.mockImplementation(async request => cards.get(request.cardId) ?? null)
+  client.api.save.mockImplementation(async request => { const card = { cardId: request.cardId, topicIds: [], revisions: [{
     revisionId: request.revisionId, requestHash: 'a'.repeat(64), number: 1, savedAt: 1000,
     content: request.content, sources: [knowledgeSource(request.sources[0]!.kind === 'discussion' ? request.sources[0]!.startSeq / 10 : 1)],
-  }] }))
+  }] }; cards.set(request.cardId, card); return card })
   render(<KnowledgeProvider {...client} t={t}><Entry /></KnowledgeProvider>)
   fireEvent.click(screen.getByRole('button', { name: '开始建卡' }))
   fireEvent.change(screen.getByRole('textbox', { name: '卡片标题' }), { target: { value: '第一张卡片' } })
   await waitFor(() => { expect((screen.getByRole('button', { name: '保存知识' }) as HTMLButtonElement).disabled).toBe(false) })
   fireEvent.click(screen.getByRole('button', { name: '保存知识' }))
+  fireEvent.click(await screen.findByRole('button', { name: '查看知识' }))
   fireEvent.click(await screen.findByRole('button', { name: '查看来源原文' }))
   await waitFor(() => { expect(client.read).toHaveBeenCalled() })
   fireEvent.click(screen.getByRole('button', { name: '加载更晚的讨论' }))
@@ -73,11 +76,12 @@ it('opens a distinct card from a saved card source and returns to the first card
   fireEvent.change(screen.getByRole('textbox', { name: '卡片标题' }), { target: { value: '第二张卡片' } })
   await waitFor(() => { expect((screen.getByRole('button', { name: '保存知识' }) as HTMLButtonElement).disabled).toBe(false) })
   fireEvent.click(screen.getByRole('button', { name: '保存知识' }))
-  await screen.findByRole('heading', { name: '第二张卡片' })
+  await screen.findByRole('heading', { name: '第一张卡片' })
+  expect(screen.getByRole('status').textContent).toContain('已保存「第二张卡片」')
   const requests = client.api.save.mock.calls.map(([request]) => request)
   expect(requests[1]!.cardId).not.toBe(requests[0]!.cardId)
   expect(requests[1]!.sources).toEqual([{ ...address, startSeq: 20, endSeq: 24 }])
-  fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+  expect(screen.getAllByRole('dialog', { name: '知识卡片' })).toHaveLength(1)
   expect(screen.getByRole('heading', { name: '第一张卡片' })).toBeTruthy()
 })
 
@@ -155,8 +159,8 @@ it('keeps an in-flight save mounted and closes the saved revision without a disc
   expect(screen.getByText('正在处理，请等待完成后再关闭。')).toBeTruthy()
   expect(client.api.save.mock.lastCall![1].aborted).toBe(false)
   finish()
-  await screen.findByRole('button', { name: '编辑卡片' })
-  fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+  await waitFor(() => { expect(screen.queryByRole('dialog')).toBeNull() })
+  expect(screen.getByRole('status').textContent).toContain('已保存「保存中的草稿」')
   expect(screen.queryByRole('alertdialog')).toBeNull()
   expect(screen.queryByRole('dialog')).toBeNull()
 })
