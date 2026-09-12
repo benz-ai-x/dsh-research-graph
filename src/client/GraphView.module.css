@@ -240,19 +240,19 @@
 }
 
 .controls {
-  position: absolute;
-  bottom: 12px;
-  left: 12px;
+  position: relative;
+  flex: none;
   display: flex;
   align-items: center;
   z-index: 10;
   gap: 2px;
-  padding: 4px;
+  padding: 0;
   border-radius: 10px;
-  background: var(--dsw-alias-bg-layer-3);
-  border: 1px solid var(--dsw-alias-border-l2);
-  box-shadow: var(--dsw-shadow-lv1);
+  background: transparent;
 }
+
+.canvasZoom, .canvasNavigation { display: flex; align-items: center; gap: 2px; }
+.canvasMenuZoom, .canvasMenuNavigation { display: none; }
 
 .controls button {
   font-size: 12px;
@@ -1792,7 +1792,7 @@
 .workbenchMore .buildInfo { white-space: normal; line-height: 1.5; }
 .readingQuery input, .readingMeta select { min-height: 34px; max-width: 100%; min-width: 0; box-sizing: border-box; padding: 5px 8px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 6px; color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); font: inherit; }
 .workbenchNotice { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 24px 8px; font-size: 13px; }
-.workbenchComposerHint { position: absolute; bottom: calc(var(--dsh-composer-height, 152px) + 1px); left: 20px; right: 20px; margin: 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
+.workbenchComposerHint { min-width: 0; max-width: 220px; margin: 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .workbenchEyebrow { color: var(--dsw-alias-label-secondary); font-size: 11px; letter-spacing: .04em; }
 .readingWorkbench { display: grid; grid-template-columns: minmax(210px, .72fr) minmax(300px, 1.65fr); flex: 1; min-height: 0; overflow: hidden; margin: 4px 20px calc(var(--dsh-composer-height, 152px) + 16px); border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px; }
 .readingCatalog { min-width: 0; overflow: auto; padding: 20px 14px; overscroll-behavior: contain; background: var(--dsw-alias-bg-layer-2); }
@@ -2042,21 +2042,26 @@
   .savedDiscovery button { padding-inline: 4px; white-space: nowrap; }
 }
 
-/* Two levels of chrome: research context above, spatial tools on the canvas. */
+/* Research context and spatial tools share a row above the canvas and reader. */
 .researchContext {
-  display: flex; align-items: center; gap: 10px; flex: none; min-width: 0;
-  min-height: 48px; box-sizing: border-box; padding: 6px 20px;
+  position: relative; z-index: 20; display: flex; align-items: center; gap: 16px; flex: none; min-width: 0;
+  min-height: 48px; box-sizing: border-box; padding: 6px 16px 6px 20px;
   color: var(--dsw-alias-label-primary); font-size: 12px;
 }
+.contextScope { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.topicScope { display: contents; }
+.researchContextTools { display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 60%; margin-left: auto; }
+.canvasToolbarSlot { flex: none; }
+.canvasToolbarSlot:empty { display: none; }
 .researchContext h1 { min-width: 0; margin: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.researchContext .count { color: var(--dsw-alias-label-secondary); font-size: 11px; }
+.researchContext .count { flex: none; color: var(--dsw-alias-label-secondary); font-size: 11px; }
 .contextDivider { color: var(--dsw-alias-border-l2); }
 .scopeSelect, .researchContext .topicSelection select {
   min-height: 32px; min-width: 0; max-width: 100%; box-sizing: border-box; padding: 5px 8px;
   border: 1px solid transparent; border-radius: 6px; font: inherit; color: inherit; background: transparent; cursor: pointer;
 }
 .scopeSelect { max-width: 210px; color: var(--dsw-alias-label-secondary); }
-.researchContext .topicSelection { min-width: 0; max-width: min(480px, 45%); }
+.researchContext .topicSelection { min-width: 0; max-width: 480px; flex: 0 1 auto; }
 .researchContext .topicSelection select { font-weight: 600; text-overflow: ellipsis; }
 .scopeSelect:hover, .researchContext .topicSelection select:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .scopeSelect:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
@@ -2079,37 +2084,54 @@
   border-radius: 10px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--dsw-shadow-lv2);
 }
 .actionMenu[data-above='true'] > .actionMenuBody { top: auto; bottom: calc(100% + 12px); }
-.actionMenuBody > button {
+.actionMenuBody > button, .canvasMenuNavigation > button {
   width: 100%; height: auto; min-height: 34px; padding: 7px 10px; border: 0; border-radius: 5px;
   text-align: left; color: var(--dsw-alias-label-primary); background: transparent; font: inherit; cursor: pointer;
 }
-.actionMenuBody > button:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+.actionMenuBody > button:hover:not(:disabled), .canvasMenuNavigation > button:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
 .actionMenuBody > button:disabled { opacity: .45; cursor: default; }
 .actionMenu button:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 1px; }
 .actionMenuBody p { margin: 6px 8px; line-height: 1.7; color: var(--dsw-alias-label-secondary); }
 .canvasLegend { display: grid; gap: 10px; border-top: 1px solid var(--dsw-alias-border-l2); padding: 12px 10px 6px; color: var(--dsw-alias-label-secondary); }
 .canvasLegend > span { display: flex; align-items: center; gap: 10px; }
-.controls .actionMenuBody { left: auto; right: 0; }
+.controls .actionMenuBody { left: auto; right: 0; max-height: min(520px, calc(100dvh - 250px)); overflow-y: auto; overscroll-behavior: contain; }
 .viewport[data-reader-open='true'] .minimap { display: none; }
-.viewport:has([data-reading-expanded='true'], [data-reading-wide='true']) .controls,
 .viewport:has([data-reading-expanded='true'], [data-reading-wide='true']) .filterBox { visibility: hidden; }
+
+@container research (max-width: 1200px) {
+  .workbenchComposerHint { max-width: 150px; }
+  .canvasNavigation { display: none; }
+  .canvasMenuNavigation { display: grid; }
+}
 
 @container research (max-width: 1000px) {
   .workbenchBrand strong { display: none; }
-  .researchContext { padding-inline: 14px; }
+  .researchContext { padding-inline: 12px; }
+  .researchContextTools { gap: 6px; }
+  .workbenchComposerHint { max-width: 110px; }
 }
 @container research (max-width: 760px) {
   .workbenchHeader { flex-wrap: nowrap; }
   .workbenchActions { width: auto; flex-basis: auto; margin-left: auto; flex-wrap: nowrap; }
   .workbenchActions > .workbenchDesktopAction { display: none; }
   .workbenchCompactActions { display: grid; gap: 8px; }
-  .researchContext { padding: 6px 12px; gap: 6px; display: grid; grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr) auto; }
+  .researchContext { padding: 6px 12px; gap: 6px; }
+  .contextScope { gap: 6px; }
   .researchContext .contextDivider, .researchContext .count { display: none; }
   .researchContext .topicSelection { width: auto; max-width: 100%; }
   .scopeSelect { width: 100%; max-width: none; font-size: 11px; padding-inline: 4px; }
   .researchContext .topicSelection select { padding-inline: 4px; font-size: 12px; }
   .researchContext .arrangementStatus { grid-column: 1 / -1; margin: 0; }
-  .researchContext > .actionMenu .actionMenuBody { left: auto; right: 0; }
+  .contextScope > .actionMenu .actionMenuBody { left: auto; right: 0; }
+  .canvasZoom, .controls > .controlDivider { display: none; }
+  .canvasMenuZoom { display: flex; justify-content: space-between; gap: 6px; padding: 6px; border-bottom: 1px solid var(--dsw-alias-border-l2); }
+  .canvasMenuZoom > button { flex: 1; }
   .workbenchTopics > .readingWorkbench { margin-inline: 8px; }
-  .viewport[data-reader-open='true'] .controls, .viewport[data-reader-open='true'] .filterBox { visibility: hidden; }
+  .viewport[data-reader-open='true'] .filterBox { visibility: hidden; }
+}
+@container research (max-width: 600px) {
+  .researchContext { flex-wrap: wrap; gap: 2px 6px; }
+  .contextScope { flex-basis: 100%; display: grid; grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr) auto; }
+  .researchContextTools { width: 100%; max-width: none; justify-content: flex-end; }
+  .workbenchComposerHint { max-width: calc(100% - 100px); }
 }

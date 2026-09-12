@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react'
 import styles from './GraphView.module.css'
 
+const closesMenu = (target: EventTarget): boolean => target instanceof Element
+  && target.closest('button') !== null && target.closest('[data-menu-keep-open]') === null
+
 /** Secondary actions stay next to their subject without occupying a toolbar row. */
 export function ActionMenu({ label, children, triggerRef, above = false, iconOnly = false }: {
   readonly label: string
@@ -37,8 +40,8 @@ export function ActionMenu({ label, children, triggerRef, above = false, iconOnl
     {open ? <div id={id} className={styles.actionMenuBody} role="group" aria-label={label}
       onClickCapture={event => {
         // Dialogs opened by an action should return to the persistent trigger.
-        if (event.target instanceof Element && event.target.closest('button')) trigger.current?.focus({ preventScroll: true })
-      }} onClick={event => { if (event.target instanceof Element && event.target.closest('button')) setOpen(false) }}>
+        if (closesMenu(event.target)) trigger.current?.focus({ preventScroll: true })
+      }} onClick={event => { if (closesMenu(event.target)) setOpen(false) }}>
       {children}
     </div> : null}
   </div>

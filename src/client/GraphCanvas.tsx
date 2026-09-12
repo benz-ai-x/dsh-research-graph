@@ -12,6 +12,7 @@ import clsx from 'clsx'
 import {
   useCallback, useEffect, useId, useMemo, useRef, useState, type ReactElement,
 } from 'react'
+import { createPortal } from 'react-dom'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionDigest } from '../session-digest.ts'
 import { SessionHistory } from './SessionHistory.tsx'
@@ -768,7 +769,7 @@ const CARD_H_MAP = 4
  */
 export function GraphCanvas({
   laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory,
-  onMerge, onRetryMerge, topic, onAddToTopic, workingKey,
+  onMerge, onRetryMerge, topic, onAddToTopic, workingKey, toolbarTarget,
 }: {
   laid: LaidOutGraph
   clusters: readonly ClusterInfo[]
@@ -790,6 +791,7 @@ export function GraphCanvas({
     readonly openCard?: (cardId: string) => void
   }
   workingKey?: string
+  readonly toolbarTarget: HTMLElement | null
 }): ReactElement {
   const [restored] = useState(() => loadWorkingPosition(workingKey))
   const surfaceRef = useRef<HTMLDivElement | null>(null)
@@ -1689,26 +1691,43 @@ export function GraphCanvas({
           )
           : null}
       </div>
-      <div className={styles.controls} data-canvas-overlay="" role="group" aria-label={t('toolbar.label')}>
-        <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
-        <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>
-          {`${Math.round(viewport.scale * 100)}%`}
-        </button>
-        <button type="button" aria-label={t('toolbar.zoomIn')} onClick={() => { zoomFromCenter(CONTROL_STEP) }}>+</button>
+      {toolbarTarget === null ? null : createPortal(<div className={styles.controls} data-canvas-overlay="" role="group" aria-label={t('toolbar.label')}
+        onPointerDown={event => { event.stopPropagation() }} onKeyDown={event => { event.stopPropagation() }}>
+        <div className={styles.canvasZoom}>
+          <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
+          <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>
+            {`${Math.round(viewport.scale * 100)}%`}
+          </button>
+          <button type="button" aria-label={t('toolbar.zoomIn')} onClick={() => { zoomFromCenter(CONTROL_STEP) }}>+</button>
+        </div>
+        <div className={styles.canvasNavigation}>
+          <span className={styles.controlDivider} aria-hidden="true" />
+          <button type="button" aria-label={t('toolbar.fit')} onClick={fit}>{t('toolbar.fit')}</button>
+          <button
+            type="button"
+            aria-label={t('toolbar.locate')}
+            onClick={() => {
+              const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
+              if (viewed !== undefined) locateNode(viewed.key)
+            }}
+          >
+            {t('toolbar.locate')}
+          </button>
+        </div>
         <span className={styles.controlDivider} aria-hidden="true" />
-        <button type="button" aria-label={t('toolbar.fit')} onClick={fit}>{t('toolbar.fit')}</button>
-        <button
-          type="button"
-          aria-label={t('toolbar.locate')}
-          onClick={() => {
-            const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
-            if (viewed !== undefined) locateNode(viewed.key)
-          }}
-        >
-          {t('toolbar.locate')}
-        </button>
-        <span className={styles.controlDivider} aria-hidden="true" />
-        <ActionMenu label={t('reading.canvasOptions')} above>
+        <ActionMenu label={t('reading.canvasOptions')}>
+          <div className={styles.canvasMenuZoom} data-menu-keep-open="" role="group" aria-label={t('reading.zoom')}>
+            <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
+            <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>{`${Math.round(viewport.scale * 100)}%`}</button>
+            <button type="button" aria-label={t('toolbar.zoomIn')} onClick={() => { zoomFromCenter(CONTROL_STEP) }}>+</button>
+          </div>
+          <div className={styles.canvasMenuNavigation}>
+            <button type="button" onClick={fit}>{t('toolbar.fit')}</button>
+            <button type="button" onClick={() => {
+              const viewed = shown.nodes.find(entry => entry.node.kind !== 'knowledge' && entry.node.viewed)
+              if (viewed !== undefined) locateNode(viewed.key)
+            }}>{t('toolbar.locate')}</button>
+          </div>
           <button type="button" onClick={relayout}>{t('toolbar.relayout')}</button>
           <button type="button" onClick={reset}>{t('toolbar.reset')}</button>
           {topic?.actions}
@@ -1741,7 +1760,7 @@ export function GraphCanvas({
               <span><i className={styles.legendReuse} />{t('workbench.reuseEdge')}</span></>}
           </div>
         </ActionMenu>
-      </div>
+      </div>, toolbarTarget)}
       {mergeMode
         ? (
           <div

@@ -112,6 +112,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
   const [view, setView] = useState<'graph' | 'reading'>(() => loadWorkingPosition(workbenchKey).workbenchView ?? 'graph')
   const [mergeOpen, setMergeOpen] = useState(false)
   const [mergedTarget, setMergedTarget] = useState<SessionId>()
+  const [toolbarTarget, setToolbarTarget] = useState<HTMLDivElement | null>(null)
   const mergeTrigger = useRef<HTMLButtonElement>()
   useEffect(() => { saveWorkingPosition(workbenchKey, { workbenchView: view }) }, [workbenchKey, view])
   const closeMerge = (): void => { setMergeOpen(false); queueMicrotask(() => { mergeTrigger.current?.focus() }) }
@@ -153,6 +154,11 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
     <option value="workspace">{view === 'reading' ? t('knowledge.all') : t(scope?.kind === 'directory' ? 'reading.directory' : 'workbench.workspace')}</option>
     <option value="topics">{t('workbench.topics')}</option>
   </select>
+  const chatTarget = t('reading.chatTarget', { title: sessions.byId[sessionId]?.displayTitle || t('node.newSession') })
+  const contextTools = <div className={styles.researchContextTools}>
+    <p className={styles.workbenchComposerHint} title={`${chatTarget}\n${t('reading.chatHint')}`}>{chatTarget}</p>
+    <div className={styles.canvasToolbarSlot} ref={setToolbarTarget} />
+  </div>
 
   return (
     // The free canvas owns its viewport. Extend the view behind the floating
@@ -185,17 +191,20 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
           </div>
         </header>
         {topicMode ? null : <div className={styles.researchContext}>
-          {scopeControl}<span className={styles.contextDivider} aria-hidden="true">/</span>
-          <h1>{view === 'reading' ? t('knowledge.title') : scope?.label || t('reading.directory')}</h1>
-          {view === 'reading' || scope === undefined ? null : <span className={styles.count}>{t('reading.discussionCount', { count: graph.sessionCount })}</span>}
+          <div className={styles.contextScope}>
+            {scopeControl}<span className={styles.contextDivider} aria-hidden="true">/</span>
+            <h1>{view === 'reading' ? t('knowledge.title') : scope?.label || t('reading.directory')}</h1>
+            {view === 'reading' || scope === undefined ? null : <span className={styles.count}>{t('reading.discussionCount', { count: graph.sessionCount })}</span>}
+          </div>
+          {contextTools}
         </div>}
         <KnowledgeSavedNotice t={t} />
         {mergedTarget ? <div className={styles.workbenchNotice} role="status">{t('workbench.mergeSaved')} <button type="button" onClick={() => { openSession(mergedTarget) }}>{t('panel.open')}</button><button type="button" onClick={() => { setMergedTarget(undefined) }} aria-label={t('panel.close')}>×</button></div> : null}
-        {topicMode ? <ResearchTopics key={workingKey} scopeControl={scopeControl} api={topics} refresh={topicRevision} view={view} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
+        {topicMode ? <ResearchTopics key={workingKey} scopeControl={scopeControl} contextTools={contextTools} api={topics} refresh={topicRevision} view={view} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId, toolbarTarget,
           workingKey, actions: { ...props, hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : view === 'reading' ? <KnowledgeLibrary key={workingKey} workingKey={workingKey} actions={props} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas
-          key={workingKey} workingKey={workingKey} laid={laid}
+          key={workingKey} workingKey={workingKey} laid={laid} toolbarTarget={toolbarTarget}
           clusters={graph.clusters}
           arrangement={{ key: workingKey, legacyKey: undefined }}
           now={now}
@@ -208,9 +217,6 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
           onRetryMerge={retrySessionMerge}
           onAddToTopic={addToTopic}
         />}
-        <p className={styles.workbenchComposerHint} title={t('reading.chatHint')}>
-          <span aria-hidden="true">↳</span> {t('reading.chatTarget', { title: sessions.byId[sessionId]?.displayTitle || t('node.newSession') })}
-        </p>
       </div>
       <ResearchMerge props={props} visible={mergeOpen} close={closeMerge} completed={(target, topicId) => {
         setMergedTarget(target)

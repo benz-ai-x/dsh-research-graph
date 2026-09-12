@@ -25,6 +25,7 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
 export interface TopicGraphContext {
+  readonly toolbarTarget: HTMLElement | null
   readonly workingKey: string
   readonly sessions: SessionListState
   readonly workspaces: WorkspaceSnapshot
@@ -114,7 +115,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     </div> : null}
     {presented === undefined ? null : <>
       {presented.graph.nodes.size === 0 ? <p>{t('topic.noReferences')}</p> : null}
-      <GraphCanvas key={`${workingKey}:${presented.membership}`} workingKey={workingKey} laid={presented.laid} clusters={presented.graph.clusters}
+      <GraphCanvas key={`${workingKey}:${presented.membership}`} workingKey={workingKey} laid={presented.laid} clusters={presented.graph.clusters} toolbarTarget={context.toolbarTarget}
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}

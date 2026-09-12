@@ -13,11 +13,12 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
 /** Owns drafts and durable writes while the topic collection is open. */
-export function ResearchTopics({ api, context, add, scopeControl, refresh = 0, view = 'graph', t }: {
+export function ResearchTopics({ api, context, add, scopeControl, contextTools, refresh = 0, view = 'graph', t }: {
   readonly api: GraphViewInjected['topics']
   readonly context?: TopicGraphContext
   readonly add?: { readonly sessionId: string; readonly done: () => void }
   readonly scopeControl?: ReactNode
+  readonly contextTools?: ReactNode
   readonly refresh?: number
   readonly view?: 'graph' | 'reading'
   readonly t: Translate
@@ -121,21 +122,24 @@ export function ResearchTopics({ api, context, add, scopeControl, refresh = 0, v
   return <section className={`${styles.topics} ${scopeControl === undefined ? '' : styles.workbenchTopics}`} aria-label={t('topic.title')}>
     {scopeControl === undefined ? <p className={styles.topicDescription}>{t('topic.description')}</p> : null}
     <div className={scopeControl === undefined ? styles.topicToolbar : styles.researchContext}>
-      {scopeControl}
-      {scopeControl === undefined ? null : <span className={styles.contextDivider} aria-hidden="true">/</span>}
-      {items.length === 0 ? null : <label className={styles.topicSelection}>
-        {scopeControl === undefined ? t('topic.choose') : null}<select aria-label={t('topic.choose')} value={selectedId} disabled={busy || phase !== 'ready'}
-          onChange={event => { setSelectedId(event.target.value); setRenaming(false); setFailed(false); setUnavailable(false) }}>
-          <option value="">{t('topic.choose')}</option>
-          {items.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title} ({topic.references.length})</option>)}
-        </select></label>}
-      {phase !== 'ready' || items.length === 0 ? null : <ActionMenu label={t('reading.topicOptions')} triggerRef={menuButton} iconOnly>
-        <button type="button" disabled={busy} aria-expanded={creating} onClick={() => { setCreating(value => !value); setRenaming(false) }}>{t('topic.new')}</button>
-        {selected === undefined || add !== undefined ? null : <button type="button" disabled={busy} aria-expanded={renaming}
-          onClick={() => { setRenaming(value => !value); setCreating(false) }}>{t('topic.rename')}</button>}
-        <p>{t('topic.description')}</p>
-      </ActionMenu>}
-      {arrangementControls}
+      <div className={scopeControl === undefined ? styles.topicScope : styles.contextScope}>
+        {scopeControl}
+        {scopeControl === undefined ? null : <span className={styles.contextDivider} aria-hidden="true">/</span>}
+        {items.length === 0 ? null : <label className={styles.topicSelection}>
+          {scopeControl === undefined ? t('topic.choose') : null}<select aria-label={t('topic.choose')} value={selectedId} disabled={busy || phase !== 'ready'}
+            onChange={event => { setSelectedId(event.target.value); setRenaming(false); setFailed(false); setUnavailable(false) }}>
+            <option value="">{t('topic.choose')}</option>
+            {items.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title} ({topic.references.length})</option>)}
+          </select></label>}
+        {phase !== 'ready' || items.length === 0 ? null : <ActionMenu label={t('reading.topicOptions')} triggerRef={menuButton} iconOnly>
+          <button type="button" disabled={busy} aria-expanded={creating} onClick={() => { setCreating(value => !value); setRenaming(false) }}>{t('topic.new')}</button>
+          {selected === undefined || add !== undefined ? null : <button type="button" disabled={busy} aria-expanded={renaming}
+            onClick={() => { setRenaming(value => !value); setCreating(false) }}>{t('topic.rename')}</button>}
+          <p>{t('topic.description')}</p>
+        </ActionMenu>}
+        {arrangementControls}
+      </div>
+      {contextTools}
     </div>
     {unavailable ? <p role="status">{t('position.topicUnavailable')}</p> : null}
     {phase === 'loading' ? <p role="status">{t('topic.loading')}</p> : phase === 'error' ? <div role="alert">

@@ -83,7 +83,7 @@ describe('reading and capture continuity', () => {
     expect(screen.getByRole('table').textContent).toContain('P95')
     expect(screen.getByText('结论', { selector: 'strong' })).toBeTruthy()
     expect(screen.getByText('保留原始内容', { selector: 'code' })).toBeTruthy()
-    expect(screen.getByText('底部对话 · 正在聊天的讨论')).toBeTruthy()
+    expect(screen.getByText('输入会话 · 正在聊天的讨论')).toBeTruthy()
     const scrollId = scope === 'topic' ? 'topic-source-panel-scroll' : 'session-graph-panel-scroll'
     const scroller = screen.getByTestId(scrollId)
     scroller.scrollTop = 320
@@ -1890,6 +1890,70 @@ function stubSize(width: number, height: number): void {
 describe('free viewport controls', () => {
   const surface = (): HTMLElement =>
     document.querySelector<HTMLElement>('[aria-label="会话关系图谱"]') as HTMLElement
+
+  it.each(['workspace', 'topic'] as const)('keeps %s tools beside the input target and isolates their keys from the canvas', async scope => {
+    const b = await bench({ a: session('a', { displayTitle: '实际发送会话' }), b: session('b', { displayTitle: '正在检查的会话' }) })
+    const references = [{ sessionId: 'a', title: '实际发送会话', cwd: '/w' }, { sessionId: 'b', title: '正在检查的会话', cwd: '/w' }]
+    const topic = { topicId: 'research', title: '研究主题', references, arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: references.map(reference => ({ ...reference, archived: false, status: 'listed' as const })) } })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    if (scope === 'topic') {
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+      await waitFor(() => { expect(document.querySelector('[data-node-id="b"]')).not.toBeNull() })
+    }
+    fireEvent.click(nodeButton('b'))
+    const inspector = screen.getByTestId(scope === 'topic' ? 'topic-source-panel' : 'session-graph-panel')
+    const toolbar = screen.getByRole('group', { name: '画布工具' })
+    expect(surface().contains(toolbar)).toBe(false)
+    expect(toolbar.parentElement?.parentElement?.textContent).toContain('输入会话 · 实际发送会话')
+    const readout = within(toolbar).getByRole('button', { name: '缩放至 100%' })
+    const before = readout.textContent
+    readout.focus()
+    for (const key of ['ArrowLeft', '+', 'Escape']) fireEvent.keyDown(readout, { key })
+    expect(readout.textContent).toBe(before)
+    expect(document.activeElement).toBe(readout)
+    expect(inspector.isConnected).toBe(true)
+    fireEvent.pointerDown(within(toolbar).getByRole('button', { name: '放大' }), { pointerId: 7, button: 0 })
+    fireEvent.click(within(toolbar).getByRole('button', { name: '放大' }))
+    const zoomed = readout.textContent
+    expect(zoomed).not.toBe(before)
+    expect(inspector.isConnected).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: '知识库', exact: true }))
+    expect(screen.queryByRole('group', { name: '画布工具' })).toBeNull()
+    expect(screen.getByText('输入会话 · 实际发送会话')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '图谱', exact: true }))
+    await screen.findByRole('group', { name: '画布工具' })
+    expect(screen.getAllByRole('group', { name: '画布工具' })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe(zoomed)
+    expect(b.open).not.toHaveBeenCalled()
+  })
+
+  it('keeps menu zoom available for repeated steps and returns focus without closing the inspector', async () => {
+    const b = await bench(FIXTURE)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('root'))
+    const options = screen.getByRole('button', { name: '图谱选项' })
+    fireEvent.click(options)
+    const menu = screen.getByRole('group', { name: '图谱选项' })
+    expect(options.parentElement?.dataset.above).toBe('false')
+    const zoom = within(menu).getByRole('group', { name: '图谱缩放' })
+    const readout = within(zoom).getByRole('button', { name: '缩放至 100%' })
+    fireEvent.click(readout)
+    const plus = within(zoom).getByRole('button', { name: '放大' })
+    plus.focus()
+    fireEvent.click(plus)
+    fireEvent.click(plus)
+    expect(readout.textContent).toBe('144%')
+    expect(document.activeElement).toBe(plus)
+    expect(menu.isConnected).toBe(true)
+    fireEvent.keyDown(plus, { key: 'Escape' })
+    expect(screen.queryByRole('group', { name: '图谱选项' })).toBeNull()
+    expect(document.activeElement).toBe(options)
+    expect(screen.getByTestId('session-graph-panel')).toBeTruthy()
+  })
 
   it('renders the zoom controls with a percentage readout', async () => {
     const b = await bench(FIXTURE)

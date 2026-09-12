@@ -98,6 +98,7 @@ async function loadArtifact(): Promise<{ readonly handoff: Handoff; readonly plu
   const shared = new Map<string, unknown>([
     ['react', await import('react')],
     ['react/jsx-runtime', await import('react/jsx-runtime')],
+    ['react-dom', await import('react-dom')],
     // Only factory wiring is exercised here; rendered Markdown uses the real
     // matching Host in views.client.spec.tsx and packed-profile acceptance.
     ['@deepseek-ai/dsh-client-ui-primitives', { MarkdownText: () => { throw new Error('Use the Harness suite for Markdown rendering') } }],
