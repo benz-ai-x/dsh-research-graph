@@ -179,15 +179,19 @@ export class KnowledgeService extends TypertRemoteService {
 
   private synthesis(save: SynthesisSave, targetId: string): KnowledgeSynthesis {
     const source = save.source
-    if (source.kind === 'preparation' && this.domain.table('cards').get(targetId) !== undefined) throw new Error('Save synthesis as an independent card')
+    const target = this.domain.table('cards').get(targetId)
+    if (source.kind === 'preparation' && target !== undefined
+      && target.revisions[0]?.synthesis?.preparationId !== source.preparationId) throw new Error('Save synthesis as an independent card')
     if (source.kind === 'revision' && source.cardId !== targetId) throw new Error('Edit the original synthesis card revision')
-    const materials = source.kind === 'preparation' ? this.domain.table('synthesis_sources').get(source.preparationId)?.preparation.materials
-      : this.domain.table('cards').get(source.cardId)?.revisions.find(revision => revision.revisionId === source.revisionId)?.synthesis?.materials
+    const retained = source.kind === 'preparation' ? this.domain.table('synthesis_sources').get(source.preparationId)?.preparation
+      : target?.revisions.find(revision => revision.revisionId === source.revisionId)?.synthesis
+    const materials = retained?.materials
     if (materials === undefined) throw new Error('Frozen synthesis materials are unavailable')
     if (materials.some(material => material.kind === 'card' && material.cardId === targetId)) throw new Error('Save synthesis as an independent card')
     const verified = verifySynthesisClaims(materials, save.claims)
     if (verified.invalidCitations > 0) throw new Error('A citation is outside the frozen material; remove or correct it before saving')
-    return { materials, claims: verified.claims }
+    return { materials, claims: verified.claims,
+      ...(retained?.preparationId === undefined ? {} : { preparationId: retained.preparationId }) }
   }
 
   @Remote('prepareExtraction')

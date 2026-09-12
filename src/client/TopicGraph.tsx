@@ -97,13 +97,12 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     readonly graph: NonNullable<typeof graph>
     readonly laid: NonNullable<typeof laid>
     readonly relations: typeof relations.relations
-    readonly membership: string
   }>()
   useEffect(() => {
     if (phase === 'ready' && !relations.loading && !relations.failed && graph !== undefined && laid !== undefined) {
-      setPresented({ graph, laid, relations: relations.relations, membership })
+      setPresented({ graph, laid, relations: relations.relations })
     }
-  }, [phase, relations.loading, relations.failed, graph, laid, relations.relations, membership])
+  }, [phase, relations.loading, relations.failed, graph, laid, relations.relations])
   const open = (id: SessionId): void => {
     const node = presented?.graph.nodes.get(id)
     const source = node?.kind === 'knowledge' ? undefined : node?.topicSource
@@ -122,7 +121,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     </div> : null}
     {presented === undefined ? null : <>
       {presented.graph.nodes.size === 0 ? <p>{t('topic.noReferences')}</p> : null}
-      <GraphCanvas key={`${workingKey}:${presented.membership}`} workingKey={workingKey} laid={presented.laid} clusters={presented.graph.clusters} toolbarTarget={context.toolbarTarget}
+      <GraphCanvas key={workingKey} workingKey={workingKey} laid={presented.laid} clusters={presented.graph.clusters} toolbarTarget={context.toolbarTarget}
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onGenerateTitle={context.actions.generateSessionTitle} onRenameTitle={context.actions.renameSessionTitle}

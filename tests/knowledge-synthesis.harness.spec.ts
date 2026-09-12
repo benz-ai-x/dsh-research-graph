@@ -42,6 +42,33 @@ async function fixture() {
 }
 
 describe('Knowledge synthesis public Host workflow', () => {
+  it('recovers an amended save after a lost receipt without adopting another card or preparation', async () => {
+    const original = await fixture()
+    const preparation = await original.ctx.sessionGraphKnowledge.prepareSynthesis(original.request, signal())
+    const save = {
+      cardId: randomUUID(), revisionId: randomUUID(), topicId: original.topicId,
+      content: content('综合初稿', '保留双方条件'), sources: [],
+      synthesis: { source: { kind: 'preparation' as const, preparationId: preparation.preparationId },
+        claims: [{ category: 'question' as const, text: '需要进一步验证条件', citations: [] }] },
+    }
+    // The Host committed this save, but its receipt never reached the draft editor.
+    const first = await original.ctx.sessionGraphKnowledge.save(save, signal())
+    await original.ctx.fiber.dispose()
+    const host = await topicHost(original.root, cleanups)
+    const amended = { ...save, revisionId: randomUUID(), content: { ...save.content, title: '已人工修订的综合' } }
+    const saved = await host.ctx.sessionGraphKnowledge.save(amended, signal())
+    expect(saved.revisions).toHaveLength(2)
+    expect(saved.revisions[0]).toEqual(first.revisions[0])
+    expect(saved.revisions[1]!.content.title).toBe('已人工修订的综合')
+    expect(saved.revisions[1]!.synthesis?.materials).toEqual(preparation.materials)
+    expect(await host.ctx.sessionGraphKnowledge.save(amended, signal())).toEqual(saved)
+    const unrelated = await host.ctx.sessionGraphKnowledge.prepareSynthesis({ ...original.request, operationId: randomUUID(), materials: original.request.materials.slice(0, 2) }, signal())
+    await expect(host.ctx.sessionGraphKnowledge.save({ ...amended, revisionId: randomUUID(), synthesis: {
+      ...amended.synthesis, source: { kind: 'preparation', preparationId: unrelated.preparationId },
+    } }, signal())).rejects.toThrow('independent')
+    await expect(host.ctx.sessionGraphKnowledge.save({ ...amended, cardId: original.cards[0]!.cardId, revisionId: randomUUID() }, signal())).rejects.toThrow('independent')
+  })
+
   it('freezes mixed sources, retains both conflicting premises and saves a reviewed independent card after sources change and Host restarts', async () => {
     const original = await fixture()
     const before = original.source.snapshotEvents()

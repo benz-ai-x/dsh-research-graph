@@ -58,8 +58,9 @@ export const synthesisSaveSchema = { parse(value: unknown): SynthesisSave {
   return { source: { kind: 'revision', cardId: uuid(source.cardId), revisionId: uuid(source.revisionId) }, claims: claims(item.claims) }
 } }
 export const knowledgeSynthesisSchema = { parse(value: unknown): KnowledgeSynthesis {
-  const item = object(value, ['materials', 'claims'])
-  return { materials: materials(item.materials), claims: claims(item.claims) }
+  const item = object(value, ['materials', 'claims', 'preparationId'])
+  return { materials: materials(item.materials), claims: claims(item.claims),
+    ...(item.preparationId === undefined ? {} : { preparationId: uuid(item.preparationId) }) }
 } }
 export const synthesisPreparationSchema = { parse(value: unknown): SynthesisPreparation {
   const item = object(value, ['preparationId', 'topicId', 'question', 'materials', 'claims', 'materialText', 'budgetChars', 'route'])

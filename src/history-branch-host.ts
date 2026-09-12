@@ -150,8 +150,6 @@ export class HistoryBranchService extends TypertRemoteService {
         // Once the frozen seed is journaled, finish creation despite a disconnected browser.
         if (stored.record.stage === 'prepared') {
           await this.persist(stored.seed!)
-          stored = { ...stored, record: { ...stored.record, stage: 'created' } }
-          await table.put(operationId, stored)
         }
         const { record, seed } = stored
         const cwd = seed?.header.cwd
@@ -161,10 +159,14 @@ export class HistoryBranchService extends TypertRemoteService {
           ?? workspaces.find(item => item.path === seed!.header.cwd)
         await this.ctx.sessionController.create({ sessionId: record.targetSessionId as SessionId,
           ...(workspace === undefined ? { cwd } : { workspaceId: workspace.id }) })
+        if (stored.record.stage === 'prepared') {
+          stored = { ...stored, record: { ...stored.record, stage: 'created' } }
+          await table.put(operationId, stored)
+        }
         await this.ctx.sessionController.rename({ sessionId: record.targetSessionId as SessionId, title: record.title })
         if (record.topicId !== undefined) await this.ctx.sessionGraphTopics.write({ kind: 'add', topicId: record.topicId,
           sessionIds: [record.sessionId, record.targetSessionId] }, new AbortController().signal)
-        const { error: _, ...ready } = record
+        const { error: _, ...ready } = stored.record
         stored = { ...stored, record: { ...ready, stage: 'ready' } }
         await table.put(operationId, stored)
         return stored.record

@@ -89,6 +89,20 @@ describe('Historical branch public Host workflow', () => {
     expect((await host.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
   })
 
+  it('keeps a persisted seed prepared until native creation acknowledges the same child', async () => {
+    const host = await fixture()
+    const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
+    const create = vi.spyOn(host.ctx.sessionController, 'create').mockRejectedValueOnce(new Error('Native adoption unavailable'))
+      .mockImplementation(async request => ({ sessionId: request.sessionId! }))
+    vi.spyOn(host.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
+    expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal()))
+      .toMatchObject({ stage: 'prepared', error: 'Native adoption unavailable' })
+    expect(await host.ctx.sessionPersistence.stat(preview.targetSessionId as SessionId)).toBeDefined()
+    expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).toMatchObject({ stage: 'ready' })
+    expect(create.mock.calls.map(([request]) => request.sessionId)).toEqual([preview.targetSessionId, preview.targetSessionId])
+    expect((await host.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
+  })
+
   it('recovers the already persisted seed when the independent operation journal becomes unwritable', async () => {
     const host = await fixture()
     const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
