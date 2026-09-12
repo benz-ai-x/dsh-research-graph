@@ -25,7 +25,9 @@ export function apply(ctx) {
         yield { type: 'finish', reason: { kind: 'stop' } }
         return
       }
-      const text = options.system?.startsWith('Create a concise digest')
+      const text = options.system?.startsWith('Suggest a concise Session title')
+        ? JSON.stringify({ title: 'Fixture cache research' })
+        : options.system?.startsWith('Create a concise digest')
         ? JSON.stringify({ overview: 'Fixture digest.', keyOutcomes: ['Fixture completed.'], openItems: [] })
         : 'Fixture response.'
       yield { type: 'text-delta', index: 0, text }
@@ -170,9 +172,20 @@ export function apply(ctx) {
     } finally {
       await reader.close()
     }
+    const title = await ctx.typertGateway.invoke({ namespace: 'sessionGraphTitle', method: 'generate', args: { request: { sessionId: sourceIds[0] } }, signal })
+    assert.equal(title.kind, 'ready')
+    assert.equal(title.title, 'Fixture cache research')
+    sourceIds.forEach((id, index) => assert.deepEqual(ctx.agents.get(id).session.snapshotEvents(), before[index]))
+    const renamed = await ctx.sessionController.rename({ sessionId: sourceIds[0], title: title.title })
+    assert.equal(renamed.title, title.title)
+    const afterRename = ctx.agents.get(sourceIds[0]).session.snapshotEvents()
+    assert.deepEqual(afterRename.slice(0, before[0].length), before[0])
+    assert.equal(afterRename.length, before[0].length + 1)
+    assert.equal(afterRename.at(-1).type, 'session/title')
+    assert.equal(afterRename.at(-1).data.source.kind, 'user')
     assert.ok(calls >= 4)
     return { ok: true, sources: sourceIds.length, durableTopics: true, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
-      acceptedReuse: true, frozenMarkdown: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, fixtureModelCalls: calls }
+      acceptedReuse: true, frozenMarkdown: true, readonlyTitleSuggestion: true, nativeTitleRename: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {

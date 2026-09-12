@@ -15,6 +15,8 @@ import {
 import { createPortal } from 'react-dom'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionDigest } from '../session-digest.ts'
+import { SessionTitleControl } from './SessionTitleControl.tsx'
+import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
 import { ActionMenu } from './ActionMenu.tsx'
@@ -331,13 +333,13 @@ function DigestSection({
         className={styles.digestBody}
         data-testid="session-digest-scroll"
       >
-        <p className={styles.digestOverview}>{ready.digest.overview}</p>
+        <div className={styles.digestOverview}><ResearchMarkdown text={ready.digest.overview} t={t} /></div>
         {ready.digest.keyOutcomes.length === 0
           ? null
           : (
             <div className={styles.digestGroup}>
               <div className={styles.digestGroupTitle}>{t('digest.outcomes')}</div>
-              <ul>{ready.digest.keyOutcomes.map((item, index) => <li key={`${String(index)}:${item}`}>{item}</li>)}</ul>
+              <ul>{ready.digest.keyOutcomes.map((item, index) => <li key={`${String(index)}:${item}`}><ResearchMarkdown text={item} t={t} /></li>)}</ul>
             </div>
           )}
         {ready.digest.openItems.length === 0
@@ -345,7 +347,7 @@ function DigestSection({
           : (
             <div className={styles.digestGroup}>
               <div className={styles.digestGroupTitle}>{t('digest.openItems')}</div>
-              <ul>{ready.digest.openItems.map((item, index) => <li key={`${String(index)}:${item}`}>{item}</li>)}</ul>
+              <ul>{ready.digest.openItems.map((item, index) => <li key={`${String(index)}:${item}`}><ResearchMarkdown text={item} t={t} /></li>)}</ul>
             </div>
           )}
         <div className={styles.digestMeta}>
@@ -427,7 +429,7 @@ function DigestSection({
 }
 
 function SelectedSessionPanel({
-  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory, onClose, onAddToTopic, workingKey, onUnavailable,
+  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onGenerateTitle, onRenameTitle, onReadHistory, onClose, onAddToTopic, workingKey, onUnavailable,
 }: {
   node: SessionGraphNode | undefined
   branchedFrom: string | undefined
@@ -436,6 +438,8 @@ function SelectedSessionPanel({
   t: Translate
   onOpen: GraphViewInjected['openSession']
   onBranch: GraphViewInjected['branchSession']
+  onGenerateTitle: GraphViewInjected['generateSessionTitle']
+  onRenameTitle: GraphViewInjected['renameSessionTitle']
   onGenerateDigest: GraphViewInjected['generateSessionDigest']
   onReadHistory: GraphViewInjected['readSessionHistory']
   onClose: () => void
@@ -540,7 +544,7 @@ function SelectedSessionPanel({
   return (
     <InspectorFrame label={t('panel.title')} title={node.blank ? t('node.newSession') : node.title}
       workingKey={workingKey} testId="session-graph-panel" onClose={onClose} t={t}
-      meta={<div className={styles.panelMeta}>
+      meta={<div className={styles.sessionMeta}><div className={styles.panelMeta}>
         <span>{timeLabel(node.updatedAt, now, t)}</span>
         {status === ''
           ? null
@@ -548,7 +552,8 @@ function SelectedSessionPanel({
         {node.subagentCount > 0
           ? <span>{t('panel.subagents', { count: node.subagentCount })}</span>
           : null}
-      </div>}
+      </div>{node.blank ? null : <SessionTitleControl key={node.id} sessionId={node.id} title={node.title}
+        generate={onGenerateTitle} rename={onRenameTitle} t={t} />}</div>}
       tabs={<div
         role="tablist"
         aria-label={t('panel.title')}
@@ -780,7 +785,7 @@ const CARD_H_MAP = 4
  * @returns the canvas element.
  */
 export function GraphCanvas({
-  laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onReadHistory,
+  laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onGenerateTitle, onRenameTitle, onReadHistory,
   onMerge, onRetryMerge, topic, onAddToTopic, workingKey, toolbarTarget,
 }: {
   laid: LaidOutGraph
@@ -790,6 +795,8 @@ export function GraphCanvas({
   t: Translate
   onOpen: GraphViewInjected['openSession']
   onBranch: GraphViewInjected['branchSession']
+  onGenerateTitle: GraphViewInjected['generateSessionTitle']
+  onRenameTitle: GraphViewInjected['renameSessionTitle']
   onGenerateDigest: GraphViewInjected['generateSessionDigest']
   onReadHistory: GraphViewInjected['readSessionHistory']
   onMerge: GraphViewInjected['mergeSessions']
@@ -1908,6 +1915,8 @@ export function GraphCanvas({
         t={t}
         onOpen={onOpen}
         onBranch={onBranch}
+        onGenerateTitle={onGenerateTitle}
+        onRenameTitle={onRenameTitle}
         onGenerateDigest={onGenerateDigest}
         onReadHistory={onReadHistory}
         onClose={closeInspector}

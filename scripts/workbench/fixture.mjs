@@ -45,13 +45,15 @@ export function apply(ctx) {
       options.signal?.throwIfAborted()
       const userText = options.messages.filter(message => message.role === 'user').flatMap(message => message.content)
         .filter(part => part.type === 'text').map(part => part.text).join('\n')
-      if (options.system?.startsWith('Create a concise title')) {
+      if (options.system?.startsWith('Suggest a concise Session title')) {
+        yield { type: 'text-delta', index: 0, text: JSON.stringify({ title: userText.includes('权限') ? '缓存性能收益与权限一致性' : '分层缓存策略与验证方法' }) }
+      } else if (options.system?.startsWith('Create a concise title')) {
         yield { type: 'text-delta', index: 0, text: userText.includes('反例') ? '缓存策略的反例验证' : '分层缓存策略的研究' }
       } else if (options.system?.startsWith('Create a concise digest')) {
         yield { type: 'text-delta', index: 0, text: JSON.stringify({
-          overview: '演示摘要：讨论如何分别评估缓存的性能收益与权限一致性，保留适用条件后继续验证。',
-          keyOutcomes: ['把命中率、端到端延迟和失效维护成本分开观察。', '权限相关数据需要独立的一致性约束。'],
-          openItems: ['用相同负载验证收益，并检查权限撤销后的行为。'],
+          overview: '分别验证 **缓存性能** 与 **权限一致性**，再选择适用策略。',
+          keyOutcomes: ['**性能收益**：一起观察 `P95` 延迟、命中率与维护成本。', '**权限数据**：保留权威校验，使用独立的失效机制。', '**适用条件**：展示数据可容忍短暂过期，权限判断需及时一致。'],
+          openItems: ['**下一步**：以相同负载测试命中和失效路径。', '**待验证**：通知丢失、权限撤销时，是否仍会放行？'],
         }) }
       } else if (options.system?.startsWith('Extract up to five')) {
         const material = JSON.parse(options.messages[0].content[0].text)

@@ -127,7 +127,8 @@ dsh web
 | 浏览或排列工作区／目录图 | 不改变 Session 日志；排列保存在浏览器存储中 | 无 |
 | 整理研究主题 | 名称、会话引用和显式保存的排列写入 Host 存储；源会话保持不变 | 无 |
 | 阅读或选择原文 | 仅在阅读面板打开期间保留选择与备用摘录；不改变 Session 日志 | 无 |
-| 生成摘要 | 仅保留按 revision 区分的 Host 内存缓存；不追加消息 | 在 Session 路由或配置的兜底路由上发起一次辅助请求 |
+| 生成／应用标题 | 建议仅临时展示；应用才保存原生用户标题事件 | 仅生成时发起一次辅助请求 |
+| 生成摘要 | 仅保留按 revision 区分的 Host 内存缓存；不追加消息 | 在 Session 路由或配置的兜底路由上发起一次辅助请求；完整输出过长时压缩重试一次 |
 | 创建分支 | 使用 Harness 的常规 Branch 操作 | 本插件不额外发起请求 |
 | 汇聚会话 | 创建独立目标和持久快照溯源；来源保持不变 | 目标会话在正常路由上处理排队指令 |
 
@@ -300,12 +301,14 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 
 - Host 会检查准确的 Selected Session，即使它并非 Viewed Session。输入只保留用户直接发送的消息与 assistant 最终文本，排除推理过程、工具结果和插件注入上下文。
 - 模型输入上限为 32 KiB。长会话优先保留最初用户目标、最近一次 compaction checkpoint，以及容量允许的最近对话。
-- 辅助请求不开放工具，要求返回结构化的简短概览、关键结论与待处理事项。它优先使用会话日志中最近记录的 provider/model 路由；可选配置仅作为兜底。
+- 辅助请求不开放工具，要求一句概览、最多五条关键结论和三条待处理事项。要点以无序列表呈现，使用安全 Markdown 渲染，支持**关键词高亮**、行内代码、强调和有来源依据的链接。提示词以中文约 200–350 字或英文 100–160 词为目标，并校验单条长度与总计 1,000 字符上限；不会截断句子或 Markdown。它优先使用会话日志中最近记录的 provider/model 路由；可选配置仅作为兜底。
 - 会话运行中生成的结果标记为“运行中快照”。后续新活动会把可见摘要标记为“会话有新内容”，但不会隐藏旧内容；点击“更新摘要”即可替换。
 - 成功结果按 Session 与源 revision 缓存在 Host 内存中。“重新生成”会绕过缓存；空内容或失败不会被当作成功摘要缓存，可继续重试。
 - 同一 revision 的并发请求只执行一次模型调用，但各调用方的取消互不连带。插件关闭时会停止接收新摘要、取消自有工作，并等待已接收请求全部结束后再移除服务。
 
-这是一次额外模型请求，可能产生所选 provider 的常规费用。摘要文本只是只读投影：它不是对话消息，不进入 Session 日志，也不改变 Session Lineage。
+每次明确生成会进行一次额外模型请求；仅在完整摘要过长时最多再压缩一次，可能产生所选 provider 的常规费用。摘要文本只是只读投影：它不是对话消息，不进入 Session 日志，也不改变 Session Lineage。
+
+工作区／目录图，以及来源可用的研究主题详情中，会话身份旁新增**生成标题**。它根据所选会话的讨论生成短标题，先展示可编辑建议，再由**应用标题**调用 DSH 原生重命名，侧栏、图谱和会话标题同步更新。生成、取消或关闭建议不会改名、跳转、打开 Agent 或追加对话正文；应用才写入原生用户标题事件，并防止后续自动标题覆盖。空会话不调用模型，不可用／归档的主题来源保持只读；应用前复查当前标题，保存失败保留编辑，回包丢失时可由会话列表的已更新标题确认结果。标题使用与摘要相同的内容预算、会话模型路由／兜底、超时和输出预算，属于独立的明确触发请求。
 
 大多数会话无需配置路由，因为日志已记录模型路由。对于没有路由的旧会话或导入会话，可在 profile 的 `cordis.patch.yml` 中覆盖已安装插件条目（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）。若文件只有空数组 `[]`，用下方列表替换；已有列表则加入这一项：
 
@@ -320,7 +323,7 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 
 `provider` 与 `model` 必须成对提供，并且绝不会覆盖会话已记录的路由。`maxOutputTokens` 默认为 `4096`，`timeoutMs` 默认为 `60000`。插件激活会通过对外导出的 Standard Schema 校验配置，并拒绝空白路由、缺少配对字段、非整数与非正数限制。
 
-输出上限为推理和结构化摘要留出空间；部分模型会将推理计入同一预算。用户显式设置的较低上限仍然生效。插件保留模型的默认推理设置，不会自动重试失败请求。触及上限时界面会明确提示，可在此覆盖项中调高 `maxOutputTokens` 后重试；被截断的内容不会进入成功缓存，刷新失败会保留上一份完整摘要。
+输出上限为推理和结构化摘要留出空间；部分模型会将推理计入同一预算。用户显式设置的较低上限仍然生效。插件保留模型的默认推理设置。只有完整但过长的摘要会自动压缩重试一次；传输失败、无效 JSON 或 token 上限导致的失败不会自动重试。触及上限时界面会明确提示，可在此覆盖项中调高 `maxOutputTokens` 后重试；被截断的内容不会进入成功缓存，刷新失败会保留上一份完整摘要。
 
 ## 故障排查
 
@@ -404,11 +407,12 @@ pnpm preview:dsh --stop
 | [`src/client/GraphCanvas.tsx`](src/client/GraphCanvas.tsx) | 画布渲染、端子、检查器、控件、手势、悬停状态与 minimap |
 | [`src/config.ts`](src/config.ts) | 对外 Standard Schema、默认值与规范化 Host 配置 |
 | [`src/index.ts`](src/index.ts) | Session Digest 与 Session Merge Host services、投影注册、配置和 Remote 错误 |
-| [`src/session-digest.ts`](src/session-digest.ts) 与 [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | 事件过滤、输入预算、路由重建、输出校验、revision 缓存与并发控制 |
+| [`src/session-digest.ts`](src/session-digest.ts) 与 [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | 摘要输出校验、revision 缓存、并发控制与 Harness 路由重建 |
 | [`src/session-merge.ts`](src/session-merge.ts)、[`src/session-merge-host.ts`](src/session-merge-host.ts) 与 [`src/session-merge-harness.ts`](src/session-merge-harness.ts) | 浏览器流程、Host 校验、规范引用提交、有界捕获、幂等重试与持久性屏障 |
 | [`src/session-merge-projection.ts`](src/session-merge-projection.ts) | 版本化 Merge marker/reference 投影与严格持久状态校验 |
 | [`src/session-history-host.ts`](src/session-history-host.ts) 与 [`src/session-history-codec.ts`](src/session-history-codec.ts) | 只读讨论分页、精确事件边界与共享的严格通信校验 |
 | [`src/client/SessionHistory.tsx`](src/client/SessionHistory.tsx) | 原文阅读、完成轮次选择、来源状态与请求取消 |
+| [`src/session-title-host.ts`](src/session-title-host.ts)、[`src/session-insight-source.ts`](src/session-insight-source.ts)、[`src/session-insight-model.ts`](src/session-insight-model.ts) | 只读标题建议及共享的限量讨论输入、模型调用 |
 | [`src/client/session-digest-remote.ts`](src/client/session-digest-remote.ts) | 严格的浏览器 Remote 请求/结果契约 |
 | [`src/client/session-merge-remote.ts`](src/client/session-merge-remote.ts) | 严格的浏览器 Session Merge Remote 请求/结果契约 |
 | [`src/client/graph-model.ts`](src/client/graph-model.ts) | 图谱范围解析、Branch 与 Merge 边、Session Cluster 排序、Subagent Summary、Title Filter 匹配与 Branch Lineage |

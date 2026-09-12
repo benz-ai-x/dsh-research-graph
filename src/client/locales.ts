@@ -1,3 +1,4 @@
+import { titleEn, titleZh, type SessionTitleKey } from './session-title-locales.ts'
 /** `sessionGraph` namespace dictionaries (view tab label + graph chrome strings). */
 import { workbenchEn, workbenchZh, type WorkbenchKey } from './workbench-locales.ts'
 import { readingEn, readingZh, type ReadingKey } from './reading-locales.ts'
@@ -10,6 +11,7 @@ export const NS = 'sessionGraph'
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
   | 'position.unavailable' | 'position.topicUnavailable'
+  | SessionTitleKey
   | WorkbenchKey
   | ReadingKey
   | KnowledgeKey
@@ -179,7 +181,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 export const zh: Record<SessionGraphKey, string> = {
   'position.unavailable': '上次选中的资料已不可用，已保留视口并清空选择。',
   'position.topicUnavailable': '上次的研究主题已不可用，请从列表选择主题。',
-  ...knowledgeZh, ...workbenchZh, ...readingZh,
+  ...knowledgeZh, ...titleZh,
+  ...workbenchZh, ...readingZh,
   ...reuseZh,
   'topic.refresh': '刷新来源',
   'topic.saveArrangement': '保存排列',
@@ -334,7 +337,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'panel.mergeCapturedThrough': '快照至事件 {seq}',
   'panel.mergeCompleteSnapshot': '完整快照',
   'digest.title': '会话摘要',
-  'digest.intro': '按需生成本会话的概览、关键结论和待办。',
+  'digest.intro': '用简短要点回顾结论、关键信息与下一步。',
   'digest.generate': '生成摘要',
   'digest.generating': '正在生成摘要…',
   'digest.refreshing': '正在更新摘要…',
@@ -363,7 +366,8 @@ export const zh: Record<SessionGraphKey, string> = {
 export const en: Record<SessionGraphKey, string> = {
   'position.unavailable': 'The previously selected material is unavailable. The viewport is kept and selection is cleared.',
   'position.topicUnavailable': 'The previous research topic is unavailable. Choose a topic from the list.',
-  ...knowledgeEn, ...workbenchEn, ...readingEn,
+  ...knowledgeEn, ...titleEn,
+  ...workbenchEn, ...readingEn,
   ...reuseEn,
   'topic.refresh': 'Refresh sources',
   'topic.saveArrangement': 'Save arrangement',
@@ -518,7 +522,7 @@ export const en: Record<SessionGraphKey, string> = {
   'panel.mergeCapturedThrough': 'Snapshot through event {seq}',
   'panel.mergeCompleteSnapshot': 'Complete snapshot',
   'digest.title': 'Session digest',
-  'digest.intro': 'Generate an overview, key outcomes, and open items on demand.',
+  'digest.intro': 'Scan the key findings and next steps in a short digest.',
   'digest.generate': 'Generate digest',
   'digest.generating': 'Generating digest…',
   'digest.refreshing': 'Updating digest…',

@@ -6,6 +6,24 @@ import {
 } from '../src/session-digest.ts'
 
 describe('Session Digest host interface', () => {
+
+  it.each([
+    { overview: 'x'.repeat(141), keyOutcomes: [], openItems: [] },
+    { overview: 'Summary', keyOutcomes: Array(6).fill('A fact'), openItems: [] },
+    { overview: 'Summary', keyOutcomes: [], openItems: Array(4).fill('A next step') },
+    { overview: 'Summary', keyOutcomes: ['x'.repeat(161)], openItems: [] },
+    { overview: 'x'.repeat(100), keyOutcomes: Array(5).fill('x'.repeat(150)), openItems: Array(3).fill('x'.repeat(100)) },
+  ])('refuses an overlong digest without caching partial points', async output => {
+    const digests = createSessionDigestModule({
+      inspect: async () => ({ title: 'Session', running: false, events: [{ type: 'user/message', seq: 0, time: 1,
+        data: { source: { kind: 'user' }, content: [{ type: 'text', text: 'Compare these findings.' }] } }] }),
+      generate: async () => JSON.stringify(output), now: () => 1,
+    })
+    await expect(digests.generate({ sessionId: 'source', refresh: false }, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'invalid-model-output' })
+    await digests.dispose()
+  })
+
   it('returns empty without calling the model when the Session has no summarizable content', async () => {
     const inspection: SessionDigestInspection = {
       title: 'Blank Session',

@@ -127,7 +127,8 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 | Organize Research Topics | Saves names, Session references, and explicitly saved arrangements in Host storage; source Sessions remain unchanged | None |
 | Read or select discussion | Retains the selection and fallback excerpt only while the reader is open; does not change Session logs | None |
 | Search discussion | Uses the Host index and verifies original text; retains temporary result snapshots without changing sources or archive state | None |
-| Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback |
+| Generate / apply a title | Suggestion is temporary; Apply saves a native user-title event | One auxiliary request only when generating |
+| Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback; one compression retry if complete output is too long |
 | Create a branch | Uses the normal Harness branch operation | No additional request from this plugin |
 | Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | The target processes the queued instruction on its normal route |
 
@@ -302,12 +303,14 @@ Select any non-blank Canvas Session and choose **Generate digest** in the Sessio
 
 - The Host inspects the exact Selected Session, even when it is not the Viewed Session. It keeps direct user messages and final assistant text, but excludes reasoning, tool results, and plugin-injected context.
 - Model input is capped at 32 KiB. Long sessions retain the initial user goal, latest compaction checkpoint, and as many recent turns as fit.
-- The auxiliary request uses no tools and asks for structured output: a concise overview, key outcomes, and open items. It uses the Session's latest logged provider/model route; an optional configured route is only a fallback.
+- The auxiliary request uses no tools and asks for one overview sentence, up to five key outcomes and three open items. The lists render safe Markdown, with highlighted **key phrases**, inline code, emphasis and source-backed links. The prompt targets 100–160 English words or 200–350 Chinese characters; complete output is also validated against per-item and 1,000-character total limits. It uses the Session's latest logged provider/model route; an optional configured route is only a fallback.
 - A digest generated while the Session is running is labeled **Running snapshot**. New activity marks the visible digest **Session has new content** without hiding it; choose **Update digest** to replace it.
 - Successful results are cached in Host memory by Session and source revision. **Regenerate** bypasses that cache. Empty or failed results are not cached as successful digests and can be retried.
 - Concurrent requests for the same revision share one model call without sharing caller cancellation. Plugin shutdown stops new digest work, cancels owned work, and waits for admitted requests to settle before removing the service.
 
-This is an additional model request and may incur the selected provider's normal cost. Digest text is a read-only projection: it is not a conversation message, does not enter the Session log, and does not change Session Lineage.
+Each explicit generation makes an auxiliary model request (two only when a complete digest needs compression) and may incur the selected provider's normal cost. Digest text is a read-only projection: it is not a conversation message, does not enter the Session log, and does not change Session Lineage.
+
+**Generate title** is available beside the Session identity in workspace/directory and available Research Topic inspectors. It reads the selected discussion, proposes a short title, and opens an editable preview. **Apply title** uses DSH's native rename, so the sidebar, graph and Session heading receive the same saved title. Generating, canceling or closing a suggestion does not rename, navigate, open an Agent or append discussion text. Applying writes the native user-title event and pins it against automatic title updates. Empty Sessions make no model call; unavailable/archived Topic references remain read-only. A changed title is checked again before applying. Failed saves keep the edit; an acknowledged Session-feed update can confirm a lost reply. This is a separate, explicitly requested model operation using the same source budget, route fallback, timeout and output budget as digests.
 
 Most sessions need no route configuration because their logs record the model route. For older imported sessions without one, override the installed plugin entry in the profile's `cordis.patch.yml` (`$DSH_HOME/profiles/web/cordis.patch.yml` for the web profile). If the file contains only an empty array `[]`, replace it with the list below; otherwise add this entry to the existing list:
 
@@ -322,7 +325,7 @@ Most sessions need no route configuration because their logs record the model ro
 
 `provider` and `model` must be supplied together and never override a route recorded by the Session. `maxOutputTokens` defaults to `4096`; `timeoutMs` defaults to `60000`. Plugin activation validates this configuration through its exported Standard Schema and rejects blank routes, incomplete pairs, non-integers, and non-positive limits.
 
-The output cap leaves room for reasoning and the structured digest; providers may count reasoning against this same budget. An explicit lower cap still takes precedence. The plugin keeps the model's reasoning defaults and never automatically retries a failed generation. If the output limit is reached, the UI explains it; increase `maxOutputTokens` in this override before retrying. Truncated output is not cached, and a failed refresh retains the previous digest.
+The output cap leaves room for reasoning and the structured digest; providers may count reasoning against this same budget. An explicit lower cap still takes precedence. The plugin keeps the model's reasoning defaults. A complete but overlong digest gets at most one additional compression request; transport failures, invalid JSON and token-limit failures are not automatically retried. If the output limit is reached, the UI explains it; increase `maxOutputTokens` in this override before retrying. Truncated output is not cached, and a failed refresh retains the previous digest.
 
 ## Troubleshooting
 
@@ -406,11 +409,12 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 | [`src/client/GraphCanvas.tsx`](src/client/GraphCanvas.tsx) | Canvas rendering, ports, inspector, controls, gestures, hover state, and minimap |
 | [`src/config.ts`](src/config.ts) | Exported Standard Schema, defaults, and normalized Host configuration |
 | [`src/index.ts`](src/index.ts) | Session Digest and Session Merge Host services, projection registration, configuration, and Remote errors |
-| [`src/session-digest.ts`](src/session-digest.ts) and [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | Event filtering, input budgeting, route reconstruction, output validation, revision cache, and concurrency control |
+| [`src/session-digest.ts`](src/session-digest.ts) and [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | Digest output validation, revision cache, concurrency control, and Harness route reconstruction |
 | [`src/session-merge.ts`](src/session-merge.ts), [`src/session-merge-host.ts`](src/session-merge-host.ts), and [`src/session-merge-harness.ts`](src/session-merge-harness.ts) | Browser workflow, Host validation, canonical reference submission, bounded capture, idempotent retry, and durability barrier |
 | [`src/session-merge-projection.ts`](src/session-merge-projection.ts) | Versioned Merge marker/reference projection and strict persisted-state validation |
 | [`src/session-history-host.ts`](src/session-history-host.ts) and [`src/session-history-codec.ts`](src/session-history-codec.ts) | Read-only discussion paging, exact event boundaries, and shared strict wire validation |
 | [`src/client/SessionHistory.tsx`](src/client/SessionHistory.tsx) | Original discussion reader, completed-turn selection, source states, and request cancellation |
+| [`src/session-title-host.ts`](src/session-title-host.ts), [`src/session-insight-source.ts`](src/session-insight-source.ts), [`src/session-insight-model.ts`](src/session-insight-model.ts) | Read-only title suggestions and shared bounded discussion/model requests |
 | [`src/client/session-digest-remote.ts`](src/client/session-digest-remote.ts) | Strict browser Remote request/result contract |
 | [`src/client/session-merge-remote.ts`](src/client/session-merge-remote.ts) | Strict browser Session Merge Remote request/result contract |
 | [`src/client/graph-model.ts`](src/client/graph-model.ts) | Graph Scope resolution, Branch and Merge edges, Session Cluster ordering, Subagent Summaries, Title Filter matches, and Branch Lineages |

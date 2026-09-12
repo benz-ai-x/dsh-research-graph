@@ -25,6 +25,7 @@ import { createSessionMergeModule } from '../session-merge.ts'
 import { GraphView, type GraphViewInjected } from './GraphView.tsx'
 import { NS, en, zh } from './locales.ts'
 import { SESSION_DIGEST_REMOTE } from './session-digest-remote.ts'
+import { SESSION_TITLE_REMOTE } from './session-title-remote.ts'
 import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
 import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
@@ -41,6 +42,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
   package: SESSION_DIGEST_REMOTE.package,
   descriptors: [
     ...SESSION_DIGEST_REMOTE.descriptors,
+    ...SESSION_TITLE_REMOTE.descriptors,
     ...SESSION_MERGE_REMOTE.descriptors,
     ...SESSION_HISTORY_REMOTE.descriptors,
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
@@ -124,6 +126,22 @@ async function registerUi(ctx: Context): Promise<void> {
     label: () => t('view.graph'),
     inject: (): GraphViewInjected => ({
       hostId: identity.value.hostId,
+      generateSessionTitle: async (sessionId, signal) => {
+        const result = await ctx.remote.sessionGraphTitle.generate({ sessionId }, signal)
+        if (!result.ok) throw Object.assign(new Error(result.error.message), { code: result.error.code })
+        return result.value
+      },
+      renameSessionTitle: async (sessionId, title, expectedTitle) => {
+        const current = ctx.sessions.list.getSnapshot().byId[sessionId]
+        if (current === undefined) throw new Error('Session is unavailable')
+        if (current.displayTitle === title) return title
+        if (current.displayTitle !== expectedTitle) throw Object.assign(new Error('Session title changed'), { code: 'title-changed' })
+        const binding = ctx.sessions.binding(sessionId)
+        if (binding === undefined) throw new Error('Session is unavailable')
+        const result = await binding.session.rename(title)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value.title
+      },
       reuse: {
         relations: async (request, signal) => {
           const result = await ctx.remote.sessionGraphReuse.relations(request, signal)
@@ -269,6 +287,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'workspaces',
       'locale',
       'remote.sessionGraphDigest',
+      'remote.sessionGraphTitle',
       'remote.sessionGraphMerge',
       'remote.sessionGraphHistory',
       'remote.sessionGraphSearch',
