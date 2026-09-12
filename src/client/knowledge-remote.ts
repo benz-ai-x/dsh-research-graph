@@ -1,3 +1,5 @@
+import type { SynthesisPreparation, SynthesisRequest, SynthesisDraft } from '../knowledge-synthesis.ts'
+import { synthesisPreparationSchema, synthesisRequestSchema, synthesisDraftSchema } from '../knowledge-synthesis-codec.ts'
 import type { RemoteResult, TypertRemoteContribution } from '@deepseek-ai/dsh-typert-protocol'
 import type { KnowledgeCard, KnowledgeMembership, KnowledgeSave, KnowledgeSearch } from '../knowledge.ts'
 import { knowledgeCardSchema, knowledgeListSchema, knowledgeMembershipSchema, knowledgeNullableSchema,
@@ -9,6 +11,8 @@ import type { KnowledgeExportRequest, KnowledgeExportResult } from '../knowledge
 import { knowledgeExportRequestSchema, knowledgeExportResultSchema } from '../knowledge-export-codec.ts'
 
 export interface KnowledgeApi {
+  readonly prepareSynthesis?: (request: SynthesisRequest, signal: AbortSignal) => Promise<SynthesisPreparation>
+  readonly synthesize?: (request: ExtractionRequest, signal: AbortSignal) => Promise<SynthesisDraft>
   readonly prepareExport: (request: KnowledgeExportRequest, signal: AbortSignal) => Promise<KnowledgeExportResult>
   readonly prepareExtraction: (request: ExtractionPreparationRequest, signal: AbortSignal) => Promise<ExtractionPreparation>
   readonly extract: (request: ExtractionRequest, signal: AbortSignal) => Promise<ExtractionResult>
@@ -20,6 +24,8 @@ export interface KnowledgeApi {
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface TypertRemoteMap {
+    'sessionGraphKnowledge/prepareSynthesis': (request: SynthesisRequest, signal?: AbortSignal) => Promise<RemoteResult<SynthesisPreparation>>
+    'sessionGraphKnowledge/synthesize': (request: ExtractionRequest, signal?: AbortSignal) => Promise<RemoteResult<SynthesisDraft>>
     'sessionGraphKnowledge/prepareExport': (request: KnowledgeExportRequest, signal?: AbortSignal) => Promise<RemoteResult<KnowledgeExportResult>>
     'sessionGraphKnowledge/hostIdentity': (signal?: AbortSignal) => Promise<RemoteResult<{ readonly hostId: string }>>
     'sessionGraphKnowledge/prepareExtraction': (request: ExtractionPreparationRequest, signal?: AbortSignal) => Promise<RemoteResult<ExtractionPreparation>>
@@ -31,6 +37,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   }
   interface TypertRemoteNamespaceMap {
     sessionGraphKnowledge: {
+      prepareSynthesis: TypertRemoteMap['sessionGraphKnowledge/prepareSynthesis']
+      synthesize: TypertRemoteMap['sessionGraphKnowledge/synthesize']
       prepareExport: TypertRemoteMap['sessionGraphKnowledge/prepareExport']
       hostIdentity: TypertRemoteMap['sessionGraphKnowledge/hostIdentity']
       prepareExtraction: TypertRemoteMap['sessionGraphKnowledge/prepareExtraction']
@@ -47,6 +55,8 @@ const PACKAGE_NAME = '@benz-ai-x/dsh-research-graph'
 export const KNOWLEDGE_REMOTE: TypertRemoteContribution = {
   package: PACKAGE_NAME,
   descriptors: [
+    { method: 'prepareSynthesis', request: synthesisRequestSchema, result: synthesisPreparationSchema },
+    { method: 'synthesize', request: extractionRequestSchema, result: synthesisDraftSchema },
     { method: 'prepareExport', request: knowledgeExportRequestSchema, result: knowledgeExportResultSchema },
     { method: 'hostIdentity', request: undefined, result: knowledgeHostIdentitySchema },
     { method: 'prepareExtraction', request: extractionPreparationRequestSchema, result: extractionPreparationSchema },

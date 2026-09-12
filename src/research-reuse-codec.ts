@@ -21,7 +21,7 @@ function material(value: unknown): ResearchMaterial {
   if (item.kind === 'turn') {
     object(value, ['kind', 'source'])
     const source = knowledgeSourceSchema.parse(item.source)
-    if (source.source.turns.length !== 1) return invalid()
+    if (source.source.turns.length < 1) return invalid()
     return { kind: 'turn', source }
   }
   object(value, ['kind', 'cardId', 'revisionId', 'revisionNumber', 'savedAt', 'content', 'sources'])
@@ -66,3 +66,6 @@ export const researchReuseRecordSchema = { parse(value: unknown): ResearchReuseR
 } }
 export const researchReuseNullableSchema = { parse(value: unknown): ResearchReuseRecord | null { return value === null ? null : researchReuseRecordSchema.parse(value) } }
 export const researchReuseListSchema = { parse(value: unknown): readonly ResearchReuseRecord[] { return array(value).map(researchReuseRecordSchema.parse) } }
+
+export const researchMaterialSchema = { parse: material }
+export const researchMaterialSelectionSchema = { parse: selection }

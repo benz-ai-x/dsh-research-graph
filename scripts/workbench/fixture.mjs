@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { runSynthesisQuality } from './synthesis-quality.mjs'
 
 export const name = 'research-workbench-acceptance-fixture'
 export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'workspaceRegistry', 'sessionGraphTopics', 'sessionGraphHistory', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphMerge', 'agentDefaultModel']
@@ -65,6 +66,15 @@ export function apply(ctx) {
           openQuestions: '失效通知丢失或权威校验不可用时，哪些业务行为可以接受？', kind: 'hypothesis',
           citations: [{ startSeq: turn.startSeq, endSeq: turn.endSeq }],
         }] }) }
+      } else if (options.system?.startsWith('Compare the explicitly frozen')) {
+        const pieces = userText.split(/\n## \d+\. /u).slice(1)
+        const claims = pieces.map((piece, materialIndex) => {
+          const quote = piece.match(/Conclusion \/ 结论\n([^\n]+)/u)?.[1] ?? piece.match(/User \/ 用户 \(event \d+\)\n([^\n]+)/u)?.[1] ?? ''
+          return { category: materialIndex < 2 ? 'disagreement' : 'condition', text: `${materialIndex === 0 ? '第一种观点' : materialIndex === 1 ? '另一种观点' : '原文补充'}：${quote} 保留其各自的适用条件。`, citations: quote === '' ? [] : [{ materialIndex, quote }] }
+        })
+        claims.push({ category: 'agreement', text: '演示草稿：比较前应统一负载、数据类型与衡量指标；待人工核对。', citations: [] },
+          { category: 'question', text: '在同一负载和风险约束下，两种方案的结果分别如何？这是固定验收示例，未执行实验。', citations: [] })
+        yield { type: 'text-delta', index: 0, text: JSON.stringify({ title: '两种观点的适用条件与验证问题', question: '这些观点在什么条件下成立？', kind: 'hypothesis', claims }) }
       } else {
         const researchQuestion = userText.match(/# Research question \/ 研究问题\n([^\n]+)/)?.[1]
         const content = userText.includes('跨工作区汇聚：') ? '把两个工作区的讨论放在一起，可以同时看到性能收益与权限一致性这两个维度。先保留各自的适用条件，再用相同负载和权限撤销事件验证组合方案。\n\n来源讨论继续保留在各自工作区；后续实验使用这个新会话所属工作区的文件与执行环境。' : researchQuestion?.includes('反例') ? '可以先构造一个反例：缓存命中率很高，但权限撤销通知没有及时到达某个节点。此时性能表现很好，一致性要求却没有满足。\n\n把“请求耗时”和“权限撤销后是否仍能访问”作为两个独立观察项，再讨论是否接受这个风险。\n\n这是用于体验研究流程的固定示例，没有执行实验。'
@@ -81,10 +91,10 @@ export function apply(ctx) {
     }
   }
   ctx.llm.registerAdapter([provider], new DemoAdapter())
-  async function completed(sessionId) {
+  async function completed(sessionId, expected = 1) {
     for (let attempt = 0; attempt < 600; attempt += 1) {
       const agent = ctx.agents.get(sessionId)
-      if (agent?.status === 'idle' && agent.session.snapshotEvents().some(event => event.type === 'turn/end')) return
+      if (agent?.status === 'idle' && agent.session.snapshotEvents().filter(event => event.type === 'turn/end').length >= expected) return
       await setTimeout(50)
     }
     throw new Error(`Demo discussion did not finish: ${sessionId}`)
@@ -175,7 +185,31 @@ export function apply(ctx) {
       crossWorkspace = { topicId, sources, targetSessionId, targetWorkspaceId: String(targetWorkspace.id), targetPath: targetWorkspace.path, projection }
       await writeFile(join(root, 'cross-workspace.json'), JSON.stringify(crossWorkspace, null, 2))
     }
-    await writeFile(join(root, 'fixture-ready.json'), JSON.stringify({ ...fixture, crossWorkspace }))
+    let exploration
+    try { exploration = JSON.parse(await readFile(join(root, 'exploration.json'), 'utf8')) } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+      const signal = AbortSignal.timeout(120000)
+      const topicId = randomUUID()
+      await ctx.sessionGraphTopics.write({ kind: 'create', topicId, title: '探索验收：历史分支与条件对照' }, signal)
+      const { sessionId } = await ctx.sessionController.create({ workspaceId: fixture.workspaceId })
+      for (let turn = 1; turn <= 5; turn += 1) {
+        await ctx.sessionController.prompt({ sessionId, requestId: randomUUID(), mode: 'queue', content: [{ type: 'text', text: `探索验收第 ${turn} 轮：在不同负载下，怎样核对缓存方案的收益和限制？` }] }, signal)
+        await completed(sessionId, turn)
+      }
+      await ctx.sessionController.rename({ sessionId, title: '五轮研究：从历史条件继续' })
+      await ctx.sessionGraphTopics.write({ kind: 'add', topicId, sessionIds: [sessionId] }, signal)
+      const cards = []
+      for (const [index, conclusion] of ['低负载时，方案 A 的响应延迟更低。', '高负载时，方案 B 的响应延迟更低。'].entries()) {
+        cards.push(await ctx.sessionGraphKnowledge.save({ cardId: randomUUID(), revisionId: randomUUID(), topicId, sources: [], content: {
+          title: index === 0 ? '观点 A：低负载优先响应' : '观点 B：高负载优先吞吐', question: '哪种方案适用？', conclusion,
+          rationale: '固定验收材料：保留负载前提，不能据此作同条件排名。', openQuestions: '同一负载下的实际结果尚未测量。', kind: 'hypothesis', status: 'draft',
+        } }, signal))
+      }
+      exploration = { topicId, sessionId, cardIds: cards.map(card => card.cardId) }
+      await writeFile(join(root, 'exploration.json'), JSON.stringify(exploration))
+    }
+    await writeFile(join(root, 'fixture-ready.json'), JSON.stringify({ ...fixture, crossWorkspace, exploration }))
+    if (process.env.RESEARCH_SYNTHESIS_QUALITY === '1') await runSynthesisQuality(ctx, root)
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void prepare().catch(async error => { await writeFile(join(root, 'fixture-error.txt'), error.stack ?? String(error)) })

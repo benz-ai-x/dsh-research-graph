@@ -6,12 +6,15 @@ import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
+import type { MaterialSelectionActions } from './ResearchMaterialPicker.tsx'
+import { useHistoryBranch } from './HistoryBranch.tsx'
 import { useResearchReuse } from './ResearchReuse.tsx'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t }: {
+export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t, materials }: {
+  readonly materials?: MaterialSelectionActions | undefined
   readonly sourceTitle?: string | undefined
   readonly showSourceTitle?: boolean
   readonly sessionId: string
@@ -26,7 +29,9 @@ export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId,
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const knowledge = useKnowledge()
-  const reuse = useResearchReuse()
+  const reuseContext = useResearchReuse()
+  const reuse = materials ?? reuseContext
+  const branch = useHistoryBranch()
   const [result, setResult] = useState<SessionHistoryResult | undefined>(() => {
     const excerpt = source ?? retainedSource
     return excerpt === undefined ? undefined : {
@@ -190,10 +195,10 @@ export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId,
           {knowledge === undefined ? null : <button type="button" disabled={loading || result?.kind !== 'original'} onClick={() => {
             knowledge.extract({ kind: 'discussion', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq })
           }}>{t('extract.title')}</button>}
-          {reuse === undefined ? null : <><button type="button" disabled={loading || result?.kind !== 'original' || selection.turns.length !== 1} onClick={() => {
+          {reuse === undefined ? null : <><button type="button" disabled={loading || result?.kind !== 'original'} onClick={() => {
             reuse.add({ kind: 'turn', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq },
-              `${sourceTitle || sessionId} · ${t('history.turn', { turn: selection.turns[0]!.turn })}`)
-          }}>{t('reuse.addTurn')}</button>{selection.turns.length !== 1 ? <p>{t('reuse.singleTurn')}</p> : null}</>}
+              `${sourceTitle || sessionId} · ${selection.turns.length === 1 ? t('history.turn', { turn: selection.turns[0]!.turn }) : t('workbench.sourceTurns', { first: selection.turns[0]!.turn, last: selection.turns.at(-1)!.turn })}`)
+          }}>{t('reuse.addTurn')}</button></>}
           <button type="button" onClick={() => {
             setSelection(undefined)
             setIncompleteRange(false)
@@ -211,6 +216,9 @@ export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId,
             {t('history.turn', { turn: turn.turn })}
           </label></h3>
           {captureButton(turn)}
+          {branch === undefined ? null : <button type="button" disabled={loading || result.kind !== 'original' || turn.endSeq === null}
+            data-history-branch-session={sessionId} data-history-branch-start={turn.startSeq}
+            onClick={() => { if (turn.endSeq !== null) branch({ sessionId, startSeq: turn.startSeq, endSeq: turn.endSeq }) }}>{t('branch.here')}</button>}
           </header>
           {turn.endSeq === null ? <p>{t('history.unfinished')}</p> : null}
           {turn.messages.map(message => (

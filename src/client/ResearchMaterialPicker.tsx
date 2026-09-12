@@ -1,3 +1,4 @@
+import type { ResearchMaterialSelection } from '../research-reuse.ts'
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { KnowledgeCard } from '../knowledge.ts'
 import type { GraphViewProps } from './GraphView.tsx'
@@ -8,13 +9,23 @@ import { SessionHistory } from './SessionHistory.tsx'
 import styles from './GraphView.module.css'
 
 /** Pick explicit saved revisions or completed turns without losing the composition. */
-export function ResearchMaterialPicker({ api, useSessions, read, t }: {
+export interface MaterialSelectionActions {
+  readonly contains: (selection: ResearchMaterialSelection) => boolean
+  readonly add: (selection: ResearchMaterialSelection, label: string) => void
+  readonly count: number
+}
+
+export function ResearchMaterialPicker({ api, useSessions, read, t, selection, topicId }: {
+  readonly selection?: MaterialSelectionActions
+  readonly topicId?: string
   readonly api: KnowledgeApi
   readonly useSessions: GraphViewProps['useSessions']
   readonly read: GraphViewProps['readSessionHistory']
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
-  const reuse = useResearchReuse()!
+  const reuseContext = useResearchReuse()
+  const reuse = selection ?? reuseContext!
+  const [versions, setVersions] = useState<Readonly<Record<string, string>>>({})
   const sessions = useSessions(state => state)
   const [type, setType] = useState<'card' | 'turn'>('card')
   const [query, setQuery] = useState('')
@@ -30,13 +41,13 @@ export function ResearchMaterialPicker({ api, useSessions, read, t }: {
     setBusy(true)
     setFailed(false)
     try {
-      const result = await api.search({ query }, controller.signal)
+      const result = await api.search({ query, ...(topicId === undefined ? {} : { topicId }) }, controller.signal)
       if (!controller.signal.aborted) setCards(result)
     } catch { if (!controller.signal.aborted) setFailed(true) } finally {
       if (!controller.signal.aborted) setBusy(false)
     }
   }
-  useEffect(() => { void search(); return () => { active.current?.abort() } }, [])
+  useEffect(() => { void search(); return () => { active.current?.abort() } }, [topicId])
   return <section className={styles.materialPicker} aria-label={t('reuse.pick')}>
     <div className={styles.searchTypes} role="group" aria-label={t('knowledge.searchType')}>
       <button type="button" aria-pressed={type === 'card'} onClick={() => { setType('card') }}>{t('knowledge.title')}</button>
@@ -50,11 +61,14 @@ export function ResearchMaterialPicker({ api, useSessions, read, t }: {
       {busy ? <p role="status">{t('search.loading')}</p> : failed ? <p role="alert">{t('knowledge.error')}</p>
         : cards.length === 0 ? <p>{t('reuse.noCards')}</p> : null}
       <div className={styles.knowledgeResults}>{cards.map(card => {
-        const revision = card.revisions.at(-1)!
+        const revision = card.revisions.find(item => item.revisionId === versions[card.cardId]) ?? card.revisions.at(-1)!
         const selection = { kind: 'card' as const, cardId: card.cardId, revisionId: revision.revisionId }
         const included = reuse.contains(selection)
         return <article key={card.cardId} className={styles.materialCard}>
           <h4>{revision.content.title}</h4>
+          <label>{t('knowledge.version')}<select value={revision.revisionId} onChange={event => { setVersions(value => ({ ...value, [card.cardId]: event.target.value })) }}>
+            {card.revisions.map(item => <option key={item.revisionId} value={item.revisionId}>{t('knowledge.versionNumber', { number: item.number })}</option>)}
+          </select></label>
           <p>{t('knowledge.versionNumber', { number: revision.number })} · {t(`knowledge.status.${revision.content.status}`)}</p>
           <p className={styles.historyText}>{revision.content.conclusion}</p>
           <button type="button" disabled={included || reuse.count >= 3} onClick={() => {
@@ -71,7 +85,7 @@ export function ResearchMaterialPicker({ api, useSessions, read, t }: {
       </select></label>
       <p>{t('reuse.turnHint')}</p>
       {selected === '' ? null : <SessionHistory key={selected} sessionId={selected}
-        sourceTitle={Object.values(sessions.byId).find(session => session.id === selected)?.displayTitle} read={read} t={t} />}
+        materials={selection} sourceTitle={Object.values(sessions.byId).find(session => session.id === selected)?.displayTitle} read={read} t={t} />}
     </>}
   </section>
 }

@@ -1,5 +1,7 @@
 # Bind a material preview to one native admission identity
 
+ADR 0015 extends this decision's original single-turn material limit to a continuous completed-turn range and adds Synthesis over frozen materials. The admission and retry guarantees below remain in force.
+
 Issue #8 creates independent discussions from one to three explicitly ordered Research Materials. A material is an immutable Card Revision or one complete direct Discussion Turn. The Host captures the addressed revision/range, verifies the target Workspace identity, builds the exact message and applies a 32,000-character total message budget. Card materials include card text and provenance labels; original text requires its own turn selection. Over-budget material, incomplete or multiple turns, duplicate selections, and embedded `dsh-session:` references fail explicitly rather than silently expanding or cropping context.
 
 The matching Harness `0.1.5-alpha.1` public Session Controller supports caller-specified Session identities in `create` and persists a prompt `requestId` on accepted user messages as `source.rpcId`. Native prompt admission checks both the live inbox and user/message history before admitting an already-seen request. This protocol is used directly; SessionReferenceInput is not used to stand in for cards or ranges. The actual Agent/model request comparison is part of packed-profile batch acceptance.

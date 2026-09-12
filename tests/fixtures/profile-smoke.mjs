@@ -5,9 +5,10 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
+import { verifyExploration } from './exploration-smoke.mjs'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
 
 export function apply(ctx) {
   let calls = 0
@@ -17,6 +18,16 @@ export function apply(ctx) {
       options.signal?.throwIfAborted()
       calls += 1
       modelRequests.push({ sessionId: options.sessionId, messages: options.messages })
+      if (options.system?.startsWith('Compare the explicitly frozen')) {
+        yield { type: 'text-delta', index: 0, text: JSON.stringify({ title: 'Packed synthesis', question: 'Which conditions?', kind: 'hypothesis', claims: [
+          { category: 'disagreement', text: 'A wins under low load.', citations: [{ materialIndex: 0, quote: 'Under low load, A is faster.' }] },
+          { category: 'disagreement', text: 'B wins under high load.', citations: [{ materialIndex: 1, quote: 'Under high load, B is faster.' }] },
+          { category: 'condition', text: 'Compare under matching load.', citations: [{ materialIndex: 2, quote: 'Historical research 2' }] },
+          { category: 'question', text: 'Repeat under equal load.', citations: [] },
+        ] }) }
+        yield { type: 'finish', reason: { kind: 'stop' } }
+        return
+      }
       if (options.system?.startsWith('Extract up to five')) {
         const material = JSON.parse(options.messages[0].content[0].text)
         yield { type: 'text-delta', index: 0, text: JSON.stringify({ cards: [{ title: 'Packed AI draft', question: 'What is supported?',
@@ -183,8 +194,9 @@ export function apply(ctx) {
     assert.equal(afterRename.length, before[0].length + 1)
     assert.equal(afterRename.at(-1).type, 'session/title')
     assert.equal(afterRename.at(-1).data.source.kind, 'user')
+    const exploration = await verifyExploration(ctx, signal, targetWorkspace.id)
     assert.ok(calls >= 4)
-    return { ok: true, sources: sourceIds.length, durableTopics: true, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
+    return { ok: true, ...exploration, sources: sourceIds.length, durableTopics: true, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
       acceptedReuse: true, frozenMarkdown: true, readonlyTitleSuggestion: true, nativeTitleRename: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {

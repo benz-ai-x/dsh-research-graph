@@ -44,7 +44,7 @@ export function renderKnowledgeExport(cards: readonly ExportCard[]): KnowledgeEx
       parts.push(`### ${title}`, block(revision.content[field]))
     }
     parts.push('### Sources / 来源')
-    if (revision.sources.length === 0) parts.push('No verified sources. Needs manual verification. / 没有已核验来源，需人工验证。')
+    if (revision.sources.length === 0 && !revision.synthesis?.claims.some(claim => claim.citations.length > 0)) parts.push('No verified sources. Needs manual verification. / 没有已核验来源，需人工验证。')
     revision.sources.forEach((source, sourceIndex) => {
       const sourceLabel = `${label}-S${sourceIndex + 1}`
       parts.push(`#### ${sourceLabel} · ${inline(source.title)}`,
@@ -56,6 +56,41 @@ export function renderKnowledgeExport(cards: readonly ExportCard[]): KnowledgeEx
       }
       relations.push(`- ${sourceLabel}: Session ${inline(source.sessionId)} [${source.source.startSeq}–${source.source.endSeq}] → ${label}: Card ${cardId}, revision ${revision.number} (${revision.revisionId}).`)
     })
+    if (revision.synthesis !== undefined) {
+      parts.push('### Synthesis citations / 综合引用', 'Quotes refer to the frozen material below. Source labels do not include original discussion text. / 引用对应下方冻结材料；来源说明不包含讨论全文。')
+      const cited = new Set<number>()
+      revision.synthesis.claims.forEach((claim, claimIndex) => {
+        parts.push(`#### ${label}-Q${claimIndex + 1} · ${inline(claim.category)}`, block(claim.text))
+        if (claim.citations.length === 0) parts.push('Needs verification; no source relation. / 待验证；未建立来源关系。')
+        for (const citation of claim.citations) {
+          cited.add(citation.materialIndex)
+          parts.push(`Quote / 引用 → ${label}-M${citation.materialIndex + 1}`, block(citation.quote))
+        }
+      })
+      parts.push('### Frozen synthesis materials / 冻结的综合材料', 'Later source revisions do not replace these inputs. Uncited inputs do not establish provenance. / 来源后续修订不会替换这些材料；未被引用的输入不建立来源关系。')
+      revision.synthesis.materials.forEach((material, materialIndex) => {
+        const materialLabel = `${label}-M${materialIndex + 1}`
+        if (material.kind === 'card') {
+          parts.push(`#### ${materialLabel} · ${inline(material.content.title)}`,
+            `- Card / 卡片: ${material.cardId}\n- Revision / 修订: ${material.revisionNumber} (${material.revisionId})\n- Saved / 保存时间: ${time(material.savedAt)}\n- Frozen card text only / 仅此修订的卡片正文。`)
+          for (const [field, title] of [['question', 'Core question / 核心问题'], ['conclusion', 'Conclusion / 结论'],
+            ['rationale', 'Conditions and evidence / 条件与依据'], ['openQuestions', 'Open questions / 待验证事项']] as const) {
+            parts.push(`##### ${title}`, block(material.content[field]))
+          }
+          if (material.sources.length > 0) parts.push('Source labels only / 仅来源说明', ...material.sources.map(source =>
+            `- ${inline(source.title)} · Session ${inline(source.sessionId)} · ${source.startSeq}–${source.endSeq}`))
+          if (cited.has(materialIndex)) relations.push(`- ${materialLabel}: Card ${material.cardId}, revision ${material.revisionNumber} (${material.revisionId}) → ${label}: Card ${cardId}. Synthesized from / 综合自。`)
+        } else {
+          const source = material.source
+          parts.push(`#### ${materialLabel} · ${inline(source.title)}`,
+            `- Session / 会话: ${inline(source.sessionId)}\n- Events / 事件范围: ${source.source.startSeq}–${source.source.endSeq}\n- Retained selected range, not the complete Session / 冻结的选定范围，非完整会话。`)
+          for (const turn of source.source.turns) {
+            parts.push(`##### Turn / 轮次 ${turn.turn} · ${turn.startSeq}–${turn.endSeq}`)
+            for (const message of turn.messages) parts.push(`**${message.role === 'user' ? 'User / 用户' : 'Assistant / 助手'}**`, block(message.text))
+          }
+        }
+      })
+    }
   })
   parts.push('## Source relations / 来源关系', relations.length === 0 ? 'No source relations / 无来源关系。' : relations.join('\n'))
   const title = cards.length === 1 ? Array.from(cards[0]!.revision.content.title.normalize('NFC')

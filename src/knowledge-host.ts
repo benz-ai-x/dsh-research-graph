@@ -16,6 +16,10 @@ import { extractionPreparationSchema } from './knowledge-extraction-codec.ts'
 import { discussionTurns } from './session-discussion.ts'
 import { renderKnowledgeExport, type ExportCard, type ExportSourceStatus, type KnowledgeExportRequest, type KnowledgeExportResult } from './knowledge-export.ts'
 import { knowledgeExportRequestSchema } from './knowledge-export-codec.ts'
+import { freezeResearchMaterials } from './research-materials-host.ts'
+import { RESEARCH_MATERIAL_BUDGET, researchReusePrompt } from './research-reuse.ts'
+import { synthesisContent, verifySynthesisClaims, SYNTHESIS_SYSTEM_PROMPT, type KnowledgeSynthesis, type SynthesisDraft, type SynthesisPreparation, type SynthesisRequest, type SynthesisSave } from './knowledge-synthesis.ts'
+import { synthesisModelSchema, synthesisPreparationSchema, synthesisRequestSchema } from './knowledge-synthesis-codec.ts'
 import { ServiceRequests } from './service-requests.ts'
 
 const cardStorageSchema: z.ZodType<KnowledgeCard> = z.unknown().transform((value, context) => {
@@ -31,6 +35,7 @@ const extractionStorageSchema: z.ZodType<ExtractionPreparation> = z.unknown().tr
   }
 })
 export const KNOWLEDGE_DOMAIN = { name: 'session_graph_knowledge', version: 1, tables: {
+  synthesis_sources: { valueSchema: z.object({ requestHash: z.string(), preparation: z.unknown().transform(value => synthesisPreparationSchema.parse(value)) }) },
   cards: { valueSchema: cardStorageSchema }, extraction_sources: { valueSchema: extractionStorageSchema },
   metadata: { valueSchema: z.object({ hostId: z.string().uuid() }) },
 } } as const
@@ -100,6 +105,89 @@ export class KnowledgeService extends TypertRemoteService {
       reading.throwIfAborted()
       return result
     })
+  }
+
+  @Remote('prepareSynthesis')
+  prepareSynthesis(request: SynthesisRequest, signal: AbortSignal): Promise<SynthesisPreparation> {
+    return this.requests.run(signal, async combined => {
+      const command = synthesisRequestSchema.parse(request)
+      const requestHash = createHash('sha256').update(JSON.stringify(command)).digest('hex')
+      const existing = this.domain.table('synthesis_sources').get(command.operationId)
+      if (existing !== undefined) {
+        if (existing.requestHash !== requestHash) throw new Error('This synthesis preview belongs to another selection')
+        return existing.preparation
+      }
+      await this.ctx.sessionGraphTopics.read({ topicId: command.topicId }, combined)
+      for (const selection of command.materials) {
+        if (selection.kind === 'card' && !this.domain.table('cards').get(selection.cardId)?.topicIds.includes(command.topicId)) {
+          throw new Error('Select saved cards from this Research Topic')
+        }
+      }
+      const materials = await freezeResearchMaterials(this.ctx, command.materials, combined)
+      const materialText = researchReusePrompt(materials, command.question)
+      if (materialText.length > RESEARCH_MATERIAL_BUDGET) throw new Error('Synthesis material exceeds the 32000 character budget; adjust the selection')
+      const sourceId = materials.flatMap(material => material.kind === 'turn' ? [material.source.sessionId] : material.sources.map(source => source.sessionId))[0]
+      let route = this.config.route
+      if (sourceId !== undefined) {
+        try { route = sessionDigestInspectionFromHarness(await this.ctx.sessionController.inspect(sourceId as SessionId, combined), route).modelRoute } catch { combined.throwIfAborted() }
+      }
+      const preparation: SynthesisPreparation = { preparationId: command.operationId, topicId: command.topicId, question: command.question,
+        materials, claims: [], materialText, budgetChars: RESEARCH_MATERIAL_BUDGET, ...(route === undefined ? {} : { route }) }
+      combined.throwIfAborted()
+      const write = this.tail.then(async () => {
+        const old = this.domain.table('synthesis_sources').get(command.operationId)
+        if (old !== undefined) {
+          if (old.requestHash !== requestHash) throw new Error('This synthesis preview belongs to another selection')
+          return old.preparation
+        }
+        await this.domain.table('synthesis_sources').put(command.operationId, { requestHash, preparation: synthesisPreparationSchema.parse(preparation) })
+        return preparation
+      })
+      this.tail = write.then(() => {}, () => {})
+      return write
+    })
+  }
+
+  @Remote('synthesize')
+  synthesize(request: ExtractionRequest, signal: AbortSignal): Promise<SynthesisDraft> {
+    return this.requests.run(signal, async combined => {
+      const command = extractionRequestSchema.parse(request)
+      const preparation = this.domain.table('synthesis_sources').get(command.preparationId)?.preparation
+      if (preparation === undefined) throw new Error('Synthesis preview is unavailable')
+      const callSignal = AbortSignal.any([combined, AbortSignal.timeout(this.config.timeoutMs)])
+      const assembler = new BlockAssembler()
+      let size = 0
+      for await (const chunk of this.ctx.llm.stream({ provider: command.provider, model: command.model,
+        messages: [createUserMessage({ source: { kind: 'plugin', plugin: 'dsh-session-graph' }, content: [{ type: 'text', text: preparation.materialText }] })],
+        system: SYNTHESIS_SYSTEM_PROMPT, maxTokens: 8192, signal: callSignal,
+      })) {
+        callSignal.throwIfAborted()
+        size += JSON.stringify(chunk).length
+        if (size > 256_000) throw new Error('Synthesis output exceeds the limit')
+        assembler.push(chunk)
+      }
+      callSignal.throwIfAborted()
+      const blocks = assembler.blocks()
+      if (assembler.finish.kind !== 'stop' || blocks.some(block => block.type === 'tool-call')) throw new Error('Synthesis did not finish with text')
+      const parsed = synthesisModelSchema.parse(JSON.parse(blocks.filter(block => block.type === 'text').map(block => block.text).join('')))
+      const verified = verifySynthesisClaims(preparation.materials, parsed.claims)
+      return { cardId: randomUUID(), revisionId: randomUUID(),
+        content: knowledgeContentSchema.parse(synthesisContent({ title: parsed.title, question: parsed.question, kind: parsed.kind, status: 'draft', conclusion: '', rationale: '', openQuestions: '' }, verified.claims)),
+        synthesis: { source: { kind: 'preparation', preparationId: preparation.preparationId }, claims: verified.claims }, invalidCitations: parsed.invalidCitations + verified.invalidCitations }
+    })
+  }
+
+  private synthesis(save: SynthesisSave, targetId: string): KnowledgeSynthesis {
+    const source = save.source
+    if (source.kind === 'preparation' && this.domain.table('cards').get(targetId) !== undefined) throw new Error('Save synthesis as an independent card')
+    if (source.kind === 'revision' && source.cardId !== targetId) throw new Error('Edit the original synthesis card revision')
+    const materials = source.kind === 'preparation' ? this.domain.table('synthesis_sources').get(source.preparationId)?.preparation.materials
+      : this.domain.table('cards').get(source.cardId)?.revisions.find(revision => revision.revisionId === source.revisionId)?.synthesis?.materials
+    if (materials === undefined) throw new Error('Frozen synthesis materials are unavailable')
+    if (materials.some(material => material.kind === 'card' && material.cardId === targetId)) throw new Error('Save synthesis as an independent card')
+    const verified = verifySynthesisClaims(materials, save.claims)
+    if (verified.invalidCitations > 0) throw new Error('A citation is outside the frozen material; remove or correct it before saving')
+    return { materials, claims: verified.claims }
   }
 
   @Remote('prepareExtraction')
@@ -243,7 +331,15 @@ export class KnowledgeService extends TypertRemoteService {
           return existing!
         }
         if (command.topicId !== undefined) await this.ctx.sessionGraphTopics.read({ topicId: command.topicId }, combined)
-        const sources = await Promise.all(command.sources.map(address => this.capture(address, combined)))
+        if (command.synthesis?.source.kind === 'preparation'
+          && this.domain.table('synthesis_sources').get(command.synthesis.source.preparationId)?.preparation.topicId !== command.topicId) {
+          throw new Error('Save the synthesis in its selected Research Topic')
+        }
+        const synthesis = command.synthesis === undefined ? undefined : this.synthesis(command.synthesis, command.cardId)
+        const cited = new Set(synthesis?.claims.flatMap(claim => claim.citations.map(citation => citation.materialIndex)))
+        const sources = synthesis === undefined ? await Promise.all(command.sources.map(address => this.capture(address, combined)))
+          : synthesis.materials.flatMap((material, index) => material.kind === 'turn' && cited.has(index) ? [material.source] : [])
+        const content = synthesis === undefined ? command.content : knowledgeContentSchema.parse(synthesisContent(command.content, synthesis.claims))
         if (Buffer.byteLength(JSON.stringify(sources), 'utf8') > 4_000_000) throw new Error('Selected source exceeds the 4 MB card limit; select a smaller range')
         combined.throwIfAborted()
         const card: KnowledgeCard = {
@@ -251,7 +347,7 @@ export class KnowledgeService extends TypertRemoteService {
           topicIds: [...new Set([...(existing?.topicIds ?? []), ...(command.topicId === undefined ? [] : [command.topicId])])],
           revisions: [...(existing?.revisions ?? []), {
             revisionId: command.revisionId, requestHash, number: (existing?.revisions.length ?? 0) + 1,
-            savedAt: Date.now(), content: command.content, sources,
+            savedAt: Date.now(), content, sources, ...(synthesis === undefined ? {} : { synthesis }),
           }],
         }
         await this.domain.table('cards').put(card.cardId, card)

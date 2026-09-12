@@ -276,7 +276,7 @@ describe('tsdown client artifact', () => {
       'slots', 'sessions', 'workspaces', 'locale',
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
       'remote.sessionGraphSearch', 'remote.sessionGraphTopics',
-      'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse',
+      'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',
     ]])
     expect(views).toHaveLength(1)
     expect(views[0]).toMatchObject({ name: 'conversation.view', id: 'graph' })

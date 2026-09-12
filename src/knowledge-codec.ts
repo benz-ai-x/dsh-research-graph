@@ -1,3 +1,4 @@
+import { knowledgeSynthesisSchema, synthesisSaveSchema } from './knowledge-synthesis-codec.ts'
 import type { KnowledgeCard, KnowledgeContent, KnowledgeMembership, KnowledgeSearch, KnowledgeSourceAddress, KnowledgeSave, KnowledgeSource } from './knowledge.ts'
 import { sessionHistoryRequestSchema } from './session-history-codec.ts'
 import type { ExtractionPreparationRequest, ExtractionRequest } from './knowledge-extraction.ts'
@@ -50,10 +51,11 @@ function source(value: unknown): KnowledgeSource {
 }
 
 export const knowledgeSaveSchema = { parse(value: unknown): KnowledgeSave {
-  const item = object(value, ['cardId', 'revisionId', 'topicId', 'content', 'sources'])
+  const item = object(value, ['cardId', 'revisionId', 'topicId', 'content', 'sources', 'synthesis'])
   if (array(item.sources).length > 32) return invalid()
   return {
     cardId: uuid(item.cardId), revisionId: uuid(item.revisionId), content: content(item.content),
+    ...(item.synthesis === undefined ? {} : { synthesis: synthesisSaveSchema.parse(item.synthesis) }),
     sources: array(item.sources).map(address), ...(item.topicId === undefined ? {} : { topicId: uuid(item.topicId) }),
   }
 } }
@@ -72,11 +74,12 @@ export const knowledgeReadSchema = { parse(value: unknown): { readonly cardId: s
 export const knowledgeCardSchema = { parse(value: unknown): KnowledgeCard {
   const item = object(value, ['cardId', 'topicIds', 'revisions'])
   const revisions = array(item.revisions).map((value, index) => {
-    const revision = object(value, ['revisionId', 'requestHash', 'number', 'savedAt', 'content', 'sources'])
+    const revision = object(value, ['revisionId', 'requestHash', 'number', 'savedAt', 'content', 'sources', 'synthesis'])
     if (count(revision.number) !== index + 1) return invalid()
     const requestHash = text(revision.requestHash, 64)
     if (!/^[0-9a-f]{64}$/u.test(requestHash)) return invalid()
     return { revisionId: uuid(revision.revisionId), requestHash, number: index + 1, savedAt: count(revision.savedAt),
+      ...(revision.synthesis === undefined ? {} : { synthesis: knowledgeSynthesisSchema.parse(revision.synthesis) }),
       content: content(revision.content), sources: array(revision.sources).map(source) }
   })
   if (revisions.length === 0 || new Set(revisions.map(revision => revision.revisionId)).size !== revisions.length) return invalid()

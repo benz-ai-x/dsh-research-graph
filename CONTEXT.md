@@ -60,6 +60,10 @@ _Avoid_: Branch tree, derivation tree
 A directed lineage relation from one Canvas Session to a child Canvas Session. Creating a Branch produces a distinct session without changing the source session.
 _Avoid_: Fork, Subagent Derivation
 
+**Historical Branch**:
+A Branch created from the completed history through an explicitly selected Discussion Turn. Its preview records the actual inherited range and reserves one child identity for recovery. Continuing the child starts with a new question rather than pending work inherited from the source; the source history remains intact.
+_Avoid_: Reuse Relation, copied Knowledge Card
+
 **Merge Session**:
 An independent Canvas Session with no parent Session, initialized from an explicit instruction and immutable snapshots of two or three source sessions. At capture time it is either blank or already bound to the exact same ordered Merge Sources by its first Merge marker, which makes retry idempotent. It is not a Branch, and its creation does not change its sources.
 _Avoid_: Aggregated session, merged branch, combined thread
@@ -124,8 +128,20 @@ The Host-retained selection and exact included direct discussion text shown befo
 _Avoid_: Full-session summary, verified tool evidence, saved card
 
 **Research Material**:
-An explicitly selected saved Card Revision or one complete Discussion Turn, frozen for a new discussion. A card contributes its own content and source labels; original discussion must be selected separately. One new discussion uses one to three ordered materials within the visible message budget.
+An explicitly selected saved Card Revision or a continuous range of completed Discussion Turns, frozen for further research. A card contributes its own content and source labels; original discussion must be selected separately. One new discussion uses one to three ordered materials; a Synthesis uses two or three within the visible message budget.
 _Avoid_: Whole Research Topic, inherited context, Session Snapshot
+
+**Synthesis**:
+A reviewed comparison of two or three frozen Research Materials, retained as an independent Knowledge Card. Its editable claims distinguish agreements, disagreements, conditions/evidence and open questions. A claim can remain unsupported and marked for verification. Later changes to sources do not alter the frozen material in a saved Card Revision.
+_Avoid_: Merge Session, automatic summary, verified conclusion
+
+**Synthesis Citation**:
+An exact quotation from one frozen Research Material supporting an addressed claim. Card citations address a specific Card Revision; discussion citations address the selected original turn range. A source label alone cannot establish a quotation of original text. Validity establishes traceable provenance, not factual or logical correctness.
+_Avoid_: Source label, model confidence, truth guarantee
+
+**Synthesis Relation**:
+A directed provenance link from a cited source Knowledge Card to an independent Synthesis card, labeled with the cited source revision. Selected but uncited inputs do not establish the relation. Cited discussion ranges retain their Source Relations; neither relation creates Session Lineage.
+_Avoid_: Branch, Merge Relation, similarity edge
 
 **Reuse Relation**:
 A durable provenance record from selected Research Materials to an independent target Session, created only after Harness acknowledges native prompt admission. It retains the exact material, versions, boundaries and message shown in preview. Prepared and created attempts recover uncertain submissions without claiming usage. Admission does not mean the model has answered.

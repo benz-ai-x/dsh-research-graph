@@ -1,3 +1,5 @@
+import { synthesisEn, synthesisZh, type SynthesisKey } from './synthesis-locales.ts'
+import { explorationEn, explorationZh, type ExplorationKey } from './exploration-locales.ts'
 import { titleEn, titleZh, type SessionTitleKey } from './session-title-locales.ts'
 /** `sessionGraph` namespace dictionaries (view tab label + graph chrome strings). */
 import { workbenchEn, workbenchZh, type WorkbenchKey } from './workbench-locales.ts'
@@ -11,6 +13,8 @@ export const NS = 'sessionGraph'
 /** The session-graph dictionary key set (the source of truth for both locales). */
 export type SessionGraphKey =
   | 'position.unavailable' | 'position.topicUnavailable'
+  | SynthesisKey
+  | ExplorationKey
   | SessionTitleKey
   | WorkbenchKey
   | ReadingKey
@@ -184,6 +188,8 @@ export const zh: Record<SessionGraphKey, string> = {
   ...knowledgeZh, ...titleZh,
   ...workbenchZh, ...readingZh,
   ...reuseZh,
+  ...explorationZh,
+  ...synthesisZh,
   'topic.refresh': '刷新来源',
   'topic.saveArrangement': '保存排列',
   'topic.arrangementHint': '排列已同步到主题',
@@ -369,6 +375,8 @@ export const en: Record<SessionGraphKey, string> = {
   ...knowledgeEn, ...titleEn,
   ...workbenchEn, ...readingEn,
   ...reuseEn,
+  ...explorationEn,
+  ...synthesisEn,
   'topic.refresh': 'Refresh sources',
   'topic.saveArrangement': 'Save arrangement',
   'topic.arrangementHint': 'Arrangement synced to topic',

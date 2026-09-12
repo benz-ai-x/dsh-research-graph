@@ -7,8 +7,8 @@ import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import { containsSessionReferenceUri } from './session-merge.ts'
-import { readKnowledgeDiscussion } from './knowledge-discussion.ts'
-import { RESEARCH_MATERIAL_BUDGET, researchReusePrompt, type ResearchMaterial, type ResearchReusePreparation, type ResearchReuseRecord } from './research-reuse.ts'
+import { freezeResearchMaterials } from './research-materials-host.ts'
+import { RESEARCH_MATERIAL_BUDGET, researchReusePrompt, type ResearchReusePreparation, type ResearchReuseRecord } from './research-reuse.ts'
 import { researchReusePreparationSchema, researchReuseReadSchema, researchReuseRecordSchema, researchReuseSessionSchema } from './research-reuse-codec.ts'
 import { researchRelations, researchRelationQuerySchema, type ResearchRelation, type ResearchRelationQuery } from './research-relations.ts'
 import { ServiceRequests } from './service-requests.ts'
@@ -44,24 +44,7 @@ export class ResearchReuseService extends TypertRemoteService {
       }
       const workspace = this.ctx.workspaceRegistry.list().find(item => String(item.id) === command.workspaceId)
       if (workspace === undefined) throw new Error('Choose an available target Workspace')
-      const materials: ResearchMaterial[] = []
-      for (const selection of command.materials) {
-        combined.throwIfAborted()
-        if (selection.kind === 'card') {
-          const card = await this.ctx.sessionGraphKnowledge.read({ cardId: selection.cardId }, combined)
-          const revision = card?.revisions.find(item => item.revisionId === selection.revisionId)
-          if (revision === undefined) throw new Error('Selected Card Revision is unavailable')
-          materials.push({ kind: 'card', cardId: selection.cardId, revisionId: revision.revisionId, revisionNumber: revision.number,
-            savedAt: revision.savedAt, content: revision.content, sources: revision.sources.map(source => ({
-              sessionId: source.sessionId, title: source.title, startSeq: source.source.startSeq, endSeq: source.source.endSeq,
-              startedAt: source.source.turns[0]!.startedAt,
-            })) })
-        } else {
-          const source = await readKnowledgeDiscussion(this.ctx, { ...selection, kind: 'discussion' }, combined)
-          if (source.source.turns.length !== 1) throw new Error('Each original material must contain one complete turn')
-          materials.push({ kind: 'turn', source })
-        }
-      }
+      const materials = await freezeResearchMaterials(this.ctx, command.materials, combined)
       const promptText = researchReusePrompt(materials, command.question)
       if (containsSessionReferenceUri(promptText)) throw new Error('Selected text contains a Harness Session reference. Edit or remove that material before sending')
       if (promptText.length > RESEARCH_MATERIAL_BUDGET) throw new Error(`Selected material exceeds the ${RESEARCH_MATERIAL_BUDGET} character budget; reduce it and preview again`)

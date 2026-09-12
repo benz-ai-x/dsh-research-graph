@@ -966,6 +966,15 @@ export function GraphCanvas({
     [laid, positions, clusters, collapsedSet, offsets],
   )
   const shownByKey = useMemo(() => new Map(shown.nodes.map(node => [node.key, node])), [shown])
+  const synthesisLabels = useMemo(() => {
+    const labels = new Map<string, { readonly edgeId: string; readonly count: number }>()
+    for (const { edge } of shown.edges) {
+      if (edge.kind !== 'synthesis') continue
+      const previous = labels.get(edge.to)
+      labels.set(edge.to, { edgeId: previous?.edgeId ?? edge.id, count: (previous?.count ?? 0) + 1 })
+    }
+    return labels
+  }, [shown])
   useEffect(() => {
     if (restoredArrangementKey !== arrangement.key || fittedRef.current) return
     // The conversation shell measures its composer after the first paint.
@@ -1558,11 +1567,14 @@ export function GraphCanvas({
                   onMouseLeave={() => { setHoverEdge(null) }}
                 />
                 <path
-                  className={edge.kind === 'reuse' ? styles.edgeReuse : edge.kind === 'source' ? styles.edgeSource : merge ? styles.edgeMerge : styles.edgeBranch}
+                  className={edge.kind === 'synthesis' ? styles.edgeSynthesis : edge.kind === 'reuse' ? styles.edgeReuse : edge.kind === 'source' ? styles.edgeSource : merge ? styles.edgeMerge : styles.edgeBranch}
                   data-edge-kind={edge.kind}
                   d={path}
                 />
                 {edge.kind === 'reuse' ? <title>{t('workbench.reuseEdge')}{edge.reuse?.revisionNumber === undefined ? '' : ` · ${t('knowledge.versionNumber', { number: edge.reuse.revisionNumber })}`}</title> : null}
+                {edge.kind === 'synthesis' ? <title>{t('synthesis.relation')} · {t('knowledge.versionNumber', { number: edge.synthesis?.revisionNumber })}</title> : null}
+                {synthesisLabels.get(edge.to)?.edgeId === edge.id ? <text className={styles.edgeLabel} textAnchor="middle"
+                  x={cx} y={to.y - 16}>{t('synthesis.relationCount', { count: synthesisLabels.get(edge.to)!.count })}</text> : null}
                 <path
                   className={merge ? styles.edgeMergeArrow : styles.edgeBranchArrow}
                   d={`M ${cx - 6} ${to.y - 9} L ${cx} ${to.y} L ${cx + 6} ${to.y - 9} Z`}

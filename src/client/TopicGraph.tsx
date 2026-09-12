@@ -48,6 +48,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   const knowledge = useKnowledge()!
   const workingKey = workingPositionKey(context.actions.hostId, context.workingKey, topic.topicId)
   const [cards, setCards] = useState<readonly KnowledgeCard[]>([])
+  const [sourceCards, setSourceCards] = useState<readonly KnowledgeCard[]>([])
   const [snapshot, setSnapshot] = useState<ResearchTopicSnapshot>()
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error' | 'canceled'>('loading')
   const [revision, setRevision] = useState(0)
@@ -57,20 +58,25 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   const membership = JSON.stringify(topic.references.map(reference => reference.sessionId))
   const read = context.actions.topics.read
   const searchCards = knowledge.api.search
+  const readCard = knowledge.api.read
   useEffect(() => {
     const controller = new AbortController()
     active.current = controller
     setPhase('loading')
     setSnapshot(undefined)
     void Promise.all([read({ topicId: topic.topicId }, controller.signal),
-      searchCards({ query: '', topicId: topic.topicId }, controller.signal)]).then(([value, found]) => {
+      searchCards({ query: '', topicId: topic.topicId }, controller.signal)]).then(async ([value, found]) => {
+      const missing = [...new Set(found.flatMap(card => card.revisions.at(-1)!.synthesis?.materials.flatMap(material => material.kind === 'card' ? [material.cardId] : []) ?? []))]
+        .filter(id => !found.some(card => card.cardId === id))
+      const retained = await Promise.all(missing.map(cardId => readCard({ cardId }, controller.signal)))
       if (controller.signal.aborted) return
       setSnapshot(value)
       setCards(found)
+      setSourceCards(retained.filter((card): card is KnowledgeCard => card !== null))
       setPhase('ready')
-    }, () => { if (!controller.signal.aborted) setPhase('error') })
+    }).catch(() => { if (!controller.signal.aborted) setPhase('error') })
     return () => { controller.abort() }
-  }, [topic.topicId, membership, read, searchCards, revision, knowledge.refresh])
+  }, [topic.topicId, membership, read, readCard, searchCards, revision, knowledge.refresh])
   const graph = useMemo(() => {
     if (snapshot === undefined) return undefined
     const archived = new Set<string>(context.workspaces.archivedSessionIds)
@@ -82,8 +88,8 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         ...source.workspace, title: workspaceTitles.get(source.workspace.id) || source.workspace.title,
       } }),
     }))
-    return withResearchRelations(withKnowledgeCards(deriveTopicGraph({ sources, topic }, context.sessions, context.viewedId, context.pendingInteractions), cards, context.sessions, archived), relations.relations, context.sessions, context.workspaces)
-  }, [snapshot, topic, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions, cards, relations.relations])
+    return withResearchRelations(withKnowledgeCards(deriveTopicGraph({ sources, topic: snapshot.topic }, context.sessions, context.viewedId, context.pendingInteractions), [...cards, ...sourceCards], context.sessions, archived), relations.relations, context.sessions, context.workspaces)
+  }, [snapshot, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions, cards, sourceCards, relations.relations])
   const laid = useMemo(() => graph === undefined ? undefined : layoutResearchGraph(graph), [graph])
   // Keep the last complete graph while a save refreshes cards and relations.
   // An incomplete relation result must not unmount the reader or clear selection.
@@ -123,6 +129,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
         topic={{ arrangement, onArrange, openCard: knowledge.open,
           actions: <>
+            {knowledge.synthesize === undefined ? null : <button type="button" disabled={phase !== 'ready'} onClick={() => { knowledge.synthesize?.(topic.topicId) }}>{t('synthesis.title')}</button>}
             <button type="button" disabled={phase === 'loading'} onClick={() => { setRevision(value => value + 1) }}>{t('topic.refresh')}</button>
             <button type="button" disabled={phase !== 'ready' || cards.length === 0} onClick={() => {
               knowledge.exportCards(cards.map(card => ({ cardId: card.cardId, title: card.revisions.at(-1)!.content.title })))

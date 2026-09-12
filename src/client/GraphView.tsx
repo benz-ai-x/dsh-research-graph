@@ -23,6 +23,8 @@ import { ResearchTopics } from './ResearchTopics.tsx'
 import { KnowledgeProvider, KnowledgeSavedNotice, useKnowledge } from './Knowledge.tsx'
 import type { KnowledgeApi } from './knowledge-remote.ts'
 import { ResearchMaterialPicker } from './ResearchMaterialPicker.tsx'
+import type { HistoryBranchApi } from '../history-branch.ts'
+import { HistoryBranchProvider } from './HistoryBranch.tsx'
 import { ResearchReuseEntry, ResearchReuseProvider } from './ResearchReuse.tsx'
 import type { ResearchReuseApi } from './research-reuse-remote.ts'
 import { deriveSessionGraph, resolveGraphScope } from './graph-model.ts'
@@ -33,6 +35,7 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  readonly historyBranch?: HistoryBranchApi
   readonly generateSessionTitle: (id: SessionId, signal: AbortSignal) => Promise<SessionTitleResult>
   readonly renameSessionTitle: (id: SessionId, title: string, expectedTitle: string) => Promise<string>
   readonly mergeResearchSessions?: (request: {
@@ -93,9 +96,11 @@ export function GraphView(props: GraphViewProps): ReactElement {
   return <div className={styles.knowledgeBoundary}><ResearchReuseProvider key={props.hostId} stayInResearch api={props.reuse}
     picker={<ResearchMaterialPicker api={props.knowledge} useSessions={props.useSessions} read={props.readSessionHistory} t={props.t} />}
     workspaces={workspaces.items} viewedId={props.sessionId} openSession={props.openSession} t={props.t}>
-    <KnowledgeProvider api={props.knowledge}
+    <KnowledgeProvider api={props.knowledge} useSessions={props.useSessions}
     topics={props.topics} read={props.readSessionHistory} t={props.t}>
-    <GraphViewBody {...props} />
+    <HistoryBranchProvider api={props.historyBranch} hostId={props.hostId} openSession={props.openSession} t={props.t}>
+      <GraphViewBody {...props} />
+    </HistoryBranchProvider>
   </KnowledgeProvider></ResearchReuseProvider></div>
 }
 

@@ -91,6 +91,16 @@ Starting another card or extraction from a source reader opens a separate editor
 
 See the [first UX repair round and screenshots](docs/reviews/ux-round-1.md) for interaction and responsive acceptance.
 
+## Explore from a historical turn
+
+In a Workspace, directory or topic Original reader, choose **Branch from here** on a completed turn. Preview the compact child title and exact inherited turn range, then confirm. A five-turn discussion branched from turn 2 inherits turns 1–2 and leaves all five source turns intact. The child belongs to the source Workspace and, when opened from a topic, is attached there with its true parent. Inherited pending input is canceled in the child before activation, so continuing it runs only your new question. Unavailable or changed cut points require a new preview. Close and reopen the same cut to recover the same target; naming or topic failures retry that target. **Create another branch** starts a separate attempt.
+
+## Compare and synthesize
+
+Open a topic's **Graph options → Compare and synthesize**. Select 2–3 saved card revisions or continuous ranges of completed original turns, including mixed selections. Preview freezes their complete included content and shows the 32,000-character message budget. Duplicate cards, overlapping ranges, missing/incomplete sources and oversized selections are rejected; adjust the selection before generating. A card contributes its revision text and source labels, with original discussion selected separately.
+
+Generate an editable draft containing agreements, disagreements, conditions/evidence and open questions. Review each claim and exact quotation; invalid generated citations are removed with a warning and uncited claims remain marked for verification. Re-generation appends a draft without replacing earlier edits. Save explicitly as an independent Knowledge Card in the selected topic; draft is the default status. Valid card citations create **Synthesized from** edges; the graph shows the number of source cards, and edge tooltips and source readers identify the frozen revision. Reading, revisions, search, Markdown export and Continue discussion retain the frozen sources after source edits or Host restart. Source-card links open the cited revision; discussion links distinguish the original from its retained excerpt. Generated text stays in the current view until saved; closing with unsaved edits asks before discarding them.
+
 ## Reviewed AI extraction
 
 Select completed turns in Original and choose **Extract knowledge**. Preview readable source titles, turns and user/assistant text before generating; **View exact message text** expands the unchanged model payload. The material budget includes only whole turns and lists omitted ranges. Confirm the provider/model and generate drafts. Review each card's question, conclusions, conditions and open questions, then correct its text and citations before saving. Invalid citations are excluded; uncited drafts are marked for verification. A valid citation establishes provenance, not correctness, and raw tool evidence is not inspected.
@@ -101,7 +111,9 @@ See the [batch acceptance and browser screenshots](docs/reviews/issues-6-10-acce
 
 ## Start a discussion from selected materials
 
-Choose **Continue discussion** on a card, or add a saved card revision or one completed original turn to **More → Materials**. You can also open **Materials → Choose materials** to select saved card revisions or completed discussion turns without leaving your question. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** presents the question, readable material content, card revisions and the 32,000-character total budget. **View exact message text** reveals the unchanged text submitted after confirmation. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
+Choose **Continue discussion** on a card, or add a saved card revision or a continuous completed-turn range to **More → Materials**. You can also open **Materials → Choose materials** to select saved card revisions or completed discussion turns without leaving your question. Choose 1–3 items, reorder or remove them, enter a new question and explicitly choose the target Workspace. **Preview message** presents the question, readable material content, card revisions and the 32,000-character total budget. **View exact message text** reveals the unchanged text submitted after confirmation. Card selection includes only card content and source labels; original discussion needs a separate selection. Oversized material and embedded Harness Session references must be edited or removed before sending.
+
+The optional **Find counterexamples / Other approaches / Change assumptions / Follow up** prompts fill editable question text. Existing text is preserved until you explicitly replace it or append the prompt. Changing assumptions offers free text for both the old and new premise. Choosing, editing or closing a prompt never starts a Session or model call; the reviewed material preview and explicit confirmation remain required.
 
 If a submission response is lost, materials stay locked while Research Graph checks the Host's recorded target state. **Check target status** or reopening Materials repeats that check; Retry always uses the same submission. Closing the dialog suppresses late navigation.
 
@@ -134,6 +146,8 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 | Generate / apply a title | Suggestion is temporary; Apply saves a native user-title event | One auxiliary request only when generating |
 | Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback; one compression retry if complete output is too long |
 | Create a branch | Uses the normal Harness branch operation | No additional request from this plugin |
+| Branch from a historical turn | Reserves one native child identity and inherits the selected completed prefix; retries recover that child | None until you continue the new discussion |
+| Compare and synthesize | Freezes 2–3 materials; only explicit Save creates a new card with reviewed citations | One auxiliary request per Generate, up to 8,192 output tokens |
 | Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | The target processes the queued instruction on its normal route |
 
 ## Install

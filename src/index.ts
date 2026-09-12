@@ -39,6 +39,7 @@ import { SessionGraphHistoryService } from './session-history-host.ts'
 import { SessionGraphSearchService } from './session-search-host.ts'
 import { ResearchTopicsService, RESEARCH_TOPIC_DOMAIN } from './research-topics-host.ts'
 import { KnowledgeService, KNOWLEDGE_DOMAIN } from './knowledge-host.ts'
+import { HistoryBranchService, HISTORY_BRANCH_DOMAIN } from './history-branch-host.ts'
 import { ResearchReuseService, RESEARCH_REUSE_DOMAIN } from './research-reuse-host.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -51,6 +52,7 @@ declare module '@deepseek-ai/cordis' {
     sessionGraphTopics: ResearchTopicsService
     sessionGraphKnowledge: KnowledgeService
     sessionGraphReuse: ResearchReuseService
+    sessionGraphBranch: HistoryBranchService
   }
 }
 
@@ -238,6 +240,12 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       await domain.close()
       throw error
     }
+  })
+  await ctx.inject(['storageDomain', 'sessions', 'sessionPersistence', 'sessionGraphTopics', 'workspaceRegistry', 'sessionQuery'], async branchCtx => {
+    const domain = await branchCtx.storageDomain.open(HISTORY_BRANCH_DOMAIN)
+    try {
+      await provideQuiescentRemoteService(branchCtx, serviceCtx => new HistoryBranchService(serviceCtx, domain), 'session-graph.branch-service')
+    } catch (error) { await domain.close(); throw error }
   })
   void ctx.inject(['sessionQuery', 'workspaceRegistry'], async searchCtx => {
     await provideQuiescentRemoteService(
