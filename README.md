@@ -71,6 +71,8 @@ Discussion and knowledge bodies use DSH Markdown rendering for headings, lists, 
 
 See the [workbench acceptance record](docs/reviews/research-workbench-acceptance.md) and [reading UX round](docs/reviews/reading-ux-round.md) for scope, validation, and screenshots.
 
+Drag the reading panel's left edge left to widen it or right to narrow it. The width is remembered locally for the research scope; expanding and collapsing returns to your chosen width. Focus the edge to adjust with Left/Right (Shift for larger steps) or Home/End; Enter or double-click restores the default, and Escape cancels a drag. Small screens retain full-width reading and hide the resize handle.
+
 ## Knowledge Cards
 
 In **Research Graph → Original**, each completed turn has **Save as knowledge** at its beginning and end. You can also select consecutive turns and choose **Save as Knowledge Card**. The original prefills an editable title, question, and conclusion; a late response preserves fields you have typed or intentionally cleared. Title and conclusion are shown first, with optional details collapsed. Sources use discussion titles and turn numbers. Draft text over 24,000 characters is explicitly marked as an excerpt; the full selected source remains attached. Choose **Save knowledge**; topic assignment is in optional details. Saving a card from Original returns to the same reading position, with the saved title and a **View knowledge** action. Saving does not verify factual correctness. Manual creation does not call a model or modify the source Session. The header offers **New Knowledge Card**, and the save bar remains visible while scrolling.
