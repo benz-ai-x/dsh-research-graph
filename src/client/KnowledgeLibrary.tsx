@@ -58,8 +58,7 @@ export function KnowledgeLibrary({ workingKey, actions, t }: {
     </section>
     <article className={styles.readingPaper} data-working-scroll="" aria-label={t('workbench.reading')}>
       <button className={styles.readingBack} type="button" onClick={() => { setDetailOpen(false) }}>← {t('workbench.back')}</button>
-      {relations.failed ? <p role="alert">{t('workbench.relationsError')} <button type="button" onClick={relations.retry}>{t('topic.retry')}</button></p> : null}
-      {current ? <KnowledgeReader key={current.cardId} workingKey={workingKey} card={current} relations={relations.relations} read={actions.readSessionHistory} t={t} />
+      {current ? <KnowledgeReader key={current.cardId} workingKey={workingKey} card={current} relations={relations} read={actions.readSessionHistory} t={t} />
         : <div className={styles.readingEmpty}><h2>{t('workbench.chooseCard')}</h2><p>{t('workbench.libraryHint')}</p></div>}
     </article>
   </div>

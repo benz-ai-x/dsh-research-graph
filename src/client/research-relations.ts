@@ -3,7 +3,7 @@ import type { ResearchRelation, ResearchRelationQuery } from '../research-relati
 import type { ResearchReuseApi } from './research-reuse-remote.ts'
 
 /** One metadata read per bounded batch, not one full journal read for every session. */
-export async function readResearchRelations(api: ResearchReuseApi, query: ResearchRelationQuery, signal: AbortSignal): Promise<readonly ResearchRelation[]> {
+export async function readResearchRelations(api: Pick<ResearchReuseApi, 'relations'>, query: ResearchRelationQuery, signal: AbortSignal): Promise<readonly ResearchRelation[]> {
   const keys = [...new Set(query.cardIds)].map(id => ({ card: true, id }))
     .concat([...new Set(query.sessionIds)].map(id => ({ card: false, id })))
   const records = new Map<string, ResearchRelation>()
@@ -18,17 +18,20 @@ export async function readResearchRelations(api: ResearchReuseApi, query: Resear
   return [...records.values()]
 }
 
-export function useResearchRelations(api: ResearchReuseApi, query: ResearchRelationQuery, revision: number): {
+export interface ResearchRelationsState {
   readonly relations: readonly ResearchRelation[]
   readonly failed: boolean
   readonly loading: boolean
   readonly retry: () => void
-} {
+}
+
+export function useResearchRelations(api: Pick<ResearchReuseApi, 'relations'> | undefined, query: ResearchRelationQuery, revision: number): ResearchRelationsState {
   const key = JSON.stringify(query)
   const [state, setState] = useState<{ key: string; relations: readonly ResearchRelation[]; failed: boolean; loading: boolean }>(
     { key, relations: [], failed: false, loading: true })
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
+    if (api === undefined) return
     const controller = new AbortController()
     setState({ key, relations: [], failed: false, loading: true })
     void readResearchRelations(api, JSON.parse(key) as ResearchRelationQuery, controller.signal).then(relations => {
@@ -38,6 +41,7 @@ export function useResearchRelations(api: ResearchReuseApi, query: ResearchRelat
     })
     return () => { controller.abort() }
   }, [api, key, revision, attempt])
+  if (api === undefined) return { relations: [], failed: false, loading: false, retry: () => {} }
   return { relations: state.key === key ? state.relations : [], failed: state.key === key && state.failed,
     loading: state.key !== key || state.loading, retry: () => { setAttempt(value => value + 1) } }
 }

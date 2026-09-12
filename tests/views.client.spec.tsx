@@ -495,7 +495,7 @@ describe('Working position in the registered Graph', () => {
       expect(screen.getByTestId('topic-source-panel-scroll').scrollTop).toBe(160)
       fireEvent.doubleClick(document.querySelector('[data-node-kind="knowledge"]')!)
       const dialog = await screen.findByRole('dialog', { name: '知识卡片' })
-      fireEvent.click(await within(dialog).findByRole('button', { name: '查看来源原文' }))
+      fireEvent.click(await within(dialog).findByRole('button', { name: /查看来源原文/ }))
       await within(within(dialog).getByRole('region', { name: '讨论原文' })).findByText('原文 1')
       expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'session-a', source: source.source }, expect.any(AbortSignal))
     }
@@ -794,7 +794,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
     expect(within(screen.getByRole('dialog', { name: '导出 Markdown' })).getByRole('checkbox', { name: '证据方法' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '关闭导出' }))
     expect(within(screen.getByRole('dialog', { name: '知识卡片' })).getByText('保留精确轮次')).toBeTruthy()
-    fireEvent.click(within(dialog).getByRole('button', { name: '查看来源原文' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: /查看来源原文/ }))
     await waitFor(() => { expect(b.readHistory).toHaveBeenLastCalledWith({ sessionId: 'a', source: { startSeq: 10, endSeq: 14, turns: [turn] } }, expect.any(AbortSignal)) })
     expect(b.open).not.toHaveBeenCalled()
     expect(b.generateDigest).not.toHaveBeenCalled()

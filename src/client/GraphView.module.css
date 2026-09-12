@@ -1903,11 +1903,15 @@
 .readingPanelTools > button:hover { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); }
 .readingPanelTools > button:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 2px; }
 .panel.readingPanel {
-  width: var(--reading-width, min(560px, 48%)); min-width: min(440px, calc(100% - 32px)); max-width: calc(100% - 32px);
+  width: var(--reading-width, var(--reading-default-width)); min-width: var(--reading-min-width); max-width: var(--reading-max-width);
   top: 12px; bottom: 12px; max-height: none; padding: 0; gap: 0; overflow: hidden;
   border-radius: 14px; background: var(--dsw-alias-bg-layer-1); box-shadow: var(--dsw-shadow-lv1);
 }
-.panel.readingPanel[data-reading-expanded='true'] { width: min(max(880px, calc(var(--reading-width, 560px) + 320px)), calc(100% - 32px)); }
+.panel.readingPanel[data-reading-expanded='true'] { width: var(--reading-expanded-width); }
+/* Geometry owns responsive panel modes; content typography retains container queries. */
+.panel.readingPanel[data-reading-mode='compact'] { right: 12px; }
+.panel.readingPanel[data-reading-mode='overlay'] { top: 8px; bottom: 8px; right: 8px; left: 8px; width: auto; min-width: 0; max-width: none; border-radius: 10px; }
+[data-reading-mode='overlay'] > .readingResize { display: none; }
 .readingResize {
   position: absolute; z-index: 3; inset: 0 auto 0 0; width: 12px;
   cursor: col-resize; touch-action: none; user-select: none;
@@ -2021,17 +2025,12 @@
   .workbenchActions { gap: 5px; }
   .workbenchActions > button { padding-inline: 8px; font-size: 12px; }
   .workbenchBrand strong { font-size: 12px; }
-  .panel.readingPanel { width: var(--reading-width, min(500px, 56%)); min-width: min(380px, calc(100% - 24px)); max-width: calc(100% - 24px); right: 12px; }
-  .panel.readingPanel[data-reading-expanded='true'] { width: calc(100% - 24px); right: 12px; }
 }
 
 @container research (max-width: 760px) {
   .workbenchHeader { gap: 8px; padding: 8px 12px; }
 
 
-  .panel.readingPanel { top: 8px; bottom: 8px; right: 8px; left: 8px; width: auto; min-width: 0; max-width: none; border-radius: 10px; }
-  .panel.readingPanel[data-reading-expanded='true'] { top: 8px; right: 8px; width: auto; }
-  .readingResize { display: none; }
   .readingPanelHeader { padding: 12px 16px 0; }
   .readingPanelHeader .panelTitle { font-size: 17px; }
   .readingPanelBody { padding: 16px; }
