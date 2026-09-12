@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import type { ResearchTopic, ResearchTopicWrite } from '../research-topic.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
 import { loadLayout, saveLayout, type LayoutState } from './layout-store.ts'
 import { KnowledgeLibrary } from './KnowledgeLibrary.tsx'
+import { ActionMenu } from './ActionMenu.tsx'
 import { TopicGraph, type TopicGraphContext } from './TopicGraph.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
@@ -12,15 +13,17 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 
 /** Owns drafts and durable writes while the topic collection is open. */
-export function ResearchTopics({ api, context, add, refresh = 0, view = 'graph', t }: {
+export function ResearchTopics({ api, context, add, scopeControl, refresh = 0, view = 'graph', t }: {
   readonly api: GraphViewInjected['topics']
   readonly context?: TopicGraphContext
   readonly add?: { readonly sessionId: string; readonly done: () => void }
+  readonly scopeControl?: ReactNode
   readonly refresh?: number
   readonly view?: 'graph' | 'reading'
   readonly t: Translate
 }): ReactElement {
   const knowledge = useKnowledge()
+  const menuButton = useRef<HTMLButtonElement>(null)
   const [items, setItems] = useState<readonly ResearchTopic[]>([])
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading')
   const [revision, setRevision] = useState(0)
@@ -81,6 +84,11 @@ export function ResearchTopics({ api, context, add, refresh = 0, view = 'graph',
       if (!controller.signal.aborted) setBusy(false)
     }
   }
+  const closeEditor = (): void => {
+    setCreating(false)
+    setRenaming(false)
+    menuButton.current?.focus({ preventScroll: true })
+  }
   const selected = items.find(topic => topic.topicId === selectedId)
   const arrangementKey = context === undefined ? undefined : workingPositionKey(context.actions.hostId, context.workingKey, selectedId)
   const draftArrangement = arrangements[selectedId] ?? (arrangementKey === undefined ? undefined : loadLayout(arrangementKey))
@@ -90,12 +98,13 @@ export function ResearchTopics({ api, context, add, refresh = 0, view = 'graph',
     selectTopic?.(selected?.topicId)
     return () => { selectTopic?.(undefined) }
   }, [context === undefined, selectTopic, selected?.topicId])
-  const arrangementControls = view === 'reading' || context === undefined || selected === undefined ? null : <div className={styles.arrangementStatus}>
-      <button className={draftArrangement === undefined ? undefined : styles.primaryButton} type="button" disabled={phase !== 'ready' || busy || draftArrangement === undefined} onClick={() => {
+  const arrangementControls = view === 'reading' || context === undefined || selected === undefined || draftArrangement === undefined ? null : <div className={styles.arrangementStatus}>
+      <button className={styles.primaryButton} type="button" disabled={phase !== 'ready' || busy} onClick={event => {
+        const button = event.currentTarget
         const arrangement = draftArrangement
-        if (arrangement === undefined) return
         void write({ kind: 'arrange', topicId: selected.topicId, arrangement }).then(saved => {
           if (saved === undefined) return
+          if (document.activeElement === button) menuButton.current?.focus({ preventScroll: true })
           if (arrangementKey !== undefined && JSON.stringify(loadLayout(arrangementKey)) === JSON.stringify(arrangement)) {
             try { localStorage.removeItem(`dsh.session-graph.layout.${arrangementKey}`) } catch { /* presentation storage may be denied */ }
           }
@@ -107,27 +116,31 @@ export function ResearchTopics({ api, context, add, refresh = 0, view = 'graph',
           })
         })
       }}>{t('topic.saveArrangement')}</button>
-      <span role="status">{t(draftArrangement === undefined ? 'topic.arrangementHint' : 'topic.unsaved')}</span>
+      <span role="status">{t('topic.unsaved')}</span>
     </div>
-  return <section className={styles.topics} aria-label={t('topic.title')}>
-    <p className={styles.topicDescription}>{t('topic.description')}</p>
+  return <section className={`${styles.topics} ${scopeControl === undefined ? '' : styles.workbenchTopics}`} aria-label={t('topic.title')}>
+    {scopeControl === undefined ? <p className={styles.topicDescription}>{t('topic.description')}</p> : null}
+    <div className={scopeControl === undefined ? styles.topicToolbar : styles.researchContext}>
+      {scopeControl}
+      {scopeControl === undefined ? null : <span className={styles.contextDivider} aria-hidden="true">/</span>}
+      {items.length === 0 ? null : <label className={styles.topicSelection}>
+        {scopeControl === undefined ? t('topic.choose') : null}<select aria-label={t('topic.choose')} value={selectedId} disabled={busy || phase !== 'ready'}
+          onChange={event => { setSelectedId(event.target.value); setRenaming(false); setFailed(false); setUnavailable(false) }}>
+          <option value="">{t('topic.choose')}</option>
+          {items.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title} ({topic.references.length})</option>)}
+        </select></label>}
+      {phase !== 'ready' || items.length === 0 ? null : <ActionMenu label={t('reading.topicOptions')} triggerRef={menuButton} iconOnly>
+        <button type="button" disabled={busy} aria-expanded={creating} onClick={() => { setCreating(value => !value); setRenaming(false) }}>{t('topic.new')}</button>
+        {selected === undefined || add !== undefined ? null : <button type="button" disabled={busy} aria-expanded={renaming}
+          onClick={() => { setRenaming(value => !value); setCreating(false) }}>{t('topic.rename')}</button>}
+        <p>{t('topic.description')}</p>
+      </ActionMenu>}
+      {arrangementControls}
+    </div>
     {unavailable ? <p role="status">{t('position.topicUnavailable')}</p> : null}
     {phase === 'loading' ? <p role="status">{t('topic.loading')}</p> : phase === 'error' ? <div role="alert">
       {t('topic.readError')} <button type="button" onClick={() => { setRevision(value => value + 1) }}>{t('topic.retry')}</button>
     </div> : <>
-      <div className={styles.topicToolbar}>
-      {items.length === 0 ? null : <>
-        <label className={styles.topicSelection}>{t('topic.choose')}<select value={selectedId} disabled={busy}
-          onChange={event => { setSelectedId(event.target.value); setRenaming(false); setFailed(false); setUnavailable(false) }}>
-          <option value="">{t('topic.choose')}</option>
-          {items.map(topic => <option key={topic.topicId} value={topic.topicId}>{topic.title} ({topic.references.length})</option>)}
-        </select></label>
-        <button type="button" disabled={busy} aria-expanded={creating} onClick={() => { setCreating(value => !value); setRenaming(false) }}>{t('topic.new')}</button>
-        {selected === undefined || add !== undefined ? null : <button type="button" disabled={busy} aria-expanded={renaming}
-          onClick={() => { setRenaming(value => !value); setCreating(false) }}>{t('topic.rename')}</button>}
-      </>}
-      {arrangementControls}
-      </div>
       {items.length !== 0 && !creating ? null : <form className={styles.topicControls} onSubmit={event => {
         event.preventDefault()
         const previous = createAttempt.current
@@ -141,13 +154,14 @@ export function ResearchTopics({ api, context, add, refresh = 0, view = 'graph',
           if (topic === undefined) return
           createAttempt.current = undefined
           setTitle('')
-          setCreating(false)
+          closeEditor()
           setSelectedId(topic.topicId)
         })
       }}>
-        <label>{t('topic.newName')}<input value={title} maxLength={120} disabled={busy}
+        <label>{t('topic.newName')}<input autoFocus value={title} maxLength={120} disabled={busy}
           onChange={event => { setTitle(event.target.value) }} /></label>
         <button type="submit" disabled={busy || title.trim() === ''}>{t('topic.create')}</button>
+        {items.length === 0 ? null : <button type="button" disabled={busy} onClick={closeEditor}>{t('reading.cancel')}</button>}
       </form>}
       {items.length === 0 ? <p>{t('topic.empty')}</p> : null}
       {selected === undefined ? null : add !== undefined ? <div className={styles.topicControls}>
@@ -158,11 +172,12 @@ export function ResearchTopics({ api, context, add, refresh = 0, view = 'graph',
         }}>{t('topic.addSelected')}</button>
       </div> : !renaming ? null : <form className={styles.topicControls} onSubmit={event => {
         event.preventDefault()
-        void write({ kind: 'rename', topicId: selected.topicId, title: renames[selected.topicId] ?? selected.title }).then(saved => { if (saved !== undefined) setRenaming(false) })
+        void write({ kind: 'rename', topicId: selected.topicId, title: renames[selected.topicId] ?? selected.title }).then(saved => { if (saved !== undefined) closeEditor() })
       }}>
-        <label>{t('topic.name')}<input value={renames[selected.topicId] ?? selected.title} maxLength={120} disabled={busy}
+        <label>{t('topic.name')}<input autoFocus value={renames[selected.topicId] ?? selected.title} maxLength={120} disabled={busy}
           onChange={event => { setRenames(current => ({ ...current, [selected.topicId]: event.target.value })) }} /></label>
         <button type="submit" disabled={busy || (renames[selected.topicId] ?? selected.title).trim() === ''}>{t('topic.applyName')}</button>
+        <button type="button" disabled={busy} onClick={closeEditor}>{t('reading.cancel')}</button>
       </form>}
     </>}
     {busy ? <p role="status">{t('topic.saving')}</p> : null}

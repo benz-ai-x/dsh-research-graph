@@ -16,6 +16,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionDigest } from '../session-digest.ts'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
+import { ActionMenu } from './ActionMenu.tsx'
 import { containsSessionReferenceUri } from '../session-merge.ts'
 import { CLUSTER_COLORS } from './clusters.ts'
 import type { ClusterInfo, DisplayStatus, GraphNode, SessionGraphNode } from './graph-model.ts'
@@ -782,6 +783,7 @@ export function GraphCanvas({
   onRetryMerge: GraphViewInjected['retrySessionMerge']
   onAddToTopic?: (id: SessionId) => void
   topic?: {
+    readonly actions?: ReactElement
     readonly arrangement: LayoutState
     readonly onArrange: (state: LayoutState) => void
     readonly renderInspector: (node: GraphNode | undefined, onClose: () => void, onUnavailable: () => void) => ReactElement | null
@@ -1687,7 +1689,7 @@ export function GraphCanvas({
           )
           : null}
       </div>
-      <div className={styles.controls} role="group" aria-label={t('toolbar.label')}>
+      <div className={styles.controls} data-canvas-overlay="" role="group" aria-label={t('toolbar.label')}>
         <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
         <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>
           {`${Math.round(viewport.scale * 100)}%`}
@@ -1695,9 +1697,6 @@ export function GraphCanvas({
         <button type="button" aria-label={t('toolbar.zoomIn')} onClick={() => { zoomFromCenter(CONTROL_STEP) }}>+</button>
         <span className={styles.controlDivider} aria-hidden="true" />
         <button type="button" aria-label={t('toolbar.fit')} onClick={fit}>{t('toolbar.fit')}</button>
-        <button type="button" aria-label={t('toolbar.relayout')} onClick={relayout}>{t('toolbar.relayout')}</button>
-        <button type="button" aria-label={t('toolbar.reset')} onClick={reset}>{t('toolbar.reset')}</button>
-        <span className={styles.controlDivider} aria-hidden="true" />
         <button
           type="button"
           aria-label={t('toolbar.locate')}
@@ -1709,27 +1708,39 @@ export function GraphCanvas({
           {t('toolbar.locate')}
         </button>
         <span className={styles.controlDivider} aria-hidden="true" />
-        {topic === undefined ? <button
-          type="button"
-          className={styles.mergeToolbarAction}
-          aria-label={t('toolbar.merge')}
-          aria-pressed={mergeMode}
-          disabled={mergeRun.phase === 'submitting'}
-          onClick={() => {
-            if (mergeMode) {
-              closeMerge()
-              return
-            }
-            hidePreview()
-            setSelected(null)
-            setMergeSources([])
-            setMergeInstruction(t('merge.defaultInstruction'))
-            setMergeRun({ phase: 'idle' })
-            setMergeMode(true)
-          }}
-        >
-          {t('toolbar.merge')}
-        </button> : null}
+        <ActionMenu label={t('reading.canvasOptions')} above>
+          <button type="button" onClick={relayout}>{t('toolbar.relayout')}</button>
+          <button type="button" onClick={reset}>{t('toolbar.reset')}</button>
+          {topic?.actions}
+          {topic === undefined ? <button
+            type="button"
+            className={styles.mergeToolbarAction}
+            aria-label={t('toolbar.merge')}
+            aria-pressed={mergeMode}
+            disabled={mergeRun.phase === 'submitting'}
+            onClick={() => {
+              if (mergeMode) {
+                closeMerge()
+                return
+              }
+              hidePreview()
+              setSelected(null)
+              setMergeSources([])
+              setMergeInstruction(t('merge.defaultInstruction'))
+              setMergeRun({ phase: 'idle' })
+              setMergeMode(true)
+            }}
+          >
+            {t('toolbar.merge')}
+          </button> : null}
+          <div className={styles.canvasLegend} aria-label={t('reading.legend')}>
+            <span><i className={styles.legendLineDerivation} />{t('legend.derivation')}</span>
+            <span><i className={styles.legendLineBranch} />{t('legend.branch')}</span>
+            <span><i className={styles.legendLineMerge} />{t('legend.merge')}</span>
+            {topic === undefined ? null : <><span><i className={styles.legendSource} />{t('knowledge.sourceRelation')}</span>
+              <span><i className={styles.legendReuse} />{t('workbench.reuseEdge')}</span></>}
+          </div>
+        </ActionMenu>
       </div>
       {mergeMode
         ? (

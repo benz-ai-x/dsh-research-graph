@@ -102,12 +102,6 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
     if (source?.status === 'listed' && !source.archived) context.actions.openSession(id)
   }
   return <div className={styles.topicGraph}>
-    <div className={styles.topicControls}><button type="button" disabled={phase === 'loading'}
-      onClick={() => { setRevision(value => value + 1) }}>{t('topic.refresh')}</button>
-      <button type="button" disabled={phase !== 'ready' || cards.length === 0} onClick={() => {
-        knowledge.exportCards(cards.map(card => ({ cardId: card.cardId, title: card.revisions.at(-1)!.content.title })))
-      }}>{t('export.title')}</button>
-      <span className={styles.researchLegend}><i className={styles.legendLineMerge} />{t('legend.merge')}<i className={styles.legendSource} />{t('knowledge.sourceRelation')}<i className={styles.legendReuse} />{t('workbench.reuseEdge')}</span></div>
     {relations.failed ? <p role="alert">{t('workbench.relationsError')} <button type="button" onClick={relations.retry}>{t('topic.retry')}</button></p> : null}
     {phase === 'ready' && relations.loading ? <p role="status">{t('workbench.relationsLoading')}</p> : null}
     {phase === 'loading' ? <div className={styles.topicControls} role="status">{t('topic.loading')} <button type="button" onClick={() => {
@@ -124,7 +118,13 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
-        topic={{ arrangement, onArrange, openCard: knowledge.open, renderInspector: (node, onClose, onUnavailable) => node === undefined ? null
+        topic={{ arrangement, onArrange, openCard: knowledge.open,
+          actions: <>
+            <button type="button" disabled={phase === 'loading'} onClick={() => { setRevision(value => value + 1) }}>{t('topic.refresh')}</button>
+            <button type="button" disabled={phase !== 'ready' || cards.length === 0} onClick={() => {
+              knowledge.exportCards(cards.map(card => ({ cardId: card.cardId, title: card.revisions.at(-1)!.content.title })))
+            }}>{t('export.title')}</button>
+          </>, renderInspector: (node, onClose, onUnavailable) => node === undefined ? null
           : node.kind === 'knowledge' ? <KnowledgeReader key={node.card.cardId} inspector={{ onClose }} workingKey={workingKey}
             card={node.card} relations={presented.relations} read={context.actions.readSessionHistory} t={t} /> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}

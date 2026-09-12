@@ -148,6 +148,12 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
     setKnowledgeEntryKey(undefined)
   }
 
+  const scopeControl = <select className={styles.scopeSelect} aria-label={t('workbench.scope')}
+    value={topicMode ? 'topics' : 'workspace'} onChange={event => { setTopicMode(event.target.value === 'topics') }}>
+    <option value="workspace">{view === 'reading' ? t('knowledge.all') : t(scope?.kind === 'directory' ? 'reading.directory' : 'workbench.workspace')}</option>
+    <option value="topics">{t('workbench.topics')}</option>
+  </select>
+
   return (
     // The free canvas owns its viewport. Extend the view behind the floating
     // composer so GraphCanvas's live clearance reserves the seat exactly once.
@@ -162,39 +168,30 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
           </nav>
           <div className={styles.workbenchActions}>
             <button className={styles.searchEntry} type="button" ref={searchButton} aria-label={t('search.open')} onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(undefined); setSearchOpen(true) }}>
-              <span className={styles.wideSearchLabel}>{t('search.open')}</span><span className={styles.compactSearchLabel}>{t('reading.search')}</span>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg><span>{t('reading.search')}</span>
             </button>
             {props.mergeResearchSessions ? <button className={`${styles.searchEntry} ${styles.workbenchDesktopAction}`} type="button" onClick={event => { mergeTrigger.current = event.currentTarget; setMergeOpen(true) }}>{t('workbench.merge')}</button> : null}
-            <button className={`${styles.primaryButton} ${styles.workbenchDesktopAction}`} type="button" onClick={() => { knowledgeContext?.create() }}><span aria-hidden="true">+ </span>{t('knowledge.new')}</button>
-            <details className={styles.workbenchMore}><summary>{t('workbench.more')}</summary><div>
+            <button className={`${styles.primaryButton} ${styles.workbenchDesktopAction}`} type="button" aria-label={t('knowledge.new')} onClick={() => { knowledgeContext?.create() }}><span aria-hidden="true">+ </span>{t('reading.newKnowledge')}</button>
+            <details className={styles.workbenchMore}><summary aria-label={t('workbench.more')} title={t('workbench.more')}><span aria-hidden="true">···</span></summary><div>
               <div className={styles.workbenchCompactActions}>
                 {props.mergeResearchSessions ? <button className={styles.searchEntry} type="button" onClick={event => { mergeTrigger.current = event.currentTarget; setMergeOpen(true) }}>{t('workbench.merge')}</button> : null}
                 <button className={styles.searchEntry} type="button" onClick={() => { knowledgeContext?.create() }}>{t('knowledge.new')}</button>
               </div>
               <button className={styles.searchEntry} type="button" onClick={event => { searchTrigger.current = event.currentTarget; setKnowledgeEntryKey(searchKey); setSearchOpen(true) }}>{t('knowledge.title')}</button>
               <ResearchReuseEntry t={t} />
-              <div className={styles.legend} aria-label={t('reading.legend')}>
-                <span><i className={styles.legendLineDerivation} />{t('legend.derivation')}</span>
-                <span><i className={styles.legendLineBranch} />{t('legend.branch')}</span>
-                <span><i className={styles.legendLineMerge} />{t('legend.merge')}</span>
-              </div>
               <span className={styles.buildInfo} title={SESSION_GRAPH_BUILD_TITLE}>{SESSION_GRAPH_BUILD_LABEL}</span>
               <p>{t('knowledge.localLayout')}</p>
             </div></details>
           </div>
         </header>
-        <div className={styles.workbenchIntro}>
-          <div className={styles.scopeIdentity}><span>{t('workbench.scope')}</span><h1>{topicMode ? t('workbench.topics') : view === 'reading' ? t('knowledge.all') : scope?.label || t('reading.directory')}</h1></div>
-          <div className={styles.workbenchScope}><label><select aria-label={t('workbench.scope')} value={topicMode ? 'topics' : 'workspace'} onChange={event => { setTopicMode(event.target.value === 'topics') }}>
-            <option value="workspace">{view === 'reading' ? t('knowledge.all') : t(scope?.kind === 'directory' ? 'reading.directory' : 'workbench.workspace')}</option>
-            <option value="topics">{t('workbench.topics')}</option>
-          </select></label>
-          {topicMode ? null : <span className={styles.count}>{view === 'reading' ? t('knowledge.title') : scope === undefined ? '' : t('reading.discussionCount', { count: graph.sessionCount })}</span>}
-          </div>
-        </div>
+        {topicMode ? null : <div className={styles.researchContext}>
+          {scopeControl}<span className={styles.contextDivider} aria-hidden="true">/</span>
+          <h1>{view === 'reading' ? t('knowledge.title') : scope?.label || t('reading.directory')}</h1>
+          {view === 'reading' || scope === undefined ? null : <span className={styles.count}>{t('reading.discussionCount', { count: graph.sessionCount })}</span>}
+        </div>}
         <KnowledgeSavedNotice t={t} />
         {mergedTarget ? <div className={styles.workbenchNotice} role="status">{t('workbench.mergeSaved')} <button type="button" onClick={() => { openSession(mergedTarget) }}>{t('panel.open')}</button><button type="button" onClick={() => { setMergedTarget(undefined) }} aria-label={t('panel.close')}>×</button></div> : null}
-        {topicMode ? <ResearchTopics key={workingKey} api={topics} refresh={topicRevision} view={view} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
+        {topicMode ? <ResearchTopics key={workingKey} scopeControl={scopeControl} api={topics} refresh={topicRevision} view={view} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId,
           workingKey, actions: { ...props, hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : view === 'reading' ? <KnowledgeLibrary key={workingKey} workingKey={workingKey} actions={props} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas

@@ -332,7 +332,7 @@ describe('Markdown export in the registered Graph', () => {
     switchTab('Research Graph')
     fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(document.querySelector('[data-node-id="card:card-a"]')).not.toBeNull() })
-    fireEvent.click(screen.getByRole('button', { name: '导出 Markdown' }))
+    chooseCanvasAction('导出 Markdown')
     fireEvent.click(screen.getByRole('checkbox', { name: '成果 B' }))
     expect(b.prepareExport).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: '预览 Markdown' }))
@@ -853,6 +853,7 @@ describe('Research Topics registered Graph workflow', () => {
       fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
       await screen.findByRole('option', { name: '修改后的名称 B (0)' })
       expect(screen.queryByRole('textbox', { name: '新主题名称' })).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: '主题选项' }))
       fireEvent.click(screen.getByRole('button', { name: '重命名' }))
       expect((screen.getByRole('textbox', { name: '主题名称' }) as HTMLInputElement).value).toBe('修改后的名称 B')
       expect(screen.queryByRole('alert')).toBeNull()
@@ -1044,7 +1045,7 @@ describe('Research Topics registered Graph workflow', () => {
     switchTab('Research Graph')
     fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
     await waitFor(() => { expect(nodeButton('a').style.left).toBe('100px') })
-    fireEvent.click(screen.getByRole('button', { name: '重置布局' }))
+    chooseCanvasAction('重置布局')
     const resetPosition = nodeButton('a').style.left
     expect(resetPosition).not.toBe('100px')
     fireEvent.change(screen.getByRole('combobox', { name: '选择研究主题' }), { target: { value: 'topic-b' } })
@@ -1057,8 +1058,10 @@ describe('Research Topics registered Graph workflow', () => {
     expect(nodeButton('a').style.left).toBe(resetPosition)
     const arrangement = { positions: {}, collapsed: [], offsets: {} }
     b.writeTopic.mockResolvedValueOnce({ ok: true, value: { ...topics[0]!, arrangement } })
+    screen.getByRole('button', { name: '保存排列' }).focus()
     fireEvent.click(screen.getByRole('button', { name: '保存排列' }))
-    await waitFor(() => { expect((screen.getByRole('button', { name: '保存排列' }) as HTMLButtonElement).disabled).toBe(true) })
+    await waitFor(() => { expect(screen.queryByRole('button', { name: '保存排列' })).toBeNull() })
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '主题选项' }))
     expect(b.writeTopic.mock.calls.map(([request]) => request)).toEqual([
       { kind: 'arrange', topicId: 'topic-a', arrangement }, { kind: 'arrange', topicId: 'topic-a', arrangement },
     ])
@@ -1152,12 +1155,19 @@ describe('Research Topics registered Graph workflow', () => {
     fireEvent.click(screen.getByRole('button', { name: '创建主题' }))
     await screen.findByRole('option', { name: '跨工作区调查 (0)' })
     expect(b.writeTopic.mock.calls[1]![0]).toEqual(request)
+    fireEvent.click(screen.getByRole('button', { name: '主题选项' }))
     fireEvent.click(screen.getByRole('button', { name: '重命名' }))
     const rename = screen.getByRole('textbox', { name: '主题名称' })
     fireEvent.change(rename, { target: { value: '统一主题' } })
     b.writeTopic.mockResolvedValueOnce({ ok: true, value: { ...topic, title: '统一主题' } })
     fireEvent.click(screen.getByRole('button', { name: '保存名称' }))
     await screen.findByRole('option', { name: '统一主题 (0)' })
+    fireEvent.click(screen.getByRole('button', { name: '主题选项' }))
+    fireEvent.click(screen.getByRole('button', { name: '重命名' }))
+    expect(document.activeElement).toBe(screen.getByRole('textbox', { name: '主题名称' }))
+    fireEvent.click(screen.getByRole('button', { name: '取消', exact: true }))
+    expect(screen.queryByRole('textbox', { name: '主题名称' })).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: '主题选项' }))
     expect(b.writeTopic.mock.calls[2]![0]).toEqual({ kind: 'rename', topicId: topic.topicId, title: '统一主题' })
     expect(b.open).not.toHaveBeenCalled()
     expect(b.generateDigest).not.toHaveBeenCalled()
@@ -1576,7 +1586,7 @@ describe('graph tab rendering and interaction', () => {
     // an invisible hit path plus the visible solid path and the arrowhead.
     const edgeGroup = document.querySelectorAll('svg g')
     expect(edgeGroup).toHaveLength(1)
-    const paths = document.querySelectorAll('svg path')
+    const paths = document.querySelectorAll('[aria-label="会话关系图谱"] svg path')
     expect(paths).toHaveLength(3)
     const branch = document.querySelector('[data-edge-kind="branch"]')
     expect(branch?.getAttribute('stroke-dasharray')).toBeNull()
@@ -1588,7 +1598,8 @@ describe('graph tab rendering and interaction', () => {
     // Node dots take the cluster palette color, not a status color.
     const dot = nodeButton('root').querySelector('span')
     expect(dot?.getAttribute('style')).toContain('var(--dsw-alias-')
-    // The legend names the two relation kinds.
+    // The graph options explain the two relation kinds without a permanent row.
+    fireEvent.click(screen.getByRole('button', { name: '图谱选项' }))
     expect(document.body.textContent).toContain('派生')
     expect(document.body.textContent).toContain('分支')
   })
@@ -1666,7 +1677,7 @@ describe('graph tab rendering and interaction', () => {
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
 
-    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
+    chooseCanvasAction('汇聚所选会话')
     const composer = screen.getByRole('dialog', { name: '汇聚会话' })
     const submit = screen.getByRole('button', { name: '创建汇聚会话' })
     expect((submit as HTMLButtonElement).disabled).toBe(true)
@@ -1697,7 +1708,7 @@ describe('graph tab rendering and interaction', () => {
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
 
-    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
+    chooseCanvasAction('汇聚所选会话')
     fireEvent.click(nodeButton('sourceA'))
     fireEvent.click(nodeButton('sourceB'))
     fireEvent.change(screen.getByRole('textbox', { name: '汇聚指令' }), {
@@ -1731,7 +1742,7 @@ describe('graph tab rendering and interaction', () => {
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
 
-    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
+    chooseCanvasAction('汇聚所选会话')
     fireEvent.click(nodeButton('sourceA'))
     fireEvent.click(nodeButton('sourceB'))
     fireEvent.change(screen.getByRole('textbox', { name: '汇聚指令' }), {
@@ -1792,7 +1803,7 @@ describe('graph tab rendering and interaction', () => {
     })
     mount(b.slots, b.sessionsStore, 'sourceA')
     switchTab('Research Graph')
-    fireEvent.click(screen.getByRole('button', { name: '汇聚所选会话' }))
+    chooseCanvasAction('汇聚所选会话')
     fireEvent.click(nodeButton('sourceA'))
     fireEvent.click(nodeButton('sourceB'))
     fireEvent.click(screen.getByRole('button', { name: '创建汇聚会话' }))
@@ -1864,6 +1875,12 @@ describe('graph tab rendering and interaction', () => {
   })
 })
 
+function chooseCanvasAction(name: string): void {
+  const options = screen.getByRole('button', { name: '图谱选项' })
+  if (options.getAttribute('aria-expanded') !== 'true') fireEvent.click(options)
+  fireEvent.click(screen.getByRole('button', { name }))
+}
+
 function stubSize(width: number, height: number): void {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
     width, height, x: 0, y: 0, top: 0, left: 0, right: width, bottom: height, toJSON: () => ({}),
@@ -1896,8 +1913,17 @@ describe('free viewport controls', () => {
     switchTab('Research Graph')
 
     expect(screen.getByRole('group', { name: '画布工具' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: '重新布局' })).toBeNull()
+    const options = screen.getByRole('button', { name: '图谱选项' })
+    fireEvent.click(options)
     expect(screen.getByRole('button', { name: '重新布局' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '重置布局' })).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole('group', { name: '图谱选项' }), { key: 'Escape' })
+    expect(screen.queryByRole('button', { name: '重新布局' })).toBeNull()
+    expect(document.activeElement).toBe(options)
+    fireEvent.click(options)
+    fireEvent.pointerDown(surface())
+    expect(screen.queryByRole('button', { name: '重置布局' })).toBeNull()
   })
 
   it('preserves the camera through hidden surfaces and centers content on a real resize', async () => {
@@ -2213,7 +2239,7 @@ describe('cluster frames', () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
-    expect(document.querySelectorAll('svg path')).toHaveLength(3)
+    expect(document.querySelectorAll('[aria-label="会话关系图谱"] svg path')).toHaveLength(3)
     fireEvent.click(document.querySelector('[data-cluster-id="root"] button')!)
     const toggle = document.querySelector('[data-cluster-id="root"] button')!
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
@@ -2375,7 +2401,7 @@ describe('relayout button', () => {
     fireEvent.pointerMove(node, { pointerId: 5, clientX: 340, clientY: 260 })
     fireEvent.pointerUp(node, { pointerId: 5 })
     expect(nodeButton('branchChild').style.left).not.toBe('0px')
-    fireEvent.click(screen.getByRole('button', { name: '重新布局' }))
+    chooseCanvasAction('重新布局')
     expect(nodeButton('branchChild').style.left).toBe('0px')
     expect(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')).toContain('"positions":{}')
     // Collapsed clusters survive the relayout.
@@ -2403,7 +2429,7 @@ describe('reset and minimap', () => {
       expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).not.toBe('100%')
     })
     expect(nodeButton('lone').style.top).toBe('2248px')
-    fireEvent.click(screen.getByRole('button', { name: '重置布局' }))
+    chooseCanvasAction('重置布局')
     // Manual position and collapse both cleared; node returns to the auto grid.
     expect(nodeButton('branchChild').style.left).toBe('0px')
     expect(nodeButton('branchChild').style.top).toBe('120px')
@@ -3893,7 +3919,7 @@ describe('Working position live updates', () => {
     if (state === 'last card detached') {
       await screen.findByRole('button', { name: zh['knowledge.edit'] })
       b.searchKnowledge.mockResolvedValue({ ok: true, value: [] })
-      fireEvent.click(screen.getByRole('button', { name: zh['topic.refresh'] }))
+      chooseCanvasAction(zh['topic.refresh'])
     }
     await screen.findByText(zh['topic.noReferences'])
     await waitFor(() => { expect(JSON.parse(localStorage.getItem(storageKey)!)).toMatchObject({ selected: null, viewport }) })
@@ -3901,7 +3927,7 @@ describe('Working position live updates', () => {
     fireEvent.click(within(notice).getByRole('button', { name: zh['panel.close'] }))
     expect(screen.queryByText(zh['position.unavailable'])).toBeNull()
     b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
-    fireEvent.click(screen.getByRole('button', { name: zh['topic.refresh'] }))
+    chooseCanvasAction(zh['topic.refresh'])
     await waitFor(() => { expect(document.querySelector('[data-node-id="card:removed-card"]')).not.toBeNull() })
     expect(screen.queryByRole('button', { name: zh['knowledge.edit'] })).toBeNull()
     expect(JSON.parse(localStorage.getItem(storageKey)!)).toMatchObject({ selected: null, viewport })
