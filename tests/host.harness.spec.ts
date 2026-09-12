@@ -137,7 +137,7 @@ describe('Session Graph Host integration', () => {
     expect(calls[0]).toMatchObject({
       provider: 'session-provider',
       model: 'session-model',
-      maxTokens: 800,
+      maxTokens: 4_096,
     })
     expect(calls[0]).not.toHaveProperty('tools')
     expect(events).toEqual(before)
@@ -147,6 +147,112 @@ describe('Session Graph Host integration', () => {
       new AbortController().signal,
     )
     expect(calls).toHaveLength(1)
+  })
+
+  it('leaves room for reasoning and structured digest output with the default budget', async () => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    const events = [
+      {
+        type: 'request/context', seq: 0, time: 1,
+        data: { provider: 'reasoning-provider', model: 'reasoning-model' },
+      },
+      {
+        type: 'user/message', seq: 1, time: 2,
+        data: {
+          source: { kind: 'user' },
+          content: [{ type: 'text', text: 'Compare the research findings.' }],
+        },
+      },
+    ]
+    const before = structuredClone(events)
+    ctx.provide('sessionController', { inspect: async () => ({ meta: { id: 'source' }, events }) })
+    const calls: Readonly<Record<string, unknown>>[] = []
+    ctx.provide('llm', {
+      async *stream(options: Readonly<Record<string, unknown>>) {
+        calls.push(options)
+        // Simulate 1,024 reasoning tokens followed by a 512-token JSON response.
+        yield {
+          type: 'reasoning-delta', index: 0,
+          text: 'Identify supported findings and unresolved questions.',
+        }
+        if (Number(options.maxTokens) < 1_536) {
+          yield { type: 'finish', reason: { kind: 'max-tokens' } }
+          return
+        }
+        yield {
+          type: 'text-delta', index: 1,
+          text: JSON.stringify({
+            overview: 'The approaches have different tradeoffs.',
+            keyOutcomes: ['Keep the sources.'],
+            openItems: ['Test both approaches.'],
+          }),
+        }
+        yield { type: 'finish', reason: { kind: 'stop' } }
+      },
+    })
+    await apply(ctx)
+
+    const result = await ctx.sessionGraphDigest.generate(
+      { sessionId: 'source', refresh: false },
+      new AbortController().signal,
+    )
+
+    expect(result).toMatchObject({ kind: 'ready', digest: { overview: 'The approaches have different tradeoffs.' } })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toMatchObject({ provider: 'reasoning-provider', model: 'reasoning-model' })
+    expect(calls[0]).not.toHaveProperty('reasoningEffort')
+    expect(events).toEqual(before)
+  })
+
+  it('reports an explicit output cap without caching truncated JSON or retrying the model automatically', async () => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    const events = [
+      {
+        type: 'request/context', seq: 0, time: 1,
+        data: { provider: 'provider', model: 'model' },
+      },
+      {
+        type: 'user/message', seq: 1, time: 2,
+        data: {
+          source: { kind: 'user' },
+          content: [{ type: 'text', text: 'Summarize the decision.' }],
+        },
+      },
+    ]
+    const before = structuredClone(events)
+    ctx.provide('sessionController', { inspect: async () => ({ meta: { id: 'source' }, events }) })
+    const calls: Readonly<Record<string, unknown>>[] = []
+    ctx.provide('llm', {
+      async *stream(options: Readonly<Record<string, unknown>>) {
+        calls.push(options)
+        const first = calls.length === 1
+        yield {
+          type: 'text-delta', index: 0,
+          text: JSON.stringify({
+            overview: first ? 'Partial result.' : 'Complete result.',
+            keyOutcomes: [],
+            openItems: [],
+          }),
+        }
+        yield { type: 'finish', reason: { kind: first ? 'max-tokens' : 'stop' } }
+      },
+    })
+    await apply(ctx, { maxOutputTokens: 800 })
+    const request = { sessionId: 'source', refresh: false }
+
+    await expect(ctx.sessionGraphDigest.generate(request, new AbortController().signal))
+      .rejects.toMatchObject({ code: 'output-limit' })
+    expect(calls).toHaveLength(1)
+    const result = await ctx.sessionGraphDigest.generate(request, new AbortController().signal)
+    expect(result).toMatchObject({ kind: 'ready', cached: false, digest: { overview: 'Complete result.' } })
+    expect(calls).toHaveLength(2)
+    expect(calls.every(call => call.maxTokens === 800)).toBe(true)
+    expect(await ctx.sessionGraphDigest.generate(request, new AbortController().signal))
+      .toMatchObject({ kind: 'ready', cached: true, digest: { overview: 'Complete result.' } })
+    expect(calls).toHaveLength(2)
+    expect(events).toEqual(before)
   })
 
   it('aborts and joins Session Digest work before Host disposal completes', async () => {

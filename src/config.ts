@@ -15,7 +15,8 @@ export interface ResolvedConfig {
   readonly timeoutMs: number
 }
 
-const DEFAULT_MAX_OUTPUT_TOKENS = 800
+// Providers may count reasoning against the same output budget as the digest JSON.
+const DEFAULT_MAX_OUTPUT_TOKENS = 4_096
 const DEFAULT_TIMEOUT_MS = 60_000
 
 const limits = z.object({

@@ -305,18 +305,20 @@ Select any non-blank Canvas Session and choose **Generate digest** in the Sessio
 
 This is an additional model request and may incur the selected provider's normal cost. Digest text is a read-only projection: it is not a conversation message, does not enter the Session log, and does not change Session Lineage.
 
-Most sessions need no configuration because their logs record the model route. For older imported sessions without one, overlay the installed plugin entry in the profile's `cordis.yml`:
+Most sessions need no route configuration because their logs record the model route. For older imported sessions without one, override the installed plugin entry in the profile's `cordis.patch.yml` (`$DSH_HOME/profiles/web/cordis.patch.yml` for the web profile). If the file contains only an empty array `[]`, replace it with the list below; otherwise add this entry to the existing list:
 
 ```yaml
 - id: ui-session-graph
   config:
     provider: deepseek-official
     model: deepseek-v4-flash
-    maxOutputTokens: 800
+    maxOutputTokens: 4096
     timeoutMs: 60000
 ```
 
-`provider` and `model` must be supplied together and never override a route recorded by the Session. `maxOutputTokens` defaults to `800`; `timeoutMs` defaults to `60000`. Plugin activation validates this configuration through its exported Standard Schema and rejects blank routes, incomplete pairs, non-integers, and non-positive limits.
+`provider` and `model` must be supplied together and never override a route recorded by the Session. `maxOutputTokens` defaults to `4096`; `timeoutMs` defaults to `60000`. Plugin activation validates this configuration through its exported Standard Schema and rejects blank routes, incomplete pairs, non-integers, and non-positive limits.
+
+The output cap leaves room for reasoning and the structured digest; providers may count reasoning against this same budget. An explicit lower cap still takes precedence. The plugin keeps the model's reasoning defaults and never automatically retries a failed generation. If the output limit is reached, the UI explains it; increase `maxOutputTokens` in this override before retrying. Truncated output is not cached, and a failed refresh retains the previous digest.
 
 ## Troubleshooting
 
@@ -326,6 +328,7 @@ Most sessions need no configuration because their logs record the model route. F
 | Host startup fails around a Remote error export | Install the plugin matching DSH in the compatibility table and check the resolved profile version |
 | GitHub source install reports `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | Inspect the pinned source, add the exact key printed by dsh to that profile's `allowBuilds`, and retry |
 | Digest generation reports no model route | Use a Session with a logged route or configure the `provider` and `model` fallback pair |
+| Digest generation reaches its output limit | Increase `maxOutputTokens` in the `ui-session-graph` override in the active profile’s `cordis.patch.yml`, then retry |
 | The Web URL rejects access | Open the complete authenticated URL printed by `dsh web`; do not reuse or share a stripped token |
 
 If the problem persists, include the package version shown in the Research Graph header, the Harness version, and the relevant Host/browser error in a [GitHub issue](https://github.com/benz-ai-x/dsh-research-graph/issues/new).

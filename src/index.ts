@@ -111,7 +111,7 @@ const DIGEST_SYSTEM_PROMPT = [
 
 function finishFailure(kind: string): SessionDigestError {
   return new SessionDigestError(
-    'generation-failed',
+    kind === 'max-tokens' ? 'output-limit' : 'generation-failed',
     `Session Digest model ended with ${kind}`,
   )
 }

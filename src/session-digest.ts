@@ -58,6 +58,7 @@ export type SessionDigestErrorCode =
   | 'disposed'
   | 'invalid-model-output'
   | 'model-route-unavailable'
+  | 'output-limit'
   | 'generation-failed'
 
 /** Domain error whose code is safe to transport across the Remote boundary. */
