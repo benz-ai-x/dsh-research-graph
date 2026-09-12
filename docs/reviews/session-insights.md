@@ -33,3 +33,15 @@ Harness 为官方 `dsh-v0.1.5-rc.2`，提交 `fb2c4b9e698e30edb738bca4cf0618587d
 - [ ] 用户以自己的真实讨论及模型评判标题准确性和摘要取舍。
 
 自动测试与预览均使用固定模型，验证协议、状态和排版结构，不代表已评估真实模型的总结质量。原生重命名没有原子条件更新接口；应用前的标题检查不构成多客户端锁定保证，详见 [ADR 0013](../adr/0013-review-generated-session-titles-and-bound-digests.md)。
+
+## RC.2.3 后的摘要高亮增强（2026-09-12）
+
+用户在实际摘要截图中指出高亮不够明显。本次从 main `976e48b` 调整摘要区域的 Markdown `strong` 样式：原先为 12% 浅蓝底色与 650 字重，改为暖黄色荧光笔底色、700 字重和 2px 的强调下缘，增加少量内边距；仍保持行内流动与 `box-decoration-break: clone`，允许重点自然换行。
+
+颜色全部来自匹配 DSH 的语义令牌：`state-warn-secondary` 与 `state-warn-tertiary` 按 40%／60% 混合，文字使用 `label-primary`，随宿主主题自动调整。按官方 RC.2 的实际令牌计算，浅色主题文字与底色的对比约 13.90:1，深色主题约 6.00:1。高亮范围仍仅为摘要中的 Markdown 加粗片段，已有缓存摘要中的重点无需重新生成即可获得新样式。
+
+- `pnpm install --frozen-lockfile`、`pnpm run check`（197 项）及 `git diff --check` 通过。
+- 匹配 RC.2 的现有摘要 Markdown 集成测试通过，覆盖无序列表、`strong`、行内代码与不安全链接；没有为纯样式修改增加重复实现的测试。
+- 新构建已安装进隔离 DSH profile 并成功启动，但 Chrome 打开新预览页再次返回 `ERR_BLOCKED_BY_CLIENT`。本次尚未完成实际浏览器中的浅／深色及窄屏视觉复验，也没有改后截图。自建预览已停止，样例数据保留。
+
+本次不改变摘要内容、生成请求、版本或依赖；插件版本仍为 `0.1.5-rc.2.3`，本地构建通过 Build ID 区分。未修改用户日常 DSH profile，未合并或发布新版本。

@@ -1960,7 +1960,16 @@
 .researchMarkdown blockquote { margin-inline: 0; padding-inline: 14px; color: var(--dsw-alias-label-secondary); }
 .digestBody .researchMarkdown { font-size: 14px; line-height: 1.75; }
 .digestBody .researchMarkdown p { margin: 0; }
-.digestBody .researchMarkdown strong { font-weight: 650; color: var(--dsw-alias-label-primary); background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 12%, transparent); padding: 0 2px; border-radius: 3px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.digestBody .researchMarkdown strong {
+  font-weight: 700;
+  color: var(--dsw-alias-label-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-secondary) 40%, var(--dsw-alias-state-warn-tertiary));
+  box-shadow: inset 0 -2px 0 var(--dsw-alias-state-warn-secondary);
+  padding: .08em .22em;
+  border-radius: 3px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
 .digestBody .digestOverview { padding: 10px 12px; background: var(--dsw-alias-bg-module-platform); border-left: 3px solid var(--dsw-alias-state-business-primary); border-radius: 0 6px 6px 0; }
 .digestBody .digestGroup ul { list-style: disc; }
 .digestBody .digestGroup li::marker { color: var(--dsw-alias-label-tertiary); }
