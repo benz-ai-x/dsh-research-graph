@@ -186,12 +186,12 @@ export function ResearchTopics({ api, context, add, scopeControl, contextTools, 
     </>}
     {busy ? <p role="status">{t('topic.saving')}</p> : null}
     {failed ? <p role="alert">{t('topic.saveError')}</p> : null}
-    {phase !== 'ready' || selected === undefined || context === undefined ? null : view === 'reading' ? <KnowledgeLibrary key={selected.topicId} workingKey={arrangementKey!} actions={context.actions} t={t} /> : <TopicGraph key={selected.topicId} topic={selected}
+    {selected === undefined || context === undefined ? null : view === 'reading' ? <KnowledgeLibrary key={selected.topicId} workingKey={arrangementKey!} actions={context.actions} t={t} /> : <TopicGraph key={selected.topicId} topic={selected}
       context={context} arrangement={draftArrangement ?? selected.arrangement}
       onArrange={state => {
         if (arrangementKey !== undefined) saveLayout(arrangementKey, state)
         setArrangements(current => ({ ...current, [selected.topicId]: state }))
       }}
-      remove={sessionId => { void write({ kind: 'remove', topicId: selected.topicId, sessionId }) }} busy={busy} t={t} />}
+      remove={sessionId => { void write({ kind: 'remove', topicId: selected.topicId, sessionId }) }} busy={busy || phase !== 'ready'} t={t} />}
   </section>
 }

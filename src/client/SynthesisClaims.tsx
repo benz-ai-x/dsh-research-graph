@@ -6,6 +6,7 @@ import type { GraphViewInjected } from './GraphView.tsx'
 import { useKnowledge } from './Knowledge.tsx'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
+import { SourcePreview } from './SourcePreview.tsx'
 import styles from './GraphView.module.css'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
@@ -13,7 +14,14 @@ const categoryKey = { agreement: 'synthesis.agreement', disagreement: 'synthesis
 
 export function SynthesisMaterialView({ material, read, t }: { readonly material: ResearchMaterial; readonly read: GraphViewInjected['readSessionHistory']; readonly t: Translate }): ReactElement {
   const knowledge = useKnowledge()
-  if (material.kind === 'turn') return <SessionHistory sessionId={material.source.sessionId} sourceTitle={material.source.title} source={material.source.source} read={read} t={t} />
+  const [readingOriginal, setReadingOriginal] = useState(false)
+  if (material.kind === 'turn') return <section className={styles.synthesisMaterial}>
+    <SourcePreview source={material.source} t={t} />
+    <button type="button" aria-expanded={readingOriginal} onClick={() => { setReadingOriginal(value => !value) }}>{t('synthesis.readOriginal')}</button>
+    {readingOriginal ? <section><p>{t('synthesis.originalHint')}</p>
+      <SessionHistory sessionId={material.source.sessionId} sourceTitle={material.source.title} source={material.source.source} read={read} t={t} />
+    </section> : null}
+  </section>
   return <section className={styles.synthesisMaterial}>
     <h4>{material.content.title} · {t('knowledge.versionNumber', { number: material.revisionNumber })}</h4>
     <p>{t('synthesis.cardBoundary')}</p>

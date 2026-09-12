@@ -4,7 +4,7 @@ import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import type { SessionHeader, SessionEvent, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-session-persistence'
 import type {} from '@deepseek-ai/dsh-agent'
-import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, remoteErrorOf, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import { discussionTurns } from './session-discussion.ts'
 import { ServiceRequests } from './service-requests.ts'
@@ -150,8 +150,6 @@ export class HistoryBranchService extends TypertRemoteService {
         // Once the frozen seed is journaled, finish creation despite a disconnected browser.
         if (stored.record.stage === 'prepared') {
           await this.persist(stored.seed!)
-          stored = { ...stored, record: { ...stored.record, stage: 'created' } }
-          await table.put(operationId, stored)
         }
         const { record, seed } = stored
         const cwd = seed?.header.cwd
@@ -159,12 +157,26 @@ export class HistoryBranchService extends TypertRemoteService {
         const workspaces = this.ctx.workspaceRegistry.list()
         const workspace = workspaces.find(item => item.path === cwd && item.sessionIds.includes(record.sessionId as SessionId))
           ?? workspaces.find(item => item.path === seed!.header.cwd)
-        await this.ctx.sessionController.create({ sessionId: record.targetSessionId as SessionId,
-          ...(workspace === undefined ? { cwd } : { workspaceId: workspace.id }) })
+        try {
+          await this.ctx.sessionController.create({ sessionId: record.targetSessionId as SessionId,
+            ...(workspace === undefined ? { cwd } : { workspaceId: workspace.id }) })
+        } catch (error) {
+          const failure = remoteErrorOf(error)
+          // This native failure confirms adoption even though Workspace attachment failed.
+          if (failure?.code === 'session/workspace-attach-failed' && workspace !== undefined
+            && failure.details?.sessionId === record.targetSessionId && failure.details.workspaceId === workspace.id) {
+            stored = { ...stored, record: { ...stored.record, stage: 'created' } }
+          }
+          throw error
+        }
+        if (stored.record.stage === 'prepared') {
+          stored = { ...stored, record: { ...stored.record, stage: 'created' } }
+          await table.put(operationId, stored)
+        }
         await this.ctx.sessionController.rename({ sessionId: record.targetSessionId as SessionId, title: record.title })
         if (record.topicId !== undefined) await this.ctx.sessionGraphTopics.write({ kind: 'add', topicId: record.topicId,
           sessionIds: [record.sessionId, record.targetSessionId] }, new AbortController().signal)
-        const { error: _, ...ready } = record
+        const { error: _, ...ready } = stored.record
         stored = { ...stored, record: { ...ready, stage: 'ready' } }
         await table.put(operationId, stored)
         return stored.record

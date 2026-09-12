@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { Session } from '@deepseek-ai/dsh-session'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import { SessionCommandController } from '@deepseek-ai/dsh-api-session-controller/src/commands.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { discussionTurns } from '../src/session-discussion.ts'
@@ -32,7 +35,83 @@ async function fixture() {
   return { ...host, root, source, request }
 }
 
+function nativeCreation(host: Awaited<ReturnType<typeof topicHost>>, unavailable = false) {
+  const workspace = Object.assign(host.workspaces[0]!, {
+    attachSession: vi.fn(async (sessionId: SessionId) => {
+      if (unavailable) throw new Error('Workspace storage offline')
+      if (!workspace.sessionIds.includes(sessionId)) workspace.sessionIds.push(sessionId)
+    }),
+  })
+  Object.assign(host.ctx.workspaceRegistry, { get: () => workspace })
+  // Keep the released native creation/attachment command; stub only Agent composition.
+  const ensureSession = vi.fn(async (sessionId: SessionId) => ({ session: { id: sessionId } }))
+  const native = new SessionCommandController(host.ctx, {
+    ensureSession, presetForSession: () => undefined,
+  } as unknown as ConstructorParameters<typeof SessionCommandController>[1], '/a')
+  const create = vi.spyOn(host.ctx.sessionController, 'create').mockImplementation(request => native.create(request))
+  return { workspace, ensureSession, create }
+}
+
 describe('Historical branch public Host workflow', () => {
+  it('keeps an adopted child openable after Workspace attachment fails and recovers the same continued child after restart', async () => {
+    const host = await fixture()
+    const before = host.source.snapshotEvents()
+    const native = nativeCreation(host, true)
+    const rename = vi.spyOn(host.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
+    const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
+    const failed = await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())
+    expect(native.ensureSession).toHaveBeenCalledExactlyOnceWith(preview.targetSessionId, '/a', true, undefined)
+    expect(native.workspace.attachSession).toHaveBeenCalledExactlyOnceWith(preview.targetSessionId)
+    expect(rename).not.toHaveBeenCalled()
+    expect(failed).toMatchObject({ stage: 'created', targetSessionId: preview.targetSessionId,
+      error: expect.stringContaining('was created but could not attach to workspace') })
+    expect(await host.ctx.sessionGraphBranch.prepare(host.request, signal())).toEqual(failed)
+    // A user can continue the retained child before its Workspace association recovers.
+    const inherited = await host.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
+    const writer = await host.ctx.sessionPersistence.open(preview.targetSessionId as SessionId, 'write')
+    try {
+      const continuation = Session.fromRestore(preview.targetSessionId as SessionId, structuredClone(inherited.events),
+        structuredClone(writer.header), writer.inheritedEventCount, 'detached')
+      continuation.append('turn/start', { turn: 3 })
+      continuation.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Continue the retained child' }] }), { surfaceOp: 'append' })
+      continuation.append('turn/end', { turn: 3, reason: { kind: 'completed' } })
+      await writer.append(continuation.snapshotEvents().slice(inherited.events.length))
+      await writer.flush()
+    } finally { await writer.close() }
+    const continued = await host.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
+    await host.ctx.fiber.dispose()
+    const restarted = await topicHost(host.root, cleanups)
+    const recovery = nativeCreation(restarted)
+    vi.spyOn(restarted.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
+    expect(await restarted.ctx.sessionGraphBranch.read({ operationId: preview.operationId }, signal())).toEqual(failed)
+    const ready = await restarted.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())
+    expect(ready).toMatchObject({ stage: 'ready', targetSessionId: preview.targetSessionId })
+    expect(ready.error).toBeUndefined()
+    expect(await restarted.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).toEqual(ready)
+    expect(recovery.create).toHaveBeenCalledOnce()
+    expect(recovery.workspace.sessionIds).toContain(preview.targetSessionId)
+    const child = await restarted.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
+    expect(child.events).toEqual(continued.events)
+    expect(discussionTurns(child.events).map(turn => turn.turn)).toEqual([1, 2, 3])
+    expect((await restarted.ctx.sessionController.inspect(host.source.id)).events).toEqual(before)
+    expect((await restarted.ctx.sessionGraphTopics.read({ topicId: host.request.topicId }, signal())).sources)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ sessionId: preview.targetSessionId, parentSessionId: host.source.id })]))
+    expect((await restarted.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
+  })
+
+  it.each(['session', 'workspace'] as const)('does not treat another %s identity in an attachment failure as confirmation of this child', async mismatch => {
+    const host = await fixture()
+    const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
+    vi.spyOn(host.ctx.sessionController, 'create').mockRejectedValue(new RemoteError('session/workspace-attach-failed', 'Unrelated attachment failure', {
+      sessionId: (mismatch === 'session' ? 'session-another' : preview.targetSessionId) as SessionId,
+      workspaceId: mismatch === 'workspace' ? 'b' : 'a',
+    }))
+    const rename = vi.spyOn(host.ctx.sessionController, 'rename')
+    expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal()))
+      .toMatchObject({ stage: 'prepared', error: 'Unrelated attachment failure' })
+    expect(rename).not.toHaveBeenCalled()
+  })
+
   it('previews without creating, inherits exactly two of five turns, and retries topic failure on the same child after restart', async () => {
     const host = await fixture()
     const before = host.source.snapshotEvents()
@@ -86,6 +165,20 @@ describe('Historical branch public Host workflow', () => {
     expect(await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())).toMatchObject({ stage: 'created', error: 'Rename failed' })
     const ready = await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())
     expect(ready.stage).toBe('ready')
+    expect((await host.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
+  })
+
+  it('keeps a persisted seed prepared until native creation acknowledges the same child', async () => {
+    const host = await fixture()
+    const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
+    const create = vi.spyOn(host.ctx.sessionController, 'create').mockRejectedValueOnce(new Error('Native adoption unavailable'))
+      .mockImplementation(async request => ({ sessionId: request.sessionId! }))
+    vi.spyOn(host.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
+    expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal()))
+      .toMatchObject({ stage: 'prepared', error: 'Native adoption unavailable' })
+    expect(await host.ctx.sessionPersistence.stat(preview.targetSessionId as SessionId)).toBeDefined()
+    expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).toMatchObject({ stage: 'ready' })
+    expect(create.mock.calls.map(([request]) => request.sessionId)).toEqual([preview.targetSessionId, preview.targetSessionId])
     expect((await host.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
   })
 

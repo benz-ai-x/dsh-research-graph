@@ -87,7 +87,7 @@ export function HistoryBranchProvider({ api, hostId, openSession, children, t }:
           {record.stage === 'ready' ? null : <button type="button" className={styles.primaryButton} disabled={busy} onClick={() => {
             void operation(signal => api!.submit({ operationId: record.operationId }, signal))
           }}>{t(error === undefined && record.stage === 'prepared' ? 'branch.confirm' : 'branch.retry')}</button>}
-          {record.stage !== 'ready' ? null : <button type="button" className={styles.primaryButton} onClick={() => { close(); openSession(record.targetSessionId as SessionId) }}>{t('branch.open')}</button>}
+          {record.stage === 'prepared' ? null : <button type="button" className={styles.primaryButton} disabled={busy} onClick={() => { close(); openSession(record.targetSessionId as SessionId) }}>{t('branch.open')}</button>}
         </>}
         {busy ? <p role="status">{t('branch.busy')}</p> : null}
         {error === undefined ? null : <div role="alert"><p>{t('branch.error')} {error}</p>

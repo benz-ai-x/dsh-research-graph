@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react'
-import type { KnowledgeCard, KnowledgeContent, KnowledgeDiscussionAddress, KnowledgeSave, KnowledgeSourceAddress } from '../knowledge.ts'
+import type { KnowledgeCard, KnowledgeContent, KnowledgeDiscussionAddress, KnowledgeRevision, KnowledgeSave, KnowledgeSourceAddress } from '../knowledge.ts'
 import type { ResearchTopic } from '../research-topic.ts'
 import { verifySynthesisClaims, type SynthesisDraft, type SynthesisSave } from '../knowledge-synthesis.ts'
 import type { ResearchMaterial } from '../research-reuse.ts'
@@ -206,6 +206,17 @@ export function KnowledgeEditor({ cardId, readRevisionId, synthesisDraft, frozen
     return () => { cancelled = true }
   }, [editing])
   const baseline = useRef(JSON.stringify({ content: EMPTY_CONTENT, sources, selectedTopic }))
+  const loadRevisionDraft = (revision: KnowledgeRevision): void => {
+    const editable = editableKnowledgeSources(identity, revision, preparation)
+    const retained: SynthesisSave | undefined = revision.synthesis === undefined ? undefined : {
+      source: { kind: 'revision', cardId: identity, revisionId: revision.revisionId }, claims: revision.synthesis.claims,
+    }
+    setSynthesis(retained)
+    setSynthesisMaterials(revision.synthesis?.materials ?? [])
+    baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic, synthesis: retained })
+    setContent(revision.content)
+    setSources(editable)
+  }
   const dirty = editing && (draft !== undefined && card === undefined || JSON.stringify({ content, sources, selectedTopic, synthesis }) !== baseline.current)
   const discard = useDraftProtection(dirty, busy)
   const attempt = useRef<{ readonly payload: string; readonly revisionId: string }>()
@@ -229,14 +240,7 @@ export function KnowledgeEditor({ cardId, readRevisionId, synthesisDraft, frozen
         setCard(value)
         setVersion(revision.revisionId)
         if (editRevisionId !== undefined && !directEditInitialized.current) {
-          const editable = editableKnowledgeSources(cardId, revision, preparation)
-          const retained: SynthesisSave | undefined = revision.synthesis === undefined ? undefined : {
-            source: { kind: 'revision', cardId: identity, revisionId: revision.revisionId }, claims: revision.synthesis.claims }
-          setSynthesis(retained)
-          setSynthesisMaterials(revision.synthesis?.materials ?? [])
-          baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic, synthesis: retained })
-          setContent(revision.content)
-          setSources(editable)
+          loadRevisionDraft(revision)
           directEditInitialized.current = true
         }
       }).catch(() => { if (!controller.signal.aborted) setFailed(true) })
@@ -360,14 +364,7 @@ export function KnowledgeEditor({ cardId, readRevisionId, synthesisDraft, frozen
             if (busy) return
             editTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
             readingScroll.current = scrollRef.current?.scrollTop
-            const editable = editableKnowledgeSources(identity, revision, preparation)
-            const retained: SynthesisSave | undefined = revision.synthesis === undefined ? undefined : {
-              source: { kind: 'revision', cardId: identity, revisionId: revision.revisionId }, claims: revision.synthesis.claims }
-            setSynthesis(retained)
-            setSynthesisMaterials(revision.synthesis?.materials ?? [])
-            baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic, synthesis: retained })
-            setContent(revision.content)
-            setSources(editable)
+            loadRevisionDraft(revision)
             setFailed(false)
             setEditing(true)
           }} />

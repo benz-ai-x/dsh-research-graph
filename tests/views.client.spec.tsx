@@ -53,6 +53,46 @@ import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 const id = (value: string): SessionId => value as SessionId
 
 describe('registered historical branch actions', () => {
+  it('retains the original turn focus when delayed topic membership arrives after returning from a branch', async () => {
+    const b = await bench({ a: session('a'), b: session('b') })
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'b', turns: knowledgeSource(2).source.turns, hasEarlier: false, hasLater: false } })
+    const topic = { topicId: 'research', title: '研究主题', references: [{ sessionId: 'b', title: '讨论 B', cwd: '/w' }], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    const source = { sessionId: 'b', title: '讨论 B', cwd: '/w', archived: false, status: 'listed' as const }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [source] } })
+    b.prepareBranch.mockImplementation(async request => ({ ok: true, value: { ...request, targetSessionId: 'branch-child', title: '讨论 B · 2', sourceTitle: '讨论 B',
+      firstTurn: 1, lastTurn: 2, inheritedEventCount: 25, stage: 'prepared' } }))
+    const pendingList = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphTopics/list']>>>()
+    const pendingRead = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphTopics/read']>>>()
+    const child = { sessionId: 'branch-child', title: '讨论 B · 2', cwd: '/w', parentSessionId: 'b' }
+    const updated = { ...topic, references: [...topic.references, child] }
+    b.submitBranch.mockImplementation(async () => {
+      b.listTopics.mockReturnValue(pendingList.promise)
+      b.readTopic.mockReturnValue(pendingRead.promise)
+      return { ok: true, value: { ...b.prepareBranch.mock.calls[0]![0], targetSessionId: child.sessionId, title: child.title, sourceTitle: source.title,
+        firstTurn: 1, lastTurn: 2, inheritedEventCount: 25, stage: 'ready' } }
+    })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+    await waitFor(() => { expect(document.querySelector('[data-node-id="b"]')).not.toBeNull() })
+    fireEvent.click(nodeButton('b'))
+    fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+    const trigger = await screen.findByRole('button', { name: '从此处分支' })
+    trigger.focus()
+    fireEvent.click(trigger)
+    fireEvent.click(await screen.findByRole('button', { name: '确认并创建分支' }))
+    await screen.findByRole('button', { name: '打开分支继续讨论' })
+    fireEvent.click(screen.getByRole('button', { name: '返回图谱' }))
+    await waitFor(() => { expect(document.activeElement).toBe(trigger) })
+    pendingList.resolve({ ok: true, value: [updated] })
+    pendingRead.resolve({ ok: true, value: { topic: updated, sources: [source, { ...child, archived: false, status: 'unavailable' }] } })
+    await waitFor(() => { expect(document.querySelector('[data-node-id="branch-child"]')).not.toBeNull() })
+    expect(trigger.isConnected).toBe(true)
+    expect(document.activeElement).toBe(trigger)
+    await b.fiber.dispose()
+  })
+
   it.each(['workspace', 'topic'] as const)('uses the separately injected branch Remote with the exact turn in a %s', async scope => {
     const b = await bench({ a: session('a'), b: session('b') })
     b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'b', turns: knowledgeSource(2).source.turns, hasEarlier: false, hasLater: false } })

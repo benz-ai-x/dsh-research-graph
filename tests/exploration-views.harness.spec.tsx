@@ -9,10 +9,33 @@ import type { HistoryBranchRecord } from '../src/history-branch.ts'
 import type { KnowledgeApi } from '../src/client/knowledge-remote.ts'
 import { KnowledgeProvider, useKnowledge } from '../src/client/Knowledge.tsx'
 import { HistoryBranchProvider, useHistoryBranch } from '../src/client/HistoryBranch.tsx'
-import { knowledgeClient, knowledgeContent, knowledgeTranslate as t } from './fixtures/knowledge-client.ts'
+import { knowledgeClient, knowledgeContent, knowledgeSource, knowledgeTranslate as t } from './fixtures/knowledge-client.ts'
+import { SynthesisMaterialView } from '../src/client/SynthesisClaims.tsx'
 
 afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks() })
 const sessions = { byId: {}, ids: [], phase: 'ready', current: undefined } as SessionListState
+
+it('keeps frozen original material readable while explicitly checking changed or unavailable original text', async () => {
+  const source = knowledgeSource(1, 2)
+  const client = knowledgeClient()
+  client.read.mockResolvedValue({ kind: 'original', sessionId: source.sessionId,
+    turns: source.source.turns.map(turn => ({ ...turn, messages: turn.messages.map(message => ({ ...message, text: `变更后的原文 ${turn.turn}` })) })),
+    hasEarlier: false, hasLater: false,
+  })
+  render(<SynthesisMaterialView material={{ kind: 'turn', source }} read={client.read} t={t} />)
+  expect(client.read).not.toHaveBeenCalled()
+  expect(screen.getByText('原文 1')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '核对当前原文' }))
+  await screen.findByText('变更后的原文 1')
+  expect(screen.getByText('原文 1')).toBeTruthy()
+  expect(screen.getByText('原文 2')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: '核对当前原文' }))
+  expect(screen.queryByText('变更后的原文 1')).toBeNull()
+  client.read.mockResolvedValue({ kind: 'excerpt', sessionId: source.sessionId, turns: source.source.turns, hasEarlier: false, hasLater: false })
+  fireEvent.click(screen.getByRole('button', { name: '核对当前原文' }))
+  await screen.findByText(t('history.excerptHint'))
+  expect(screen.getAllByText('原文 1')).toHaveLength(2)
+})
 
 it('keeps manually edited synthesis batches, confirms closing, and retries the same save identity while retaining exact source revisions', async () => {
   const client = knowledgeClient()

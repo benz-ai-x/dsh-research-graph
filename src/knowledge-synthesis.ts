@@ -4,7 +4,12 @@ import type { ResearchMaterial, ResearchMaterialSelection } from './research-reu
 export type SynthesisCategory = 'agreement' | 'disagreement' | 'condition' | 'question'
 export interface SynthesisCitation { readonly materialIndex: number; readonly quote: string }
 export interface SynthesisClaim { readonly category: SynthesisCategory; readonly text: string; readonly citations: readonly SynthesisCitation[] }
-export interface KnowledgeSynthesis { readonly materials: readonly ResearchMaterial[]; readonly claims: readonly SynthesisClaim[] }
+export interface KnowledgeSynthesis {
+  /** Binds a newly saved card to its preparation for amended retries after a lost receipt. */
+  readonly preparationId?: string
+  readonly materials: readonly ResearchMaterial[]
+  readonly claims: readonly SynthesisClaim[]
+}
 export interface SynthesisSave {
   readonly source: { readonly kind: 'preparation'; readonly preparationId: string }
     | { readonly kind: 'revision'; readonly cardId: string; readonly revisionId: string }
