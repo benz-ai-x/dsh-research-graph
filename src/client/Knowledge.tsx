@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react'
 import type { KnowledgeCard, KnowledgeContent, KnowledgeDiscussionAddress, KnowledgeSave, KnowledgeSourceAddress } from '../knowledge.ts'
 import type { ResearchTopic } from '../research-topic.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
@@ -134,7 +134,7 @@ const EMPTY_CONTENT: KnowledgeContent = {
   title: '', question: '', conclusion: '', rationale: '', openQuestions: '', kind: 'conclusion', status: 'draft',
 }
 
-export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, topics, read, close, changed, onSaved, draft, preparation, t }: {
+export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, topics, read, close, changed, onSaved, draft, preparation, scrollContainer, t }: {
   readonly cardId: string | undefined
   readonly editRevisionId?: string | undefined
   readonly source: KnowledgeDiscussionAddress | undefined
@@ -148,6 +148,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
   readonly t: Translate
   readonly draft?: ExtractionDraft
   readonly preparation?: ExtractionPreparation
+  readonly scrollContainer?: RefObject<HTMLElement>
 }): ReactElement {
   const [identity] = useState(() => cardId ?? draft?.cardId ?? crypto.randomUUID())
   const [card, setCard] = useState<KnowledgeCard>()
@@ -170,9 +171,11 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [reload, setReload] = useState(0)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const scrollRef = scrollContainer ?? editorRef
   const resultRef = useRef<HTMLDivElement>(null)
   const editTrigger = useRef<HTMLElement>()
-  const readingScroll = useRef(0)
+  const readingScroll = useRef<number>()
   useLayoutEffect(() => {
     if (editing || editTrigger.current === undefined) return
     const trigger = editTrigger.current
@@ -182,8 +185,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
     queueMicrotask(() => {
       if (cancelled || !resultRef.current?.isConnected) return
       const target = trigger.isConnected ? trigger : resultRef.current.querySelector<HTMLElement>('select')
-      const panel = resultRef.current.closest<HTMLElement>('[data-working-scroll]')
-      if (panel) panel.scrollTop = readingScroll.current
+      if (scrollRef.current && readingScroll.current !== undefined) scrollRef.current.scrollTop = readingScroll.current
       target?.focus({ preventScroll: true })
     })
     return () => { cancelled = true }
@@ -247,7 +249,8 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
       if (controller.signal.aborted) return
       setCard(saved)
       if (savedRevision) {
-        readingScroll.current = 0
+        // A new reader resets its own position, never the surrounding draft batch.
+        readingScroll.current = undefined
         setVersion(saved.revisions.at(-1)!.revisionId)
         setEditing(false)
         attempt.current = undefined
@@ -258,7 +261,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
       if (!controller.signal.aborted) { setBusy(false); write.current = undefined }
     }
   }
-  return <div className={`${styles.knowledgeBody} ${styles.knowledgeEditor}`} data-working-scroll="">
+  return <div ref={editorRef} className={`${styles.knowledgeBody} ${styles.knowledgeEditor}`} data-working-scroll={scrollContainer === undefined ? '' : undefined}>
     {loading ? <p role="status">{t('topic.loading')}</p> : null}
     {failed || topicError ? <div role="alert">{t('knowledge.error')}
       {(cardId !== undefined && card === undefined) || topicError ? <button type="button" onClick={() => { setReload(value => value + 1) }}>{t('topic.retry')}</button> : null}</div> : null}
@@ -333,7 +336,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
           onRetry={() => { setReload(value => value + 1) }} onEdit={revision => {
             if (busy) return
             editTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
-            readingScroll.current = resultRef.current?.closest<HTMLElement>('[data-working-scroll]')?.scrollTop ?? 0
+            readingScroll.current = scrollRef.current?.scrollTop
             const editable = editableKnowledgeSources(identity, revision, preparation)
             baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic })
             setContent(revision.content)

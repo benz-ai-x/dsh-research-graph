@@ -3,12 +3,14 @@ import { randomUUID } from 'node:crypto'
 import { afterEach, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { KnowledgeCard } from '../src/knowledge.ts'
+import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
 import type { ResearchRelation } from '../src/research-relations.ts'
 import type { ResearchReuseApi } from '../src/client/research-reuse-remote.ts'
 import { KnowledgeProvider, useKnowledge } from '../src/client/Knowledge.tsx'
 import { KnowledgeSearch } from '../src/client/KnowledgeSearch.tsx'
 import { KnowledgeReader } from '../src/client/KnowledgeReader.tsx'
 import { ResearchReuseProvider } from '../src/client/ResearchReuse.tsx'
+import styles from '../src/client/GraphView.module.css'
 import { knowledgeClient, knowledgeContent, knowledgeSource, knowledgeTranslate as t } from './fixtures/knowledge-client.ts'
 
 afterEach(() => { cleanup(); localStorage.clear(); vi.restoreAllMocks() })
@@ -98,6 +100,67 @@ it('retries a missing explicit edit revision without substituting the latest sav
   fireEvent.click(within(failure).getByRole('button', { name: '重试' }))
   expect((await screen.findByRole('textbox', { name: '卡片标题' }) as HTMLInputElement).value).toBe('旧版结论')
   expect(client.api.save).not.toHaveBeenCalled()
+})
+
+it.each([false, true])('restores the extraction batch scroll after canceling a saved card edit (changed: %s)', async changed => {
+  const { client, wrap } = fixture()
+  const included = knowledgeSource()
+  const preparation: ExtractionPreparation = { preparationId: randomUUID(), selected: included, included, omitted: [],
+    budgetChars: 20_000, materialText: '固定提炼材料', route: { provider: 'fixture', model: 'fixed' } }
+  client.api.prepareExtraction.mockResolvedValue(preparation)
+  client.api.extract.mockResolvedValue({ provider: 'fixture', model: 'fixed', drafts: ['长提炼结果', '待保存草稿'].map(title => ({
+    cardId: randomUUID(), revisionId: randomUUID(), content: knowledgeContent(title), invalidCitations: 0, needsVerification: false,
+    sources: [{ kind: 'extraction', preparationId: preparation.preparationId, startSeq: 10, endSeq: 14 }],
+  })) })
+  const revisions: KnowledgeCard['revisions'][number][] = []
+  client.api.save.mockImplementation(async request => {
+    revisions.push({ revisionId: request.revisionId, number: revisions.length + 1, requestHash: 'a'.repeat(64),
+      savedAt: 1000, content: request.content, sources: [included] })
+    return { cardId: request.cardId, topicIds: [], revisions: [...revisions] }
+  })
+  function Entry() { const knowledge = useKnowledge()!; return <button onClick={() => knowledge.extract({
+    kind: 'discussion', sessionId: 'session-a', startSeq: 10, endSeq: 14,
+  })}>开始提炼</button> }
+  render(wrap(<Entry />))
+  fireEvent.click(screen.getByRole('button', { name: '开始提炼' }))
+  const dialog = screen.getByRole('dialog', { name: '提炼知识' })
+  fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
+  fireEvent.click(await within(dialog).findByRole('button', { name: '生成知识草稿' }))
+  const title = await within(dialog).findByDisplayValue('长提炼结果')
+  const sibling = within(within(dialog).getByDisplayValue('待保存草稿').closest('form')!).getByRole('textbox', { name: '结论' }) as HTMLTextAreaElement
+  fireEvent.change(sibling, { target: { value: '另一张草稿的人工输入' } })
+  fireEvent.click(within(title.closest('form')!).getByRole('button', { name: '保存知识' }))
+  const reader = (await within(dialog).findByRole('heading', { name: '长提炼结果' })).parentElement!
+  fireEvent.click(within(reader).getByRole('button', { name: /查看来源原文/ }))
+  const original = await within(reader).findByRole('region', { name: '讨论原文' })
+  const scroller = dialog.querySelector<HTMLElement>(`.${styles.knowledgeBody}`)!
+  scroller.scrollTop = 4058.5
+  const edit = within(reader).getByRole('button', { name: '编辑卡片' })
+  edit.focus()
+  fireEvent.click(edit)
+  const form = within(dialog).getByDisplayValue('长提炼结果').closest('form')!
+  expect((within(form).getByRole('checkbox', { name: '引用第 1 轮' }) as HTMLInputElement).checked).toBe(true)
+  // jsdom has no layout. Reproduce Chrome clamping the outer scrollport when
+  // the long saved reader is replaced by the shorter editing form.
+  scroller.scrollTop = 913
+  if (changed) fireEvent.change(within(form).getByRole('textbox', { name: '结论' }), { target: { value: '放弃这次修改' } })
+  fireEvent.click(within(form).getByRole('button', { name: t('knowledge.cancel') }))
+  if (changed) fireEvent.click(screen.getByRole('button', { name: '放弃未保存内容' }))
+  await waitFor(() => { expect(scroller.scrollTop).toBe(4058.5) })
+  expect(document.activeElement).toBe(edit)
+  expect(within(reader).getByRole('region', { name: '讨论原文' })).toBe(original)
+  expect(sibling.value).toBe('另一张草稿的人工输入')
+  expect(client.api.save).toHaveBeenCalledTimes(1)
+
+  if (!changed) {
+    fireEvent.click(edit)
+    scroller.scrollTop = 913
+    fireEvent.click(within(within(dialog).getByDisplayValue('长提炼结果').closest('form')!).getByRole('button', { name: '保存知识' }))
+    await within(dialog).findByRole('option', { name: '第 2 版' })
+    // A new saved revision starts its own reader without resetting the whole batch.
+    expect(scroller.scrollTop).toBe(913)
+    expect(sibling.value).toBe('另一张草稿的人工输入')
+  }
 })
 
 it('uses the supplied batch relations without starting another request and abandons a closed card read', async () => {

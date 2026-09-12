@@ -37,7 +37,7 @@
 - 新增 11 项 Harness 回归：共享阅读入口、关系失败重试、旧修订来源与最新导出、原位编辑返回、显式修订丢失、批量关系复用及关闭后的迟到响应，以及六个响应式边界和拖动途中进入覆盖模式。既有草稿、提炼、保存重试、视口、小地图与悬停预览回归通过。
 - `pnpm pack --pack-destination .artifacts` 后，`pnpm smoke:harness` 的隔离 web profile 安装、真实 Host 启动、持久读写、提炼、沿用、冻结 Markdown、标题、摘要、准确原文、搜索及移除通过。固定模型调用 11 次。
 
-包版本保持 `0.1.5-rc.2.3`，目标 DSH `0.1.5-rc.2`；最终 Build ID 为 `local-bdeebbc6`。验收归档 448318 bytes，SHA-256 `859c111e1d7c2eaba0a6b0bdb44fe2ceda7c3efddaadcbafcae6d733769ac41d`。
+包版本保持 `0.1.5-rc.2.3`，目标 DSH `0.1.5-rc.2`；本节初次验收的 Build ID 为 `local-bdeebbc6`。验收归档 448318 bytes，SHA-256 `859c111e1d7c2eaba0a6b0bdb44fe2ceda7c3efddaadcbafcae6d733769ac41d`。
 
 ## 浏览器验收
 
@@ -74,3 +74,25 @@
 ![640px 英文深色菜单](../assets/reading-geometry/mobile-menu-en-dark.png)
 
 此记录是实现与自动化浏览器验收证据，供 PR 审查及后续人工体验使用。截图使用隔离示例数据；私有 profile、测量 JSON 和原始日志位于工作树 `.artifacts/`。
+
+## PR #39 提炼阅读返回修复
+
+审查发现 #36 的阅读连续性在提炼入口没有完整生效：每张候选的编辑器使用 `overflow: visible`，实际滚动发生在外层提炼批次。原恢复逻辑记录内部编辑器的零位置，长正文切换为短表单后，浏览器缩小了外层滚动范围，取消时未恢复。修复由 `KnowledgeExtraction` 明确向编辑器提供实际滚动容器；普通独立编辑器继续使用自己的容器。保存新修订不会将整个提炼批次重置到顶部。
+
+两项新增 Harness 回归通过真实提炼入口生成两个候选，覆盖直接放弃与修改后确认放弃、保留展开来源、引用勾选及另一张草稿的人工输入。jsdom 不计算布局，测试显式模拟浏览器将外层位置从 4058.5px 缩到 913px；旧实现的两项测试均以 `expected 913 to be 4058.5` 失败，修复后通过。新修订保存另确认不会重置整个批次。
+
+修复后的 `pnpm run check` 197 项独立测试、匹配 RC.2 的四个类型面及 `check:harness` 308 项全部通过。最终实包隔离 profile 验收通过，固定模型调用 11 次；Build ID `local-343e1448`，归档 448692 bytes，SHA-256 `738572c9400435a5426242729b0f4a5baa017b0672c13904df65e93a8befa841`。
+
+真实 Chrome / DSH 0.1.5-rc.2 专项复验使用 2056×1160、中文深色和 45 段测试正文，调用固定 `research-prototype/demo` adapter：
+
+| 场景 | 修复后实测 |
+| --- | --- |
+| 直接编辑后放弃 | 外层阅读位置 5307px → 编辑中 913px → 返回 5307px；编辑按钮恢复焦点，顶部坐标前后同为 689.875px，保持可见。 |
+| 展开来源、追加另一张草稿，修改首卡后确认放弃 | 阅读位置前后同为 5369px，按钮顶部同为 627.875px；45 段已保存正文、展开原文、另一张草稿标题及人工输入均保留。 |
+
+console error 为 0。验证标签已关闭，隔离预览已停止；测试卡片保留在专用 profile，没有更新日常 profile。
+
+编辑前与直接放弃后的同一阅读位置：
+
+![提炼结果编辑前的阅读位置](../assets/reading-geometry/extraction-before-edit.png)
+![放弃编辑后恢复原阅读位置与可见焦点](../assets/reading-geometry/extraction-after-cancel.png)
