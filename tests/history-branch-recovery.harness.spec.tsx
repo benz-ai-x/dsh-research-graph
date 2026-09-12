@@ -24,18 +24,18 @@ function Entry() {
     onClick={() => { branch({ sessionId: 'source', startSeq: 20, endSeq: 24 }) }}>从第二轮分支</button>
 }
 
-it('opens the retained child while topic membership is still recoverable', async () => {
+it.each(['Topic storage offline', 'Workspace storage offline'])('opens the retained child while association is still recoverable: %s', async error => {
   let record: HistoryBranchRecord
   const open = vi.fn()
   const api = {
     prepare: vi.fn<HistoryBranchApi['prepare']>(async request => (record = initial(request))),
-    submit: vi.fn(async () => ({ ...record, stage: 'created' as const, error: 'Topic storage offline' })),
+    submit: vi.fn(async () => ({ ...record, stage: 'created' as const, error })),
     read: vi.fn(),
   }
   render(<HistoryBranchProvider api={api} hostId="host" openSession={open} t={t}><Entry /></HistoryBranchProvider>)
   fireEvent.click(screen.getByRole('button', { name: '从第二轮分支' }))
   fireEvent.click(await screen.findByRole('button', { name: t('branch.confirm') }))
-  await screen.findByText('Topic storage offline', { exact: false })
+  await screen.findByText(error, { exact: false })
   expect(screen.queryByRole('button', { name: t('branch.open') })).not.toBeNull()
   expect(screen.getByRole('button', { name: t('branch.retry') })).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: t('branch.open') }))

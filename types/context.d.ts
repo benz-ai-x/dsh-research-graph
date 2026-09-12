@@ -1,6 +1,12 @@
 import '@deepseek-ai/cordis'
 import '@deepseek-ai/dsh-llm'
 
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface RemoteErrorDetailsMap {
+    'session/workspace-attach-failed': { readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId; readonly workspaceId: string }
+  }
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Events {
     'agent/error'(payload: { readonly agent: import('@deepseek-ai/dsh-agent').Agent; readonly error: unknown }): void
