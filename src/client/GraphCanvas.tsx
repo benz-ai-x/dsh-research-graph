@@ -106,8 +106,20 @@ const PREVIEW_W = 240
 const PREVIEW_H = 112
 /** Screen inset occupied by the filter and canvas controls. */
 const PREVIEW_TOP_INSET = 56
-/** Right-side canvas inset occupied by the Selected Session inspector. */
-const INSPECTOR_RIGHT_INSET = 584
+
+/** Share the live reading-panel clearance across graph commands and previews. */
+function measureCanvasRoom(surface: HTMLElement | null): {
+  readonly width: number
+  readonly height: number
+  readonly rightInset: number
+} | undefined {
+  if (surface === null) return undefined
+  const { width, height } = surface.getBoundingClientRect()
+  const readerWidth = surface.querySelector<HTMLElement>('[data-reading-panel]')?.getBoundingClientRect().width ?? 0
+  const rightInset = readerWidth > 0 ? readerWidth + 24 : 0
+  // Narrow reading overlays the graph; its commands retain the full canvas.
+  return { width: width > 760 ? Math.max(240, width - rightInset) : width, height, rightInset }
+}
 
 /** Restore one record key to its pre-gesture value, removing a previously absent key. */
 function restoreEntry<T>(
@@ -991,10 +1003,10 @@ export function GraphCanvas({
     let settledFrame: number | undefined
     const layoutFrame = window.requestAnimationFrame(() => {
       settledFrame = window.requestAnimationFrame(() => {
-        const rect = surfaceRef.current?.getBoundingClientRect()
-        if (rect === undefined) return
+        const room = measureCanvasRoom(surfaceRef.current)
+        if (room === undefined) return
         fittedRef.current = true
-        setViewport(fitViewport(bounds, rect.width, rect.height, FIT_PADDING))
+        setViewport(fitViewport(bounds, room.width, room.height, FIT_PADDING))
       })
     })
     return () => {
@@ -1254,19 +1266,17 @@ export function GraphCanvas({
   }, [])
 
   const zoomFromCenter = (factor: number): void => {
-    const rect = surfaceRef.current?.getBoundingClientRect()
-    if (rect === undefined) return
-    setViewport(current => zoomAt(current, rect.width / 2, rect.height / 2, factor))
+    const room = measureCanvasRoom(surfaceRef.current)
+    if (room === undefined) return
+    setViewport(current => zoomAt(current, room.width / 2, room.height / 2, factor))
   }
 
   /** Fit one complete content box into the current surface. */
   const fitBounds = (target: ContentBounds): void => {
-    const rect = surfaceRef.current?.getBoundingClientRect()
-    if (rect === undefined) return
+    const room = measureCanvasRoom(surfaceRef.current)
+    if (room === undefined) return
     glide()
-    const panel = surfaceRef.current?.querySelector<HTMLElement>('[data-reading-panel]')
-    const panelWidth = rect.width > 760 ? panel?.getBoundingClientRect().width ?? 0 : 0
-    setViewport(fitViewport(target, Math.max(240, rect.width - (panelWidth ? panelWidth + 24 : 0)), rect.height, FIT_PADDING))
+    setViewport(fitViewport(target, room.width, room.height, FIT_PADDING))
   }
 
   const fit = (): void => { fitBounds(bounds) }
@@ -1289,15 +1299,12 @@ export function GraphCanvas({
 
   /** Center the viewport on one content point (the minimap verb). */
   const recenter = (contentX: number, contentY: number): void => {
-    const rect = surfaceRef.current?.getBoundingClientRect()
-    if (rect === undefined) return
-    const panel = surfaceRef.current?.querySelector<HTMLElement>('[data-reading-panel]')
-    const panelWidth = rect.width > 760 ? panel?.getBoundingClientRect().width ?? 0 : 0
-    const availableWidth = Math.max(240, rect.width - (panelWidth ? panelWidth + 24 : 0))
+    const room = measureCanvasRoom(surfaceRef.current)
+    if (room === undefined) return
     setViewport(current => ({
       ...current,
-      panX: availableWidth / 2 - contentX * current.scale,
-      panY: rect.height / 2 - contentY * current.scale,
+      panX: room.width / 2 - contentX * current.scale,
+      panY: room.height / 2 - contentY * current.scale,
     }))
   }
 
@@ -1942,8 +1949,7 @@ export function GraphCanvas({
           surface: viewSize,
           insets: {
             top: PREVIEW_TOP_INSET,
-            right: selectedNode === undefined ? 12
-              : (surfaceRef.current?.querySelector<HTMLElement>('[data-reading-panel]')?.getBoundingClientRect().width || INSPECTOR_RIGHT_INSET - 24) + 24,
+            right: selectedNode === undefined ? 12 : measureCanvasRoom(surfaceRef.current)?.rightInset || 12,
           },
         })
         const session = entry.node.kind === 'knowledge' ? undefined : entry.node

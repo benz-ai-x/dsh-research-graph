@@ -1891,6 +1891,79 @@ describe('free viewport controls', () => {
   const surface = (): HTMLElement =>
     document.querySelector<HTMLElement>('[aria-label="会话关系图谱"]') as HTMLElement
 
+  it.each(['workspace', 'topic'] as const)('keeps %s zoom anchored in the visible canvas after fitting and resizing the reader', async scope => {
+    let surfaceWidth = 1774
+    let readerWidth = 963
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const width = this.hasAttribute('data-reading-panel') ? readerWidth : surfaceWidth
+      return { width, height: 840, x: 0, y: 0, left: 0, top: 0, right: width, bottom: 840, toJSON: () => ({}) }
+    })
+    const b = await bench({ root: session('root') })
+    const references = [{ sessionId: 'root', title: '研究讨论', cwd: '/w' }]
+    const topic = { topicId: 'research', title: '研究主题', references, arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: references.map(reference => ({ ...reference, archived: false, status: 'listed' as const })) } })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    if (scope === 'topic') {
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+      await waitFor(() => { expect(document.querySelector('[data-node-id="root"]')).not.toBeNull() })
+    }
+    fireEvent.click(nodeButton('root'))
+    const transform = (): number[] => nodeButton('root').parentElement!.style.transform.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
+    const expectCentered = (x: number): void => {
+      const [panX, , scale] = transform()
+      expect(panX! + (parseFloat(nodeButton('root').style.left) + 120) * scale!).toBeCloseTo(x)
+    }
+    fireEvent.click(screen.getByRole('button', { name: '适应', exact: true }))
+    expectCentered(393.5)
+    for (let step = 0; step < 3; step += 1) fireEvent.click(screen.getByRole('button', { name: '放大', exact: true }))
+    expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('173%')
+    expectCentered(393.5)
+    fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
+    expectCentered(393.5)
+    fireEvent.click(screen.getByRole('button', { name: '缩小', exact: true }))
+    expectCentered(393.5)
+
+    // A live panel resize changes the next command's anchor without remounting.
+    readerWidth = 563
+    fireEvent.click(screen.getByRole('button', { name: '定位', exact: true }))
+    expectCentered(593.5)
+    fireEvent.keyDown(surface(), { key: '+' })
+    expectCentered(593.5)
+    fireEvent.keyDown(surface(), { key: '0' })
+    expectCentered(593.5)
+
+    // Wheel gestures keep their pointer anchor, rather than the toolbar center.
+    const beforeWheel = transform()
+    const contentX = (200 - beforeWheel[0]!) / beforeWheel[2]!
+    const contentY = (300 - beforeWheel[1]!) / beforeWheel[2]!
+    fireEvent.wheel(surface(), { deltaY: -100, clientX: 200, clientY: 300 })
+    const afterWheel = transform()
+    expect(afterWheel[0]! + contentX * afterWheel[2]!).toBeCloseTo(200)
+    expect(afterWheel[1]! + contentY * afterWheel[2]!).toBeCloseTo(300)
+
+    // Narrow reading overlays the canvas; its menu zoom retains the full center.
+    surfaceWidth = 640
+    readerWidth = 616
+    fireEvent.keyDown(surface(), { key: '1' })
+    expectCentered(320)
+    fireEvent.click(screen.getByRole('button', { name: '图谱选项' }))
+    const menu = screen.getByRole('group', { name: '图谱选项' })
+    fireEvent.click(within(menu).getByRole('button', { name: '放大' }))
+    expectCentered(320)
+    fireEvent.click(within(menu).getByRole('button', { name: '缩放至 100%' }))
+    expectCentered(320)
+    fireEvent.keyDown(menu, { key: 'Escape' })
+
+    surfaceWidth = 1774
+    fireEvent.click(screen.getByRole('button', { name: '关闭会话详情' }))
+    fireEvent.click(screen.getByRole('button', { name: '适应', exact: true }))
+    expectCentered(887)
+    fireEvent.click(screen.getByRole('button', { name: '放大', exact: true }))
+    expectCentered(887)
+  })
+
   it.each(['workspace', 'topic'] as const)('keeps %s tools beside the input target and isolates their keys from the canvas', async scope => {
     const b = await bench({ a: session('a', { displayTitle: '实际发送会话' }), b: session('b', { displayTitle: '正在检查的会话' }) })
     const references = [{ sessionId: 'a', title: '实际发送会话', cwd: '/w' }, { sessionId: 'b', title: '正在检查的会话', cwd: '/w' }]
