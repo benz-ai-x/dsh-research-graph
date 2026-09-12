@@ -199,7 +199,7 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 - 单击选择 Selected Session（选中会话）并持续强调其 Branch Lineage；可关闭的详情检查器可打开该会话或创建 Branch，并在 Harness 拒绝请求时显示错误。单击画布空白处或按 Escape 可清除选择。
 - 双击会在该会话上次使用的视图中打开它。
 - 在其他 Canvas Session 上停留可查看紧凑预览，不会替换 Selected Session 检查器。
-- 拖动节点或整个簇框来排列画布；对齐参考线会吸附临近卡片边缘。
+- 拖动节点或整个簇框来排列画布；对齐参考线会吸附临近卡片边缘。快速拖动后重新打开图谱，也会保留松手时的最终位置。
 - Session Arrangement 持久化采用 fail-soft 策略。浏览器存储不可用、被拒绝、损坏或空间耗尽时，实时图谱仍会使用自动几何继续渲染。
 - 小圆点表示关系连接位置，不是拖动手柄；Branch 使用中性色带方向实线，Merge Relation 使用品牌色带方向实线，Subagent Derivation 使用虚线。
 - 使用滚轮缩放、背景拖动平移、适应、100%、重新布局、重置、定位 Viewed Session（当前查看会话）或 minimap。内容离开可视范围时才显示 minimap；容器尺寸变化会保留当前内容中心与缩放比例。

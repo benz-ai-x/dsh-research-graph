@@ -827,6 +827,7 @@ export function GraphCanvas({
     startY: number
     moved: boolean
     previous: NodePosition | undefined
+    position: NodePosition | undefined
   } | null>(null)
   const clusterDragRef = useRef<{
     pointerId: number
@@ -837,6 +838,7 @@ export function GraphCanvas({
     startY: number
     moved: boolean
     previous: ClusterOffset | undefined
+    offset: ClusterOffset
   } | null>(null)
   const suppressClickRef = useRef(false)
   const [selected, setSelected] = useState<string | null>(restored.selected ?? null)
@@ -1109,6 +1111,7 @@ export function GraphCanvas({
         startY: event.clientY,
         moved: false,
         previous: positionsRef.current[id],
+        position: undefined,
       }
       if (typeof event.currentTarget.setPointerCapture === 'function') {
         event.currentTarget.setPointerCapture(event.pointerId)
@@ -1133,12 +1136,14 @@ export function GraphCanvas({
       // The positions record lives in the cluster's local frame: the whole
       //-cluster offset applies on top at render time, so it comes off here.
       const offset = offsetsRef.current[drag.cluster]
+      const position = {
+        x: snapped.x - (offset?.dx ?? 0),
+        y: snapped.y - (offset?.dy ?? 0),
+      }
+      drag.position = position
       setPositions(current => ({
         ...current,
-        [drag.key]: {
-          x: snapped.x - (offset?.dx ?? 0),
-          y: snapped.y - (offset?.dy ?? 0),
-        },
+        [drag.key]: position,
       }))
     },
     onPointerUp: (event) => {
@@ -1146,9 +1151,10 @@ export function GraphCanvas({
       if (drag === null || drag.pointerId !== event.pointerId) return
       nodeDragRef.current = null
       setGuides(null)
-      if (!drag.moved) return
+      if (!drag.moved || drag.position === undefined) return
       suppressClickRef.current = true
-      persist(positionsRef.current, collapsedRef.current, offsetsRef.current)
+      // Release can precede React's next render, so commit the gesture's final sample.
+      persist({ ...positionsRef.current, [drag.key]: drag.position }, collapsedRef.current, offsetsRef.current)
     },
     onPointerCancel: (event) => {
       const drag = nodeDragRef.current
@@ -1381,6 +1387,7 @@ export function GraphCanvas({
         startY: event.clientY,
         moved: false,
         previous: offsetsRef.current[clusterId],
+        offset: offsetsRef.current[clusterId] ?? { dx: 0, dy: 0 },
       }
       if (typeof event.currentTarget.setPointerCapture === 'function') {
         event.currentTarget.setPointerCapture(event.pointerId)
@@ -1394,26 +1401,21 @@ export function GraphCanvas({
         return
       }
       drag.moved = true
-      // Deltas eagerly before setState, then the ref catches up (same
-      // updater-ordering rule as the background pan).
+      // Accumulate samples on the gesture even when React batches several moves.
       const dx = (event.clientX - drag.lastX) / viewport.scale
       const dy = (event.clientY - drag.lastY) / viewport.scale
       drag.lastX = event.clientX
       drag.lastY = event.clientY
-      setOffsets((current) => {
-        const base = current[drag.clusterId] ?? { dx: 0, dy: 0 }
-        return {
-          ...current,
-          [drag.clusterId]: { dx: base.dx + dx, dy: base.dy + dy },
-        }
-      })
+      const offset = { dx: drag.offset.dx + dx, dy: drag.offset.dy + dy }
+      drag.offset = offset
+      setOffsets(current => ({ ...current, [drag.clusterId]: offset }))
     },
     onPointerUp: (event) => {
       const drag = clusterDragRef.current
       if (drag === null || drag.pointerId !== event.pointerId) return
       clusterDragRef.current = null
       if (!drag.moved) return
-      persist(positionsRef.current, collapsedRef.current, offsetsRef.current)
+      persist(positionsRef.current, collapsedRef.current, { ...offsetsRef.current, [drag.clusterId]: drag.offset })
     },
     onPointerCancel: (event) => {
       const drag = clusterDragRef.current

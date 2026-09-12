@@ -589,8 +589,10 @@ describe('Working position in the registered Graph', () => {
     await waitFor(() => { expect(document.querySelector('[data-node-id="source-0001"]')).not.toBeNull() })
     const node = nodeButton('source-0001')
     fireEvent.pointerDown(node, { pointerId: 7, clientX: 200, clientY: 200 })
-    fireEvent.pointerMove(node, { pointerId: 7, clientX: 320, clientY: 280 })
-    fireEvent.pointerUp(node, { pointerId: 7 })
+    act(() => {
+      fireEvent.pointerMove(node, { pointerId: 7, clientX: 320, clientY: 280 })
+      fireEvent.pointerUp(node, { pointerId: 7 })
+    })
     const left = nodeButton('source-0001').style.left
     fireEvent.click(nodeButton('source-0001'))
     fireEvent.click(nodeButton('source-0001'))
@@ -2347,6 +2349,34 @@ describe('node drag and position persistence', () => {
     fireEvent.pointerMove(node, { pointerId: 7, clientX: start.clientX + dx, clientY: start.clientY + dy })
     fireEvent.pointerUp(node, { pointerId: 7 })
   }
+
+  it.each(['node', 'cluster'] as const)('persists the final %s drag sample before a batched release', async target => {
+    const b = await bench({ root: session('root'), child: session('child', { parentId: id('root') }) })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    stubSize(1000, 600)
+    fireEvent.click(screen.getByRole('button', { name: '缩放至 100%' }))
+    const handle = target === 'node' ? nodeButton('root') : document.querySelector<HTMLElement>('[data-cluster-title="root"]')!
+    fireEvent.pointerDown(handle, { pointerId: 7, clientX: 200, clientY: 200 })
+    // A browser can deliver the final movement and release before React commits a frame.
+    act(() => {
+      fireEvent.pointerMove(handle, { pointerId: 7, clientX: 240, clientY: 225 })
+      fireEvent.pointerMove(handle, { pointerId: 7, clientX: 280, clientY: 250 })
+      fireEvent.pointerUp(handle, { pointerId: 7 })
+    })
+    expect(nodeButton('root').style.left).toBe('80px')
+    expect(nodeButton('root').style.top).toBe('50px')
+    const saved = JSON.parse(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')!)
+    expect(target === 'node' ? saved.positions.root : saved.offsets.root)
+      .toEqual(target === 'node' ? { x: 80, y: 50 } : { dx: 80, dy: 50 })
+    cleanup()
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    expect(nodeButton('root').style.left).toBe('80px')
+    expect(nodeButton('root').style.top).toBe('50px')
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
 
   it('drags a node, persists its position, and suppresses the click', async () => {
     const b = await bench(FIXTURE)

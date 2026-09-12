@@ -199,7 +199,7 @@ Open a non-blank session and choose **Research Graph** beside the standard conve
 - A single click chooses the Selected Session and keeps its Branch Lineage emphasized; the closable detail inspector can open that session or create a Branch, and reports when Harness rejects the request. Click blank canvas space or press Escape to clear selection.
 - A double click opens the session in its last-used view.
 - Dwell on another Canvas Session for a compact preview without replacing the Selected Session inspector.
-- Drag nodes or complete cluster frames to arrange the canvas. Alignment guides snap nearby card edges.
+- Drag nodes or complete cluster frames to arrange the canvas. Alignment guides snap nearby card edges. Reopening the graph retains the final released position, including quick drags.
 - Session Arrangement persistence fails soft. If browser storage is unavailable, denied, corrupt, or full, the live graph continues with automatic geometry instead of failing to render.
 - Small connection dots show relationship anchors; they are not drag handles. Branches are neutral solid directed edges, Merge Relations are branded solid directed edges, and Subagent Derivations are dashed.
 - Use wheel zoom, background-drag panning, fit, 100%, relayout, reset, Viewed Session location, or the minimap. The minimap appears when content leaves the visible surface and is hidden in narrow containers. Resizing preserves the current content center and scale.
