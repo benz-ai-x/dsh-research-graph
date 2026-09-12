@@ -19,6 +19,7 @@ import { SessionTitleControl } from './SessionTitleControl.tsx'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
+import { useCanvasGeometry } from './reading-geometry.ts'
 import { ActionMenu } from './ActionMenu.tsx'
 import { containsSessionReferenceUri } from '../session-merge.ts'
 import { CLUSTER_COLORS } from './clusters.ts'
@@ -108,20 +109,6 @@ const PREVIEW_W = 240
 const PREVIEW_H = 112
 /** Screen inset occupied by the filter and canvas controls. */
 const PREVIEW_TOP_INSET = 56
-
-/** Share the live reading-panel clearance across graph commands and previews. */
-function measureCanvasRoom(surface: HTMLElement | null): {
-  readonly width: number
-  readonly height: number
-  readonly rightInset: number
-} | undefined {
-  if (surface === null) return undefined
-  const { width, height } = surface.getBoundingClientRect()
-  const readerWidth = surface.querySelector<HTMLElement>('[data-reading-panel]')?.getBoundingClientRect().width ?? 0
-  const rightInset = readerWidth > 0 ? readerWidth + 24 : 0
-  // Narrow reading overlays the graph; its commands retain the full canvas.
-  return { width: width > 760 ? Math.max(240, width - rightInset) : width, height, rightInset }
-}
 
 /** Restore one record key to its pre-gesture value, removing a previously absent key. */
 function restoreEntry<T>(
@@ -815,34 +802,10 @@ export function GraphCanvas({
   const [restored] = useState(() => loadWorkingPosition(workingKey))
   const surfaceRef = useRef<HTMLDivElement | null>(null)
   const [viewport, setViewport] = useState(() => restored.viewport ?? initialViewport())
-  const [viewSize, setViewSize] = useState({ width: 0, height: 0 })
-  const viewSizeRef = useRef(viewSize)
-  useEffect(() => {
-    const surface = surfaceRef.current
-    if (surface === null) return
-    const measure = (): void => {
-      const rect = surface.getBoundingClientRect()
-      // A temporarily hidden Host view has no viewport to recenter. Keep the
-      // last visible size so showing it again cannot shift the camera twice.
-      if (rect.width <= 0 || rect.height <= 0) return
-      const next = { width: rect.width, height: rect.height }
-      const previous = viewSizeRef.current
-      if (next.width === previous.width && next.height === previous.height) return
-      viewSizeRef.current = next
-      setViewSize(next)
-      if (previous.width > 0 && previous.height > 0) {
-        setViewport(current => resizeViewport(current, previous, next))
-      }
-    }
-    measure()
-    if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(measure)
-      observer.observe(surface)
-      return () => { observer.disconnect() }
-    }
-    window.addEventListener('resize', measure)
-    return () => { window.removeEventListener('resize', measure) }
-  }, [])
+  const geometry = useCanvasGeometry(surfaceRef, (previous, next) => {
+    setViewport(current => resizeViewport(current, previous, next))
+  })
+  const viewSize = geometry.room.surface
   const dragRef = useRef<{ pointerId: number; lastX: number; lastY: number } | null>(null)
   const [positions, setPositions] = useState<Record<string, NodePosition>>({})
   const [collapsed, setCollapsed] = useState<readonly string[]>([])
@@ -1010,7 +973,7 @@ export function GraphCanvas({
     let settledFrame: number | undefined
     const layoutFrame = window.requestAnimationFrame(() => {
       settledFrame = window.requestAnimationFrame(() => {
-        const room = measureCanvasRoom(surfaceRef.current)
+        const room = geometry.read()?.command
         if (room === undefined) return
         fittedRef.current = true
         setViewport(fitViewport(bounds, room.width, room.height, FIT_PADDING))
@@ -1273,14 +1236,14 @@ export function GraphCanvas({
   }, [])
 
   const zoomFromCenter = (factor: number): void => {
-    const room = measureCanvasRoom(surfaceRef.current)
+    const room = geometry.read()?.command
     if (room === undefined) return
     setViewport(current => zoomAt(current, room.width / 2, room.height / 2, factor))
   }
 
   /** Fit one complete content box into the current surface. */
   const fitBounds = (target: ContentBounds): void => {
-    const room = measureCanvasRoom(surfaceRef.current)
+    const room = geometry.read()?.command
     if (room === undefined) return
     glide()
     setViewport(fitViewport(target, room.width, room.height, FIT_PADDING))
@@ -1306,7 +1269,7 @@ export function GraphCanvas({
 
   /** Center the viewport on one content point (the minimap verb). */
   const recenter = (contentX: number, contentY: number): void => {
-    const room = measureCanvasRoom(surfaceRef.current)
+    const room = geometry.read()?.command
     if (room === undefined) return
     setViewport(current => ({
       ...current,
@@ -1461,7 +1424,7 @@ export function GraphCanvas({
     <div
       ref={surfaceRef}
       className={styles.viewport}
-      data-reader-open={selectedNode !== undefined}
+      data-reader-open={geometry.room.readerOpen}
       role="group"
       aria-label={t('canvas.description')}
       tabIndex={-1}
@@ -1958,7 +1921,7 @@ export function GraphCanvas({
           surface: viewSize,
           insets: {
             top: PREVIEW_TOP_INSET,
-            right: selectedNode === undefined ? 12 : measureCanvasRoom(surfaceRef.current)?.rightInset || 12,
+            right: geometry.read()?.previewRight ?? 12,
           },
         })
         const session = entry.node.kind === 'knowledge' ? undefined : entry.node

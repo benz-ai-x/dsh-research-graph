@@ -27,6 +27,7 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
   const [failed, setFailed] = useState<string>()
   const [canceled, setCanceled] = useState(false)
   const [batches, setBatches] = useState<readonly { readonly id: string; readonly result: ExtractionResult; readonly preparation: ExtractionPreparation }[]>([])
+  const scrollContainer = useRef<HTMLDivElement>(null)
   useDraftProtection(false, busy)
   const active = useRef<AbortController>()
   useEffect(() => () => { active.current?.abort() }, [])
@@ -53,7 +54,7 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
       if (!controller.signal.aborted) setFailed(error instanceof Error ? error.message : String(error))
     } finally { if (!controller.signal.aborted) setBusy(false) }
   }
-  return <div className={styles.knowledgeBody}>
+  return <div ref={scrollContainer} className={styles.knowledgeBody}>
     <h3>{t('extract.selected')}</h3><p>{source.sessionId} · {t('knowledge.sourceRange', { start: source.startSeq, end: source.endSeq })}</p>
     <label>{t('extract.budget')}<input type="number" min={500} max={64_000} step={500} disabled={busy} value={budgetChars}
       onChange={event => { setBudgetChars(event.target.valueAsNumber); setPrepared(undefined) }} /></label>
@@ -84,7 +85,7 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
     {batches.map(batch => <section key={batch.id}>
       <h3>{batch.result.provider} / {batch.result.model}</h3>
       {batch.result.drafts.map(draft => <KnowledgeEditor key={draft.cardId} cardId={undefined} source={undefined} topicId={topicId}
-        draft={draft} preparation={batch.preparation} api={api} topics={topics} read={read} t={t} changed={changed}
+        draft={draft} preparation={batch.preparation} scrollContainer={scrollContainer} api={api} topics={topics} read={read} t={t} changed={changed}
         close={() => { setBatches(value => value.map(item => item.id !== batch.id ? item : { ...item,
           result: { ...item.result, drafts: item.result.drafts.filter(card => card.cardId !== draft.cardId) } })) }} />)}
     </section>)}

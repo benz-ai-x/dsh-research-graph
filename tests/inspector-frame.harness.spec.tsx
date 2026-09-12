@@ -109,3 +109,34 @@ describe('reading panel resize', () => {
     expect(view.onClose).not.toHaveBeenCalled()
   })
 })
+
+it.each([759, 760, 761, 999, 1000, 1001])('uses the research container at %spx for overlay and resize limits', width => {
+  // A browser window may be wide while the actual research container is narrow.
+  const wideWindow = vi.spyOn(window, 'innerWidth', 'get').mockReturnValue(1920)
+  available = width
+  const view = mount()
+  fireEvent.keyDown(view.handle, { key: 'Home' })
+  if (width <= 760) {
+    expect(loadWorkingPosition('resize-test').inspectorWidth).toBeUndefined()
+    expect(view.handle.tabIndex).toBe(-1)
+  } else {
+    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(width <= 1000 ? 380 : 440)
+    fireEvent.keyDown(view.handle, { key: 'End' })
+    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(width - (width <= 1000 ? 24 : 32))
+  }
+  expect(view.onCanvas).not.toHaveBeenCalled()
+  wideWindow.mockRestore()
+})
+
+it('cancels an active width gesture when its container becomes an overlay', () => {
+  saveWorkingPosition('resize-test', { inspectorWidth: 640, inspectorExpanded: true })
+  const view = mount()
+  fireEvent.pointerDown(view.handle, { pointerId: 1, button: 0, clientX: 440 })
+  fireEvent.pointerMove(view.handle, { pointerId: 1, clientX: 350 })
+  available = 640
+  fireEvent(window, new Event('resize'))
+  fireEvent.pointerUp(view.handle, { pointerId: 1 })
+  expect(loadWorkingPosition('resize-test')).toMatchObject({ inspectorWidth: 640, inspectorExpanded: true })
+  expect(screen.getByRole('button', { name: '收起阅读' })).toBeTruthy()
+  expect(view.onClose).not.toHaveBeenCalled()
+})

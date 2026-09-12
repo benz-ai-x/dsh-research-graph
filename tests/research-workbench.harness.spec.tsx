@@ -24,7 +24,7 @@ describe('Research Workbench user actions', () => {
       revisionId: randomUUID(), requestHash: 'a'.repeat(64), number, savedAt: number * 1000,
       content: knowledgeContent(`研究结论第 ${number} 版`), sources: [knowledgeSource()],
     })) }
-    const view = (mode: string, shownCard = card) => <article key={mode} data-working-scroll="" data-testid="reader-seat"><KnowledgeReader key={shownCard.cardId} workingKey={key} card={shownCard} relations={[]} read={client.read} t={t} /></article>
+    const view = (mode: string, shownCard = card) => <article key={mode} data-working-scroll="" data-testid="reader-seat"><KnowledgeReader key={shownCard.cardId} workingKey={key} card={shownCard} read={client.read} t={t} /></article>
     const rendered = render(view('reading'))
     fireEvent.change(screen.getByRole('combobox', { name: '修订版本' }), { target: { value: card.revisions[0]!.revisionId } })
     fireEvent.click(screen.getByRole('button', { name: /查看来源原文/ }))
@@ -50,7 +50,7 @@ describe('Research Workbench user actions', () => {
       content: knowledgeContent(`研究结论第 ${number} 版`), sources: [],
     })) }
     client.api.read.mockRejectedValueOnce(new Error('Connection unavailable')).mockResolvedValue(card)
-    render(<KnowledgeProvider {...client} t={t}><KnowledgeReader card={card} relations={[]} read={client.read} t={t} /></KnowledgeProvider>)
+    render(<KnowledgeProvider {...client} t={t}><KnowledgeReader card={card} read={client.read} t={t} /></KnowledgeProvider>)
     fireEvent.change(screen.getByRole('combobox', { name: '修订版本' }), { target: { value: card.revisions[0]!.revisionId } })
     fireEvent.click(screen.getByRole('button', { name: '编辑卡片' }))
     await screen.findByRole('alert')
@@ -132,7 +132,7 @@ describe('Research Workbench user actions', () => {
     const open = vi.fn()
     render(<ResearchReuseProvider api={api} workspaces={[{ workspaceId: 'b', title: '工作区 B', path: '/b', sessionIds: [], createdAt: '', updatedAt: '' } as never]}
       viewedId={'a' as SessionId} openSession={open} stayInResearch t={t}><KnowledgeProvider {...client} t={t}>
-      <KnowledgeReader card={card} relations={[]} read={client.read} t={t} /></KnowledgeProvider></ResearchReuseProvider>)
+      <KnowledgeReader card={card} read={client.read} t={t} /></KnowledgeProvider></ResearchReuseProvider>)
     fireEvent.change(screen.getByRole('combobox', { name: '修订版本' }), { target: { value: old.revisionId } })
     fireEvent.click(screen.getByRole('button', { name: '继续讨论' }))
     fireEvent.change(screen.getByRole('textbox', { name: '新问题' }), { target: { value: '验证旧结论' } })

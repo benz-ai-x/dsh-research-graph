@@ -129,7 +129,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
             }}>{t('export.title')}</button>
           </>, renderInspector: (node, onClose, onUnavailable) => node === undefined ? null
           : node.kind === 'knowledge' ? <KnowledgeReader key={node.card.cardId} inspector={{ onClose }} workingKey={workingKey}
-            card={node.card} relations={presented.relations} read={context.actions.readSessionHistory} t={t} /> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
+            card={node.card} relations={{ ...relations, relations: presented.relations }} read={context.actions.readSessionHistory} t={t} /> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
             generateTitle={context.actions.generateSessionTitle} renameTitle={context.actions.renameSessionTitle}
             sessions={context.sessions} workspaces={context.workspaces} busy={busy || phase !== 'ready' || relations.loading || relations.failed} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} /></>}

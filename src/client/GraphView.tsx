@@ -166,7 +166,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
   return (
     // The free canvas owns its viewport. Extend the view behind the floating
     // composer so GraphCanvas's live clearance reserves the seat exactly once.
-    <div className={styles.root} data-conversation-composer-overlay="">
+    <div className={styles.root} data-research-root="" data-conversation-composer-overlay="">
       <div className={styles.graphBody} aria-hidden={searchOpen || mergeOpen || adding !== undefined || undefined}
         ref={element => { if (element !== null) element.inert = searchOpen || mergeOpen || adding !== undefined }}>
         <header className={styles.workbenchHeader}>

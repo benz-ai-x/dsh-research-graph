@@ -68,7 +68,7 @@ it('saves a distinct card from a saved source and returns to the first reader wi
   await waitFor(() => { expect((screen.getByRole('button', { name: '保存知识' }) as HTMLButtonElement).disabled).toBe(false) })
   fireEvent.click(screen.getByRole('button', { name: '保存知识' }))
   fireEvent.click(await screen.findByRole('button', { name: '查看知识' }))
-  fireEvent.click(await screen.findByRole('button', { name: '查看来源原文' }))
+  fireEvent.click(await screen.findByRole('button', { name: /查看来源原文/ }))
   await waitFor(() => { expect(client.read).toHaveBeenCalled() })
   fireEvent.click(screen.getByRole('button', { name: '加载更晚的讨论' }))
   fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 2 轮' }))

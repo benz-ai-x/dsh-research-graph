@@ -12,6 +12,7 @@ type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => str
 type ReuseMode = 'compose' | 'history'
 interface MaterialEntry { readonly selection: ResearchMaterialSelection; readonly label: string }
 interface ReuseContextValue {
+  readonly relationApi: Pick<ResearchReuseApi, 'relations'>
   readonly refresh: number
   readonly inspect: (operationId: string) => void
   readonly continueWith: (selection: ResearchMaterialSelection, label: string) => void
@@ -164,7 +165,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
       }
     })
   }
-  return <ReuseContext.Provider value={{ add, refresh, inspect, continueWith: (selection, label) => { show('compose'); add(selection, label) }, contains: selection => materials.some(item => JSON.stringify(item.selection) === JSON.stringify(selection)), count: materials.length, open: () => { show('compose') }, history }}>
+  return <ReuseContext.Provider value={{ relationApi: api, add, refresh, inspect, continueWith: (selection, label) => { show('compose'); add(selection, label) }, contains: selection => materials.some(item => JSON.stringify(item.selection) === JSON.stringify(selection)), count: materials.length, open: () => { show('compose') }, history }}>
     <div className={styles.knowledgeRoot} aria-hidden={mode !== undefined || undefined}
       ref={element => { if (element !== null) element.inert = mode !== undefined }}>{children}
       {notice === undefined ? null : <span className={styles.reuseNotice} role="status">{t(notice)}</span>}

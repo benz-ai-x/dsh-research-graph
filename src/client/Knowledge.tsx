@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react'
 import type { KnowledgeCard, KnowledgeContent, KnowledgeDiscussionAddress, KnowledgeSave, KnowledgeSourceAddress } from '../knowledge.ts'
 import type { ResearchTopic } from '../research-topic.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
@@ -9,12 +9,11 @@ import { SessionHistory } from './SessionHistory.tsx'
 import styles from './GraphView.module.css'
 import { KnowledgeExtraction } from './KnowledgeExtraction.tsx'
 import type { ExtractionDraft, ExtractionPreparation } from '../knowledge-extraction.ts'
-import { useResearchReuse } from './ResearchReuse.tsx'
 import { KnowledgeExport, type ExportChoice } from './KnowledgeExport.tsx'
 import { DraftGuard, useDraftProtection } from './DraftGuard.tsx'
 import { knowledgePrefill } from './knowledge-prefill.ts'
 import { editableKnowledgeSources, changeExtractionCitation } from './knowledge-citations.ts'
-import { ResearchMarkdown } from './ResearchMarkdown.tsx'
+import { KnowledgeReader } from './KnowledgeReader.tsx'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 interface KnowledgeContextValue {
@@ -134,9 +133,8 @@ export function KnowledgeSavedNotice({ t }: { readonly t: Translate }): ReactEle
 const EMPTY_CONTENT: KnowledgeContent = {
   title: '', question: '', conclusion: '', rationale: '', openQuestions: '', kind: 'conclusion', status: 'draft',
 }
-const TEXT_FIELDS = ['title', 'question', 'conclusion', 'rationale', 'openQuestions'] as const
 
-export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, topics, read, close, changed, onSaved, draft, preparation, t }: {
+export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, topics, read, close, changed, onSaved, draft, preparation, scrollContainer, t }: {
   readonly cardId: string | undefined
   readonly editRevisionId?: string | undefined
   readonly source: KnowledgeDiscussionAddress | undefined
@@ -150,10 +148,9 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
   readonly t: Translate
   readonly draft?: ExtractionDraft
   readonly preparation?: ExtractionPreparation
+  readonly scrollContainer?: RefObject<HTMLElement>
 }): ReactElement {
   const [identity] = useState(() => cardId ?? draft?.cardId ?? crypto.randomUUID())
-  const reuse = useResearchReuse()
-  const knowledge = useKnowledge()
   const [card, setCard] = useState<KnowledgeCard>()
   const directEditInitialized = useRef(false)
   const [version, setVersion] = useState('')
@@ -174,7 +171,25 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
   const [reload, setReload] = useState(0)
-  const [reading, setReading] = useState<number>()
+  const editorRef = useRef<HTMLDivElement>(null)
+  const scrollRef = scrollContainer ?? editorRef
+  const resultRef = useRef<HTMLDivElement>(null)
+  const editTrigger = useRef<HTMLElement>()
+  const readingScroll = useRef<number>()
+  useLayoutEffect(() => {
+    if (editing || editTrigger.current === undefined) return
+    const trigger = editTrigger.current
+    editTrigger.current = undefined
+    let cancelled = false
+    // DraftGuard's parent ref removes inert after this child's layout effect.
+    queueMicrotask(() => {
+      if (cancelled || !resultRef.current?.isConnected) return
+      const target = trigger.isConnected ? trigger : resultRef.current.querySelector<HTMLElement>('select')
+      if (scrollRef.current && readingScroll.current !== undefined) scrollRef.current.scrollTop = readingScroll.current
+      target?.focus({ preventScroll: true })
+    })
+    return () => { cancelled = true }
+  }, [editing])
   const baseline = useRef(JSON.stringify({ content: EMPTY_CONTENT, sources, selectedTopic }))
   const dirty = editing && (draft !== undefined && card === undefined || JSON.stringify({ content, sources, selectedTopic }) !== baseline.current)
   const discard = useDraftProtection(dirty, busy)
@@ -223,8 +238,7 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
       .finally(() => { if (!controller.signal.aborted) setPrefilling(false) })
     return () => { controller.abort() }
   }, [source, cardId, draft, read, prefillAttempt])
-  const revision = card?.revisions.find(item => item.revisionId === version) ?? card?.revisions.at(-1)
-  const commit = async (operation: (signal: AbortSignal) => Promise<KnowledgeCard>): Promise<void> => {
+  const commit = async (operation: (signal: AbortSignal) => Promise<KnowledgeCard>, savedRevision = true): Promise<void> => {
     if (write.current !== undefined) return
     const controller = new AbortController()
     write.current = controller
@@ -234,17 +248,20 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
       const saved = await operation(controller.signal)
       if (controller.signal.aborted) return
       setCard(saved)
-      setVersion(saved.revisions.at(-1)!.revisionId)
-      setEditing(false)
-      setReading(undefined)
-      attempt.current = undefined
+      if (savedRevision) {
+        // A new reader resets its own position, never the surrounding draft batch.
+        readingScroll.current = undefined
+        setVersion(saved.revisions.at(-1)!.revisionId)
+        setEditing(false)
+        attempt.current = undefined
+        onSaved?.(saved)
+      }
       changed()
-      onSaved?.(saved)
     } catch { if (!controller.signal.aborted) setFailed(true) } finally {
       if (!controller.signal.aborted) { setBusy(false); write.current = undefined }
     }
   }
-  return <div className={`${styles.knowledgeBody} ${styles.knowledgeEditor}`}>
+  return <div ref={editorRef} className={`${styles.knowledgeBody} ${styles.knowledgeEditor}`} data-working-scroll={scrollContainer === undefined ? '' : undefined}>
     {loading ? <p role="status">{t('topic.loading')}</p> : null}
     {failed || topicError ? <div role="alert">{t('knowledge.error')}
       {(cardId !== undefined && card === undefined) || topicError ? <button type="button" onClick={() => { setReload(value => value + 1) }}>{t('topic.retry')}</button> : null}</div> : null}
@@ -313,45 +330,25 @@ export function KnowledgeEditor({ cardId, editRevisionId, source, topicId, api, 
         </details>
         <div className={styles.editorActions}><span role="status">{t(busy ? 'topic.saving' : dirty ? 'knowledge.unsaved' : card === undefined ? 'knowledge.draftHint' : 'knowledge.noChanges')}</span><button className={styles.primaryButton} type="submit" disabled={busy || prefilling || content.title.trim() === ''}>{t('knowledge.save')}</button>
           <button type="button" disabled={busy} onClick={() => { discard(() => { if (card === undefined) close(); else { setEditing(false); setFailed(false) } }) }}>{t('knowledge.cancel')}</button></div>
-      </form> : revision === undefined ? null : <>
-        <label>{t('knowledge.version')}<select value={version} onChange={event => { setVersion(event.target.value); setReading(undefined) }}>
-          {card!.revisions.map(item => <option key={item.revisionId} value={item.revisionId}>{t('knowledge.versionNumber', { number: item.number })}</option>)}
-        </select></label>
-        <h3>{revision.content.title}</h3>
-        <p>{t(`knowledge.kind.${revision.content.kind}`)} · {t(`knowledge.status.${revision.content.status}`)} · {t('knowledge.savedAt', { time: new Date(revision.savedAt).toLocaleString() })}</p>
-        {TEXT_FIELDS.filter(field => field !== 'title').map(field => revision.content[field] === '' ? null : <section key={field}>
-          <h4>{t(`knowledge.field.${field}`)}</h4><ResearchMarkdown text={revision.content[field]} t={t} /></section>)}
-        <div className={styles.topicControls}><button type="button" disabled={busy} onClick={() => {
-          const editable = editableKnowledgeSources(identity, revision, preparation)
-          baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic })
-          setContent(revision.content)
-          setSources(editable)
-          setFailed(false)
-          setEditing(true)
-        }}>{t('knowledge.edit')}</button>
-          {reuse === undefined ? null : <button type="button" onClick={() => {
-            reuse.continueWith({ kind: 'card', cardId: identity, revisionId: revision.revisionId },
-              `${revision.content.title} · ${t('knowledge.versionNumber', { number: revision.number })}`)
-          }}>{t('workbench.continue')}</button>}
-          {knowledge === undefined ? null : <button type="button" onClick={() => {
-            knowledge.exportCards([{ cardId: identity, title: revision.content.title }])
-          }}>{t('export.title')}</button>}
-          {selectedTopic === '' ? null : <button type="button" disabled={busy} onClick={() => {
-            void commit(signal => api.membership({ cardId: identity, topicId: selectedTopic, attached: !card!.topicIds.includes(selectedTopic) }, signal))
-          }}>{t(card!.topicIds.includes(selectedTopic) ? 'knowledge.detach' : 'knowledge.attach')}</button>}</div>
+      </form> : null}
+      {card === undefined ? null : <div ref={resultRef} hidden={editing}>
+        <KnowledgeReader key={`${identity}:${version}`} card={card} initialRevisionId={version} read={read} t={t}
+          onRetry={() => { setReload(value => value + 1) }} onEdit={revision => {
+            if (busy) return
+            editTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : undefined
+            readingScroll.current = scrollRef.current?.scrollTop
+            const editable = editableKnowledgeSources(identity, revision, preparation)
+            baseline.current = JSON.stringify({ content: revision.content, sources: editable, selectedTopic })
+            setContent(revision.content)
+            setSources(editable)
+            setFailed(false)
+            setEditing(true)
+          }} />
+        {selectedTopic === '' ? null : <button type="button" disabled={busy} onClick={() => {
+          void commit(signal => api.membership({ cardId: identity, topicId: selectedTopic, attached: !card.topicIds.includes(selectedTopic) }, signal), false)
+        }}>{t(card.topicIds.includes(selectedTopic) ? 'knowledge.detach' : 'knowledge.attach')}</button>}
         <p>{t('knowledge.detached')}</p>
-        <h4>{t('knowledge.source')}</h4>
-        {revision.sources.length === 0 ? <p>{t('knowledge.noSources')}</p> : revision.sources.map((item, index) => <section key={index} className={styles.knowledgeSource}>
-          <strong>{item.title}</strong><div className={styles.historyIdentity}>{item.sessionId} · {item.cwd}</div>
-          <div>{t('knowledge.sourceRange', { start: item.source.startSeq, end: item.source.endSeq })}</div>
-          <details><summary>{t('knowledge.excerpt')}</summary>{item.source.turns.map(turn => <article key={turn.startSeq}>
-            <h5>{t('history.turn', { turn: turn.turn })} · {new Date(turn.startedAt).toLocaleString()}</h5>
-            {turn.messages.map(message => <p key={message.seq} className={styles.historyText}><strong>{t(message.role === 'user' ? 'history.user' : 'history.assistant')}</strong>{'\n'}{message.text}</p>)}
-          </article>)}</details>
-          <button type="button" onClick={() => { setReading(index) }}>{t('knowledge.readSource')}</button>
-          {reading !== index ? null : <SessionHistory key={`${revision.revisionId}:${index}`} sessionId={item.sessionId} source={item.source} read={read} t={t} />}
-        </section>)}
-      </>}
+      </div>}
     </>}
     {busy ? <p role="status">{t('topic.saving')}</p> : null}
   </div>
