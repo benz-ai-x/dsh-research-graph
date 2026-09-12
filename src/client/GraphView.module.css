@@ -1847,6 +1847,8 @@
 .legendSource, .legendReuse { display: inline-block; width: 18px; height: 0; border-top: 2px dotted var(--dsw-alias-brand-primary); }
 .legendReuse { border-top: 2px dashed var(--dsw-alias-state-business-primary); }
 .edgeReuse { fill: none; stroke: var(--dsw-alias-state-business-primary); stroke-width: 2.5; stroke-dasharray: 9 4; }
+.edgeSynthesis { fill: none; stroke: var(--dsw-alias-brand-primary); stroke-width: 2.5; stroke-dasharray: 12 4 3 4; }
+.edgeLabel { fill: var(--dsw-alias-label-secondary); font-size: 11px; paint-order: stroke; stroke: var(--dsw-alias-bg-layer-1); stroke-width: 3px; }
 .researchMerge { left: max(12px, calc(100% - 720px)); }
 .researchMerge .knowledgeBody { padding: 8px 24px 16px; }
 .researchMerge .editorActions { top: auto; bottom: 0; order: initial; margin-top: 18px; padding: 12px 0; border-bottom: 0; border-top: 1px solid var(--dsw-alias-border-l2); }
@@ -2168,3 +2170,25 @@
   .researchContextTools { width: 100%; max-width: none; justify-content: flex-end; }
   .workbenchComposerHint { max-width: calc(100% - 100px); }
 }
+
+.promptChoices { border: 0; padding: 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.promptChoices legend { margin-bottom: 0.5rem; }
+.promptPreview { padding: 0.75rem; border: 1px solid var(--dsw-alias-border-l2); border-radius: 0.5rem; }
+.promptPreview button { margin: 0.25rem; }
+
+.synthesisPicker { border: 0; padding: 0; min-width: 0; }
+.synthesisPicker label, .synthesisClaims label { display: grid; gap: 0.35rem; margin-block: 0.5rem; }
+.synthesisClaims textarea, .synthesisClaims select { width: 100%; box-sizing: border-box; min-width: 0; }
+.synthesisClaim { margin-block: 1rem; padding-block: 0.75rem; border-bottom: 1px solid var(--dsw-alias-border-l2); }
+.synthesisCitation { padding: 0.5rem; border-inline-start: 3px solid var(--dsw-alias-border-l2); }
+.synthesisMaterial { padding: 0.75rem; overflow-wrap: anywhere; }
+
+.branchDialog {
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  box-sizing: border-box;
+}
+.branchDialog .knowledgeBody { flex: 0 1 auto; }
+.branchDialog .topicControls { margin-top: 12px; }

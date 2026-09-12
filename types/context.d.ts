@@ -21,6 +21,16 @@ declare module '@deepseek-ai/cordis' {
       ) => () => void
     }
     readonly sessions: {
+      prepare: (id: import('@deepseek-ai/dsh-session/types').SessionId, options: {
+        readonly seed: readonly { readonly type: string; readonly seq: number; readonly time: number; readonly data: unknown }[]
+        readonly inheritedEventCount: import('@deepseek-ai/dsh-session/types').SessionLogOffset
+        readonly meta: {
+          readonly cwd?: string; readonly parentSession: import('@deepseek-ai/dsh-session/types').SessionId; readonly isSeeded: true; readonly agentPreset?: string }
+      }) => {
+        readonly header: { readonly id: import('@deepseek-ai/dsh-session/types').SessionId; readonly cwd?: string; readonly parentSession?: import('@deepseek-ai/dsh-session/types').SessionId; readonly isSeeded?: boolean }
+        snapshotEvents(): readonly { readonly type: string; readonly seq: number; readonly time: number; readonly data: unknown }[]
+        append(type: 'agent/inbox/spliced', data: { readonly target: 'next-turn' | 'next-step'; readonly start: number; readonly removedCount: number; readonly inserted: readonly never[]; readonly outcome: 'canceled' }): unknown
+      }
       readonly list: {
         getSnapshot: () => import('@deepseek-ai/dsh-api-session-controller/client').SessionListState
       }
@@ -46,6 +56,11 @@ declare module '@deepseek-ai/cordis' {
         getSnapshot: () => import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
       }
     }
+    readonly sessionPersistence: {
+      stat: (id: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<unknown | undefined>
+      create: (header: BranchSessionHandle['header'], options: { readonly inheritedEventCount: import('@deepseek-ai/dsh-session/types').SessionLogOffset }) => Promise<BranchSessionHandle>
+      open: (id: import('@deepseek-ai/dsh-session/types').SessionId, access: 'read' | 'write') => Promise<BranchSessionHandle>
+    }
     readonly remote: {
       $mount: (
         contribution: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteContribution,
@@ -57,6 +72,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
       sessionGraphTopics: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTopics']
       sessionGraphKnowledge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphKnowledge']
+      sessionGraphBranch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranch']
       sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']
     }
     readonly invariants: {
@@ -73,6 +89,7 @@ declare module '@deepseek-ai/cordis' {
       ) => void) => () => void
     }
     readonly sessionController: {
+      rename: (request: { readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId; readonly title: string }) => Promise<{ readonly title: string; readonly seq: number }>
       page: (request: {
         readonly address: { readonly kind: 'session'; readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId }
         readonly throughSeq: number
@@ -97,6 +114,7 @@ declare module '@deepseek-ai/cordis' {
         signal?: AbortSignal,
       ) => Promise<{
         readonly meta: {
+          readonly agentPreset?: string
           readonly id: import('@deepseek-ai/dsh-session/types').SessionId
           readonly cwd?: string
           readonly origin?: 'subagent'
@@ -156,4 +174,14 @@ declare module '@deepseek-ai/cordis' {
       readTitle: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId, signal?: AbortSignal) => Promise<{ readonly title: string } | undefined>
     }
   }
+}
+
+interface BranchSessionHandle {
+  readonly header: { readonly id: import('@deepseek-ai/dsh-session/types').SessionId; readonly cwd?: string; readonly parentSession?: import('@deepseek-ai/dsh-session/types').SessionId; readonly isSeeded?: boolean }
+  readonly inheritedEventCount: import('@deepseek-ai/dsh-session/types').SessionLogOffset
+  readonly access: 'read' | 'write'
+  read(): Promise<{ readonly events: readonly { readonly type: string; readonly seq: number; readonly time: number; readonly data: unknown }[] }>
+  append(events: readonly { readonly type: string; readonly seq: number; readonly time: number; readonly data: unknown }[]): Promise<void>
+  flush(): Promise<void>
+  close(): Promise<void>
 }

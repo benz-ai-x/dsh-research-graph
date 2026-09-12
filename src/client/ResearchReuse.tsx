@@ -49,6 +49,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
   const [materials, setMaterials] = useState<readonly MaterialEntry[]>([])
   const [mode, setMode] = useState<ReuseMode>()
   const [question, setQuestion] = useState('')
+  const [promptChoice, setPromptChoice] = useState<string>()
   const [workspaceId, setWorkspaceId] = useState('')
   const [preview, setPreview] = useState<ResearchReuseRecord>()
   const [uncertain, setUncertain] = useState(false)
@@ -190,6 +191,22 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
             <button type="button" disabled={locked || index === materials.length - 1} onClick={() => { move(index, 1) }}>{t('reuse.down')}</button>
             <button type="button" disabled={locked} onClick={() => { change(); setMaterials(value => value.filter((_, i) => i !== index)) }}>{t('reuse.remove')}</button>
           </li>)}</ol>}
+          <fieldset className={styles.promptChoices} disabled={locked}>
+            <legend>{t('prompt.label')}</legend>
+            {(['counterexample', 'alternative', 'assumption', 'followup'] as const).map(kind => <button type="button" key={kind} onClick={() => {
+              const text = t(`prompt.text.${kind}`)
+              if (question.trim() !== '') setPromptChoice(text)
+              else { change(); setQuestion(text); setPromptChoice(undefined) }
+            }}>{t(`prompt.${kind}`)}</button>)}
+          </fieldset>
+          {promptChoice === undefined ? null : <section className={styles.promptPreview} aria-label={t('prompt.replace')}>
+            <p>{t('prompt.replace')}</p><p>{promptChoice}</p>
+            <button type="button" disabled={locked} onClick={() => { change(); setQuestion(promptChoice); setPromptChoice(undefined) }}>{t('prompt.apply')}</button>
+            <button type="button" disabled={locked || question.length + promptChoice.length + 2 > 4000} onClick={() => {
+              change(); setQuestion(value => `${value}\n\n${promptChoice}`); setPromptChoice(undefined)
+            }}>{t('prompt.append')}</button>
+            <button type="button" onClick={() => { setPromptChoice(undefined) }}>{t('prompt.keep')}</button>
+          </section>}
           <label>{t('reuse.question')}<textarea value={question} disabled={locked} maxLength={4000} rows={3}
             onChange={event => { change(); setQuestion(event.target.value) }} /></label>
           <label>{t('reuse.workspace')}<select value={workspaceId} disabled={locked} onChange={event => { change(); setWorkspaceId(event.target.value) }}>
@@ -215,7 +232,7 @@ export function ResearchReuseProvider({ api, workspaces, viewedId, openSession, 
             {preview.stage === 'accepted' ? null : <button className={styles.primaryButton} type="button" disabled={busy} onClick={() => { submit(preview) }}>
               {t(!uncertain && preview.error === undefined ? 'reuse.confirm' : 'reuse.retry')}</button>}
             {preview.stage === 'accepted' ? <button type="button" onClick={() => {
-              setMaterials([]); setQuestion(''); setPreview(undefined); setUncertain(false); setNotice(undefined); setPicking(true); attempt.current = undefined
+              setMaterials([]); setQuestion(''); setPromptChoice(undefined); setPreview(undefined); setUncertain(false); setNotice(undefined); setPicking(true); attempt.current = undefined
             }}>{t('workbench.newResearch')}</button> : null}
             {preview.targetCreated ? <button type="button" onClick={() => { openSession(preview.targetSessionId as SessionId) }}>{t('reuse.open')}</button> : null}
           </>}

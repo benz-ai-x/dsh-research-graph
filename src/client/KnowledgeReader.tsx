@@ -8,6 +8,7 @@ import { useResearchReuse } from './ResearchReuse.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
+import { SynthesisClaims, SynthesisMaterialView } from './SynthesisClaims.tsx'
 import styles from './GraphView.module.css'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 
@@ -72,8 +73,19 @@ export function KnowledgeReader({ card, relations, read, workingKey, inspector, 
     {inspector === undefined ? <><span className={styles.workbenchEyebrow}>{t('knowledge.title')}</span>
     <h2>{revision.content.title}</h2></> : null}
     {inspector === undefined ? meta : null}
-    {(['question', 'conclusion', 'rationale', 'openQuestions'] as const).map(field => revision.content[field] ? <section key={field}>
+    {(['question', 'conclusion', 'rationale', 'openQuestions'] as const).filter(field => revision.synthesis === undefined || field === 'question').map(field => revision.content[field] ? <section key={field}>
       {field === 'conclusion' ? null : <h3>{t(`knowledge.field.${field}`)}</h3>}<ResearchMarkdown text={revision.content[field]} t={t} /></section> : null)}
+    {revision.synthesis === undefined ? null : <>
+      <SynthesisClaims key={revision.revisionId} claims={revision.synthesis.claims} materials={revision.synthesis.materials} read={read} t={t} />
+      <section className={styles.readingSources}><h3>{t('synthesis.frozen')}</h3><p>{t('synthesis.savedMaterials')}</p>
+        {revision.synthesis.materials.map((material, index) => <details key={index}>
+          <summary>{index + 1}. {material.kind === 'card' ? `${material.content.title} · ${t('knowledge.versionNumber', { number: material.revisionNumber })}`
+            : `${material.source.title} · ${t('workbench.sourceTurns', { first: material.source.source.turns[0]!.turn, last: material.source.source.turns.at(-1)!.turn })}`}
+            {' · '}{t(revision.synthesis!.claims.some(claim => claim.citations.some(citation => citation.materialIndex === index)) ? 'synthesis.cited' : 'synthesis.uncited')}</summary>
+          <SynthesisMaterialView material={material} read={read} t={t} />
+        </details>)}
+      </section>
+    </>}
     {inspector === undefined ? actions : null}
     <section className={styles.readingSources}><h3>{t('workbench.original')}</h3>
       {revision.sources.length ? revision.sources.map((item, index) => <section key={index}>
@@ -85,7 +97,7 @@ export function KnowledgeReader({ card, relations, read, workingKey, inspector, 
           <p>{t('knowledge.sourceRange', { start: item.source.startSeq, end: item.source.endSeq })}</p>
         </details>
         {source === index ? <SessionHistory key={`${revision.revisionId}:${index}`} sourceTitle={item.title} sessionId={item.sessionId} source={item.source} read={read} t={t} /> : null}
-      </section>) : <p className={styles.searchMeta}>{t('knowledge.noSources')}</p>}
+      </section>) : revision.synthesis === undefined ? <p className={styles.searchMeta}>{t('knowledge.noSources')}</p> : null}
     </section>
     <section className={styles.readingSources}><h3>{t('workbench.next')}</h3>
       {related.loading ? <p role="status">{t('topic.loading')}</p> : related.failed

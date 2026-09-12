@@ -58,7 +58,7 @@ export function ResearchTopics({ api, context, add, scopeControl, contextTools, 
       setPhase('ready')
     }, () => { if (!controller.signal.aborted) setPhase('error') })
     return () => { controller.abort() }
-  }, [api, revision, refresh])
+  }, [api, revision, refresh, knowledge?.refresh])
   useEffect(() => {
     if (phase === 'ready') saveWorkingPosition(context?.workingKey, { topicId: selectedId })
   }, [context?.workingKey, phase, selectedId])

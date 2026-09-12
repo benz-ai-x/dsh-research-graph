@@ -97,7 +97,8 @@ try {
     if (fixture && url) {
       state = { running: true, managerPid: process.pid, hostPid: active.child.pid, root, url, fixture }
       await writeFile(stateFile, JSON.stringify(state, null, 2), { mode: 0o600 })
-      console.log(`\nWorkbench DSH ready: ${url}\nOpen a sample discussion, then choose “研图”.\nUse 图谱 / 阅读 and the research scope selector.\nReal DSH persistence; demo model, no paid model calls.\nData: ${root}\nStop: Ctrl+C or pnpm preview:dsh --stop`)
+      const modelMode = process.env.RESEARCH_SYNTHESIS_QUALITY === '1' ? 'Real-provider synthesis quality review enabled: one model call on synthetic cards.' : 'Demo model, no paid model calls.'
+      console.log(`\nWorkbench DSH ready: ${url}\nOpen a sample discussion, then choose “研图”.\nUse 图谱 / 阅读 and the research scope selector.\nReal DSH persistence. ${modelMode}\nData: ${root}\nStop: Ctrl+C or pnpm preview:dsh --stop`)
       break
     }
     await setTimeout(100)

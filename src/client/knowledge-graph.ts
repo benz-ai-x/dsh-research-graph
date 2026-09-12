@@ -39,5 +39,18 @@ export function withKnowledgeCards(graph: SessionGraph, cards: readonly Knowledg
     children.set(id, [])
     clusters.push({ rootId: id, label: revision.content.title, memberIds: [id] })
   }
+  for (const card of cards) {
+    const synthesis = card.revisions.at(-1)!.synthesis
+    if (synthesis === undefined) continue
+    const cited = new Set(synthesis.claims.flatMap(claim => claim.citations.map(citation => citation.materialIndex)))
+    synthesis.materials.forEach((material, index) => {
+      if (material.kind !== 'card' || !cited.has(index) || !nodes.has(`card:${material.cardId}`)) return
+      const id = `synthesis:${material.cardId}:${card.cardId}`
+      if (edgeIds.has(id)) return
+      edges.push({ id, kind: 'synthesis', from: `card:${material.cardId}`, to: `card:${card.cardId}`,
+        synthesis: { revisionId: material.revisionId, revisionNumber: material.revisionNumber } })
+      edgeIds.add(id)
+    })
+  }
   return { ...graph, nodes, clusters, children, edges }
 }

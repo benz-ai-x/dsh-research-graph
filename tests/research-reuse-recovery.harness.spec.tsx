@@ -11,6 +11,29 @@ import { knowledgeSource, knowledgeTranslate as t } from './fixtures/knowledge-c
 
 afterEach(cleanup)
 
+it.each(['counterexample', 'alternative', 'assumption', 'followup'] as const)('keeps existing text before applying the editable %s prompt and never submits on switching or closing', async kind => {
+  const { api, open } = await compose()
+  const question = screen.getByRole('textbox', { name: '新问题' }) as HTMLTextAreaElement
+  fireEvent.click(screen.getByRole('button', { name: t(`prompt.${kind}`) }))
+  expect(question.value).toBe('研究问题')
+  fireEvent.click(screen.getByRole('button', { name: t('prompt.keep') }))
+  expect(question.value).toBe('研究问题')
+  fireEvent.click(screen.getByRole('button', { name: t(`prompt.${kind}`) }))
+  fireEvent.click(screen.getByRole('button', { name: t('prompt.apply') }))
+  expect(question.value).toBe(t(`prompt.text.${kind}`))
+  fireEvent.change(question, { target: { value: `${question.value} 人工补充约束。` } })
+  fireEvent.click(screen.getByRole('button', { name: t('prompt.followup') }))
+  fireEvent.click(screen.getByRole('button', { name: t('prompt.append') }))
+  expect(question.value).toContain('人工补充约束。')
+  const retained = question.value
+  fireEvent.click(screen.getByRole('button', { name: '关闭材料' }))
+  fireEvent.click(screen.getByRole('button', { name: '查看材料' }))
+  expect((screen.getByRole('textbox', { name: '新问题' }) as HTMLTextAreaElement).value).toBe(retained)
+  expect(api.prepare).toHaveBeenCalledTimes(1)
+  expect(api.submit).not.toHaveBeenCalled()
+  expect(open).not.toHaveBeenCalled()
+})
+
 function Entry() {
   const reuse = useResearchReuse()!
   return <><button onClick={() => { reuse.add({ kind: 'turn', sessionId: 'session-a', startSeq: 10, endSeq: 14 }, '原文一') }}>加入原文</button>

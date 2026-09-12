@@ -1,0 +1,31 @@
+export const explorationZh = {
+  'branch.here': '从此处分支', 'branch.title': '从历史轮次继续探索',
+  'branch.inherits': '继承第 {first}–{last} 轮；原讨论保持不变。', 'branch.newTitle': '新讨论标题',
+  'branch.confirm': '确认并创建分支', 'branch.retry': '恢复这次分支', 'branch.open': '打开分支继续讨论',
+  'branch.ready': '分支已创建，主题关系已保存。', 'branch.saved': '新会话已保留；可恢复命名和主题关联。',
+  'branch.fresh': '另建一个分支', 'branch.return': '返回图谱', 'branch.busy': '正在准备历史分支…',
+  'branch.error': '本次目标已保留，请重试恢复。',
+  'prompt.label': '探索提示（可选）', 'prompt.counterexample': '找反例', 'prompt.alternative': '其他方案',
+  'prompt.assumption': '改变假设', 'prompt.followup': '继续追问',
+  'prompt.text.counterexample': '请寻找这些观点的反例与失效条件，区分已知证据和待验证的推测。',
+  'prompt.text.alternative': '还有哪些不同的解决方案？请比较适用条件、收益和代价，保留不同观点。',
+  'prompt.text.assumption': '原假设：［填写原假设］。新假设：［填写新假设］。在新假设下，哪些结论需要改变？',
+  'prompt.text.followup': '基于这些材料，还有哪些关键问题尚未回答？请选择一个问题继续深入，并说明如何验证。',
+  'prompt.replace': '已有问题会被替换。', 'prompt.apply': '使用提示替换', 'prompt.append': '追加到已有问题', 'prompt.keep': '保留原问题',
+} as const
+export type ExplorationKey = keyof typeof explorationZh
+export const explorationEn: Record<ExplorationKey, string> = {
+  'branch.here': 'Branch from here', 'branch.title': 'Explore from a historical turn',
+  'branch.inherits': 'Inherit turns {first}–{last}; the source discussion stays unchanged.', 'branch.newTitle': 'New discussion title',
+  'branch.confirm': 'Confirm and create branch', 'branch.retry': 'Recover this branch', 'branch.open': 'Open branch and continue',
+  'branch.ready': 'Branch created and topic relationships saved.', 'branch.saved': 'The new Session is retained; recover its title and topic membership.',
+  'branch.fresh': 'Create another branch', 'branch.return': 'Return to graph', 'branch.busy': 'Preparing historical branch…',
+  'branch.error': 'This target is retained. Retry to recover it.',
+  'prompt.label': 'Exploration prompts (optional)', 'prompt.counterexample': 'Find counterexamples', 'prompt.alternative': 'Other approaches',
+  'prompt.assumption': 'Change assumptions', 'prompt.followup': 'Follow up',
+  'prompt.text.counterexample': 'Find counterexamples and failure conditions for these claims. Separate known evidence from hypotheses that need verification.',
+  'prompt.text.alternative': 'What other approaches are possible? Compare their conditions, benefits and costs while retaining differing views.',
+  'prompt.text.assumption': 'Original assumption: [fill in]. New assumption: [fill in]. Which conclusions change under the new assumption?',
+  'prompt.text.followup': 'Which key questions remain unanswered by these materials? Explore one in depth and explain how to verify it.',
+  'prompt.replace': 'Your existing question would be replaced.', 'prompt.apply': 'Replace with prompt', 'prompt.append': 'Append to question', 'prompt.keep': 'Keep my question',
+}

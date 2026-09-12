@@ -1,3 +1,4 @@
+import type { KnowledgeSynthesis, SynthesisSave } from './knowledge-synthesis.ts'
 import type { SessionDiscussionSource } from './session-history.ts'
 
 export interface KnowledgeContent {
@@ -19,6 +20,7 @@ export interface KnowledgeSource {
 }
 
 export interface KnowledgeRevision {
+  readonly synthesis?: KnowledgeSynthesis
   readonly revisionId: string
   readonly requestHash: string
   readonly number: number
@@ -68,6 +70,7 @@ export interface KnowledgeMembership {
 }
 
 export interface KnowledgeSave {
+  readonly synthesis?: SynthesisSave
   readonly cardId: string
   readonly revisionId: string
   readonly topicId?: string

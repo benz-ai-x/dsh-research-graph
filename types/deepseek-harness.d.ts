@@ -1,4 +1,8 @@
 declare module '@deepseek-ai/dsh-session/types' {
+  export interface SessionHeader { readonly id: SessionId; readonly cwd?: string; readonly parentSession?: SessionId; readonly isSeeded?: boolean; readonly delegationDepth?: number }
+  export interface SessionEvent { readonly type: string; readonly seq: number; readonly time: number; readonly data: unknown }
+  const logOffsetBrand: unique symbol
+  export type SessionLogOffset = number & { readonly [logOffsetBrand]: true }
   export type SessionId = NonNullable<import('@deepseek-ai/dsh-llm').GenerateOptions['sessionId']>
 }
 
@@ -10,6 +14,7 @@ declare module '@deepseek-ai/dsh-api-session-controller' {
   export type SessionRequestId = string & { readonly [requestIdBrand]: true }
 }
 declare module '@deepseek-ai/dsh-session-query' {}
+declare module '@deepseek-ai/dsh-session-persistence' {}
 declare module '@deepseek-ai/dsh-session-reference' {}
 declare module '@deepseek-ai/dsh-session-projection' {}
 declare module '@deepseek-ai/dsh-session-projection-cache' {}

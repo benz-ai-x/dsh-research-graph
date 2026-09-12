@@ -95,8 +95,9 @@ export type DisplayStatus = 'running' | 'waiting-input' | 'completed'
 /** One typed relationship between two Canvas Sessions. */
 export interface GraphEdge {
   readonly id: string
-  readonly kind: 'branch' | 'merge' | 'source' | 'reuse'
+  readonly kind: 'branch' | 'merge' | 'source' | 'reuse' | 'synthesis'
   readonly reuse?: { readonly operationId: string; readonly revisionId?: string; readonly revisionNumber?: number }
+  readonly synthesis?: { readonly revisionId: string; readonly revisionNumber: number }
   readonly from: string
   readonly to: string
 }

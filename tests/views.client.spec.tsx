@@ -52,6 +52,38 @@ import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
+describe('registered historical branch actions', () => {
+  it.each(['workspace', 'topic'] as const)('uses the separately injected branch Remote with the exact turn in a %s', async scope => {
+    const b = await bench({ a: session('a'), b: session('b') })
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'b', turns: knowledgeSource(2).source.turns, hasEarlier: false, hasLater: false } })
+    const topic = { topicId: 'research', title: '研究主题', references: [{ sessionId: 'b', title: '讨论 B', cwd: '/w' }], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [{ sessionId: 'b', title: '讨论 B', cwd: '/w', archived: false, status: 'listed' }] } })
+    b.prepareBranch.mockImplementation(async request => ({ ok: true, value: { ...request, targetSessionId: 'branch-child', title: '讨论 B · 2', sourceTitle: '讨论 B',
+      firstTurn: 1, lastTurn: 2, inheritedEventCount: 25, stage: 'prepared' } }))
+    b.submitBranch.mockImplementation(async () => ({ ok: true, value: { ...b.prepareBranch.mock.calls[0]![0], targetSessionId: 'branch-child', title: '讨论 B · 2', sourceTitle: '讨论 B',
+      firstTurn: 1, lastTurn: 2, inheritedEventCount: 25, stage: 'ready' } }))
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    if (scope === 'topic') {
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+      await waitFor(() => { expect(document.querySelector('[data-node-id="b"]')).not.toBeNull() })
+    }
+    fireEvent.click(nodeButton('b'))
+    if (scope === 'topic') fireEvent.click(screen.getByRole('button', { name: '阅读原文' }))
+    else fireEvent.click(screen.getByRole('tab', { name: '原文' }))
+    fireEvent.click(await screen.findByRole('button', { name: '从此处分支' }))
+    await screen.findByText('继承第 1–2 轮；原讨论保持不变。')
+    expect(b.prepareBranch.mock.calls[0]![0]).toMatchObject({ sessionId: 'b', startSeq: 20, endSeq: 24, ...(scope === 'topic' ? { topicId: topic.topicId } : {}) })
+    expect(b.submitBranch).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '确认并创建分支' }))
+    fireEvent.click(await screen.findByRole('button', { name: '打开分支继续讨论' }))
+    expect(b.open).toHaveBeenCalledWith('branch-child')
+    expect(b.fork).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+})
+
 describe('reading and capture continuity', () => {
   it.each(['workspace', 'topic'] as const)('keeps Markdown, source position and focus through capture and refresh in a %s', async scope => {
     const b = await bench({ a: session('a', { displayTitle: '正在聊天的讨论' }), b: session('b', { displayTitle: '正在阅读的讨论' }) })
@@ -1262,6 +1294,9 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const prepareExport = vi.fn<TypertRemoteMap['sessionGraphKnowledge/prepareExport']>()
   const extractKnowledge = vi.fn<TypertRemoteMap['sessionGraphKnowledge/extract']>()
   const prepareReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/prepare']>()
+  const prepareBranch = vi.fn<TypertRemoteMap['sessionGraphBranch/prepare']>()
+  const submitBranch = vi.fn<TypertRemoteMap['sessionGraphBranch/submit']>()
+  const readBranch = vi.fn<TypertRemoteMap['sessionGraphBranch/read']>()
   const submitReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/submit']>()
   const readReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/read']>()
   const sessionReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/forSession']>(async () => ({ ok: true, value: [] }))
@@ -1333,6 +1368,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
     hostIdentity: async () => ({ ok: true, value: { hostId } }),
     membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
   ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse, relations: relationsReuse } as never)
+  ctx.provide('remote.sessionGraphBranch', { prepare: prepareBranch, submit: submitBranch, read: readBranch } as never)
   ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -1342,7 +1378,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
     ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, generateTitle, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge, prepareExport,
-    prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse,
+    prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse, prepareBranch, submitBranch, readBranch,
   }
 }
 

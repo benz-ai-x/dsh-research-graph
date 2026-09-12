@@ -1,10 +1,10 @@
 export const reuseZh = {
   'reuse.pick': '选择材料', 'reuse.donePicking': '完成选择，继续填写', 'reuse.chooseDiscussion': '选择来源会话',
-  'reuse.turnHint': '选择来源会话，勾选一个已完成轮次，再加入材料。', 'reuse.noCards': '还没有匹配的卡片。可以切换到讨论原文，选择一个完整轮次。',
+  'reuse.turnHint': '选择来源会话，勾选连续的已完成轮次，再作为一项材料加入。', 'reuse.noCards': '还没有匹配的卡片。可以切换到讨论原文，选择连续完整轮次。',
   'reuse.sourceLabels': '以下仅为来源说明，不包含原文。',
 
   'reuse.noHistory': '本会话没有沿用材料记录。',
-  'reuse.addCard': '将此修订加入材料', 'reuse.addTurn': '将所选轮次加入材料', 'reuse.singleTurn': '原文材料每项只能选一个完整轮次。',
+  'reuse.addCard': '将此修订加入材料', 'reuse.addTurn': '将所选轮次加入材料', 'reuse.singleTurn': '每项原文材料为一个连续完整轮次范围。',
   'reuse.title': '开始新讨论', 'reuse.materials': '材料（{count}）', 'reuse.empty': '请加入 1–3 项材料。',
   'reuse.limit': '最多 3 项材料，请先移除一项。', 'reuse.added': '已加入材料', 'reuse.duplicate': '这项材料已在列表中。',
   'reuse.up': '上移', 'reuse.down': '下移', 'reuse.remove': '移除材料',
@@ -23,11 +23,11 @@ export const reuseZh = {
 export type ReuseKey = keyof typeof reuseZh
 export const reuseEn: Record<ReuseKey, string> = {
   'reuse.pick': 'Choose materials', 'reuse.donePicking': 'Done choosing, continue', 'reuse.chooseDiscussion': 'Choose source Session',
-  'reuse.turnHint': 'Choose a Session, select one completed turn, then add it to materials.', 'reuse.noCards': 'No matching cards yet. Switch to discussion text to choose a complete turn.',
+  'reuse.turnHint': 'Choose a Session, select consecutive completed turns, then add the range as one material.', 'reuse.noCards': 'No matching cards yet. Switch to discussion text to choose a completed-turn range.',
   'reuse.sourceLabels': 'Source labels only; original text is not included.',
 
   'reuse.noHistory': 'This Session has no material reuse records.',
-  'reuse.addCard': 'Add this revision to materials', 'reuse.addTurn': 'Add selected turn to materials', 'reuse.singleTurn': 'Each original material must be one complete turn.',
+  'reuse.addCard': 'Add this revision to materials', 'reuse.addTurn': 'Add selected range to materials', 'reuse.singleTurn': 'Each original material must be a continuous completed-turn range.',
   'reuse.title': 'Start a new discussion', 'reuse.materials': 'Materials ({count})', 'reuse.empty': 'Add 1–3 materials.',
   'reuse.limit': 'Up to 3 materials. Remove one first.', 'reuse.added': 'Added to materials', 'reuse.duplicate': 'This material is already selected.',
   'reuse.up': 'Move up', 'reuse.down': 'Move down', 'reuse.remove': 'Remove material',
