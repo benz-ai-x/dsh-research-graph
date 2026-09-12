@@ -173,8 +173,12 @@ _Avoid_: Search, session filter
 The persistent detail panel for the Selected Session, or the addressed source while Discussion Search or a Research Topic is open. Selection and reading remain local to their view. A Topic's source inspector exposes original reading, explicit navigation, and reference removal. It remains authoritative while another Session is only being previewed.
 _Avoid_: Hover card, current-session panel
 
+**Session Title Suggestion**:
+An explicitly requested, temporary title derived from the Selected Session's bounded discussion material. The user may edit or discard it; only Apply invokes the native Session rename and saves a user-title event. Suggesting never writes discussion text, opens an Agent, or changes the Viewed Session. A suggestion is not a Knowledge Card or a saved Session Digest.
+_Avoid_: automatic rename, graph-only title
+
 **Session Digest**:
-An explicitly requested, model-generated, read-only digest of one Canvas Session at one source revision. It presents a short overview, key outcomes, and open items inside the Session Inspector. A newer source revision makes an existing digest stale without hiding it. Session Digests never enter the Session log or change Session Lineage.
+An explicitly requested, model-generated, read-only digest of one Canvas Session at one source revision. It presents one short overview sentence, bounded unordered key outcomes and open items, with Markdown emphasis on key facts inside the Session Inspector. Complete overlong model output receives at most one compression attempt; reasoning-token capacity is independent of visible length. A newer source revision makes an existing digest stale without hiding it. Session Digests never enter the Session log or change Session Lineage.
 _Avoid_: Session Summary, Subagent Summary, compaction summary, generated message
 
 **Session Preview**:

@@ -1271,6 +1271,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const fork = vi.fn(async () => id('branched'))
   const create = vi.fn(async () => id('merged'))
   const rename = vi.fn(async () => ({ ok: true as const, value: undefined }))
+  const generateTitle = vi.fn<TypertRemoteMap['sessionGraphTitle/generate']>(async request => ({ ok: true, value: { kind: 'ready', sessionId: request.sessionId, title: '缓存策略的性能与一致性', sourceTitle: 'Session root', sourceRevision: '5' } }))
   const generateDigest = vi.fn(async () => ({
     ok: true as const,
     value: { kind: 'empty' as const },
@@ -1323,6 +1324,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   // mounted namespace; mirror that boundary instead of hanging it off the
   // root Remote stub.
   ctx.provide('remote.sessionGraphDigest', { generate: generateDigest } as never)
+  ctx.provide('remote.sessionGraphTitle', { generate: generateTitle } as never)
   ctx.provide('remote.sessionGraphMerge', { submit: submitMerge } as never)
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
@@ -1337,7 +1339,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber
   return {
-    ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, submitMerge, readHistory, searchDiscussion,
+    ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, generateTitle, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge, prepareExport,
     prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse,
@@ -1537,6 +1539,53 @@ const FIXTURE: Record<string, SessionSummary> = {
   sub1: session('sub1', { parentId: id('root'), origin: 'subagent', updatedAt: 300, running: true }),
   deep: session('deep', { parentId: id('sub1'), origin: 'subagent', updatedAt: 200 }),
 }
+
+describe('Session insights in the registered Graph', () => {
+  it('generates for the Selected Session and applies through its native binding without navigating', async () => {
+    const b = await bench(FIXTURE)
+    b.rename.mockResolvedValue({ ok: true, value: { title: '权限缓存的边界', seq: 8 } } as never)
+    const binding = vi.spyOn(b.ctx.sessions, 'binding')
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('branchChild'))
+    fireEvent.click(screen.getByRole('button', { name: '生成标题' }))
+    const input = await screen.findByRole('textbox', { name: '建议标题' })
+    expect(b.generateTitle).toHaveBeenCalledExactlyOnceWith({ sessionId: 'branchChild' }, expect.any(AbortSignal))
+    expect(b.rename).not.toHaveBeenCalled()
+    fireEvent.change(input, { target: { value: '权限缓存的边界' } })
+    fireEvent.click(screen.getByRole('button', { name: '应用标题' }))
+    await screen.findByText('标题已更新')
+    expect(binding).toHaveBeenLastCalledWith(id('branchChild'))
+    expect(b.rename).toHaveBeenCalledExactlyOnceWith('权限缓存的边界')
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.generateDigest).not.toHaveBeenCalled()
+    await act(async () => { b.sessionsStore.set(listState({ ...FIXTURE,
+      branchChild: session('branchChild', { parentId: id('root'), displayTitle: '权限缓存的边界' }),
+    })) })
+    expect(nodeButton('branchChild').textContent).toContain('权限缓存的边界')
+    expect(screen.getByTestId('session-graph-panel').textContent).toContain('权限缓存的边界')
+  })
+
+  it('renders scannable Markdown lists, emphasized facts and safe inline code in a digest', async () => {
+    const b = await bench(FIXTURE)
+    b.generateDigest.mockResolvedValue(digestSuccess('root', {
+      overview: '比较 **缓存性能** 和 `P95`。',
+      keyOutcomes: ['保留 **权限校验**，再衡量性能。', '阅读 [无效链接](javascript:alert(1))。'],
+      openItems: ['**待验证**：失效通知的及时性。'],
+    }))
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
+    const strong = await screen.findByText('缓存性能')
+    expect(strong.tagName).toBe('STRONG')
+    const digest = screen.getByTestId('session-digest-section')
+    expect(digest.querySelector('code')?.textContent).toBe('P95')
+    expect(digest.querySelectorAll('ul > li')).toHaveLength(3)
+    expect(digest.querySelector('a[href^="javascript:"]')).toBeNull()
+    expect(digest.textContent).not.toContain('**')
+  })
+})
 
 describe('plugin registration', () => {
   it('registers graph after chat on the ring and labels it in the active locale', async () => {
@@ -3315,7 +3364,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
 
     const digest = screen.getByTestId('session-digest-section')
     expect(screen.getByRole('region', { name: '会话摘要' })).toBe(digest)
-    expect(digest.textContent).toContain('按需生成本会话的概览、关键结论和待办')
+    expect(digest.textContent).toContain('用简短要点回顾结论、关键信息与下一步')
     fireEvent.click(screen.getByRole('button', { name: '生成摘要' }))
     expect(digest.textContent).toContain('正在生成摘要')
     expect((screen.getByRole('button', { name: '打开会话' }) as HTMLButtonElement).disabled).toBe(false)
@@ -3527,7 +3576,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     expect(panel.textContent).not.toContain('不得显示的迟到摘要。')
     fireEvent.click(nodeButton('root'))
     expect(screen.getByTestId('session-digest-section').textContent)
-      .toContain('按需生成本会话的概览、关键结论和待办')
+      .toContain('用简短要点回顾结论、关键信息与下一步')
   })
 
   it('exposes a named Selected Session inspector that can be closed explicitly', async () => {

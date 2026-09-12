@@ -274,7 +274,7 @@ describe('tsdown client artifact', () => {
     expect(mountRemote).toHaveBeenCalledOnce()
     expect(injectedServices).toEqual([[
       'slots', 'sessions', 'workspaces', 'locale',
-      'remote.sessionGraphDigest', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
+      'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
       'remote.sessionGraphSearch', 'remote.sessionGraphTopics',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse',
     ]])

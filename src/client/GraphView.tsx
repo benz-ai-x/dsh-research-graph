@@ -10,6 +10,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ConvViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionDigestResult } from '../session-digest.ts'
+import type { SessionTitleResult } from '../session-title.ts'
 import type { SessionHistoryRequest, SessionHistoryResult } from '../session-history.ts'
 import type { DiscussionSearchRequest, DiscussionSearchResult } from '../session-search.ts'
 import type { ResearchTopic, ResearchTopicSnapshot, ResearchTopicWrite } from '../research-topic.ts'
@@ -32,6 +33,8 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
+  readonly generateSessionTitle: (id: SessionId, signal: AbortSignal) => Promise<SessionTitleResult>
+  readonly renameSessionTitle: (id: SessionId, title: string, expectedTitle: string) => Promise<string>
   readonly mergeResearchSessions?: (request: {
     readonly sourceIds: readonly SessionId[]
     readonly instruction: string
@@ -212,6 +215,8 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
           onOpen={openSession}
           onBranch={branchSession}
           onGenerateDigest={generateSessionDigest}
+          onGenerateTitle={props.generateSessionTitle}
+          onRenameTitle={props.renameSessionTitle}
           onReadHistory={readSessionHistory}
           onMerge={mergeSessions}
           onRetryMerge={retrySessionMerge}

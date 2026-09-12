@@ -11,6 +11,7 @@ import type { SessionGraphKey } from './locales.ts'
 import { deriveTopicGraph } from './graph-model.ts'
 import { layoutResearchGraph } from './research-layout.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
+import { SessionTitleControl } from './SessionTitleControl.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
 import styles from './GraphView.module.css'
@@ -118,6 +119,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
       <GraphCanvas key={`${workingKey}:${presented.membership}`} workingKey={workingKey} laid={presented.laid} clusters={presented.graph.clusters} toolbarTarget={context.toolbarTarget}
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
         onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
+        onGenerateTitle={context.actions.generateSessionTitle} onRenameTitle={context.actions.renameSessionTitle}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
         topic={{ arrangement, onArrange, openCard: knowledge.open,
           actions: <>
@@ -129,11 +131,14 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
           : node.kind === 'knowledge' ? <KnowledgeReader key={node.card.cardId} inspector={{ onClose }} workingKey={workingKey}
             card={node.card} relations={presented.relations} read={context.actions.readSessionHistory} t={t} /> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
+            generateTitle={context.actions.generateSessionTitle} renameTitle={context.actions.renameSessionTitle}
             sessions={context.sessions} workspaces={context.workspaces} busy={busy || phase !== 'ready' || relations.loading || relations.failed} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} /></>}
   </div>
 }
 
-function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailable, workingKey, sessions, workspaces, t }: {
+function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailable, workingKey, sessions, workspaces, generateTitle, renameTitle, t }: {
+  readonly generateTitle: GraphViewInjected['generateSessionTitle']
+  readonly renameTitle: GraphViewInjected['renameSessionTitle']
   readonly onUnavailable: () => void
   readonly workingKey: string
   readonly sessions: SessionListState
@@ -153,8 +158,10 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailab
   const source = node.topicSource
   return <InspectorFrame label={t('topic.source')} title={node.title} workingKey={workingKey}
     testId="topic-source-panel" onClose={onClose} t={t}
-    meta={<div className={styles.panelMeta}><span>{source?.workspace?.title || source?.cwd || t('topic.noWorkspace')}</span>
-      {source?.archived ? <span>{t('search.archived')}</span> : null}</div>} actions={<div className={styles.panelActions}>
+    meta={<div className={styles.sessionMeta}><div className={styles.panelMeta}><span>{source?.workspace?.title || source?.cwd || t('topic.noWorkspace')}</span>
+      {source?.archived ? <span>{t('search.archived')}</span> : null}</div>
+      {source?.status === 'listed' && !source.archived ? <SessionTitleControl key={node.id} sessionId={node.id} title={node.title} generate={generateTitle} rename={renameTitle} t={t} /> : null}
+    </div>} actions={<div className={styles.panelActions}>
       <button type="button" className={styles.panelPrimaryAction} onClick={() => { open(node.id) }} disabled={source?.status !== 'listed' || source.archived}>{t('panel.open')}</button>
       <button type="button" className={styles.panelSecondaryAction} onClick={() => { setReading(value => !value) }}>{t(reading ? 'topic.closeOriginal' : 'topic.readOriginal')}</button>
       {remove === undefined ? null : <button type="button" className={styles.panelSecondaryAction} disabled={busy} onClick={remove}>{t('topic.remove')}</button>}
