@@ -59,6 +59,38 @@ function sharedLength(presentation: CanvasPresentation): number {
 }
 
 describe('final canvas routing', () => {
+  it.each([layoutSessionGraph, layoutResearchGraph])('separates Merge arrivals in a collapsed cluster title gap', layout => {
+    const initial = graph(['A', 'B', 'C', 'D', 'G', 'J', 'M', 'N'], [
+      ['A', 'D'], ['B', 'D'], ['C', 'G'], ['D', 'G'], ['B', 'G'], ['J', 'N'], ['B', 'N'],
+    ])
+    const clusters = [
+      { rootId: 'A', label: 'A', memberIds: ['A', 'B', 'C', 'J'] },
+      { rootId: 'D', label: 'D', memberIds: ['D'] },
+      { rootId: 'G', label: 'G', memberIds: ['G', 'M'] },
+      { rootId: 'N', label: 'N', memberIds: ['N'] },
+    ]
+    const branches: readonly (readonly [string, string])[] = [['A', 'B'], ['A', 'C'], ['A', 'J'], ['G', 'M']]
+    const input: SessionGraph = {
+      ...initial,
+      nodes: new Map([...initial.nodes].map(([id, node]) => [id, {
+        ...node, clusterId: clusters.find(cluster => cluster.memberIds.includes(id))!.rootId,
+      }])),
+      clusters,
+      children: new Map([['A', ['B', 'C', 'J']], ['G', ['M']]]),
+      edges: [
+        ...branches.map(([from, to]): GraphEdge => ({ id: `branch:${from}->${to}`, kind: 'branch', from, to })),
+        ...initial.edges.map(edge => ({ ...edge, id: `merge:${edge.from}->${edge.to}` })),
+      ],
+    }
+    const options = { laid: layout(input), collapsed: new Set(clusters.map(cluster => cluster.rootId)) }
+    const result = present(input, options)
+    expect(result.shown.nodes).toHaveLength(8)
+    expect(result.shown.edges.map(edge => edge.edge)).toEqual(input.edges.filter(edge => edge.kind === 'merge'))
+    assertClear(result)
+    expect(sharedLength(result)).toBe(0)
+    expect(result).toEqual(present(input, options))
+  })
+
   it.each([layoutSessionGraph, layoutResearchGraph])('keeps screenshot-shaped Merge sources parallel with distinct routes and arrow tips', layout => {
     const input = graph(['unrelated', 'A', 'B', 'C', 'M'], [['A', 'M'], ['B', 'M'], ['C', 'M']])
     const result = present(input, { laid: layout(input) })
