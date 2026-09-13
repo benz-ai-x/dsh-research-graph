@@ -204,11 +204,23 @@ class SearchQueue {
   }
 }
 
+/** Keep a free lane inside tight gaps when both obstacle boundaries carry other relations. */
+function routingCoordinates(values: readonly number[], tightGaps: boolean): number[] {
+  const sorted = [...new Set(values)].sort((a, b) => a - b)
+  if (!tightGaps) return sorted
+  return sorted.flatMap((value, index) => {
+    const next = sorted[index + 1]
+    return next !== undefined && next - value > 2 * EPSILON && next - value < LANE
+      ? [value, value + (next - value) / 2]
+      : [value]
+  })
+}
+
 /** Search a rectilinear visibility grid only when the usual short channels are blocked. */
-function searchRoute(start: Point, end: Point, obstacles: ObstacleIndex, channels: Channels, area: ContentBounds): Point[] | undefined {
+function searchRoute(start: Point, end: Point, obstacles: ObstacleIndex, channels: Channels, area: ContentBounds, tightGaps = false): Point[] | undefined {
   const nearby = obstacles.query(area)
-  const xs = [...new Set([start.x, end.x, area.x, area.x + area.width, ...nearby.flatMap(box => [box.x - LANE, box.x, box.x + box.width, box.x + box.width + LANE])])].sort((a, b) => a - b)
-  const ys = [...new Set([start.y, end.y, area.y, area.y + area.height, ...nearby.flatMap(box => [box.y - LANE, box.y, box.y + box.height, box.y + box.height + LANE])])].sort((a, b) => a - b)
+  const xs = routingCoordinates([start.x, end.x, area.x, area.x + area.width, ...nearby.flatMap(box => [box.x - LANE, box.x, box.x + box.width, box.x + box.width + LANE])], tightGaps)
+  const ys = routingCoordinates([start.y, end.y, area.y, area.y + area.height, ...nearby.flatMap(box => [box.y - LANE, box.y, box.y + box.height, box.y + box.height + LANE])], tightGaps)
   const width = xs.length
   const startIndex = ys.indexOf(start.y) * width + xs.indexOf(start.x)
   const endIndex = ys.indexOf(end.y) * width + xs.indexOf(end.x)
@@ -315,6 +327,12 @@ function routeBetween(start: Point, end: Point, obstacles: ObstacleIndex, channe
     width: Math.abs(start.x - end.x) + 2 * NODE_W, height: Math.abs(start.y - end.y) + 240 }
   const local = searchRoute(start, end, obstacles, channels, area)
   if (local) consider(local)
+  // Preserve clear routes and the ordinary grid size. Only overlapping routes
+  // need an extra lane between boundaries less than one channel width apart.
+  if (best && bestPenalty > 0) {
+    const tight = searchRoute(start, end, obstacles, channels, area, true)
+    if (tight) consider(tight)
+  }
   if (best) return simplify(best)
   const full = { x: Math.min(bounds.x, area.x) - 40, y: Math.min(bounds.y, area.y) - 40,
     width: Math.max(bounds.x + bounds.width, area.x + area.width) - Math.min(bounds.x, area.x) + 80,
