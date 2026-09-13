@@ -25,3 +25,23 @@ Topic Merge:
 Knowledge and follow-up discussion:
 
 ![Two sources retain separate knowledge paths and converge on a new discussion](../assets/relayout/topic-knowledge.png)
+
+## PR #44 review fixes
+
+The review found two cases beyond the initial fixtures: a distributed terminal could move into an unrelated card after its side midpoint had passed the obstacle check, and a six-node Merge workflow retained 110px of shared polyline (102px of visible straight SVG). Final distributed terminals are now checked before routing; blocked seats move into a free interval or onto another card side. Routes that still overlap try another departure row and then a bounded local search, retaining the lower-cost clear result.
+
+Six added regressions cover blocked input and output terminals, a narrow opening requiring another side, horizontal terminals, and the consecutive Merge workflow in both layouts. The original four review regressions failed before the fix and pass afterward. The consecutive Merge now has zero shared polyline length; the terminal cases have no card penetration and retain distinct endpoints. The routing file has 16 passing tests.
+
+Validation on the final source:
+
+- `pnpm run check`: strict types, build, **214 standalone tests**.
+- Matching DSH `0.1.5-rc.2`, `pnpm check:harness`: **four compiler faces and 337 Harness tests**.
+- The actual built archive passed isolated profile installation, boot, persistent research operations, and removal with **19 fixed demo-model calls**.
+- Chrome 153.0.8010.36 in the matching isolated DSH: real pointer drags placed five non-overlapping Workspace cards around a blocked Merge input; a six-node Topic retained all eight consecutive Merge relations. Actual SVG sampling found **zero card penetrations, shared straight segments, or terminal/arrow mismatches** in these cases. Relayout/Undo, Workspace reopening, explicit Topic reopening, and a 900×820 container also passed; page errors were **0**.
+- Five-sample local median routing times, previous head → fix: 100 nodes / 197 edges **24.2 → 25.4ms**; 100 / 485 **57.1 → 73.8ms**; 300 / 597 **131.8 → 132.6ms**. Candidate expansion is limited to the best detour before local search. These measurements cover the pure router, not end-to-end browser interaction.
+
+The package version remains `0.1.5-rc.2.5`; the tested local archive has Build ID `local-8b98702b`. No runtime dependency or user profile changed. The initial screenshots above remain the original acceptance evidence; these two screenshots show the review cases:
+
+![A blocked Merge input moves clear of the adjacent unrelated card](../assets/relayout/review-blocked-port.png)
+
+![Successive Merge layers use distinct source channels](../assets/relayout/review-successive-merges.png)

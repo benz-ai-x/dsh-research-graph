@@ -112,6 +112,45 @@ function endpoint(node: LaidOutNode, other: LaidOutNode, side: Side, obstacles: 
   const port = portAt(node, chosen, 0.5)
   return { node, other, side: chosen, port, escape: escapeAt(port, chosen) }
 }
+
+/** Keep clear assigned seats stable; move blocked ones into a free interval or onto another side. */
+function avoidBlockedTerminal(value: Endpoint, peers: readonly Endpoint[], obstacles: ObstacleIndex): void {
+  if (obstacles.clear(value.port, value.escape, value.node.key)) return
+  const sides = new Set<Side>([value.side, 'right', 'left', 'bottom', 'top'])
+  for (const spacing of [LANE, 2 * EPSILON]) {
+    for (const side of sides) {
+      const vertical = side === 'left' || side === 'right'
+      const axis = vertical ? 'y' : 'x'
+      const first = portAt(value.node, side, 0), last = portAt(value.node, side, 1)
+      const escape = escapeAt(first, side)
+      const area = { x: Math.min(first.x, last.x, escape.x), y: Math.min(first.y, last.y, escape.y),
+        width: Math.max(first.x, last.x, escape.x) - Math.min(first.x, last.x, escape.x),
+        height: Math.max(first.y, last.y, escape.y) - Math.min(first.y, last.y, escape.y) }
+      const preferred = side === value.side ? value.port : portAt(value.node, side, 0.5)
+      const boundaries = [first[axis], last[axis], preferred[axis]]
+      for (const box of obstacles.query(area)) {
+        if (box.id !== value.node.key) boundaries.push(box[axis], box[axis] + (vertical ? box.height : box.width))
+      }
+      for (const peer of peers) {
+        if (peer !== value && peer.side === side) boundaries.push(peer.port[axis] - spacing, peer.port[axis] + spacing)
+      }
+      const sorted = [...new Set(boundaries.map(point => Math.max(first[axis], Math.min(last[axis], point))))].sort((a, b) => a - b)
+      const candidates = [...sorted, ...sorted.slice(1).map((point, index) => (point + sorted[index]!) / 2)]
+        .sort((a, b) => Math.abs(a - preferred[axis]) - Math.abs(b - preferred[axis]) || a - b)
+      for (const coordinate of candidates) {
+        const port = portAt(value.node, side, (coordinate - first[axis]) / (last[axis] - first[axis]))
+        const exit = escapeAt(port, side)
+        if (peers.some(peer => peer !== value && distance(port, peer.port) < spacing - EPSILON / 2)
+          || !obstacles.clear(port, exit, value.node.key)) continue
+        value.side = side
+        value.port = port
+        value.escape = exit
+        return
+      }
+    }
+  }
+}
+
 function simplify(points: readonly Point[]): Point[] {
   const result: Point[] = []
   for (const point of points) {
@@ -243,26 +282,40 @@ function routeBetween(start: Point, end: Point, obstacles: ObstacleIndex, channe
   }
   let best: Point[] | undefined
   let bestCost = Infinity
-  for (const candidate of candidates) {
-    let cost = 0
+  let bestPenalty = Infinity
+  const consider = (candidate: Point[]): void => {
+    let cost = 0, penalty = 0
     for (let i = 1; i < candidate.length; i += 1) {
       const a = candidate[i - 1]!, b = candidate[i]!
-      if (!obstacles.clear(a, b)) {
-        cost = Infinity
-        break
-      }
-      cost += distance(a, b) + channels.penalty(a, b)
+      if (!obstacles.clear(a, b)) return
+      penalty += channels.penalty(a, b)
+      cost += distance(a, b)
     }
+    cost += penalty
     if (cost < bestCost) {
       best = candidate
       bestCost = cost
+      bestPenalty = penalty
     }
   }
-  if (best) return simplify(best)
+  for (const candidate of candidates) consider(candidate)
+  if (best && bestPenalty === 0) return simplify(best)
+  // Try independent departure rows on the best detour before grid search.
+  // Expanding every candidate here multiplies the cost of dense graphs.
+  const varyDeparture = (candidate: readonly Point[]): void => {
+    if (candidate[1]!.y !== start.y || candidate[1]!.x === start.x) return
+    for (const step of [-1, 1, -2, 2, -3, 3, -4, 4]) {
+      const y = start.y + step * LANE
+      consider([start, { x: start.x, y }, { x: candidate[1]!.x, y }, ...candidate.slice(2)])
+    }
+  }
+  if (best) varyDeparture(best)
+  if (best && bestPenalty === 0) return simplify(best)
   const area = { x: Math.min(start.x, end.x) - NODE_W, y: Math.min(start.y, end.y) - 120,
     width: Math.abs(start.x - end.x) + 2 * NODE_W, height: Math.abs(start.y - end.y) + 240 }
   const local = searchRoute(start, end, obstacles, channels, area)
-  if (local) return local
+  if (local) consider(local)
+  if (best) return simplify(best)
   const full = { x: Math.min(bounds.x, area.x) - 40, y: Math.min(bounds.y, area.y) - 40,
     width: Math.max(bounds.x + bounds.width, area.x + area.width) - Math.min(bounds.x, area.x) + 80,
     height: Math.max(bounds.y + bounds.height, area.y + area.height) - Math.min(bounds.y, area.y) + 80 }
@@ -296,17 +349,26 @@ export function routeGraph(laid: LaidOutGraph, frames: readonly LaidOutFrame[], 
       groups.set(key, group)
     }
   }
-  const ports = new Map<string, ConnectionPort[]>()
+  const terminals = new Map<string, Endpoint[]>()
   for (const group of groups.values()) {
     group.sort((a, b) => (a.endpoint.side === 'top' || a.endpoint.side === 'bottom'
       ? a.endpoint.other.x - b.endpoint.other.x : a.endpoint.other.y - b.endpoint.other.y) || a.edgeId.localeCompare(b.edgeId))
-    group.forEach(({ endpoint: value, edgeId, direction }, index) => {
+    group.forEach(({ endpoint: value }, index) => {
       value.port = portAt(value.node, value.side, (index + 1) / (group.length + 1))
       value.escape = escapeAt(value.port, value.side)
+      const list = terminals.get(value.node.key) ?? []
+      list.push(value)
+      terminals.set(value.node.key, list)
+    })
+  }
+  const ports = new Map<string, ConnectionPort[]>()
+  for (const group of groups.values()) {
+    for (const { endpoint: value, edgeId, direction } of group) {
+      avoidBlockedTerminal(value, terminals.get(value.node.key)!, obstacles)
       const list = ports.get(value.node.key) ?? []
       list.push({ ...value.port, id: `${edgeId}:${direction}`, direction })
       ports.set(value.node.key, list)
-    })
+    }
   }
   for (const node of laid.nodes) {
     const list = ports.get(node.key) ?? []

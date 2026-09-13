@@ -98,6 +98,55 @@ describe('final canvas routing', () => {
     expect(moved.bounds.width).toBeGreaterThan(NODE_W)
   })
 
+  it('keeps distributed output terminals clear after dragging a card beside the source', () => {
+    const initial = graph(['A', 'B', 'C', 'D'], [['A', 'B'], ['A', 'C']])
+    const input: SessionGraph = { ...initial, edges: initial.edges.map(edge => ({ ...edge, kind: 'source' })) }
+    const options = { positions: { A: { x: 0, y: 0 }, B: { x: 0, y: 300 }, C: { x: 400, y: 300 }, D: { x: -140, y: 66 } } }
+    const result = present(input, options)
+    assertClear(result)
+    expect(new Set(result.shown.edges.map(edge => JSON.stringify(edge.points[0]))).size).toBe(2)
+    expect(result).toEqual(present(input, options))
+  })
+
+  it('keeps distributed input terminals clear after dragging a card beside a Merge result', () => {
+    const input = graph(['A', 'B', 'C', 'M', 'other'], [['A', 'M'], ['B', 'M'], ['C', 'M']])
+    const options = { positions: { A: { x: -500, y: 0 }, B: { x: 0, y: 0 }, C: { x: 500, y: 0 },
+      M: { x: 0, y: 200 }, other: { x: -160, y: 140 } } }
+    const result = present(input, options)
+    assertClear(result)
+    expect(new Set(result.shown.edges.map(edge => JSON.stringify(edge.points.at(-1)))).size).toBe(3)
+    expect(result).toEqual(present(input, options))
+  })
+
+  it('uses another card side when a narrow opening cannot hold separate output terminals', () => {
+    const input = graph(['A', 'B', 'C', 'left', 'right'], [['A', 'B'], ['A', 'C']])
+    const options = { positions: { A: { x: 0, y: 0 }, B: { x: 0, y: 300 }, C: { x: 400, y: 300 },
+      left: { x: -130, y: 66 }, right: { x: 130, y: 66 } } }
+    const result = present(input, options)
+    assertClear(result)
+    const outputs = result.shown.ports.get('A')!.filter(port => port.direction === 'output')
+    expect(outputs.some(port => port.x === NODE_W || port.x === 0 || port.y === 0)).toBe(true)
+    expect(Math.hypot(outputs[0]!.x - outputs[1]!.x, outputs[0]!.y - outputs[1]!.y)).toBeGreaterThanOrEqual(10)
+  })
+
+  it('rechecks distributed side terminals for horizontally arranged discussions', () => {
+    const input = graph(['A', 'B', 'C', 'other'], [['A', 'B'], ['A', 'C']])
+    const result = present(input, { positions: { A: { x: 0, y: 0 }, B: { x: 600, y: -100 }, C: { x: 600, y: 0 }, other: { x: 250, y: -36 } } })
+    assertClear(result)
+    expect(new Set(result.shown.edges.map(edge => JSON.stringify(edge.points[0]))).size).toBe(2)
+  })
+
+  it.each([layoutSessionGraph, layoutResearchGraph])('separates source channels across consecutive Merge layers', layout => {
+    const input = graph(['A', 'B', 'C', 'D', 'E', 'F'], [
+      ['A', 'C'], ['A', 'D'], ['A', 'E'], ['A', 'F'], ['B', 'C'], ['B', 'F'], ['C', 'D'], ['C', 'E'],
+    ])
+    const result = present(input, { laid: layout(input) })
+    assertClear(result)
+    expect(sharedLength(result)).toBe(0)
+    expect(result.shown.edges.map(edge => edge.edge)).toEqual(input.edges)
+    expect(result).toEqual(present(input, { laid: layout(input) }))
+  })
+
   it('avoids visible frame headers and compact rows after collapse and a whole-cluster offset', () => {
     const initial = graph(['root', 'child', 'other', 'target'], [['root', 'child'], ['child', 'target'], ['other', 'root']])
     const input: SessionGraph = { ...initial,
