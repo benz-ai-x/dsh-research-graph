@@ -30,8 +30,7 @@ flowchart LR
   class O1,O2,K1,K2,R1,R2 feature
 ```
 
-<details>
-<summary>View the workbench screenshot (0.1.5-rc.2.8, demo data)</summary>
+## Workbench screenshot
 
 <p align="center">
   <a href="docs/assets/readme/research-workbench.png">
@@ -39,9 +38,7 @@ flowchart LR
   </a>
 </p>
 
-Click the image for the full-resolution screenshot.
-
-</details>
+Version 0.1.5-rc.2.8 with demo data. Click the image for the full-resolution screenshot.
 
 <a id="features"></a>
 <a id="what-it-adds"></a>

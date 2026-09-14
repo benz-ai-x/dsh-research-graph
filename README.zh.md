@@ -30,8 +30,7 @@ flowchart LR
   class O1,O2,K1,K2,R1,R2 feature
 ```
 
-<details>
-<summary>查看工作台截图（0.1.5-rc.2.8，演示数据）</summary>
+## 功能截图
 
 <p align="center">
   <a href="docs/assets/readme/research-workbench.png">
@@ -39,9 +38,7 @@ flowchart LR
   </a>
 </p>
 
-点击图片查看高清原图。
-
-</details>
+0.1.5-rc.2.8 的真实界面（演示数据），点击图片查看高清原图。
 
 <a id="核心能力"></a>
 
