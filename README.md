@@ -37,7 +37,7 @@ The canvas also shows Session Lineage, movable Branch clusters, Merge provenance
 ## Quick start
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.7
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
@@ -47,7 +47,7 @@ If `dsh web` is already running, stop it before restarting. Open the one-time au
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.7` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.8` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime and package migration acceptance |
 | Previous package: [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
@@ -55,7 +55,7 @@ If `dsh web` is already running, stop it before restarting. Open the one-time au
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 
-In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. `0.1.5-rc.2.2` fixes truncated Session Digests and adds resizable Markdown reading, nearby knowledge capture, and graph controls in the research context bar. `0.1.5-rc.2.3` adds editable Session title suggestions and concise Markdown digests with highlighted key points. `0.1.5-rc.2.4` unifies saved knowledge reading across entry points, preserves extraction-batch reading position after editing, centralizes responsive reading geometry, and makes digest highlights more visible. `0.1.5-rc.2.5` adds historical-turn branching, editable exploration prompts, reviewed synthesis from mixed materials, and working-position restoration, including reliable final drag positions. `0.1.5-rc.2.6` improves Relayout in both graph scopes with dependency rows, obstacle-aware routes, distinct terminals and one-step undo. `0.1.5-rc.2.7` separates overlapping Merge arrivals in narrow gaps around compact cluster titles. See the [release acceptance record](docs/reviews/release-0.1.5-rc.2.7.md) for validation and remaining acceptance. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. `0.1.5-rc.2.2` fixes truncated Session Digests and adds resizable Markdown reading, nearby knowledge capture, and graph controls in the research context bar. `0.1.5-rc.2.3` adds editable Session title suggestions and concise Markdown digests with highlighted key points. `0.1.5-rc.2.4` unifies saved knowledge reading across entry points, preserves extraction-batch reading position after editing, centralizes responsive reading geometry, and makes digest highlights more visible. `0.1.5-rc.2.5` adds historical-turn branching, editable exploration prompts, reviewed synthesis from mixed materials, and working-position restoration, including reliable final drag positions. `0.1.5-rc.2.6` improves Relayout in both graph scopes with dependency rows, obstacle-aware routes, distinct terminals and one-step undo. `0.1.5-rc.2.7` separates overlapping Merge arrivals in narrow gaps around compact cluster titles. `0.1.5-rc.2.8` removes duplicate Merge lines inherited by Branches, adds compact headers and layouts, distinguishes equal titles, and opens delegated task records from the inspector. See the [release acceptance record](docs/reviews/release-0.1.5-rc.2.8.md) for validation and remaining acceptance. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
@@ -155,7 +155,7 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.7
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -172,7 +172,7 @@ The product is now **DSH Research Graph · 研图**, and the repository is `benz
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.7
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
@@ -190,20 +190,22 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
 
-Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.1.5-rc.2` for plugin `0.1.5-rc.2.7`).
+Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.1.5-rc.2` for plugin `0.1.5-rc.2.8`).
 
 ## Use the graph
 
 Open a non-blank session and choose **Research Graph** beside the standard conversation tabs. The Viewed Session resolves a named Workspace Scope when possible and otherwise falls back to a Directory Scope.
 
-- A single click chooses the Selected Session and keeps its Branch Lineage emphasized; the closable detail inspector can open that session or create a Branch, and reports when Harness rejects the request. Click blank canvas space or press Escape to clear selection.
+- A single click chooses the Selected Session and emphasizes its Branch Lineage together with the sources of its original Merge; the closable detail inspector can open that session or create a Branch, and reports when Harness rejects the request. Click blank canvas space or press Escape to clear selection.
 - A double click opens the session in its last-used view.
 - Dwell on another Canvas Session for a compact preview without replacing the Selected Session inspector.
 - Drag nodes or complete cluster frames to arrange the canvas. Alignment guides snap nearby card edges. Reopening the graph retains the final released position, including quick drags.
 - Session Arrangement persistence fails soft. If browser storage is unavailable, denied, corrupt, or full, the live graph continues with automatic geometry instead of failing to render.
 - Small connection dots show relationship anchors; they are not drag handles. Branches are neutral solid directed edges, Merge Relations are branded solid directed edges, and Subagent Derivations are dashed.
+- The visible legend distinguishes Branch and Merge lines. Branch clusters share a color and independent discussions use neutral dots; activity is shown separately. Nodes label Merges and Branches, and equal titles receive distinct short identity labels. Full titles remain available in the inspector. Compact cluster headers show the member count and leave an arrival channel for relations. Unconnected discussions pack together separately from connected research components.
+- Inherited Merge snapshots remain inspectable under **Inherited Merge sources** on a Branch. They do not create another set of direct Merge lines, including when the parent is outside the graph. Expand the subagent summary to inspect delegated task titles and activity, or open a delegated discussion; subagents remain folded out of the canvas.
 - Both Workspace and Research Topic graphs keep related sources on the same dependency row, with their shared result below; disconnected collections pack separately. Branch clusters retain their tree and reserve room for collapse. Rounded connections avoid cards and cluster titles, with separate terminals and arrowheads. Blocked terminals move to a clear position or another card side; relations across successive layers try separate departure channels to reduce long shared segments. When crowded routes share the edges of a narrow gap, an extra channel inside the gap can separate their arrivals. Dragging and collapse reroute connections, and Fit includes their outer routes and labels.
-- **Graph options → Relayout** clears manual positions and cluster offsets while preserving collapse and reading state. **Undo relayout** restores the last placement until a later drag, collapse, Reset, or scope switch; repeated Relayout keeps the useful undo. Topic changes still require **Save arrangement** to share through the Host.
+- **Relayout**, directly in the canvas toolbar, clears manual positions and cluster offsets while preserving collapse and reading state. **Undo relayout** restores the last placement until a later drag, collapse, Reset, or scope switch; repeated Relayout keeps the useful undo. Existing custom arrangements remain intact until this action is chosen. Topic changes still require **Save arrangement** to share through the Host.
 - Use wheel zoom, background-drag panning, fit, 100%, relayout, reset, Viewed Session location, or the minimap. The minimap appears when content leaves the visible surface and is hidden in narrow containers. Resizing preserves the current content center and scale.
 - Filter by title; Enter centers the first match and Escape clears the filter.
 - Hover a node or edge to emphasize its Branch Lineage.
@@ -395,6 +397,8 @@ For hands-on acceptance of the standard build, prepare the matching Harness with
 DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm preview:dsh
 pnpm preview:dsh --stop
 ```
+
+`DSH_HARNESS_ROOT` takes precedence. When it is unset or its checkout is missing, the launcher looks for `deepseek-harness-<target DSH version>` beside this repository, then one directory level higher. This also supports placing plugin worktrees inside a project folder while keeping Harness outside it. An existing checkout with a different version is rejected.
 
 The launcher packs and installs the standard plugin in an isolated DSH profile at `.artifacts/workbench-dsh/profile/`, prints its local URL, and retains research data. Examples include A/B discussions, knowledge, and follow-up research. The clearly labelled model returns fixed demo responses without paid model calls. Restarting preserves examples and manual work while existing DSH profiles remain separate. The startup URL contains a local login credential; do not publish raw logs or `state.json`.
 

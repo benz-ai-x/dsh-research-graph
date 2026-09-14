@@ -80,6 +80,8 @@ _Avoid_: Live reference, copied session
 A directed many-to-one relationship from each Merge Source to its Merge Session. It records provenance without creating Session Lineage or changing Session Cluster membership.
 _Avoid_: Branch, parent relation, Subagent Derivation
 
+A Branch can retain the original Merge marker and snapshots in inherited history. These remain inspectable as inherited sources, without creating another direct Merge Relation. Host parent metadata determines this distinction even when the parent is outside the displayed scope.
+
 **Subagent Derivation**:
 A directed lineage relation whose child is a Subagent Session. It is summarized under a Canvas Session rather than represented as a Branch.
 _Avoid_: Branch, fork
@@ -91,6 +93,8 @@ _Avoid_: Agent node, hidden Branch
 **Subagent Summary**:
 The total number of Subagent Sessions, including the running subset, reachable from one Canvas Session through an uninterrupted chain of Subagent Derivations. A Branch boundary starts a separate summary for the branch session.
 _Avoid_: Subagent node, branch count
+
+The inspector may expand the summary into delegated discussion titles and available activity facts. This does not add Subagent Sessions to the canvas or treat the summary as an Agent Team roster.
 
 **Root Session**:
 A Canvas Session with no Canvas Session parent in the current graph. Root status is scope-relative, so a session whose parent is a Subagent Session or is absent from the graph is also a Root Session.

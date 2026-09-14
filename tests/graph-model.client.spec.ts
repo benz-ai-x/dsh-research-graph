@@ -213,6 +213,8 @@ describe('deriveSessionGraph subagent folding', () => {
     expect(graph.nodes.has('sub2')).toBe(false)
     expect(graph.nodes.has('deep')).toBe(false)
     expect(graph.nodes.get('root')).toMatchObject({ subagentCount: 3, runningSubagents: 2 })
+    expect(graph.nodes.get('root')?.subagents?.map(agent => agent.id).sort()).toEqual(['deep', 'sub1', 'sub2'])
+    expect(graph.nodes.get('root')?.subagents?.find(agent => agent.id === 'sub1')?.displayStatus).toBe('running')
     expect(graph.clusters[0]?.memberIds).toEqual([id('root')])
   })
 
@@ -223,11 +225,58 @@ describe('deriveSessionGraph subagent folding', () => {
       branchSub: session('branchSub', { parentId: id('branchChild'), origin: 'subagent' }),
     })
     expect(graph.nodes.get('root')?.subagentCount).toBe(0)
+    expect(graph.nodes.get('root')?.subagents).toBeUndefined()
     expect(graph.nodes.get('branchChild')).toMatchObject({ subagentCount: 1, runningSubagents: 0 })
+    expect(graph.nodes.get('branchChild')?.subagents?.map(agent => agent.id)).toEqual(['branchSub'])
   })
 })
 
 describe('deriveSessionGraph edges', () => {
+  it('keeps inherited Merge snapshots on Branches from creating repeated Merge Relations', () => {
+    const projectionValues = { sessionGraphMerge: {
+      operationId: 'palantir-merge', contextEventSeq: 8,
+      sources: ['analysis-a', 'analysis-b', 'analysis-c'].map(sessionId => ({ sessionId, capturedThroughSeq: 6 })),
+    } }
+    const graph = graphFor({
+      'analysis-a': session('analysis-a'),
+      'analysis-b': session('analysis-b'),
+      'analysis-c': session('analysis-c'),
+      merged: session('merged', { projectionValues }),
+      'branch-a': session('branch-a', { parentId: id('merged'), projectionValues }),
+      'branch-b': session('branch-b', { parentId: id('merged'), projectionValues }),
+    })
+
+    expect(graph.edges.filter(edge => edge.kind === 'branch')).toHaveLength(2)
+    expect(graph.edges.filter(edge => edge.kind === 'merge').map(edge => edge.to)).toEqual(['merged', 'merged', 'merged'])
+    expect(graph.nodes.get('branch-a')).toMatchObject({ mergeSources: [], inheritedMergeSources: projectionValues.sessionGraphMerge.sources })
+  })
+
+  it.each(['workspace', 'topic', 'topic-before-refresh'] as const)('retains inherited snapshots without inventing a Merge when the parent is outside the %s', scopeKind => {
+    const projectionValues = { sessionGraphMerge: { operationId: 'original-merge', contextEventSeq: 8,
+      sources: [{ sessionId: 'a', capturedThroughSeq: 6 }, { sessionId: 'b', capturedThroughSeq: 4 }],
+    } }
+    const rows = { a: session('a'), b: session('b'), branch: session('branch', { parentId: id('outside'), projectionValues }) }
+    const sources = Object.values(rows).map(row => ({ sessionId: row.id, title: row.displayTitle, status: 'listed' as const,
+      archived: false, ...(row.parentId === undefined || scopeKind === 'topic-before-refresh' ? {} : { parentSessionId: row.parentId }),
+    }))
+    const graph = scopeKind === 'workspace' ? graphFor(rows) : deriveTopicGraph({
+      topic: { topicId: 'topic', title: 'Topic', references: sources, arrangement: { positions: {}, collapsed: [], offsets: {} } }, sources,
+    }, listState(rows), undefined, new Map())
+    expect(graph.edges).toEqual([])
+    expect(graph.nodes.get('branch')).toMatchObject({ branchFrom: undefined, mergeSources: [], inheritedMergeSources: projectionValues.sessionGraphMerge.sources })
+  })
+
+  it('preserves independent successive Merges even when they share source snapshots', () => {
+    const projectionValues = { sessionGraphMerge: { operationId: 'operation-a', contextEventSeq: 8,
+      sources: [{ sessionId: 'a', capturedThroughSeq: 6 }, { sessionId: 'b', capturedThroughSeq: 4 }],
+    } }
+    const graph = graphFor({ a: session('a'), b: session('b'), merged: session('merged', { projectionValues }),
+      independent: session('independent', { projectionValues: { sessionGraphMerge: { ...projectionValues.sessionGraphMerge, operationId: 'operation-b' } } }),
+    })
+    expect(graph.edges.filter(edge => edge.kind === 'merge')).toHaveLength(4)
+    expect(graph.nodes.get('independent')?.inheritedMergeSources).toBeUndefined()
+  })
+
   it('keeps Branch edges inside the Session Cluster between attached Canvas Sessions', () => {
     const graph = graphFor({
       root: session('root', { updatedAt: 500 }),

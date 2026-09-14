@@ -65,7 +65,13 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
     readonly byId: Record<import('@deepseek-ai/dsh-session/types').SessionId, SessionSummary>
     readonly current: import('@deepseek-ai/dsh-session/types').SessionId | undefined
     readonly phase: string
-    readonly subagentsByParent: Readonly<Record<string, unknown>>
+    readonly subagentsByParent: Readonly<Record<string, {
+      readonly state: 'idle' | 'loading' | 'ready' | 'error'
+      readonly entries: readonly (
+        | { readonly id: import('@deepseek-ai/dsh-session/types').SessionId; readonly kind: 'child'; readonly mode: 'one-shot' | 'continuable' }
+        | { readonly id: import('@deepseek-ai/dsh-session/types').SessionId; readonly kind: 'diagnostic' }
+      )[]
+    }>>
     readonly jobsBySession: Readonly<Record<string, unknown>>
     readonly currentAddress: unknown
   }

@@ -57,6 +57,8 @@ export interface GraphViewInjected {
   readSessionHistory: (request: SessionHistoryRequest, signal: AbortSignal) => Promise<SessionHistoryResult>
   /** Open one session on its own last view (double-click and panel verb). */
   openSession: (id: SessionId) => void
+  /** Refresh the native catalog and open a delegated discussion through its direct-parent address. */
+  readonly openSubagent: (parentId: SessionId, childId: SessionId, signal: AbortSignal) => Promise<void>
   /** Create a Branch from one session (the panel's New-branch verb). */
   branchSession: (id: SessionId) => Promise<void>
   /** Explicitly generate or refresh one read-only Session Digest. */
@@ -218,6 +220,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
           now={now}
           t={t}
           onOpen={openSession}
+          onOpenSubagent={props.openSubagent}
           onBranch={branchSession}
           onGenerateDigest={generateSessionDigest}
           onGenerateTitle={props.generateSessionTitle}

@@ -267,6 +267,17 @@ async function registerUi(ctx: Context): Promise<void> {
       openSession: (id: SessionId) => {
         ctx.sessions.open(id)
       },
+      openSubagent: async (parentId, childId, signal) => {
+        signal.throwIfAborted()
+        await ctx.sessions.refreshSubagents(parentId)
+        signal.throwIfAborted()
+        const catalog = ctx.sessions.list.getSnapshot().subagentsByParent[parentId]
+        const entry = catalog?.entries.find(entry => entry.id === childId)
+        if (catalog?.state !== 'ready' || entry?.kind !== 'child') {
+          throw new Error('Subagent catalog address is unavailable')
+        }
+        ctx.sessions.openSubagent({ parentSessionId: parentId, childSessionId: childId, mode: entry.mode })
+      },
       branchSession: async (id: SessionId) => {
         await ctx.sessions.fork({ sessionId: id, increaseTitle: true })
       },

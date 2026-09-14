@@ -21,7 +21,7 @@
     "typescript",
     "react"
   ],
-  "version": "0.1.5-rc.2.7",
+  "version": "0.1.5-rc.2.8",
   "type": "module",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
