@@ -1,7 +1,7 @@
 /** Fixed-position orthogonal routing, shared by both canvas scopes after arrangement. */
 import { CARD_H, NODE_W, nodeBounds } from './layout.ts'
 import type { ContentBounds, LaidOutEdge, LaidOutGraph, LaidOutNode } from './layout.ts'
-import { FRAME_TITLE_H } from './clusters.ts'
+import { clusterHeaderWidth, FRAME_TITLE_H } from './clusters.ts'
 import type { LaidOutFrame } from './clusters.ts'
 
 interface Point { readonly x: number; readonly y: number }
@@ -347,7 +347,7 @@ export function routeGraph(laid: LaidOutGraph, frames: readonly LaidOutFrame[], 
   const obstacles = new ObstacleIndex()
   for (const node of laid.nodes) obstacles.add({ id: node.key, x: node.x - CLEARANCE, y: node.y - CLEARANCE,
     width: NODE_W + 2 * CLEARANCE, height: CARD_H + 2 * CLEARANCE })
-  for (const frame of frames) obstacles.add({ id: `header:${frame.clusterId}`, x: frame.x - 4, y: frame.y - 4, width: frame.width + 8, height: FRAME_TITLE_H + 8 })
+  for (const frame of frames) obstacles.add({ id: `header:${frame.clusterId}`, x: frame.x - 4, y: frame.y - 4, width: clusterHeaderWidth(frame) + 8, height: FRAME_TITLE_H + 8 })
   const byKey = new Map(laid.nodes.map(node => [node.key, node]))
   const groups = new Map<string, { readonly endpoint: Endpoint; readonly edgeId: string; readonly direction: 'input' | 'output' }[]>()
   const routes: Route[] = []

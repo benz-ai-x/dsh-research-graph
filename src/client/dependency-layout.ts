@@ -6,9 +6,36 @@ interface Frame {
   readonly height: number
 }
 interface Position { readonly x: number; readonly y: number }
+interface Component {
+  readonly positions: ReadonlyMap<string, Position>
+  readonly width: number
+  readonly height: number
+}
 /** Clear distance between neighboring dependency frames or component rows. */
 export const CLUSTER_GAP = 72
 const PACK_WIDTH = 1200
+
+/** Pack whole components without splitting their dependency rows. */
+function packComponents(components: readonly Component[]): Component {
+  const positions = new Map<string, Position>()
+  const wrapAt = Math.max(PACK_WIDTH, ...components.map(component => component.width))
+  let x = 0
+  let y = 0
+  let width = 0
+  let rowHeight = 0
+  for (const component of components) {
+    if (x > 0 && x + component.width > wrapAt) {
+      x = 0
+      y += rowHeight + CLUSTER_GAP
+      rowHeight = 0
+    }
+    for (const [id, local] of component.positions) positions.set(id, { x: x + local.x, y: y + local.y })
+    width = Math.max(width, x + component.width)
+    x += component.width + CLUSTER_GAP
+    rowHeight = Math.max(rowHeight, component.height)
+  }
+  return { positions, width, height: y + rowHeight }
+}
 
 /**
  * Keep connected sources on one rank; only disconnected components may wrap.
@@ -90,7 +117,7 @@ export function placeDependencyFrames(
   groups.forEach((group, index) => group.forEach((id, offset) => ranks.set(id, depths[index]! + offset)))
 
   seen.clear()
-  const components: { positions: Map<string, Position>; width: number; height: number }[] = []
+  const components: Component[] = []
   for (const frame of frames) {
     if (seen.has(frame.id)) continue
     const members = [frame.id]
@@ -146,20 +173,11 @@ export function placeDependencyFrames(
     }
     components.push({ positions, width, height: y - CLUSTER_GAP })
   }
-  const positions = new Map<string, Position>()
-  const wrapAt = Math.max(PACK_WIDTH, ...components.map(component => component.width))
-  let x = 0
-  let y = 0
-  let rowHeight = 0
-  for (const component of components) {
-    if (x > 0 && x + component.width > wrapAt) {
-      x = 0
-      y += rowHeight + CLUSTER_GAP
-      rowHeight = 0
-    }
-    for (const [id, local] of component.positions) positions.set(id, { x: x + local.x, y: y + local.y })
-    x += component.width + CLUSTER_GAP
-    rowHeight = Math.max(rowHeight, component.height)
+  const independent = components.filter(component => component.positions.size === 1)
+  if (independent.length > 1 && independent.length < components.length) {
+    // Keep unrelated discussions together instead of sprinkling some beside
+    // sources and wrapping the rest below their connected research result.
+    return packComponents([...components.filter(component => component.positions.size > 1), packComponents(independent)]).positions
   }
-  return positions
+  return packComponents(components).positions
 }

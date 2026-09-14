@@ -1355,6 +1355,14 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const relationsReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/relations']>(async () => ({ ok: true, value: [] }))
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
+  const openSubagent = vi.fn()
+  const refreshSubagents = vi.fn(async (parentId: SessionId) => {
+    const current = sessionsStore.getSnapshot()
+    const entries = Object.values(current.byId).filter(row => row.origin === 'subagent' && row.parentId === parentId).map(row => ({
+      id: row.id, kind: 'child' as const, mode: 'one-shot' as const,
+    }))
+    sessionsStore.set({ ...current, subagentsByParent: { ...current.subagentsByParent, [parentId]: { state: 'ready', entries, error: null } } } as SessionListState)
+  })
   const fork = vi.fn(async () => id('branched'))
   const create = vi.fn(async () => id('merged'))
   const rename = vi.fn(async () => ({ ok: true as const, value: undefined }))
@@ -1388,6 +1396,8 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('sessions', {
     list: sessionsStore,
     open,
+    openSubagent,
+    refreshSubagents,
     fork,
     create,
     binding: () => ({ session: { rename } }),
@@ -1427,7 +1437,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber
   return {
-    ctx, slots, fiber, sessionsStore, open, fork, create, rename, generateDigest, generateTitle, submitMerge, readHistory, searchDiscussion,
+    ctx, slots, fiber, sessionsStore, open, openSubagent, refreshSubagents, fork, create, rename, generateDigest, generateTitle, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge, prepareExport,
     prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse, prepareBranch, submitBranch, readBranch,
@@ -2013,6 +2023,8 @@ describe('graph tab rendering and interaction', () => {
 })
 
 function chooseCanvasAction(name: string): void {
+  const direct = screen.queryByRole('button', { name })
+  if (direct !== null) { fireEvent.click(direct); return }
   const options = screen.getByRole('button', { name: '图谱选项' })
   if (options.getAttribute('aria-expanded') !== 'true') fireEvent.click(options)
   fireEvent.click(screen.getByRole('button', { name }))
@@ -2187,13 +2199,13 @@ describe('free viewport controls', () => {
     switchTab('Research Graph')
 
     expect(screen.getByRole('group', { name: '画布工具' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: '重新布局' })).toBeNull()
+    expect(screen.getByRole('button', { name: '重新布局' })).toBeTruthy()
     const options = screen.getByRole('button', { name: '图谱选项' })
     fireEvent.click(options)
     expect(screen.getByRole('button', { name: '重新布局' })).toBeTruthy()
     expect(screen.getByRole('button', { name: '重置布局' })).toBeTruthy()
     fireEvent.keyDown(screen.getByRole('group', { name: '图谱选项' }), { key: 'Escape' })
-    expect(screen.queryByRole('button', { name: '重新布局' })).toBeNull()
+    expect(screen.getByRole('button', { name: '重新布局' })).toBeTruthy()
     expect(document.activeElement).toBe(options)
     fireEvent.click(options)
     fireEvent.pointerDown(surface())
@@ -2518,7 +2530,8 @@ describe('cluster frames', () => {
     switchTab('Research Graph')
     const frame = document.querySelector('[data-cluster-id="root"]')
     expect(frame).not.toBeNull()
-    expect(frame?.querySelector('[class*="frameLabel"]')?.textContent).toBe('Session root')
+    expect(frame?.querySelector('[class*="frameLabel"]')?.textContent).toBe('分支簇 · 2')
+    expect(frame?.querySelector('[data-cluster-title]')?.getAttribute('title')).toBe('Session root')
     expect(frame?.querySelector('button')?.getAttribute('aria-expanded')).toBe('true')
     expect(document.querySelectorAll('[data-cluster-id]')).toHaveLength(1)
   })
@@ -2694,6 +2707,123 @@ describe('cluster drag', () => {
 })
 
 describe('relayout button', () => {
+  it.each(['stale', 'diagnostic'] as const)('does not open a subagent with a %s catalog entry', async mode => {
+    const b = await bench({ root: session('root'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
+    b.refreshSubagents.mockImplementationOnce(async () => {
+      const current = b.sessionsStore.getSnapshot()
+      b.sessionsStore.set({ ...current, subagentsByParent: { root: {
+        state: mode === 'stale' ? 'error' : 'ready', error: null,
+        entries: mode === 'stale' ? [{ id: id('delegate'), kind: 'child', mode: 'one-shot' }]
+          : [{ id: id('delegate'), kind: 'diagnostic', reason: 'unavailable' }],
+      } } } as SessionListState)
+    })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByText('1 个子代理 · 0 个运行中'))
+    fireEvent.click(screen.getByRole('button', { name: 'Session delegate' }))
+    await screen.findByText(zh['panel.subagentOpenError'])
+    expect(b.openSubagent).not.toHaveBeenCalled()
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
+  it('keeps a failed subagent catalog read local and retries with the catalog mode', async () => {
+    const b = await bench({ root: session('root'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
+    b.refreshSubagents.mockRejectedValueOnce(new Error('catalog unavailable'))
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByText('1 个子代理 · 0 个运行中'))
+    const task = screen.getByRole('button', { name: 'Session delegate' })
+    fireEvent.click(task)
+    await screen.findByText(zh['panel.subagentOpenError'])
+    expect(b.open).not.toHaveBeenCalled()
+    expect(b.openSubagent).not.toHaveBeenCalled()
+    b.refreshSubagents.mockImplementationOnce(async () => {
+      const current = b.sessionsStore.getSnapshot()
+      b.sessionsStore.set({ ...current, subagentsByParent: { root: { state: 'ready', error: null,
+        entries: [{ id: id('delegate'), kind: 'child', mode: 'continuable' }],
+      } } } as SessionListState)
+    })
+    fireEvent.click(task)
+    await waitFor(() => { expect(b.openSubagent).toHaveBeenCalledWith({ parentSessionId: 'root', childSessionId: 'delegate', mode: 'continuable' }) })
+    await b.fiber.dispose()
+  })
+
+  it('does not open a late subagent catalog result after the inspector selection changes', async () => {
+    const b = await bench({ root: session('root'), other: session('other'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
+    const pending = Promise.withResolvers<void>()
+    b.refreshSubagents.mockReturnValueOnce(pending.promise)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(screen.getByText('1 个子代理 · 0 个运行中'))
+    fireEvent.click(screen.getByRole('button', { name: 'Session delegate' }))
+    fireEvent.click(nodeButton('other'))
+    await act(async () => { pending.resolve() })
+    expect(b.openSubagent).not.toHaveBeenCalled()
+    expect(b.open).not.toHaveBeenCalled()
+    expect(screen.getByTestId('session-graph-panel').textContent).toContain('Session other')
+    await b.fiber.dispose()
+  })
+
+  it.each(['workspace', 'topic'] as const)('distinguishes inherited Merge history and exposes delegated work in the %s', async scopeKind => {
+    const projectionValues = { sessionGraphMerge: { operationId: 'palantir-merge', contextEventSeq: 8,
+      sources: ['source-a', 'source-b', 'source-c'].map(sessionId => ({ sessionId, capturedThroughSeq: 6 })),
+    } }
+    const title = 'Merge: Palantir 商业模式与核心竞争力分析'
+    const rows = {
+      'source-a': session('source-a'), 'source-b': session('source-b'), 'source-c': session('source-c'),
+      merged: session('merged', { displayTitle: title, projectionValues }),
+      'branch-session-a': session('branch-session-a', { displayTitle: title, parentId: id('merged'), projectionValues }),
+      'branch-session-b': session('branch-session-b', { displayTitle: title, parentId: id('merged'), projectionValues }),
+      delegate: session('delegate', { displayTitle: '核对财报来源', origin: 'subagent', parentId: id('source-a'), running: true }),
+      nested: session('nested', { displayTitle: '核对原始引用', origin: 'subagent', parentId: id('delegate'), completed: true }),
+    }
+    const b = await bench(rows)
+    const sources = Object.values(rows).filter(row => row.origin !== 'subagent').map(row => ({
+      sessionId: row.id, title: row.displayTitle, cwd: '/w', status: 'listed' as const, archived: false,
+      ...(row.parentId === undefined ? {} : { parentSessionId: row.parentId }),
+    }))
+    const topic = { topicId: 'palantir', title: 'Palantir 研究', references: sources, arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources } })
+    mount(b.slots, b.sessionsStore, 'merged')
+    switchTab('Research Graph')
+    if (scopeKind === 'topic') {
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+      await waitFor(() => { expect(b.readTopic).toHaveBeenCalled() })
+      await screen.findByText('分支簇 · 3')
+    }
+    expect(document.querySelectorAll('[data-node-id]')).toHaveLength(6)
+    expect(document.querySelectorAll('[data-edge-kind="merge"]')).toHaveLength(3)
+    expect(document.querySelectorAll('[data-edge-kind="branch"]')).toHaveLength(2)
+    expect(screen.getByRole('group', { name: zh['reading.legend'] }).textContent).toContain('圆点：分支簇配色')
+    expect(nodeButton('branch-session-a').textContent).not.toEqual(nodeButton('branch-session-b').textContent)
+    fireEvent.click(nodeButton('branch-session-a'))
+    expect(nodeButton('source-b').className).not.toContain('dimContext')
+    const panelId = scopeKind === 'workspace' ? 'session-graph-panel' : 'topic-source-panel'
+    const panel = screen.getByTestId(panelId)
+    expect(panel.textContent).toContain(title)
+    const inherited = within(panel).getByText('继承的汇聚来源 · 3').closest('details')!
+    expect(inherited.open).toBe(false)
+    fireEvent.click(inherited.querySelector('summary')!)
+    expect(inherited.open).toBe(true)
+    expect(inherited.textContent).toContain('Session source-a')
+    expect(document.querySelectorAll('[data-edge-kind="merge"]')).toHaveLength(3)
+    fireEvent.click(nodeButton('source-a'))
+    const delegates = within(screen.getByTestId(panelId)).getByText('2 个子代理 · 1 个运行中').closest('details')!
+    fireEvent.click(delegates.querySelector('summary')!)
+    expect(delegates.textContent).toContain('核对原始引用')
+    fireEvent.click(within(delegates).getByRole('button', { name: '核对财报来源' }))
+    await waitFor(() => { expect(b.openSubagent).toHaveBeenCalledWith({ parentSessionId: 'source-a', childSessionId: 'delegate', mode: 'one-shot' }) })
+    fireEvent.click(within(delegates).getByRole('button', { name: '核对原始引用' }))
+    await waitFor(() => { expect(b.openSubagent).toHaveBeenCalledWith({ parentSessionId: 'delegate', childSessionId: 'nested', mode: 'one-shot' }) })
+    expect(b.open).not.toHaveBeenCalled()
+    await b.fiber.dispose()
+  })
+
   it('clears manual positions and returns nodes to the auto layout', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')

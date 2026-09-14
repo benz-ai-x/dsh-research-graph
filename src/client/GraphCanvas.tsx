@@ -19,6 +19,9 @@ import { SessionTitleControl } from './SessionTitleControl.tsx'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
+import { SubagentDetails } from './SubagentDetails.tsx'
+import { canvasNodeTitle, duplicateTitleIds, shortSessionId } from './node-labels.ts'
+import { clusterHeaderWidth } from './clusters.ts'
 import { useCanvasGeometry } from './reading-geometry.ts'
 import { ActionMenu } from './ActionMenu.tsx'
 import { containsSessionReferenceUri } from '../session-merge.ts'
@@ -156,7 +159,7 @@ interface NodeGestureHandlers {
 /** One Canvas Session card: title-first hierarchy, state, metadata, and terminals. */
 function NodeCard({
   laid, now, t, gestures, clusterColor, selected, onHoverBadge, badgeHovered,
-  dimClass, onHoverNode, mergeOrder, ports,
+  dimClass, onHoverNode, mergeOrder, ports, identity,
 }: {
   laid: LaidOutNode
   ports: readonly ConnectionPort[]
@@ -165,6 +168,7 @@ function NodeCard({
   gestures: NodeGestureHandlers
   clusterColor: string
   selected: boolean
+  identity: string | undefined
   mergeOrder: number | undefined
   onHoverBadge: (key: string | null) => void
   badgeHovered: boolean
@@ -174,6 +178,8 @@ function NodeCard({
   const { node, key, x, y } = laid
   const session = node.kind === 'knowledge' ? undefined : node
   const source = session?.topicSource
+  const relation = session?.branchFrom !== undefined || session?.inheritedMergeSources?.length
+    ? t('node.branch') : session?.mergeSources.length ? t('node.merge', { count: session.mergeSources.length }) : ''
   const badge = session !== undefined && session.subagentCount > 0
     ? `${t('node.subagents', { count: session.subagentCount })}${session.runningSubagents > 0 ? ` (${t('node.running', { count: session.runningSubagents })})` : ''}`
     : ''
@@ -196,6 +202,7 @@ function NodeCard({
         data-node-kind={node.kind ?? 'session'}
         data-display-status={session?.displayStatus}
         data-merge-selected={mergeOrder}
+        title={`${node.title}${identity === undefined ? '' : `\n${t('node.identity', { id: node.id })}`}`}
         aria-current={session?.viewed ? 'true' : undefined}
         aria-selected={selected || mergeOrder !== undefined}
         onPointerDown={gestures.onPointerDown}
@@ -210,22 +217,27 @@ function NodeCard({
         <span
           className={clsx(styles.dot, session?.displayStatus === 'running' ? styles.dotPulse : null)}
           style={{ background: `var(${clusterColor})` }}
+          title={t('legend.clusterHint')}
         />
         <span className={styles.body}>
           <span className={styles.title} title={node.title}>
-            {session?.blank ? t('node.newSession') : node.title}
+            {session?.blank ? t('node.newSession') : canvasNodeTitle(node)}
           </span>
           <span className={styles.nodeMeta}>
+            {relation === '' && identity === undefined ? null : <span className={styles.nodeRelation}
+              title={t('node.identity', { id: node.id })}>{relation}{identity === undefined ? '' : ` #${identity}`}</span>}
+            {session?.viewed ? <span className={styles.viewedMarker}>{t('node.viewed')}</span> : null}
             {node.kind === 'knowledge' ? <span>{t('knowledge.title')} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</span> : null}
             <span className={clsx(styles.time, source === undefined ? null : styles.topicSourceLabel)}
               title={source?.workspace?.title || source?.cwd}>{source === undefined ? timeLabel(node.updatedAt, now, t)
               : source.workspace?.title || source.cwd || t('topic.noWorkspace')}</span>
             {source?.archived ? <span className={styles.badge}>{t('search.archived')}</span> : null}
             {source?.status === 'unavailable' ? <span className={styles.badge}>{t('topic.unavailable')}</span> : null}
-            {badge !== ''
+            {badge !== '' && session !== undefined
               ? (
                 <span
                   className={styles.badge}
+                  title={t('panel.subagentSummary', { count: session.subagentCount, running: session.runningSubagents })}
                   onMouseEnter={() => { onHoverBadge(key) }}
                   onMouseLeave={() => { onHoverBadge(null) }}
                 >
@@ -412,14 +424,16 @@ function DigestSection({
 }
 
 function SelectedSessionPanel({
-  node, branchedFrom, mergeSourceTitles, now, t, onOpen, onBranch, onGenerateDigest, onGenerateTitle, onRenameTitle, onReadHistory, onClose, onAddToTopic, workingKey, onUnavailable,
+  node, identity, branchedFrom, mergeSourceTitles, now, t, onOpen, onOpenSubagent, onBranch, onGenerateDigest, onGenerateTitle, onRenameTitle, onReadHistory, onClose, onAddToTopic, workingKey, onUnavailable,
 }: {
   node: SessionGraphNode | undefined
+  identity: string | undefined
   branchedFrom: string | undefined
   mergeSourceTitles: ReadonlyMap<string, string>
   now: number
   t: Translate
   onOpen: GraphViewInjected['openSession']
+  onOpenSubagent: GraphViewInjected['openSubagent']
   onBranch: GraphViewInjected['branchSession']
   onGenerateTitle: GraphViewInjected['generateSessionTitle']
   onRenameTitle: GraphViewInjected['renameSessionTitle']
@@ -524,10 +538,20 @@ function SelectedSessionPanel({
 
   if (node === undefined) return null
   const status = displayStatusLabel(node.displayStatus, t)
+  const inherited = node.mergeSources.length === 0 && !!node.inheritedMergeSources?.length
+  const mergeSources = inherited ? node.inheritedMergeSources! : node.mergeSources
+  const sourceList = <ol>{mergeSources.map((source, index) => <li key={source.sessionId}>
+    <span className={styles.mergeSourceOrder}>{index + 1}</span>
+    <span className={styles.mergeRelationSource}>{mergeSourceTitles.get(source.sessionId)
+      ?? t('panel.mergeUnavailable', { id: source.sessionId })}</span>
+    <span className={styles.mergeRelationSnapshot}>{source.capturedThroughSeq === null
+      ? t('panel.mergeCompleteSnapshot') : t('panel.mergeCapturedThrough', { seq: source.capturedThroughSeq })}</span>
+  </li>)}</ol>
   return (
     <InspectorFrame label={t('panel.title')} title={node.blank ? t('node.newSession') : node.title}
       workingKey={workingKey} testId="session-graph-panel" onClose={onClose} t={t}
       meta={<div className={styles.sessionMeta}><div className={styles.panelMeta}>
+        <span title={t('node.identity', { id: node.id })}>#{identity ?? shortSessionId(node.id)}</span>
         <span>{timeLabel(node.updatedAt, now, t)}</span>
         {status === ''
           ? null
@@ -611,31 +635,17 @@ function SelectedSessionPanel({
       {branchedFrom === undefined
         ? null
         : <div className={styles.panelRelation}>{t('node.branchedFrom', { name: branchedFrom })}</div>}
-      {node.mergeSources.length === 0
+      {mergeSources.length === 0
         ? null
         : (
           <section className={styles.mergeRelations} aria-labelledby="session-graph-merge-sources">
-            <div id="session-graph-merge-sources" className={styles.mergeRelationsTitle}>
-              {t('panel.mergeSources')}
-            </div>
-            <ol>
-              {node.mergeSources.map((source, index) => (
-                <li key={source.sessionId}>
-                  <span className={styles.mergeSourceOrder}>{index + 1}</span>
-                  <span className={styles.mergeRelationSource}>
-                    {mergeSourceTitles.get(source.sessionId)
-                      ?? t('panel.mergeUnavailable', { id: source.sessionId })}
-                  </span>
-                  <span className={styles.mergeRelationSnapshot}>
-                    {source.capturedThroughSeq === null
-                      ? t('panel.mergeCompleteSnapshot')
-                      : t('panel.mergeCapturedThrough', { seq: source.capturedThroughSeq })}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            {inherited ? <details key={node.id} className={styles.inheritedSources}>
+              <summary id="session-graph-merge-sources">{t('panel.inheritedMergeSources', { count: mergeSources.length })}</summary>
+              <p>{t('panel.inheritedMergeHint')}</p>{sourceList}
+            </details> : <><div id="session-graph-merge-sources" className={styles.mergeRelationsTitle}>{t('panel.mergeSources')}</div>{sourceList}</>}
           </section>
         )}
+      <SubagentDetails key={node.id} node={node} onOpen={onOpenSubagent} t={t} />
       <div id={`${tabId}-content`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
         {tab === 'history'
           ? <SessionHistory key={node.id} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} workingKey={workingKey} onUnavailable={onUnavailable} read={onReadHistory} t={t} />
@@ -768,7 +778,7 @@ const CARD_H_MAP = 4
  * @returns the canvas element.
  */
 export function GraphCanvas({
-  laid, clusters, arrangement, now, t, onOpen, onBranch, onGenerateDigest, onGenerateTitle, onRenameTitle, onReadHistory,
+  laid, clusters, arrangement, now, t, onOpen, onOpenSubagent, onBranch, onGenerateDigest, onGenerateTitle, onRenameTitle, onReadHistory,
   onMerge, onRetryMerge, topic, onAddToTopic, workingKey, toolbarTarget,
 }: {
   laid: LaidOutGraph
@@ -777,6 +787,7 @@ export function GraphCanvas({
   now: number
   t: Translate
   onOpen: GraphViewInjected['openSession']
+  onOpenSubagent: GraphViewInjected['openSubagent']
   onBranch: GraphViewInjected['branchSession']
   onGenerateTitle: GraphViewInjected['generateSessionTitle']
   onRenameTitle: GraphViewInjected['renameSessionTitle']
@@ -976,6 +987,8 @@ export function GraphCanvas({
     [laid, positions, clusters, collapsedSet, offsets, edgeLabels],
   )
   const shownByKey = useMemo(() => new Map(shown.nodes.map(node => [node.key, node])), [shown])
+  const titleIds = useMemo(() => duplicateTitleIds(shown.nodes.map(entry => entry.node)), [shown])
+  const clusterCounts = useMemo(() => new Map(clusters.map(cluster => [cluster.rootId, cluster.memberIds.length])), [clusters])
   useEffect(() => {
     if (restoredArrangementKey !== arrangement.key || fittedRef.current) return
     // The conversation shell measures its composer after the first paint.
@@ -1003,7 +1016,8 @@ export function GraphCanvas({
   const colorOfCluster = useMemo(() => {
     const map = new Map<string, string>()
     clusters.forEach((cluster, index) => {
-      map.set(cluster.rootId, CLUSTER_COLORS[index % CLUSTER_COLORS.length] ?? '--dsw-alias-border-l2')
+      map.set(cluster.rootId, cluster.memberIds.length === 1 ? '--dsw-alias-label-dimmed'
+        : CLUSTER_COLORS[index % CLUSTER_COLORS.length] ?? '--dsw-alias-border-l2')
     })
     return map
   }, [clusters])
@@ -1041,14 +1055,16 @@ export function GraphCanvas({
     }
     const focusKey = hoverNode ?? selected
     if (focusKey === null) return null
-    const set = new Set(branchLineage(shown.nodes.map(entry => entry.node), focusKey))
-    if (topic !== undefined) {
-      for (const { edge } of shown.edges) {
-        if (edge.from === focusKey || edge.to === focusKey) { set.add(edge.from); set.add(edge.to) }
+    const lineage = branchLineage(shown.nodes.map(entry => entry.node), focusKey)
+    const set = new Set(lineage)
+    for (const { edge } of shown.edges) {
+      if (edge.kind !== 'branch' && (edge.from === focusKey || lineage.has(edge.to))) {
+        set.add(edge.from)
+        set.add(edge.to)
       }
     }
     return set.size === 0 ? null : { keys: set, mode: 'context' }
-  }, [filterMatches, hoverEdge, hoverNode, selected, shown, topic !== undefined])
+  }, [filterMatches, hoverEdge, hoverNode, selected, shown])
   const dimStyle = emphasis?.mode === 'filter' ? styles.dimFilter : styles.dimContext
   const emphasizedClusters = useMemo(() => new Set(shown.nodes
     .filter(entry => emphasis?.keys.has(entry.key))
@@ -1531,6 +1547,8 @@ export function GraphCanvas({
           >
             <div
               className={styles.frameTitle}
+              style={{ width: `${clusterHeaderWidth(frame)}px` }}
+              title={frame.label}
               data-cluster-title={frame.clusterId}
               {...clusterGestures(frame.clusterId)}
             >
@@ -1547,7 +1565,7 @@ export function GraphCanvas({
                 className={styles.frameSwatch}
                 style={{ background: `var(${CLUSTER_COLORS[frame.colorIndex]})` }}
               />
-              <span className={styles.frameLabel}>{frame.label}</span>
+              <span className={styles.frameLabel}>{t('cluster.summary', { count: clusterCounts.get(frame.clusterId) })}</span>
             </div>
           </div>
         ))}
@@ -1631,6 +1649,7 @@ export function GraphCanvas({
           <NodeCard
             key={laidNode.key}
             laid={laidNode}
+            identity={titleIds.get(laidNode.key)}
             ports={shown.ports.get(laidNode.key) ?? []}
             now={now}
             t={t}
@@ -1693,6 +1712,11 @@ export function GraphCanvas({
           )
           : null}
       </div>
+      <div className={styles.canvasKey} data-canvas-overlay="" role="group" aria-label={t('reading.legend')}>
+        <span><i className={styles.legendLineMerge} aria-hidden="true" />{t('legend.merge')}</span>
+        <span><i className={styles.legendLineBranch} aria-hidden="true" />{t('legend.branch')}</span>
+        <span title={t('legend.clusterHint')}><i className={styles.legendCluster} aria-hidden="true" />{t('legend.cluster')}</span>
+      </div>
       {toolbarTarget === null ? null : createPortal(<div className={styles.controls} data-canvas-overlay="" role="group" aria-label={t('toolbar.label')}
         onPointerDown={event => { event.stopPropagation() }} onKeyDown={event => { event.stopPropagation() }}>
         <div className={styles.canvasZoom}>
@@ -1716,6 +1740,10 @@ export function GraphCanvas({
             {t('toolbar.locate')}
           </button>
         </div>
+        <div className={styles.canvasArrangement}>
+          <button type="button" title={t('toolbar.relayoutHint')} onClick={relayout}>{t('toolbar.relayout')}</button>
+          {relayoutUndo === null ? null : <button type="button" onClick={undoRelayout}>{t('toolbar.undoRelayout')}</button>}
+        </div>
         <span className={styles.controlDivider} aria-hidden="true" />
         <ActionMenu label={t('reading.canvasOptions')}>
           <div className={styles.canvasMenuZoom} data-menu-keep-open="" role="group" aria-label={t('reading.zoom')}>
@@ -1730,8 +1758,6 @@ export function GraphCanvas({
               if (viewed !== undefined) locateNode(viewed.key)
             }}>{t('toolbar.locate')}</button>
           </div>
-          <button type="button" onClick={relayout}>{t('toolbar.relayout')}</button>
-          {relayoutUndo === null ? null : <button type="button" onClick={undoRelayout}>{t('toolbar.undoRelayout')}</button>}
           <button type="button" onClick={reset}>{t('toolbar.reset')}</button>
           {topic?.actions}
           {topic === undefined ? <button
@@ -1756,6 +1782,7 @@ export function GraphCanvas({
             {t('toolbar.merge')}
           </button> : null}
           <div className={styles.canvasLegend} aria-label={t('reading.legend')}>
+            <p>{t('legend.clusterHint')}</p>
             <span><i className={styles.legendLineDerivation} />{t('legend.derivation')}</span>
             <span><i className={styles.legendLineBranch} />{t('legend.branch')}</span>
             <span><i className={styles.legendLineMerge} />{t('legend.merge')}</span>
@@ -1898,11 +1925,13 @@ export function GraphCanvas({
         onUnavailable={() => { setSelected(null); setUnavailableSelection(true) }}
         onAddToTopic={onAddToTopic}
         node={mergeMode || selectedNode?.kind === 'knowledge' ? undefined : selectedNode}
+        identity={selected === null ? undefined : titleIds.get(selected)}
         branchedFrom={selected === null ? undefined : branchSource.get(selected)}
         mergeSourceTitles={new Map(shown.nodes.map(entry => [entry.key, entry.node.title]))}
         now={now}
         t={t}
         onOpen={onOpen}
+        onOpenSubagent={onOpenSubagent}
         onBranch={onBranch}
         onGenerateTitle={onGenerateTitle}
         onRenameTitle={onRenameTitle}

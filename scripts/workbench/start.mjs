@@ -6,11 +6,11 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setTimeout } from 'node:timers/promises'
 import { releaseVersions } from '../release-versions.mjs'
+import { resolveHarnessRoot } from '../resolve-harness.mjs'
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const manifest = JSON.parse(await readFile(join(repo, 'package.json'), 'utf8'))
 const { dshVersion } = releaseVersions(manifest)
-let harness = resolve(process.env.DSH_HARNESS_ROOT ?? join(repo, `../deepseek-harness-${dshVersion}`))
 const artifacts = join(repo, '.artifacts/workbench-dsh')
 const root = join(artifacts, 'profile')
 const stateFile = join(artifacts, 'state.json')
@@ -27,14 +27,8 @@ if (running) {
   console.log(`Workbench DSH is already running: ${previous.url}\nStop it with: pnpm preview:dsh --stop`)
   process.exit(0)
 }
-let upstream
-try { upstream = JSON.parse(await readFile(join(harness, 'package.json'), 'utf8')) } catch (error) {
-  if (error.code !== 'ENOENT') throw error
-  harness = resolve(repo, `../deepseek-harness-${dshVersion}`)
-  upstream = JSON.parse(await readFile(join(harness, 'package.json'), 'utf8'))
-  console.log(`Configured DSH checkout was unavailable; using the matching sibling checkout: ${harness}`)
-}
-if (upstream.version !== dshVersion) throw new Error(`Use the matching DSH ${dshVersion} checkout (DSH_HARNESS_ROOT). Found ${upstream.version}`)
+const harness = await resolveHarnessRoot(repo, dshVersion, process.env.DSH_HARNESS_ROOT)
+console.log(`Using DSH ${dshVersion}: ${harness}`)
 const harnessRequire = createRequire(join(harness, 'package.json'))
 const launcher = ['--import', harnessRequire.resolve('tsx/esm'), join(harness, 'apps/cli/src/bin.ts')]
 const env = { ...process.env, DSH_HOME: join(root, 'home'), DSH_AGENTS_HOME: join(root, 'agents'),

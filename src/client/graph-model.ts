@@ -71,10 +71,19 @@ export interface SessionGraphNode extends GraphNodeBase {
   /** Subagent descendants reachable through an uninterrupted subagent-origin chain. */
   readonly subagentCount: number
   readonly runningSubagents: number
+  /** Inspectable delegated discussions, still folded out of the canvas. */
+  readonly subagents?: readonly {
+    readonly id: SessionId
+    readonly parentId: SessionId
+    readonly title: string
+    readonly displayStatus: DisplayStatus | undefined
+  }[]
   /** The parent Canvas Session id for an attached Branch. */
   readonly branchFrom: SessionId | undefined
   /** Captured source snapshots when this node is an explicit Merge Session. */
   readonly mergeSources: readonly SessionMergeProjectionSource[]
+  /** Snapshots inherited with Branch history; these do not create new Merge Relations. */
+  readonly inheritedMergeSources?: readonly SessionMergeProjectionSource[]
   /** Present only for an explicit Research Topic reference. */
   readonly topicSource?: ResearchTopicSource
   readonly reuseRelations?: readonly ResearchRelation[]
@@ -184,6 +193,7 @@ export function resolveGraphScope(
 interface BadgeSummary {
   count: number
   runningCount: number
+  sessions: SessionSummary[]
 }
 
 /**
@@ -210,13 +220,12 @@ function indexBadges(
     while (current?.origin === 'subagent' && current.parentId !== undefined
       && !seen.has(current.id)) {
       seen.add(current.id)
-      const badge = indexed.get(current.parentId)
-      if (badge === undefined) {
-        indexed.set(current.parentId, { count: 1, runningCount: descendant.running ? 1 : 0 })
-      } else {
-        badge.count += 1
-        if (descendant.running) badge.runningCount += 1
-      }
+      const badge = indexed.get(current.parentId) ?? { count: 0, runningCount: 0, sessions: [] }
+      badge.count += 1
+      if (descendant.running) badge.runningCount += 1
+      const parent = visible.get(current.parentId)
+      if (parent !== undefined && parent.origin !== 'subagent') badge.sessions.push(descendant)
+      indexed.set(current.parentId, badge)
       current = visible.get(current.parentId)
     }
     /* jscpd:ignore-end */
@@ -285,7 +294,7 @@ export function deriveTopicGraph(
       ...(row?.projectionValues === undefined ? {} : { projectionValues: row.projectionValues }),
     })
   }
-  return deriveRowsGraph(visible, viewedId, pendingInteractions, sources)
+  return deriveRowsGraph(visible, viewedId, pendingInteractions, sources, new Map(Object.values(list.byId).map(row => [row.id, row])))
 }
 
 function deriveRowsGraph(
@@ -293,9 +302,10 @@ function deriveRowsGraph(
   viewedId: SessionId | undefined,
   pendingInteractions: ReadonlyMap<SessionId, unknown>,
   sources?: ReadonlyMap<string, ResearchTopicSource>,
+  hostRows?: ReadonlyMap<SessionId, SessionSummary>,
 ): SessionGraph<SessionGraphNode> {
 
-  const badges = indexBadges(visible)
+  const badges = indexBadges(hostRows ?? visible)
   const nodes = new Map<string, SessionGraphNode>()
   const children = new Map<string, string[]>()
   const edges: GraphEdge[] = []
@@ -315,8 +325,12 @@ function deriveRowsGraph(
 
   /** Place one member; the caller walks descendants with an explicit stack. */
   const placeMember = (row: SessionSummary, clusterRootId: SessionId, members: SessionId[]): void => {
-    const badge = badges.get(row.id)
+    const badge = sources?.get(row.id)?.status === 'unavailable' ? undefined : badges.get(row.id)
     const pending = pendingInteractions.has(row.id)
+    const mergeSources = row.projectionValues?.sessionGraphMerge?.sources ?? []
+    // Merge targets are unparented. Replayed Branch history can carry the
+    // same projection, even when its parent is outside this graph's scope.
+    const inheritedMerge = (sources?.get(row.id)?.parentSessionId ?? hostRows?.get(row.id)?.parentId ?? row.parentId) !== undefined
     nodes.set(row.id, {
       id: row.id,
       clusterId: clusterRootId,
@@ -329,8 +343,14 @@ function deriveRowsGraph(
       updatedAt: row.updatedAt,
       subagentCount: badge?.count ?? 0,
       runningSubagents: badge?.runningCount ?? 0,
+      ...(badge?.sessions.length ? { subagents: [...badge.sessions].sort(byRecency).map(session => ({
+        id: session.id, parentId: session.parentId!, title: session.displayTitle,
+        displayStatus: session.running ? 'running' as const : pendingInteractions.has(session.id) ? 'waiting-input' as const
+          : session.completed === true ? 'completed' as const : undefined,
+      })) } : {}),
       branchFrom: branchParent.get(row.id),
-      mergeSources: row.projectionValues?.sessionGraphMerge?.sources ?? [],
+      mergeSources: inheritedMerge ? [] : mergeSources,
+      ...(inheritedMerge && mergeSources.length > 0 ? { inheritedMergeSources: mergeSources } : {}),
       ...(sources?.get(row.id) === undefined ? {} : { topicSource: sources.get(row.id)! }),
     })
     members.push(row.id)

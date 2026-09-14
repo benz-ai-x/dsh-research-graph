@@ -14,6 +14,7 @@ import { GraphCanvas } from './GraphCanvas.tsx'
 import { SessionTitleControl } from './SessionTitleControl.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
+import { SubagentDetails } from './SubagentDetails.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
 import { KnowledgeReader } from './KnowledgeReader.tsx'
@@ -123,7 +124,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
       {presented.graph.nodes.size === 0 ? <p>{t('topic.noReferences')}</p> : null}
       <GraphCanvas key={workingKey} workingKey={workingKey} laid={presented.laid} clusters={presented.graph.clusters} toolbarTarget={context.toolbarTarget}
         arrangement={{ key: `topic:${topic.topicId}`, legacyKey: undefined }} now={Date.now()} t={t}
-        onOpen={open} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
+        onOpen={open} onOpenSubagent={context.actions.openSubagent} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onGenerateTitle={context.actions.generateSessionTitle} onRenameTitle={context.actions.renameSessionTitle}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
         topic={{ arrangement, onArrange, openCard: knowledge.open,
@@ -138,11 +139,13 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
             card={node.card} relations={{ ...relations, relations: presented.relations }} read={context.actions.readSessionHistory} t={t} /> : <TopicSourcePanel key={node.id} workingKey={workingKey} node={node} read={context.actions.readSessionHistory} open={open}
             remove={topic.references.some(reference => reference.sessionId === node.id) ? () => { remove(node.id) } : undefined}
             generateTitle={context.actions.generateSessionTitle} renameTitle={context.actions.renameSessionTitle}
+            openSubagent={context.actions.openSubagent}
             sessions={context.sessions} workspaces={context.workspaces} busy={busy || phase !== 'ready' || relations.loading || relations.failed} onClose={onClose} onUnavailable={onUnavailable} t={t} /> }} /></>}
   </div>
 }
 
-function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailable, workingKey, sessions, workspaces, generateTitle, renameTitle, t }: {
+function TopicSourcePanel({ node, read, open, openSubagent, remove, busy, onClose, onUnavailable, workingKey, sessions, workspaces, generateTitle, renameTitle, t }: {
+  readonly openSubagent: GraphViewInjected['openSubagent']
   readonly generateTitle: GraphViewInjected['generateSessionTitle']
   readonly renameTitle: GraphViewInjected['renameSessionTitle']
   readonly onUnavailable: () => void
@@ -162,6 +165,21 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailab
   const [reading, setReading] = useState(() => loadWorkingPosition(workingKey).selected === node.id && loadWorkingPosition(workingKey).tab === 'history')
   useEffect(() => { saveWorkingPosition(workingKey, { tab: reading ? 'history' : 'digest' }) }, [workingKey, reading])
   const source = node.topicSource
+  const inherited = node.mergeSources.length === 0 && !!node.inheritedMergeSources?.length
+  const mergeSources = inherited ? node.inheritedMergeSources! : node.mergeSources
+  const sourceLinks = mergeSources.map(item => {
+    const session = sessions.byId[item.sessionId as SessionId]
+    const workspace = workspaces.items.find(workspace => workspace.sessionIds.includes(item.sessionId as SessionId))
+      ?? workspaces.items.find(workspace => workspace.path === session?.cwd)
+    const title = session?.displayTitle || t('history.title')
+    return <section key={item.sessionId}>
+      <button type="button" className={styles.readingSourceLink} aria-expanded={mergeSource === item.sessionId}
+        onClick={() => { setMergeSource(value => value === item.sessionId ? undefined : item.sessionId) }}>
+        <strong>{title}</strong><small>{workspace?.title || session?.cwd || t('topic.noWorkspace')} · {t('topic.readOriginal')}</small>
+      </button>
+      {mergeSource === item.sessionId ? <SessionHistory sourceTitle={title} sessionId={item.sessionId} read={read} t={t} /> : null}
+    </section>
+  })
   return <InspectorFrame label={t('topic.source')} title={node.title} workingKey={workingKey}
     testId="topic-source-panel" onClose={onClose} t={t}
     meta={<div className={styles.sessionMeta}><div className={styles.panelMeta}><span>{source?.workspace?.title || source?.cwd || t('topic.noWorkspace')}</span>
@@ -174,19 +192,10 @@ function TopicSourcePanel({ node, read, open, remove, busy, onClose, onUnavailab
     </div>}>
     {source?.status === 'unavailable' ? <div role="status">{t('topic.unavailable')}</div> : null}
     {source?.archived ? <div role="status">{t('topic.archivedReading')}</div> : null}
-    {node.mergeSources.length ? <section className={styles.readingSources}><h3>{t('workbench.mergeFrom')}</h3><p>{t('workbench.mergeCaptured')}</p>{node.mergeSources.map(item => {
-      const session = sessions.byId[item.sessionId as SessionId]
-      const workspace = workspaces.items.find(workspace => workspace.sessionIds.includes(item.sessionId as SessionId))
-        ?? workspaces.items.find(workspace => workspace.path === session?.cwd)
-      const title = session?.displayTitle || t('history.title')
-      return <section key={item.sessionId}>
-        <button type="button" className={styles.readingSourceLink} aria-expanded={mergeSource === item.sessionId}
-          onClick={() => { setMergeSource(value => value === item.sessionId ? undefined : item.sessionId) }}>
-          <strong>{title}</strong><small>{workspace?.title || session?.cwd || t('topic.noWorkspace')} · {t('topic.readOriginal')}</small>
-        </button>
-        {mergeSource === item.sessionId ? <SessionHistory sourceTitle={title} sessionId={item.sessionId} read={read} t={t} /> : null}
-      </section>
-    })}</section> : null}
+    {mergeSources.length ? inherited ? <details className={styles.inheritedSources}>
+      <summary>{t('panel.inheritedMergeSources', { count: mergeSources.length })}</summary><p>{t('panel.inheritedMergeHint')}</p>{sourceLinks}
+    </details> : <section className={styles.readingSources}><h3>{t('workbench.mergeFrom')}</h3><p>{t('workbench.mergeCaptured')}</p>{sourceLinks}</section> : null}
+    <SubagentDetails node={node} onOpen={openSubagent} t={t} />
     {node.reuseRelations?.map(item => <button className={styles.readingSourceLink} type="button" key={item.operationId} onClick={() => { reuse?.inspect(item.operationId) }}><strong>{t('workbench.frozen')}</strong><small>{item.question}</small></button>)}
     {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { retainedSource: node.retainedSource })} read={read} t={t} /> : null}
 

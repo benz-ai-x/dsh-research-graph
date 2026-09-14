@@ -38,6 +38,11 @@ export interface LaidOutFrame {
   readonly colorIndex: number
 }
 
+/** A short cluster label leaves the middle of its upper boundary open to incoming relations. */
+export function clusterHeaderWidth(frame: Pick<LaidOutFrame, 'width'>): number {
+  return Math.min(200, frame.width / 2 - 12)
+}
+
 /**
  * Compute the frame boxes for the laid-out clusters from the supplied node
  * positions. Every cluster frames — isolated singletons included — so every

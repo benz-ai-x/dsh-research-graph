@@ -3,6 +3,7 @@ import type { GraphEdge, GraphNode, SessionGraph } from '../src/client/graph-mod
 import { CARD_H, NODE_W, layoutSessionGraph } from '../src/client/layout.ts'
 import { layoutResearchGraph } from '../src/client/research-layout.ts'
 import { deriveCanvasPresentation } from '../src/client/canvas-presentation.ts'
+import { clusterHeaderWidth, FRAME_TITLE_H } from '../src/client/clusters.ts'
 import type { CanvasPresentation, CanvasPresentationInput } from '../src/client/canvas-presentation.ts'
 
 function graph(ids: readonly string[], pairs: readonly (readonly [string, string])[]): SessionGraph {
@@ -18,7 +19,7 @@ function assertClear(presentation: CanvasPresentation): void {
   const obstacles = [
     ...shown.nodes.map(node => ({ id: node.key, x: node.x, y: node.y, width: NODE_W, height: CARD_H })),
     ...frames.filter(frame => shown.nodes.filter(node => node.node.clusterId === frame.clusterId).length > 1)
-      .map(frame => ({ ...frame, id: `header:${frame.clusterId}`, height: 32 })),
+      .map(frame => ({ ...frame, id: `header:${frame.clusterId}`, width: clusterHeaderWidth(frame), height: FRAME_TITLE_H })),
   ]
   for (const edge of shown.edges) {
     for (let index = 1; index < edge.points.length; index += 1) {
@@ -59,6 +60,14 @@ function sharedLength(presentation: CanvasPresentation): number {
 }
 
 describe('final canvas routing', () => {
+  it.each([layoutSessionGraph, layoutResearchGraph])('keeps disconnected discussions together beside a connected research component', layout => {
+    const input = graph(['A', 'B', 'C', 'M', 'video', 'search', 'notes'], [['A', 'M'], ['B', 'M'], ['C', 'M']])
+    const result = present(input, { laid: layout(input) })
+    const independent = result.shown.nodes.filter(node => ['video', 'search', 'notes'].includes(node.key))
+    expect(new Set(independent.map(node => node.y)).size).toBe(1)
+    assertClear(result)
+  })
+
   it.each([layoutSessionGraph, layoutResearchGraph])('separates Merge arrivals in a collapsed cluster title gap', layout => {
     const initial = graph(['A', 'B', 'C', 'D', 'G', 'J', 'M', 'N'], [
       ['A', 'D'], ['B', 'D'], ['C', 'G'], ['D', 'G'], ['B', 'G'], ['J', 'N'], ['B', 'N'],
