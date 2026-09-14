@@ -1,3 +1,8 @@
+---
+description: "面向 DeepSeek Harness Web 的 AI 会话图谱、研究主题与可追溯知识卡片插件。了解研究工作台的功能能力、兼容性与安装方法。"
+kind: "package-bundle"
+---
+
 <a id="dsh-research-graph--研图"></a>
 
 # DSH Research Graph · 研图
@@ -6,7 +11,7 @@
 
 [English](README.md) | **简体中文**
 
-面向 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 的开源 **AI 研究工作台**。把分散的讨论整理成图谱，沉淀有出处、可复用的知识，适用于产品研究、技术调研与持续知识管理。
+面向 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness)、由社区独立维护的开源 **AI 研究工作台插件**，运行于 **DSH Web**。将分散的讨论组织为研究主题与可追溯的知识卡片，用于产品研究、技术调研与持续知识管理。
 
 ## 功能能力图谱
 
@@ -64,21 +69,21 @@ flowchart LR
 | 适配宿主 | **DSH 0.1.5-rc.2 · Web**，Node.js `^22.19.0 \|\| >=24.0.0` |
 | 数据保存 | 研究数据保存在 DSH Host；工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出不调用模型；AI 生成与新讨论按需调用 |
-| Agent 边界 | 模型与 Agent 执行由 DSH 提供；插件不内置专业预设或 Agent Team 启动器 |
+| Agent 能力 | 模型、工具、预设与 Agent 执行由 DSH 提供；插件不内置预设或 Agent Team 启动器。[详细说明](docs/user-guide.zh.md#dsh-与-agent-预设) |
 | 技术与许可 | TypeScript · React · [MIT](LICENSE) |
 
 <a id="安装"></a>
 
 ## 快速开始
 
-在已安装且版本匹配的 DSH 中运行：
+需要 **DSH 0.1.5-rc.2**，并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
 
 ```sh
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
-若 DSH 已运行，请先停止再重启。打开终端给出的登录入口，在一个**非空会话**中选择**研图**：读原文 → 保存知识 → 继续讨论。
+打开终端给出的登录入口，在一个**非空会话**中选择**研图**：读原文 → 保存知识 → 继续讨论。通过 `npx` 或源码运行 DSH 时，参阅[安装方式](docs/user-guide.zh.md#安装)。
 
 ## 文档与支持
 

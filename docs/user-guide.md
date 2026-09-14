@@ -15,14 +15,14 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 
 ## Quick start
 
-Requires **DeepSeek Harness 0.1.5-rc.2** and Node.js `^22.19.0 || >=24.0.0`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version.
+Requires **DeepSeek Harness 0.1.5-rc.2**, Node.js `^22.19.0 || >=24.0.0`, and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
 
 ```sh
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
-If `dsh web` is already running, stop it before restarting. Open the one-time authenticated URL printed by the command; do not share its token.
+Open the one-time authenticated URL printed by the command; do not share its token.
 
 1. Open a non-blank DSH Session and select **Research Graph → Graph** to explore discussion relationships.
 2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
@@ -199,6 +199,12 @@ Confirming creates an independent Session and sends the frozen preview through n
 | Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | The target processes the queued instruction on its normal route |
 
 ## Install
+
+The [DSH plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.5-rc.2/apps/cli/reference/README.md#plugin-management) invokes `pnpm`, which must be on your `PATH`. Use the launcher for your matching DSH installation throughout the commands below:
+
+- Installed CLI: use `dsh`.
+- npm launcher: replace `dsh` with `npx @deepseek-ai/dsh@0.1.5-rc.2`.
+- Source checkout: build the `dsh-v0.1.5-rc.2` checkout using the [upstream setup](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.5-rc.2/README.md#run-from-source), run from that checkout, and replace `dsh` with `pnpm dsh`.
 
 Install the published npm package into the `web` profile:
 

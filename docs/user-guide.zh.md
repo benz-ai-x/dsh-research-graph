@@ -15,14 +15,14 @@
 
 ## 快速开始
 
-需要已安装 **DeepSeek Harness 0.1.5-rc.2** 和 Node.js `^22.19.0 || >=24.0.0`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。
+需要已安装 **DeepSeek Harness 0.1.5-rc.2**、Node.js `^22.19.0 || >=24.0.0`，以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
 
 ```sh
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
-若 `dsh web` 已在运行，请先停止再重启。打开命令打印的一次性认证 URL；不要分享 URL 中的 token。
+打开命令打印的一次性认证 URL；不要分享 URL 中的 token。
 
 1. 打开一个非空 DSH 会话，选择 **研图 → 图谱**，查看讨论关系。
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
@@ -201,6 +201,12 @@ DSH 持有原始会话；研图将研究主题、卡片修订、保留的来源�
 | 汇聚会话 | 创建独立目标和持久快照溯源；来源保持不变 | 目标会话在正常路由上处理排队指令 |
 
 ## 安装
+
+[DSH 插件管理器](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.5-rc.2/apps/cli/reference/README.zh.md#插件管理) 会调用 `pnpm`，因此它必须在 `PATH` 中可用。下方所有命令请统一使用与目标 DSH 版本匹配的启动方式：
+
+- 已安装 CLI：使用 `dsh`。
+- npm 启动：将 `dsh` 替换为 `npx @deepseek-ai/dsh@0.1.5-rc.2`。
+- 源码启动：按[上游说明](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.5-rc.2/README.zh.md#从源码运行) 构建 `dsh-v0.1.5-rc.2` checkout，在该目录中将 `dsh` 替换为 `pnpm dsh`。
 
 从 npm 安装已发布的包，并将其加入 `web` profile：
 

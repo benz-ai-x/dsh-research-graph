@@ -73,6 +73,8 @@ Keep the offline history recovery executable self-contained so it runs before a 
 
 ## Core Documentation
 
+Keep bilingual README frontmatter with a concrete `description` and `kind: "package-bundle"`, derived from this package's `dsh.bundle.patch`. Use the DSH abbreviation in the project name and describe its independently maintained Web plugin role accurately. These choices follow the [upstream documentation and brand guidance](docs/research/dsh-readme-guidelines-2026-09-14.md); upstream monorepo templates and translation checks are not external-plugin installation requirements.
+
 Keep both READMEs concise: product positioning, a capability map, key capabilities, essential compatibility and installation information, and links to detailed documentation. Put operational detail in the bilingual `docs/user-guide*.md` files and development, release, and source navigation in `docs/development*.md`. Keep durable rules in this file, domain vocabulary in `CONTEXT.md`, and design trade-offs in `docs/adr/`. The root handoff holds live status and local paths; `docs/reviews/` holds versioned validation and inspected screenshots. Test counts, release hashes, and machine-specific observations belong in those evidence records, not in the glossary. See [the documentation map](docs/agents/domain.md#documentation-map).
 
 ## Agent skills

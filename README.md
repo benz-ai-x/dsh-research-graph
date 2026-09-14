@@ -1,3 +1,8 @@
+---
+description: "A DeepSeek Harness Web plugin for AI conversation graphs, research topics, and source-linked Knowledge Cards. Explore capabilities, check compatibility, and install the research workbench."
+kind: "package-bundle"
+---
+
 <a id="dsh-research-graph--研图"></a>
 
 # DSH Research Graph
@@ -6,7 +11,7 @@
 
 **English** | [简体中文](README.zh.md)
 
-An open-source **AI research workbench** for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness). Turn scattered conversations into a graph of traceable, reusable knowledge for product research, technical research, and ongoing knowledge management.
+An independently maintained, open-source **AI research workbench plugin** for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness), running inside **DSH Web**. Organize conversations into research topics and traceable Knowledge Cards for product research, technical research, and ongoing knowledge management.
 
 ## Capability map
 
@@ -65,21 +70,21 @@ Version 0.1.5-rc.2.8 with demo data. Click the image for the full-resolution scr
 | Required Host | **DSH 0.1.5-rc.2 · Web**, Node.js `^22.19.0 \|\| >=24.0.0` |
 | Data | Research records live on the DSH Host; working positions stay in the browser and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
-| Agent boundary | DSH provides models and agent execution; this plugin includes no professional preset or Agent Team launcher |
+| Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
 | Stack and license | TypeScript · React · [MIT](LICENSE) |
 
 <a id="install"></a>
 
 ## Quick start
 
-With the matching DSH version already installed:
+Requires **DSH 0.1.5-rc.2**, with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
-Stop and restart DSH if it is already running. Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion.
+Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
 
 ## Docs and support
 
