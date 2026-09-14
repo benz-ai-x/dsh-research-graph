@@ -1,61 +1,89 @@
----
-description: "研图：面向 DeepSeek Harness 的研究图谱插件，将 AI 讨论组织为研究主题、有出处的知识卡片和可继续沿用的研究材料。"
-kind: "package-bundle"
----
+<a id="dsh-research-graph--研图"></a>
 
-# DSH Research Graph · 研图
+# DSH Research Graph · 研图 — AI 研究工作台
 
-[![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph/next?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
-[![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
-[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?include_prereleases&logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph/next?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph) [![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin) [![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?include_prereleases&logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-[English](README.md) | 中文
+[English](README.md) | **简体中文**
 
-[快速开始](#快速开始) · [DSH 与 Agent 预设](#dsh-与-agent-预设) · [使用图谱](#使用图谱) · [故障排查](#故障排查) · [开发](#开发与贡献)
+**把 AI 讨论连接为研究图谱，沉淀为有出处、可复用的知识。**
 
-**在 DeepSeek Harness 中，将 AI 讨论沉淀为可追溯、可复用的研究知识。**
+**DSH Research Graph（研图）** 是面向 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 的开源 **AI 研究工作台与知识管理插件**。可视化查看会话分支、汇聚来源和子代理任务，跨工作区整理研究主题，并将讨论原文保存为带准确出处的知识卡片，用于后续研究。
 
-研图（Research Graph，`@benz-ai-x/dsh-research-graph`）为 DeepSeek Harness Web 对话视图添加交互式**研图**标签。将跨工作区的讨论组织为研究主题，保存有准确出处的知识卡片，审核 AI 提炼结果，并使用所选材料开始下一轮讨论。
+在 DSH Web 的**研图**标签中，从**会话图谱 → 原文阅读 → 知识审核 → 材料复用**完成一轮研究。项目使用 TypeScript 与 React，采用 [MIT 许可证](LICENSE)。
 
-画布同时保留 Session Lineage（会话谱系）、可移动的 Branch 会话簇、Merge 快照溯源和紧凑的 Subagent 摘要。可阅读讨论原文或按需生成 Session Digest（会话摘要），源会话日志保持原样。
+[核心能力](#核心能力) · [快速开始](#快速开始) · [研究流程](#研究流程) · [使用场景](#使用场景) · [常见问题](#常见问题) · [详细使用指南](#使用指南) · [开发与贡献](#开发与贡献)
 
 <p align="center">
-  <a href="docs/assets/research-graph/overview.png">
-    <img src="https://raw.githubusercontent.com/benz-ai-x/dsh-research-graph/main/docs/assets/research-graph/overview.png" alt="DeepSeek Harness 研图，展示研究主题、讨论来源和知识卡片" width="100%" />
+  <a href="docs/assets/readme/research-workbench.png">
+    <img src="docs/assets/readme/research-workbench.png" alt="DSH 研图 AI 研究工作台：两篇来源讨论形成两张知识卡片，并用于后续研究；右侧展示卡片结论、修订版本、原文轮次和材料复用记录" width="100%" />
   </a>
 </p>
 
-<p align="center"><sub>从旧包升级后，使用合成研究数据渲染的真实研图界面。</sub></p>
+<p align="center"><sub>0.1.5-rc.2.8 的真实 DSH 界面（演示数据）：来源讨论 → 知识卡片 → 后续研究，右侧可同时查看结论、修订版本与原文出处。点击查看高清原图。</sub></p>
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph">npm</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-research-graph/releases">版本发布</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-research-graph/issues">问题反馈</a> ·
-  <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>
-</p>
+[npm 安装包](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph) · [发布记录](https://github.com/benz-ai-x/dsh-research-graph/releases) · [验收与更多截图](docs/reviews/release-0.1.5-rc.2.8.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
+
+## 核心能力
+
+| 能力 | 解决什么问题 | 使用说明 |
+| --- | --- | --- |
+| **AI 会话图谱** | 看清 Branch 分支、Merge 汇聚来源和研究脉络；拖动、折叠、自动布局并撤销排列 | [使用图谱](#使用图谱) |
+| **跨工作区研究主题** | 将同一 Host 的相关讨论与知识卡片放在一起，保持各自来源归属 | [整理研究主题](#整理研究主题) |
+| **可追溯知识管理** | 保存带准确原文轮次的知识卡片，编辑产生新修订，后续仍可核对出处 | [知识卡片](#知识卡片) |
+| **AI 提炼与综合** | 从选定原文提炼草稿，对照 2–3 项冻结材料，审核结论与引用后保存 | [提炼](#ai-提炼与审核) · [综合](#对照与综合) |
+| **研究材料复用** | 选择卡片修订或完整原文轮次开始新讨论，保留当时实际使用的内容 | [继续研究](#选择材料开始新讨论) |
+| **原文检索与摘要** | 搜索讨论正文、回到命中轮次、按需生成简短会话摘要 | [搜索](#搜索历史讨论) · [摘要](#生成会话摘要) |
+| **子代理任务检查** | 展开已有委派任务的标题与活动状态，打开 DSH 原生执行记录 | [Agent 预设与职责边界](#dsh-与-agent-预设) |
+| **Markdown 研究导出** | 将选定知识的保存修订、来源摘录与关系导出为可分享的 Markdown 文件 | [导出研究成果](#导出-markdown-研究成果) |
 
 ## 快速开始
+
+需要已安装 **DeepSeek Harness 0.1.5-rc.2** 和 Node.js `^22.19.0 || >=24.0.0`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。
 
 ```sh
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
-若 `dsh web` 已在运行，请先停止再重启。打开命令打印的一次性认证 URL，进入任意非空 Session，然后选择 **研图**。不要分享或持久保存 URL 中的 token。
+若 `dsh web` 已在运行，请先停止再重启。打开命令打印的一次性认证 URL；不要分享 URL 中的 token。
+
+1. 打开一个非空 DSH 会话，选择 **研图 → 图谱**，查看讨论关系。
+2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
+3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
+
+当前插件 **0.1.5-rc.2.8** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+
+## 研究流程
+
+```mermaid
+flowchart LR
+  A[DSH 讨论] -->|收集引用| B[研究主题]
+  B -->|选择原文并审核| C[知识卡片]
+  C -->|沿用选定修订| D[新讨论]
+  D -->|加入主题| B
+  C -->|导出保存内容| E[Markdown 研究成果]
+```
+
+例如，比较三种产品方案时，先在 DSH 中分别讨论，再将讨论加入同一研究主题。需要结合多个讨论上下文时，使用 **Merge 汇聚**；需要保留可核对的结论时，选择原文生成或手工编写知识卡片，经审核后保存。卡片的**继续讨论**会带入选定版本，后来修改卡片不会改写旧研究使用的材料。
+
+[从历史轮次分支](#从历史轮次分支)用于探索某个已有讨论节点；[对照与综合](#对照与综合)把选定材料的共识、分歧与待研究问题整理为新的知识卡片。两者与会话汇聚有不同的用途。
+
+## 使用场景
+
+| 研究任务 | 在研图中如何开展 |
+| --- | --- |
+| 产品与市场研究 | 汇集不同产品、商业模式或用户需求的讨论，对照结论，保留出处与待核实问题 |
+| 技术调研与方案比较 | 从已完成轮次分支，比较实现方案，保留每次决策使用的原文与知识修订 |
+| 知识管理与持续研究 | 把分散的 AI 对话整理成主题和知识卡片，跨工作区检索、复用并导出 |
+
+资料查找与工具执行由所选 DSH 环境完成；研图负责整理这些讨论及其研究成果。
 
 ## 兼容性
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.8` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 与包名迁移验收 |
-| 旧包：[`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
-| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
-| [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
-| [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.8` | `0.1.5-rc.2` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 
 当前预发布 **0.1.5-rc.2.8** 适配 **DSH 0.1.5-rc.2**：消除分支继承造成的重复汇聚线，使用短簇标题与集中排列、同名标识和常驻图例，并支持打开子代理任务记录。正式包验收、截图与已知限制见[发布验收记录](docs/reviews/release-0.1.5-rc.2.8.md)。
 
@@ -64,11 +92,51 @@ dsh web
 <details>
 <summary>历史版本与旧宿主兼容性</summary>
 
+| 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
+|---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 与包名迁移验收 |
+| 旧包：[`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
+| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试、打包 profile 启动与读写验证 |
+| [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 \|\| >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
+| [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 \|\| >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
+
 研究工作流已随 `0.1.5-rc.1` 发布；`0.1.5-rc.2` 加入首轮 UI/UX 修复，包括草稿保护、直接选择材料和搜索范围恢复。`0.1.5-rc.2.1` 加入研究工作台、完整知识阅读与跨工作区汇聚。`0.1.5-rc.2.2` 修复会话摘要截断，加入可拖宽的 Markdown 阅读、就近留卡及范围栏中的图谱工具。`0.1.5-rc.2.3` 新增可编辑的会话标题建议，以及简短、突出关键信息的 Markdown 摘要。`0.1.5-rc.2.4` 统一各入口的已保存知识阅读，保留提炼批次编辑前的阅读位置，集中响应式阅读布局规则，并增强摘要高亮。`0.1.5-rc.2.5` 加入历史轮次分支、可编辑的发散提示、混合材料的审阅式综合与工作位置恢复，并修复快速拖动后的最终位置保存。`0.1.5-rc.2.6` 改善两种图谱的重新布局，按依赖排列，连线避让卡片并分配独立端口，支持撤销最近一次重新布局。`0.1.5-rc.2.7` 分离折叠簇标题附近窄缝中的 Merge 汇入线，减少重叠。已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
 
 </details>
 
 本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
+
+## 常见问题
+
+### 研图是独立 AI 应用吗？
+
+研图是 DeepSeek Harness 的 Web 插件，使用所选 DSH profile 提供的会话与模型服务。安装兼容版本后，在非空会话中打开研图标签；当前不提供独立运行模式。
+
+### 可以把研图作为专业 Agent 预设或启动 Agent Team 吗？
+
+专业研究预设可以提供方法、工具与技能，并配合研图整理成果。当前插件不注册 Agent 预设，也不提供 Agent Team 启动器；它能检查已有子代理任务并打开原生记录。详见 [DSH 与 Agent 预设](#dsh-与-agent-预设)。
+
+### 它如何保存知识和原始讨论？
+
+DSH 持有原始会话；研图将研究主题、卡片修订、保留的来源与已确认的材料沿用记录存放在 Host。浏览器保留工作位置和未保存排列；主题排列需点击**保存排列**才会同步。
+
+### 整理图谱会调用模型吗？
+
+浏览、排列、搜索和手工留卡不调用模型。生成标题／摘要、AI 提炼与综合会调用模型；汇聚或继续讨论在 DSH 中执行。[数据与模型行为](#数据与模型行为)列出各操作的影响。
+
+### 可以把研究成果带到项目外吗？
+
+可以将已保存知识修订与来源导出为独立 Markdown 文件。导出前可预览实际包含的内容，生成文件不调用模型。参见[导出 Markdown 研究成果](#导出-markdown-研究成果)。
+
+## 使用指南
+
+| 要完成的操作 | 阅读入口 |
+| --- | --- |
+| 整理讨论与画布 | [工作台](#研究工作台) · [图谱操作](#使用图谱) · [研究主题](#整理研究主题) |
+| 阅读和核对证据 | [原文](#阅读讨论原文) · [正文搜索](#搜索历史讨论) · [会话摘要](#生成会话摘要) |
+| 保存与复用知识 | [知识卡片](#知识卡片) · [AI 提炼](#ai-提炼与审核) · [综合](#对照与综合) · [继续讨论](#选择材料开始新讨论) |
+| 安装、恢复与排错 | [安装](#安装) · [历史恢复](#恢复旧版-merge-会话) · [工作位置](#返回上次工作位置) · [故障排查](#故障排查) |
 
 ## DSH 与 Agent 预设
 
@@ -146,30 +214,22 @@ dsh web
 
 确认后创建独立 Session，并通过 Harness 原生接口发送固定预览。成功后保留在工作台，可继续整理材料，或明确点击**打开目标会话**查看回答。创建失败保留材料；目标已建立但发送失败时，可以打开或重试相同目标与消息身份。**已发送**只表示 Host 确认接收，模型回答状态在会话中查看。新会话研图中的**本会话所用材料**可在来源更新、清理浏览器缓存或 Host 重启后核对原版本、原文范围及沿用关系，不改变来源的工作区归属和目录。
 
-## 核心能力
-
-| 能力 | 你可以获得 |
-|---|---|
-| 可视化 Session Graph | 在同一视图查看 Branch Lineage、Merge 溯源、Session Cluster 与折叠的 Subagent 活动 |
-| 交互式画布 | 拖动、吸附、折叠、过滤、缩放、平移、适应、重新布局、重置、定位与 minimap |
-| 跨会话工作流 | 打开任意 Canvas Session、创建 Branch，并汇聚两到三个来源的不可变快照 |
-| 讨论原文 | 在 Inspector 按轮次阅读用户/助手文本，选择连续完成轮次，并复核精确来源 |
-| 研究主题 | 跨工作区收集会话引用、保留归档资料，并为每个主题保存独立排列 |
-| 只读 Session Digest | 按需生成简短概览、关键结论和待办，且不改变 Session 日志 |
-
-原文分页、来源恢复、运行中轮次与会话导航的实际操作见[浏览器验收记录与截图](docs/reviews/pr-14-ui-acceptance.md)。
-
-### 数据与模型行为
+## 数据与模型行为
 
 | 操作 | 持久化影响 | 模型调用 |
 |---|---|---|
 | 浏览或排列工作区／目录图 | 不改变 Session 日志；排列保存在浏览器存储中 | 无 |
 | 整理研究主题 | 名称、会话引用和显式保存的排列写入 Host 存储；源会话保持不变 | 无 |
 | 阅读或选择原文 | 仅在阅读面板打开期间保留选择与备用摘录；不改变 Session 日志 | 无 |
+| 搜索讨论 | 使用 Host 索引并核对原文，保留临时结果，不改变来源或归档状态 | 无 |
 | 生成／应用标题 | 建议仅临时展示；应用才保存原生用户标题事件 | 仅生成时发起一次辅助请求 |
 | 生成摘要 | 仅保留按 revision 区分的 Host 内存缓存；不追加消息 | 在 Session 路由或配置的兜底路由上发起一次辅助请求；完整输出过长时压缩重试一次 |
 | 创建分支 | 使用 Harness 的常规 Branch 操作 | 本插件不额外发起请求 |
 | 从历史轮次分支 | 预留一个原生子会话身份，继承所选完整前缀；重试恢复同一子会话 | 继续输入新问题前无调用 |
+| 手工创建／编辑知识 | 保存新卡片或不可变修订，保留选定来源 | 无 |
+| AI 提炼与审核 | 保存提炼来源快照；生成草稿经审核并明确保存后才成为卡片 | 每次生成调用模型，最多 5 张草稿 |
+| 沿用研究材料 | 经 Host 确认后记录冻结材料、目标会话与沿用关系 | 目标会话在正常路由上处理所发送的问题 |
+| 导出 Markdown | 下载预览冻结的已保存修订与来源；不改变原始记录 | 无 |
 | 对照与综合 | 冻结 2–3 项材料；明确保存才创建带已审核引用的新卡片 | 每次生成发起一次辅助请求，输出上限 8,192 token |
 | 汇聚会话 | 创建独立目标和持久快照溯源；来源保持不变 | 目标会话在正常路由上处理排队指令 |
 

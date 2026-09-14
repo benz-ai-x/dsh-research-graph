@@ -1,61 +1,91 @@
----
-description: "Research Graph for DeepSeek Harness: organize AI discussions into research topics, traceable knowledge cards, and materials for further research."
-kind: "package-bundle"
----
+<a id="dsh-research-graph--研图"></a>
 
-# DSH Research Graph · 研图
+# DSH Research Graph · AI Research Workbench
 
-[![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph/next?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
-[![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
-[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?include_prereleases&logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph/next?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph) [![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin) [![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?include_prereleases&logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-English | [中文](README.zh.md)
+**English** | [简体中文](README.zh.md)
 
-[Quick start](#quick-start) · [DSH and Agent presets](#dsh-and-agent-presets) · [Use the graph](#use-the-graph) · [Troubleshooting](#troubleshooting) · [Develop](#develop-and-contribute)
+**Visualize AI conversations. Keep the sources. Reuse the research.**
 
-**Turn AI discussions into traceable, reusable research knowledge in DeepSeek Harness.**
+**DSH Research Graph (研图)** is an open-source **AI research workbench and knowledge management plugin** for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness). Visualize conversation branches, merge provenance, and delegated tasks; organize research across workspaces; and save source-linked Knowledge Cards for follow-up research.
 
-Research Graph (`@benz-ai-x/dsh-research-graph`) adds an interactive **Research Graph** tab to the DeepSeek Harness Web conversation view. Organize discussions across Workspaces into Research Topics, save Knowledge Cards with exact sources, review AI extraction, and use selected materials to start another discussion.
+Inside the DSH Web **Research Graph** tab, move from **conversation graph → original discussion → reviewed knowledge → reusable materials**. Built with TypeScript and React, under the [MIT license](LICENSE).
 
-The canvas also shows Session Lineage, movable Branch clusters, Merge provenance, and compact Subagent summaries. Read original discussion or generate on-demand Session Digests while preserving source Session logs.
+[Features](#features) · [Quick start](#quick-start) · [Research workflow](#research-workflow) · [Use cases](#use-cases) · [FAQ](#faq) · [User guide](#user-guide) · [Develop](#develop-and-contribute)
 
 <p align="center">
-  <a href="docs/assets/research-graph/overview.png">
-    <img src="https://raw.githubusercontent.com/benz-ai-x/dsh-research-graph/main/docs/assets/research-graph/overview.png" alt="Research Graph for DeepSeek Harness showing research topics, discussion sources, and a Knowledge Card" width="100%" />
+  <a href="docs/assets/readme/research-workbench.png">
+    <img src="docs/assets/readme/research-workbench.png" alt="DSH Research Graph AI research workbench showing two source discussions, two Knowledge Cards, and follow-up research alongside a card reader with conclusions, revisions, and source links" width="100%" />
   </a>
 </p>
 
-<p align="center"><sub>Research Graph rendered with synthetic research data after upgrading from the previous package name.</sub></p>
+<p align="center"><sub>Version 0.1.5-rc.2.8 in DSH with demo data: source discussions → Knowledge Cards → follow-up research, with conclusions, revisions, and original-source links beside the graph. Click for the full-resolution screenshot.</sub></p>
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph">npm</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-research-graph/releases">Releases</a> ·
-  <a href="https://github.com/benz-ai-x/dsh-research-graph/issues">Issues</a> ·
-  <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>
-</p>
+[npm package](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph) · [Releases](https://github.com/benz-ai-x/dsh-research-graph/releases) · [Acceptance and more screenshots](docs/reviews/release-0.1.5-rc.2.8.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+
+<a id="what-it-adds"></a>
+
+## Features
+
+| Capability | What it helps you do | Guide |
+| --- | --- | --- |
+| **AI conversation graph** | Follow Branch lineage, Merge provenance, and research paths; drag, collapse, relayout, and undo arrangements | [Graph controls](#use-the-graph) |
+| **Cross-workspace research topics** | Collect related discussions and Knowledge Cards on one Host while retaining their source ownership | [Research Topics](#organize-research-topics) |
+| **Traceable knowledge management** | Save Knowledge Cards with exact original turns; edit through immutable revisions and revisit the sources | [Knowledge Cards](#knowledge-cards) |
+| **Reviewed AI extraction and synthesis** | Extract drafts from chosen discussion and compare 2–3 frozen materials; review claims and citations before saving | [Extraction](#reviewed-ai-extraction) · [Synthesis](#compare-and-synthesize) |
+| **Reusable research materials** | Start a new discussion from selected card revisions or completed turns, retaining exactly what was used | [Follow-up research](#start-a-discussion-from-selected-materials) |
+| **Discussion search and digests** | Find body keywords, read the matching turn, and generate a concise Session Digest on demand | [Search](#search-discussion-history) · [Digests](#generate-a-session-digest) |
+| **Subagent task inspection** | Expand existing delegated tasks, inspect activity, and open native DSH execution records | [Agent boundaries](#dsh-and-agent-presets) |
+| **Markdown research export** | Share selected saved knowledge, source excerpts, and relationships as a standalone Markdown file | [Export](#export-research-as-markdown) |
 
 ## Quick start
+
+Requires **DeepSeek Harness 0.1.5-rc.2** and Node.js `^22.19.0 || >=24.0.0`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version.
 
 ```sh
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
 dsh web
 ```
 
-If `dsh web` is already running, stop it before restarting. Open the one-time authenticated URL printed by the command, enter a non-blank Session, and choose **Research Graph**. Do not share or persist the URL token.
+If `dsh web` is already running, stop it before restarting. Open the one-time authenticated URL printed by the command; do not share its token.
+
+1. Open a non-blank DSH Session and select **Research Graph → Graph** to explore discussion relationships.
+2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
+3. Open the saved card in **Knowledge**, inspect its sources, and choose **Continue discussion** to preview the materials for another question.
+
+Current plugin **0.1.5-rc.2.8** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
+
+## Research workflow
+
+```mermaid
+flowchart LR
+  A[DSH discussions] -->|Collect references| B[Research Topic]
+  B -->|Select and review| C[Knowledge Cards]
+  C -->|Reuse chosen revision| D[New discussion]
+  D -->|Add to topic| B
+  C -->|Export saved content| E[Markdown report]
+```
+
+For example, compare three product approaches in separate DSH discussions, then collect them in one Research Topic. Use **Merge** when a new discussion needs several source contexts. To retain inspectable conclusions, select original turns and write or generate Knowledge Cards, review them, and save. **Continue discussion** carries the chosen revision; later card edits do not rewrite materials used by earlier research.
+
+Use [historical-turn branching](#explore-from-a-historical-turn) to explore a point in an existing discussion. Use [Compare and synthesize](#compare-and-synthesize) to turn selected materials' agreements, disagreements, and open questions into a new Knowledge Card. These serve different purposes from merging Sessions.
+
+## Use cases
+
+| Research task | How to use the workbench |
+| --- | --- |
+| Product and market research | Collect discussions about products, business models, or user needs; compare conclusions while retaining sources and unresolved questions |
+| Technical research and design comparison | Branch from a completed turn, compare approaches, and retain the discussion and knowledge revision used for each decision |
+| Knowledge management and ongoing research | Organize scattered AI conversations into topics and cards, search across workspaces, reuse materials, and export results |
+
+Source discovery and tool execution come from your selected DSH environment. Research Graph organizes those discussions and their research outputs.
 
 ## Compatibility
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.8` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime and package migration acceptance |
-| Previous package: [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
-| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 || >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
-| [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
-| [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.8` | `0.1.5-rc.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 
 Current prerelease **0.1.5-rc.2.8** targets **DSH 0.1.5-rc.2**: it removes duplicate Branch-inherited Merge lines, adds compact cluster headers, grouped independent discussions, distinct equal-title labels and a visible legend, and opens delegated-task records. See the [release acceptance record](docs/reviews/release-0.1.5-rc.2.8.md) for official-package verification, screenshots, and known limitations.
 
@@ -64,11 +94,51 @@ In the DSH-aligned release line, the first plugin adaptation uses the full targe
 <details>
 <summary>Earlier releases and legacy Host compatibility</summary>
 
+| Package release | DeepSeek Harness | Node.js | Verification |
+|---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime and package migration acceptance |
+| Previous package: [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
+| [`v0.1.5-alpha.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-alpha.1) | `0.1.5-alpha.1` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
+| [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 \|\| >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
+| [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 \|\| >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
+
 The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. `0.1.5-rc.2.2` fixes truncated Session Digests and adds resizable Markdown reading, nearby knowledge capture, and graph controls in the research context bar. `0.1.5-rc.2.3` adds editable Session title suggestions and concise Markdown digests with highlighted key points. `0.1.5-rc.2.4` unifies saved knowledge reading across entry points, preserves extraction-batch reading position after editing, centralizes responsive reading geometry, and makes digest highlights more visible. `0.1.5-rc.2.5` adds historical-turn branching, editable exploration prompts, reviewed synthesis from mixed materials, and working-position restoration, including reliable final drag positions. `0.1.5-rc.2.6` improves Relayout in both graph scopes with dependency rows, obstacle-aware routes, distinct terminals and one-step undo. `0.1.5-rc.2.7` separates overlapping Merge arrivals in narrow gaps around compact cluster titles. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
 
 </details>
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
+
+## FAQ
+
+### Is Research Graph a standalone AI application?
+
+It is a DeepSeek Harness Web plugin using the chosen DSH profile's Session and model services. Install a compatible version, then open the Research Graph tab in a non-blank Session. A standalone mode is not currently provided.
+
+### Can it act as an Agent preset or launch an Agent Team?
+
+A professional research preset can supply methods, tools, and skills while Research Graph organizes the results. The plugin does not register Agent presets or provide an Agent Team launcher; it inspects existing delegated work and opens native records. See [DSH and Agent presets](#dsh-and-agent-presets).
+
+### Where are research knowledge and original discussions stored?
+
+DSH owns original Sessions. Research Graph stores topics, card revisions, retained sources, and acknowledged material-reuse records on the Host. The browser retains working positions and unsaved arrangements; Topic arrangements synchronize only after **Save arrangement**.
+
+### Does organizing the graph call a model?
+
+Browsing, arranging, searching, and manual knowledge capture make no model call. Title/digest generation, AI extraction, and synthesis use a model; Merge and Continue discussion execute through DSH. See [Data and model behavior](#data-and-model-behavior) for the effects of each action.
+
+### Can I take research results outside DSH?
+
+Export saved knowledge revisions and source excerpts as a standalone Markdown file. Preview the exact included content before downloading; export makes no model call. See [Markdown research export](#export-research-as-markdown).
+
+## User guide
+
+| What you want to do | Read next |
+| --- | --- |
+| Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) |
+| Read and verify evidence | [Original discussion](#read-original-discussion) · [Body search](#search-discussion-history) · [Session Digests](#generate-a-session-digest) |
+| Capture and reuse knowledge | [Knowledge Cards](#knowledge-cards) · [AI extraction](#reviewed-ai-extraction) · [Synthesis](#compare-and-synthesize) · [Follow-up discussions](#start-a-discussion-from-selected-materials) |
+| Install, recover, or troubleshoot | [Install](#install) · [History recovery](#recover-historical-merge-sessions) · [Working position](#return-to-your-working-position) · [Troubleshooting](#troubleshooting) |
 
 ## DSH and Agent presets
 
@@ -144,21 +214,7 @@ If target creation succeeds while the reuse log cannot be saved, Research Graph 
 
 Confirming creates an independent Session and sends the frozen preview through native Harness admission. Success keeps the workbench open; continue organizing or explicitly choose **Open target session** to read the response. A failed create preserves the materials. If a target exists but sending fails, Open and Retry recover that same target and message identity. **Sent** means the Host acknowledged receipt; inspect the Session for model response status. **Materials used by this Session** reopens the frozen sources, versions and Reuse Relations after later edits, browser-cache clearing or Host restart. Source Workspace ownership and directories remain authoritative in Harness.
 
-## What it adds
-
-| Capability | What you get |
-|---|---|
-| Visual Session Graph | Branch Lineage, Merge provenance, Session Clusters, and folded Subagent activity in one view |
-| Interactive canvas | Drag, snap, collapse, filter, zoom, pan, fit, relayout, reset, locate, and minimap controls |
-| Cross-session workflows | Open or branch any Canvas Session and merge immutable snapshots from two or three sources |
-| Original discussion | Read user/assistant text by turn in the Inspector, select a completed range, and check its exact source |
-| Discussion search | Find body keywords across workspaces, optionally include archived sources, and inspect the exact matching turn |
-| Research Topics | Collect Session references across Workspaces, retain archived sources, and save a separate arrangement for each topic |
-| Read-only Session Digests | Generate concise overviews, key outcomes, and open items on demand without changing Session logs |
-
-See the [Original discussion browser acceptance record and screenshots](docs/reviews/pr-14-ui-acceptance.md) for paging, source recovery, running turns, and navigation.
-
-### Data and model behavior
+## Data and model behavior
 
 | Action | Durable effect | Model use |
 |---|---|---|
@@ -170,6 +226,10 @@ See the [Original discussion browser acceptance record and screenshots](docs/rev
 | Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback; one compression retry if complete output is too long |
 | Create a branch | Uses the normal Harness branch operation | No additional request from this plugin |
 | Branch from a historical turn | Reserves one native child identity and inherits the selected completed prefix; retries recover that child | None until you continue the new discussion |
+| Manually create / edit knowledge | Saves a new card or immutable revision with selected sources | None |
+| Reviewed AI extraction | Retains an extraction source snapshot; generated drafts become cards only after explicit reviewed Save | One request per Generate, up to 5 drafts |
+| Reuse research materials | Records frozen materials, target Session, and provenance after Host acknowledgment | The target processes the submitted question on its normal route |
+| Export Markdown | Downloads the preview's frozen saved revisions and sources; original records remain unchanged | None |
 | Compare and synthesize | Freezes 2–3 materials; only explicit Save creates a new card with reviewed citations | One auxiliary request per Generate, up to 8,192 output tokens |
 | Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | The target processes the queued instruction on its normal route |
 
