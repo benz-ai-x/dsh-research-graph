@@ -7,7 +7,9 @@ This is a single-context repository.
 | Document | Owns | Update when |
 | --- | --- | --- |
 | [AGENTS.md](../../AGENTS.md) | Contributor rules, implementation boundaries, validation and release workflow | The supported development workflow or invariants change |
-| [README.md](../../README.md) / [README.zh.md](../../README.zh.md) | Product scope, installation, usage, troubleshooting, and source navigation | Setup or user-visible behavior changes; keep both languages aligned |
+| [README.md](../../README.md) / [README.zh.md](../../README.zh.md) | Concise product overview, capability map, key capabilities, compatibility, and quick start | Overview or essential setup changes; keep both languages aligned |
+| [User guide](../user-guide.md) / [使用指南](../user-guide.zh.md) | Detailed installation, research workflows, data/model behavior, troubleshooting, and limits | Supported setup or user-visible behavior changes |
+| [Development](../development.md) / [开发与发布](../development.zh.md) | Development commands, acceptance, release procedure, and source navigation | Contributor workflow or implementation structure changes |
 | [CONTEXT.md](../../CONTEXT.md) | Canonical domain vocabulary and ownership boundaries | A domain term is added or its meaning changes |
 | [docs/adr/](../adr/) | Durable decisions and their trade-offs | A consequential design choice needs its rationale recorded |
 | Root [HANDOFF.md](../../HANDOFF.md) | Current release, local worktrees, unfinished work, and evidence locations | Work changes the state the next session needs |

@@ -2,7 +2,7 @@
 
 ## Start Here
 
-Read root `CONTEXT.md` and relevant `docs/adr/` decisions before changing behavior, then root `HANDOFF.md` for the current release, worktrees, evidence, and unfinished work. `README.md` and `README.zh.md` describe the supported user experience. Historical entries in the handoff and `docs/HANDOFF.md` do not override its current-state section.
+Read root `CONTEXT.md` and relevant `docs/adr/` decisions before changing behavior, then root `HANDOFF.md` for the current release, worktrees, evidence, and unfinished work. The bilingual READMEs provide the product overview; `docs/user-guide.md` / `docs/user-guide.zh.md` describe supported usage, and `docs/development.md` / `docs/development.zh.md` cover development and releases. Historical entries in the handoff and `docs/HANDOFF.md` do not override its current-state section.
 
 Research Graph is a DSH research workbench plugin. DSH owns Agent presets, agent execution, Subagent Sessions, Session history, and Workspace facts. The plugin owns research topics, knowledge revisions, retained provenance, and their presentation. Installing this package does not register a professional Agent preset or add an Agent Team launcher; those would be separate features.
 
@@ -55,7 +55,7 @@ For documentation-only edits, check local links, commands, version references, b
 
 ## Commit & Pull Request Guidelines
 
-Recent history uses concise Conventional Commit-style subjects such as `feat: ...` and `ci: ...`. Use an imperative `<type>: <summary>` subject and keep each commit focused. PRs should explain user-visible impact, list validation performed, link relevant issues, and include screenshots or recordings for canvas/UI changes. Update both `README.md` and `README.zh.md` when setup or behavior changes.
+Recent history uses concise Conventional Commit-style subjects such as `feat: ...` and `ci: ...`. Use an imperative `<type>: <summary>` subject and keep each commit focused. PRs should explain user-visible impact, list validation performed, link relevant issues, and include screenshots or recordings for canvas/UI changes. Keep both language versions of the relevant guides aligned when setup or behavior changes; update both READMEs when the overview, capabilities, compatibility, or quick start changes.
 
 ### Releases
 
@@ -73,7 +73,7 @@ Keep the offline history recovery executable self-contained so it runs before a 
 
 ## Core Documentation
 
-Keep durable rules in this file, user-facing setup and behavior in both READMEs, domain vocabulary in `CONTEXT.md`, and design trade-offs in `docs/adr/`. The root handoff holds live status and local paths; `docs/reviews/` holds versioned validation and inspected screenshots. Test counts, release hashes, and machine-specific observations belong in those evidence records, not in the glossary. See [the documentation map](docs/agents/domain.md#documentation-map).
+Keep both READMEs concise: product positioning, a capability map, key capabilities, essential compatibility and installation information, and links to detailed documentation. Put operational detail in the bilingual `docs/user-guide*.md` files and development, release, and source navigation in `docs/development*.md`. Keep durable rules in this file, domain vocabulary in `CONTEXT.md`, and design trade-offs in `docs/adr/`. The root handoff holds live status and local paths; `docs/reviews/` holds versioned validation and inspected screenshots. Test counts, release hashes, and machine-specific observations belong in those evidence records, not in the glossary. See [the documentation map](docs/agents/domain.md#documentation-map).
 
 ## Agent skills
 
