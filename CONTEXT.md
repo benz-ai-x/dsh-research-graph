@@ -1,12 +1,18 @@
 # DSH Research Graph · 研图
 
-Research Graph is a visual research space for turning human–AI discussions into knowledge that people can revisit, reuse, and connect to develop further ideas. Research Topics organize discussions and Knowledge Cards; the Session Graph remains a derived projection of DeepSeek Harness, which is authoritative for Sessions, Workspaces, Session Lineage, and activity.
-
-Research Topics are separate Host-owned collections of references. The plugin owns their names, membership, and arrangements; it does not take ownership of the Sessions those references address.
-
-Knowledge Cards are Host-owned, editable research results with immutable revisions and retained discussion sources. They participate in Topic Graphs without becoming Sessions or creating Session Lineage.
+Research Graph is a visual research workbench for turning human–AI discussions into traceable, reusable knowledge. DeepSeek Harness owns Agent presets, execution, Sessions, Workspaces, Session Lineage, and activity; the plugin owns research collections, knowledge revisions, and retained provenance on that Host, together with their presentation.
 
 ## Language
+
+### Research workbench and execution
+
+**Research Workbench**:
+The human-facing space for arranging discussions, reading sources, reviewing knowledge, and selecting material for further research. It complements the Host's agent execution and does not define an Agent preset or launch an Agent Team.
+_Avoid_: Agent runtime, Agent preset, team orchestrator
+
+**Agent Preset**:
+A DSH-owned, reusable composition of an agent's tools, prompt sections, and skills. A professional research preset can guide work whose discussions and results are organized in the Research Workbench; the preset and the resulting research records have separate identities and lifetimes.
+_Avoid_: Research Topic, Knowledge Card, saved conversation
 
 ### Scope
 
@@ -37,7 +43,7 @@ _Avoid_: Outside-Workspace Session
 ### Sessions and relationships
 
 **Session Graph**:
-The scope-bound projection of Canvas Sessions, Branches, Session Clusters, and Subagent Summaries. It is not a separately owned source of session data.
+The scope-bound projection of Canvas Sessions, Branches, direct Merge Relations, Session Clusters, and Subagent Summaries. It is not a separately owned source of session data.
 _Avoid_: Stored graph, global graph, message graph
 
 **Canvas Session**:
@@ -49,7 +55,7 @@ A session whose conversation has no established content. It is included only whe
 _Avoid_: Empty node, placeholder
 
 **Display Status**:
-The single activity label presented for a Canvas Session. When activity facts overlap, Running takes precedence over Waiting for Input, which takes precedence over Completed.
+The activity label presented for a Canvas Session or an inspected Subagent Session, with Running taking precedence over Waiting for Input and then confirmed Completed. An absence of running or waiting activity alone does not establish completion.
 _Avoid_: Session lifecycle state, combined status
 
 **Session Lineage**:
@@ -65,7 +71,7 @@ A Branch created from the completed history through an explicitly selected Discu
 _Avoid_: Reuse Relation, copied Knowledge Card
 
 **Merge Session**:
-An independent Canvas Session with no parent Session, initialized from an explicit instruction and immutable snapshots of two or three source sessions. At capture time it is either blank or already bound to the exact same ordered Merge Sources by its first Merge marker, which makes retry idempotent. It is not a Branch, and its creation does not change its sources.
+An independent Canvas Session with no parent Session, initialized from an explicit instruction and immutable snapshots of two or three ordered source sessions. It is not a Branch, and its creation does not change its sources.
 _Avoid_: Aggregated session, merged branch, combined thread
 
 **Merge Source**:
@@ -80,7 +86,9 @@ _Avoid_: Live reference, copied session
 A directed many-to-one relationship from each Merge Source to its Merge Session. It records provenance without creating Session Lineage or changing Session Cluster membership.
 _Avoid_: Branch, parent relation, Subagent Derivation
 
-A Branch can retain the original Merge marker and snapshots in inherited history. These remain inspectable as inherited sources, without creating another direct Merge Relation. Host parent metadata determines this distinction even when the parent is outside the displayed scope.
+**Inherited Merge Source**:
+A Merge Source snapshot retained through a Branch's inherited history. It remains inspectable without creating another direct Merge Relation, even when the Branch's parent is outside the displayed scope.
+_Avoid_: New Merge Source selection, direct Merge Relation, Branch parent
 
 **Subagent Derivation**:
 A directed lineage relation whose child is a Subagent Session. It is summarized under a Canvas Session rather than represented as a Branch.
@@ -91,10 +99,8 @@ A session created with subagent origin to perform delegated work. It does not ap
 _Avoid_: Agent node, hidden Branch
 
 **Subagent Summary**:
-The total number of Subagent Sessions, including the running subset, reachable from one Canvas Session through an uninterrupted chain of Subagent Derivations. A Branch boundary starts a separate summary for the branch session.
-_Avoid_: Subagent node, branch count
-
-The inspector may expand the summary into delegated discussion titles and available activity facts. This does not add Subagent Sessions to the canvas or treat the summary as an Agent Team roster.
+The count and inspectable delegated work, including the running subset, reachable from one Canvas Session through an uninterrupted chain of Subagent Derivations. A Branch boundary starts a separate summary for the branch session.
+_Avoid_: Subagent node, branch count, Agent Team roster
 
 **Root Session**:
 A Canvas Session with no Canvas Session parent in the current graph. Root status is scope-relative, so a session whose parent is a Subagent Session or is absent from the graph is also a Root Session.
@@ -108,7 +114,7 @@ _Avoid_: Workspace, derivation tree, group
 A Canvas Session together with its Branch ancestors and Branch descendants. Sibling branches are outside one another's Branch Lineage.
 _Avoid_: Session Cluster, neighborhood
 
-### Arrangement and discovery
+### Knowledge and provenance
 
 **Knowledge Card**:
 A conclusion, method, hypothesis, or question that a person chooses to retain and reuse, with a durable identity, editable content, and discussion sources when supplied. Its Research Topic membership is explicit and independent of source location; retaining a card does not establish the correctness of its claims.
@@ -152,7 +158,7 @@ A durable provenance record from selected Research Materials to an independent t
 _Avoid_: Branch, Merge Relation, generated answer, preview
 
 **Research Topic**:
-A named collection with a stable identity on one Host, containing references to Sessions across Workspaces. One Session can belong to several topics. Topic membership and arrangement survive Host restart without changing Session ownership, archive state, lineage, or model context.
+A named, durable collection of Session references and Knowledge Card memberships on one Host, spanning Workspaces. A Session or Knowledge Card can belong to several topics without changing its ownership, source history, lineage, or model context.
 _Avoid_: Workspace, Session Cluster, merged context
 
 **Topic Reference**:
@@ -160,11 +166,13 @@ A durable Session identity within a Research Topic, with display labels retained
 _Avoid_: Session Snapshot, copied discussion, knowledge card
 
 **Topic Graph**:
-The projection of a Research Topic's references, including archived and unavailable sources. It shows only Branch and Merge relations supported by Harness facts. Being visible here does not make a source a Canvas Session in a Workspace Scope.
+The projection of a Research Topic's Session references and Knowledge Cards, together with addressed discussion sources and follow-ups, including archived or unavailable references. It distinguishes Host-supported Branch and Merge Relations from saved Source, Synthesis, and acknowledged Reuse Relations; visibility does not imply topic membership or eligibility as a Canvas Session in a Workspace Scope.
 _Avoid_: Global graph, Workspace Scope, Session Cluster
 
 **Research Export**:
 A standalone Markdown artifact from an explicit set of saved Knowledge Card revisions. Preview freezes the latest selected revisions and their retained source ranges; download uses exactly those bytes. Original availability is checked and annotated without replacing saved excerpts. An export never creates knowledge, sends model context, or changes Session history.
+
+### Arrangement and discovery
 
 **Working Position**:
 Browser-local presentation for a persistent Host and explicit graph scope: viewport, selected identity, valid Original cursor/scroll, search conditions, and unsaved topic arrangement. It contains no source excerpts or authoritative knowledge. Restored search conditions trigger fresh reads. Opening a different Viewed Session never implicitly selects an old Research Topic.
@@ -178,8 +186,12 @@ A Session Cluster shown in compact form while retaining all of its Canvas Sessio
 _Avoid_: Hidden cluster, archived cluster
 
 **Relayout**:
-The action that restores automatic positions while preserving which Session Clusters are collapsed. Its most recent placement change can be undone until another arrangement action or scope change supersedes it.
-_Avoid_: Reset
+The action that restores automatic positions while preserving collapse, reading state, and the viewport. Repeating it retains the last meaningful placement undo until another arrangement action or scope change supersedes it.
+_Avoid_: Reset, Fit
+
+**Fit**:
+The action that changes viewport scale and position to bring the graph and its routed relations into the visible canvas area. It leaves Session Arrangement and research records unchanged.
+_Avoid_: Relayout, Reset
 
 **Reset**:
 The action that discards the complete Session Arrangement, expands every Session Cluster, and fits the resulting graph into view.

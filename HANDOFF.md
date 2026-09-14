@@ -1,253 +1,331 @@
-# Session Graph Handoff
+# Research Graph Handoff
 
-Updated: 2026-09-09 (Asia/Shanghai)
+Updated: 2026-09-14 (Asia/Shanghai)
 
-## 当前发布：v0.1.5-alpha.1 已完成
+根 `HANDOFF.md` 是唯一实时交接；`docs/HANDOFF.md` 仅为历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准。
 
-用户已明确要求“发布”。适配提交 `b9025944d3eff161e779479383f3451a078d3622` 已推送到 main，不可变 annotated tag `v0.1.5-alpha.1` 指向该提交；GitHub prerelease 与 npm `next` 均已发布。插件完整版本与目标 DSH `0.1.5-alpha.1` 一致。
+## 下一会话接手入口
 
-- [GitHub Release](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.5-alpha.1)，包含中英文说明、与 npm 相同的安装包及 SHA-256 文件。
-- [npm 0.1.5-alpha.1](https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph/v/0.1.5-alpha.1)，发布时间 `2026-09-09T04:22:39.710Z`。`next` 为 `0.1.5-alpha.1`，`latest` 保持历史稳定版 `0.1.6`；安装时固定新版本。
-- [发布前 CI](https://github.com/benz-ai-x/dsh-session-graph/actions/runs/34310355327) 全部通过：Node 22.19/24/26，以及匹配 DSH 的源码/产物类型检查、110 项集成测试和隔离 profile 验收。[Publish 工作流](https://github.com/benz-ai-x/dsh-session-graph/actions/runs/34310684897) 成功，使用既有 GitHub OIDC trusted publishing。
-- 已从 npm 下载并验证实际归档的 SHA-512 integrity、包版本、恢复命令入口和浏览器版本徽标；npm 提供 provenance attestation。最终发布归档 `224,231` 字节，SHA-256 `30c3ae874262898c6cc501b1e2a3967cb7e144cd09f86ff04470a0820c8aa0c6`，本地材料在 `.artifacts/published-v0.1.5-alpha.1/`。下文适配阶段的本地归档校验值保留作历史记录，发布物以本节为准。
+用户明确要求交接文档保存在本项目文件夹；后续 `$handoff` 直接原地更新本文件。目录搬迁同步与截图可读性修复已完成，并已按用户 `release` 要求发布为 **v0.1.5-rc.2.8**；GitHub Release、npm `next` 和主工作树均已同步。接手时先读下方「当前目录与启动」「当前状态」与「当前边界与后续」；「历史记录」保留当时状态，不能覆盖当前结论。
 
-安装命令：`dsh plugin --profile web add @benz-ai-x/dsh-client-ui-session-graph@0.1.5-alpha.1`。本次发布没有替换用户实际 profile 或迁移真实会话数据。本节覆盖下文“尚未提交/发布”的历史状态。
+- 用户优先级：图谱使用体验第一，知识库归纳第二。[Issue #32](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 的 P5 两项仍暂缓；新工作以用户下一条要求及 Issue 当前范围为准。
+- 功能与验收入口：[截图可读性修复](docs/reviews/graph-readability.md)、[窄缝连线修复](docs/reviews/tight-channels.md)、[本次发布验收](docs/reviews/release-0.1.5-rc.2.8.md)。复现场景、测试结果和未定位现象已在其中记录；继续调查时读取原始证据，不将未定位现象视为已修复。
+- 本次发布结果：[completed.json](.artifacts/release-0.1.5-rc.2.8/completed.json)；正式 npm 归档与校验文件在同目录 `official/`，原有工作区文件备份在 `original/`。
+- 上一版 v0.1.5-rc.2.7 的发布结果：[归档中的 completed.json](.artifacts/worktree-cleanup-20260913T151659Z/archive/dsh-research-graph-release-rc.2.7/.artifacts/release-0.1.5-rc.2.7/completed.json)。该文件索引正式包、CI、隔离验收和附件核对记录；原发布工作树已清理，历史证据中的旧路径按下方归档映射查找。
+- 开发规则读取 [AGENTS.md](AGENTS.md)、[领域上下文](CONTEXT.md) 与 [Issue 流程](docs/agents/issue-tracker.md)。执行新的远端操作前重新核对相应状态。
+- 根工作树原有文档改动和未跟踪研究文件继续保留，见下方「本地工作区与文档清理」。本轮浏览器和隔离 preview 已停止，日常 DSH profile 未改；历史实例按实际归属处理。私有日志可能含本机登录凭据，后续交接仅引用位置，不复制凭据。
 
-## 当前任务：适配 DSH 0.1.5-alpha.1 并对齐版本命名
+## 当前目录与启动
 
-用户已要求认真复核兼容性、制定 TODO 并修改；以后插件版本与所适配的 DSH 版本一致。本次目标源码为 `/Users/pc2026/DSH-Space/deepseek-harness`，提交 `5dda764ed3aa172535a7967b06ff95d9cbfe536a`。当前工作区为 `/Users/pc2026/DSH-Space/dsh-session-graph`。下文的旧暂停点保留为历史记录，本节是当前任务状态。
+用户于 2026-09-14 调整了项目文件夹。以下路径是当前入口；后文旧工作树路径属于历史记录，已清理工作树的证据继续按原有归档映射查找。
 
-- [x] 用当前真实 Session / 持久化接口建立回归测试，修复摘要读取和 Merge 目标解析。
-- [x] 将新 Merge 标记改为宿主公开的 plugin message source，保留已有标记的投影识别；提供保留原文件的历史日志恢复工具。
-- [x] 修正 Host 直接依赖及类型声明，加入目标 Harness 的源码和打包声明类型检查。
-- [x] 将插件版本改为 `0.1.5-alpha.1`，统一依赖、CI、发布校验与双语文档的版本规则。
-- [x] 完成最终归档的隔离 Loader/profile 验收，并记录全部验证结果。
-
-复核基线：摘要的已移除 `sessionPersistence.inspect()`、Merge 的已移除 `session.events`、旧 Merge 标记的 V0/V1/V2 迁移拒绝均已用隔离探针复现。构建通过，独立测试 167/167；原 Harness 集成 96/97（前端 87/87），失败项是旧缓存测试参数；仅在内存中适配该测试参数后通过。`pnpm run check` 在类型检查失败，普通 Node 加载构建产物缺少 Typert 直接依赖。尚未修改或迁移任何真实会话数据。
-
-
-当前实现：Digest 改用 `sessionController.inspect(id, signal)`，Merge 读取 `snapshotEvents()`。新标记使用 `source.kind: plugin`、`plugin: dsh-session-graph`、`form: notice` 和 `summary`，版本化操作/来源信息置于末尾文本块；不能在标准 source 中增加自定义字段。旧标记解析继续保留。投影使用真实 Zod schema，移除了不受支持的 LLM `purpose`；Workspace ID 在宿主调用处使用真实品牌类型。
-
-类型与依赖：直接 Typert 依赖、LLM peer/dev 依赖、开发用格式目录和 attachment 与 DSH 同版本；Zod 固定 `4.4.3`。移除遮蔽真实 Cordis、LLM、Typert 的 ambient 声明，独立构建的少量 Host/Client 适配声明不进入 `check:harness`。该命令分别检查 Host 源码、Client 源码、Host 打包声明、Client 打包声明；产物检查曾真实发现 `SessionId` 品牌被重复打包的冲突，已通过声明构建外部化宿主包修复。CI 自动检出 `dsh-v<package.version>`，准备宿主原生/库/Web 产物并运行集成与打包验收。
-
-历史恢复：`scripts/migrate-merge-history.mjs` / 安装后的 `dsh-session-graph-migrate` 默认仅检查；安装命令使用包含格式目录及依赖的独立 `lib/migrate-merge-history.js`，无需宿主先启动以提供 peer 包；明确 `--output` 后才生成独立 V3 文件。覆盖 V0/V1/V2 明文与 `.zst`/`.zstd`；只转换已识别的本插件旧 marker，完整运行官方迁移并再次校验当前格式，保留消息 ID 与来源边界。输入及解压后数据默认限 128 MiB；检测原文件变化、拒绝未知 marker 字段、截断输入、覆盖已有输出及原地替换。放回真实会话目录的步骤见 `README.zh.md`，本次没有读取或处理真实历史会话。
-
-版本政策：本次与目标 DSH 完全一致（包括 `alpha.1`），插件 tag 保持 `v<version>`；旧独立版本 `v0.1.0`–`v0.1.6` 不重命名。旧 DSH `0.1.2-alpha.1`–`alpha.3` 使用历史插件 `0.1.6`，本条源码不再声明旧宿主兼容性。相同 DSH 版本下的本地迭代用 Build ID 区分，不覆写已发布版本。尚未 commit、push、发布 npm/GitHub Release 或替换用户的实际 profile。
-
-
-最终验证（2026-09-09，macOS arm64 / Node `26.4.0` / pnpm `11.7.0`）：
-
-- `pnpm install --frozen-lockfile` 通过；`pnpm run check` 通过，18 文件、169/169 独立测试，含普通 Node 加载 Host 产物和独立恢复命令。
-- `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness pnpm check:harness` 通过：Host/Client 源码及打包声明四组真实类型检查，4 文件、110/110 集成测试（含 87 项 UI 测试）。恢复测试同时比较源码工具与普通 Node 执行的独立打包命令，覆盖 6 种历史版本/编码组合及拒绝覆盖、截断和未知标记等情况。
-- `pnpm pack --pack-destination .artifacts` 通过。最终归档 `.artifacts/benz-ai-x-dsh-client-ui-session-graph-0.1.5-alpha.1.tgz`，223,462 字节，SHA-256 `2ef4b5afcaa598f096e5b18b2bc85b066c7ad8b171911bb98778f812fd64ca0b`；包含独立恢复命令、声明及第三方许可证，浏览器产物包含同一版本徽标。
-- `DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness pnpm smoke:harness` 对该归档通过：在临时 web profile 安装、首次 Host 启动前运行安装后的恢复命令、通过真实 DSH launcher/Loader 启动、以两个实际测试会话验证 Merge 持久化和来源日志不变、验证 Digest 只读、关闭并移除插件。模型传输是固定响应，7 次调用均为本地 fixture；没有真实模型请求。临时目录已清理。
-- 发布版本校验接受 `v0.1.5-alpha.1`、拒绝旧 `v0.1.6`；`git diff --check` 通过。目标 Harness 源码保持 clean。Node 22/24 的 CI 配置已更新，本地只执行上述 Node 26 验证，未运行远端 CI。
-
-本轮兼容性 TODO 已全部完成。下一次发布或安装到实际 profile 时应以本节的未发布版本与新命令为准；不要将下文历史审计、旧版本清单或暂停描述当成当前源码状态。后续七项功能路线图的 Issue 拆分仍保留在历史记录中，本轮没有推进那些功能。
-
-> This root `HANDOFF.md` is the only canonical live handoff for this repository. Update it in place for future handoffs; do not create another handoff file. The former `session-graph-handover.md` is intentionally deleted, and `docs/HANDOFF.md` is retained only as a historical project snapshot.
-
-## 历史暂停点：七项需求的开发分析与 GitHub Issues
-
-用户最新指令是：“先写交接文档，我要关机处理一些事情”。本次只保存交接，停止后续研究、Issue 创建和实施，等待用户回来继续。
-
-暂停前的请求是：“针对这些需求，你能不能帮我深入分析应该如何开发实现，形成issue，我想都做了”。用户已授权把全部需求分析成实际 GitHub Issues；恢复后应完成分析并创建 Issues，无需再次询问是否创建。这个请求本轮推进到方案研究，尚未开始功能实施。下文已有的新版兼容性审计与实施清单来自此前工作，完整保留；恢复本轮任务时先完成需求和 Issue 拆分。
-
-**暂停状态：** GitHub 仓库 `benz-ai-x/dsh-session-graph` 的 open Issues 列表再次核实为空；本轮没有创建 Issue、PR 或新标签，没有提交或推送产品代码。`HANDOFF.md` 在本次交接前已有未提交的兼容性审计更新，本次在其基础上合并记录，不能用 Git 版本覆盖它。当前 `main` 为 `b533c933eb24d531fe3135c785db7b813c59fb5c`，较本地 `origin/main`（`3eba84d6231c0cb54ddb1d79aa94d059b88ac87d`）领先两个提交，必须保留。
-
-### 全部需求与建议拆分
-
-原始七项需求：新版 Harness 兼容性、重要会话收藏、正文搜索并定位图谱、图谱与原生聊天并排、大量会话的性能与故障处理、稳定会话链接及位置恢复、来源/渠道筛选。
-
-建议建立一个 `wayfinder:map` 总 Issue 和至少八个 `wayfinder:task` 子 Issue。额外的公共面板/定位模块是多项功能的前置工作。以下为尚未发布的拟定内容；不要把这里的序号当成 GitHub Issue 编号。
-
-| 标识 | 优先级 | 拟定 Issue | 前置工作 |
-| --- | --- | --- | --- |
-| A | P0 | 适配 Harness 0.1.5-alpha.1，并补齐真实 Host、类型和打包验证 | 无；合并下文已有兼容性审计，历史 Merge 迁移必要时独立拆单 |
-| B | P1 | 提取可复用 GraphPanel 与统一节点定位、面板状态模块 | A |
-| C | P1 | 消除大图重复扫描和深递归，增加视口裁剪与失败恢复 | B；纯算法改造可提前准备 |
-| D | P1 | 收藏重要会话，提供持久化收藏入口和图谱定位 | B |
-| E | P1 | 接入宿主正文搜索，支持范围内分页、摘要片段和节点定位 | B |
-| F | P1 | 注册右侧栏 Graph 标签，实现原生聊天与图谱并排 | B |
-| G | P2 | 提供稳定会话/节点链接，恢复选中节点及视口 | F |
-| H | P2 | 根据有证据的来源元数据展示渠道并筛选会话 | B |
-
-这些依赖是当前设计建议，尚未在 GitHub 建立。创建时每个 Issue 都应包含问题、现有证据、模块改动、数据与持久化约定、取消/错误处理、验收标准、测试和依赖，不能只贴功能标题。
-
-### 已核对的实现方向
-
-**A：兼容性。** 本轮源码核对目标为官方 `dsh-v0.1.5-alpha.1` / `5dda764ed3aa172535a7967b06ff95d9cbfe536a`，而现有 CI 只覆盖 `0.1.2-alpha.1`–`alpha.3`。`src/index.ts` 的 Digest 仍调用已移除的 `sessionPersistence.inspect()`；`src/session-merge-harness.ts` 仍读取已移除的 `session.events`。当前公开替代包括 `sessionController.inspect(id, signal)` 和 `Session.snapshotEvents()`。`form: 'notice'` 的当前声明还要求 `summary`，应核对 Merge marker 写入。不要把移除 `ctx.agent` / Inbox 的发布说明自动归为本插件的问题。下文的既有审计还记录了历史 Merge 日志迁移失败与依赖问题，必须一并纳入 A；不能只修两处调用就宣称全部兼容。保留旧版本支持与否未定，不能默认放弃。
-
-**B：公共面板与状态。** `src/client/GraphView.tsx` 目前直接依赖 `ConvViewProps`；`GraphCanvas.tsx` 约 1,880 行，集中管理视口、选择、布局、筛选、Merge、Digest 和手势。建议把宿主适配与可复用 `GraphPanel` 分开，让 conversation.view 和 sidebar.right.pane.tab 各自提供普通业务参数。提供小而明确的节点定位入口，统一完成选择、居中、必要的显示处理与 DOM 焦点恢复；禁止各功能自己 `document.querySelector` 全局抢焦点。当前键盘导航恰有全局查询，双实例会产生错误目标。
-
-状态建议：Session Arrangement 继续按既有 Workspace/Directory 身份共享；选择、视口和手势按展示实例保存，避免两个面板互相跳动；收藏以 Host + Session ID 为身份，在当前图谱范围展示。优先复用公开 `ctx.remote.$host.home` 与浏览器 origin 构造本地命名空间，等待 Host 就绪再恢复，连接更换需清理旧请求。若使用路径摘要，明确它只是命名空间，不是安全或跨设备身份。仍需在 Issue 中固定完整状态键、跨标签页更新和保存失败行为。不要把收藏塞进 Reset 会清空的布局记录，也不要将会话正文复制进浏览器存储。
-
-**C：性能。** `resolveGraphScope()` 的成员判断重复 `sessionIds.includes`；`clusters.ts:clusterFrames()` 每个簇都扫描全部节点，而且 `deriveCanvasPresentation()` 同时为当前/自动布局计算两遍；`GraphCanvas.tsx` 每条边用 `shown.nodes.find` 找终点，节点、边和 minimap 全量渲染。`deriveSessionGraph()` / `layoutSessionGraph()` 有递归，多个边界计算采用 `Math.min/max(...array)`。建议先建立 ID/簇索引、单遍边界计算和带 visited 的迭代遍历，再将拓扑/几何更新与运行状态/悬浮/选中分开，最后增加视口裁剪及低缩放轻量显示。裁剪后 Fit、minimap、拖拽和键盘定位仍应基于完整图的数据；缩到全景不能重新产生海量完整卡片。宿主会话列表冷启动延迟与插件计算耗时分别计量；插件展示 loading/error/retry，不接管宿主日志迁移，也不在图谱启动时读全部正文或生成 Digest。
-
-**D：收藏。** 收藏按钮可放节点及 Session Inspector，提供当前范围内的收藏列表和定位入口。以稳定 Session ID 记录，重命名后仍有效；同一会话在不同范围中的收藏状态一致。建议首版浏览器本地持久化，版本化 schema、损坏/配额失败恢复和跨标签页通知；不承诺跨设备同步。不因临时断线/列表未就绪就删收藏；归档/缺失会话按可用性处理。明确收藏操作不触发模型调用、不修改 Session 日志，不改变 Viewed Session。
-
-**E：搜索。** 当前 Harness 的 `packages/client/ui-workspace/README.md` 已记录原生标题/Workspace + 正文搜索，`ctx.sessions.search(query, signal)` 已公开，但返回的是跨范围最多 20 项及 `hasMore`。如果先取这 20 项再按工作区过滤，会漏掉该范围内的真实命中。因此建议插件通过自己的薄 Host Remote，复用 `ctx.sessionQuery.searchSessions(request, { signal })`，由 Host 解析 Viewed Session 的真实范围并在排序/分页之前设置 `sessionFilters: [{ kind: 'id', values }]`；若 Client 提供进一步筛选 ID，也必须与 Host 范围取交集。正文限定当前 surface 的 user/message 与 assistant/message，保留 snippet、游标，定义游标与 query/scope/filter/连接代际的绑定。
-
-源码重点：`packages/api/session-controller/src/list.ts`、`packages/session-query/session-query/src/types.ts`、`packages/session-query/session-query-sqlite/src/index.ts`。请求去抖约 250ms，AbortSignal 贯穿、旧请求结果不得覆盖新查询；失效游标至多有界重试。**官方 base/web-app 配置仍为 `openAt: never`，索引默认关闭**，虽然 schema 默认是 startup。Issue 必须写清可选 profile patch 启用 `first-search` 的步骤（该 Loader 替换整个 config，需保留必要字段），未挂载/禁用/首次索引/失败的分别提示，保留本地 Title Filter。插件不能偷偷修改全局索引配置。当前原生 UI 没有跳到命中事件的公开能力，首版承诺命中片段和图谱节点定位，不承诺原生聊天事件滚动。
-
-**F：并排。** 新版 `@deepseek-ai/dsh-client-ui-sidebar-right/client` 提供 `ctx.sidebarRightTabs.register(definition)` 和 keyed slot `sidebar.right.pane.tab`。照 `packages/client/ui-sidebar-files/src/client/index.ts` 的“两段注册 + ctx.effect + slots.inject”方式接入，类型 kind 建议 `session-graph`，通过 `ctx.sidebarRight.openTab('session-graph', { params })` 打开。使用 `useTabInfo()` 的 `tab.visible` / `tab.signal` / `navigation.revision` / 绑定 Session 的 actions；隐藏不等于被关闭，signal 也不会仅因切换 Session 而 abort，需明确各类工作的暂停/取消所有权。选择节点仍只改变 Selected Session，显式打开才改变 Viewed Session。复用原生聊天，不嵌套第二个 composer；GraphView 的 `data-conversation-composer-overlay` 只能放 conversation 适配层。支持窄宽度、resize、浮动/分栏、双实例与卸载测试。侧栏 docking 布局是宿主的 Session 级内存状态，刷新后不会自动恢复；公开服务没有布局 snapshot/subscription、find 或 features，不能导入内部 dockkit 实现绕过。
-
-**G：稳定链接。** 建议由插件自有、版本化的 URL fragment 承载导航意图，使用稳定 anchor/selected Session ID 和可选 Workspace ID，不用标题或布局像素坐标做身份。生成链接时保留应用部署路径，清除认证 token 和非必要查询参数；不得把 cwd、home、正文或 Digest 放到 URL。解析后等待连接与 Session/Workspace 列表就绪，先通过公开 sessions.open 选定 Viewed Session，再用 F 的 sidebar openTab + params 定位 Selected Session。只有公开 conversation view owner 的 openView 回调可用时才使用它，不能假设全局 conversation 服务有切换视图方法。记录重复导航、hashchange/popstate、归档/缺失/范围变化和用户在等待期间再次导航的处理。该 URL 语法与登录后恢复流程尚未实现或端到端验证；不承诺跨 Host 可打开同一数据。视口恢复应另存 Host/Scope/展示实例的中心点与缩放，经过容器测量后应用，明确显式链接定位优先于旧视口。
-
-**H：来源/渠道。** 当前 `SessionHeader.origin` 只有 `subagent`，不能据其缺失推断 Web；通用 `source.channel` 也不是所有会话都有的宿主字段。可根据实际已记录的 `user/message.data.source` 识别：带有效 rpcId 的 user 来源标为 Web/RPC；已声明的 webhook 来源可按 provider 分类；第三方 channel 字段仅在支持的生产者约定及运行时校验后识别。保留 unknown/mixed/读取失败，不能按标题、cwd 或 Agent 名猜飞书/Telegram。建议增加小型、可重建的 `sessionGraphSource` projection；当前 projection 的 `init(header, inheritedEventCount)` 可用于排除 Branch 继承前缀，避免把父会话或 Merge 快照的渠道错误地当成本会话的输入来源。只折叠本会话自己的输入，记录有限渠道集合和证据序号，不把用户/群/投递 ID 全量送到节点。冷会话先消费已有 projection cache，缺失显示未知，可按需、有界、可取消补读；不在启动时回放全部冷日志。渠道匹配属于呈现/检索，不重定义 Scope、Branch/Merge 或 Session Cluster；与 Title Filter/正文结果组合的规则需在 Issue 固定。
-
-### 本轮验证与已排除的问题
-
-在 Apple M5 Pro / arm64 / Node `v26.4.0` 上运行了纯函数合成数据探针（每个成功场景 3 次取中位数，未含 React/浏览器渲染）：
-
-| 数据 | scope | derive | layout | presentation |
-| --- | --- | --- | --- | --- |
-| 1,000 个独立 Root Session | 0.4ms | 0.8ms | 0.4ms | 4.9ms |
-| 5,000 个独立 Root Session | 7.6ms | 3.5ms | 1.4ms | 121.8ms |
-| 10,000 个独立 Root Session | 29.3ms | 7.0ms | 2.3ms | 782.8ms |
-| 5,000 / 10,000 层 Branch 链 | — | `RangeError: Maximum call stack size exceeded` | 未到达 | 未到达 |
-
-这些结果是当前瓶颈证据，不是浏览器 FPS、P95 或未来性能承诺。恢复时为 Issue 定义固定数据集、生产构建和明确的性能验收环境。
-
-曾在进度消息中怀疑图谱漏用了 scope.members，**已明确撤回**：当前 Git 提交含该判断，合成探针正确排除了其他工作区和归档会话；`pnpm exec vitest run tests/graph-model.client.spec.ts` 的 20 个测试全部通过。不要创建虚假的范围错误 Issue。本轮没有运行完整 `pnpm run check`，也没有做新版安装/运行验证；下文其他兼容性审计的测试结果应保留其原始运行范围，不能合并成“全套通过”。
-
-探针及结果位于 `.artifacts/session-graph-roadmap-2026-09-09/probe.mjs` 和 `probe-results.json`，可运行 `node .artifacts/session-graph-roadmap-2026-09-09/probe.mjs` 复现。`.artifacts/` 为忽略的本地材料，不提交；关键结论已写进本文。
-
-### 讨论与前序任务的可续用材料
-
-- Discussions 调研缓存：`.artifacts/harness-discussions-2026-09-09/`，包含 recent、interactive、focused、deep、opportunities、official-replies 等 JSON。社区讨论是需求证据；接口与可行性以精确 tag 的源码为准。
-- 收藏需求：[Discussion #5619](https://github.com/deepseek-ai/deepseek-harness/discussions/5619)；搜索：[Discussion #4752](https://github.com/deepseek-ai/deepseek-harness/discussions/4752)；并排：[Discussion #5934](https://github.com/deepseek-ai/deepseek-harness/discussions/5934)。这些帖子的旧版本限制不能直接套到新版。
-- 大量冷会话：[Discussion #5961](https://github.com/deepseek-ai/deepseek-harness/discussions/5961)；链接：[Discussion #1039](https://github.com/deepseek-ai/deepseek-harness/discussions/1039)；渠道：[Discussion #3897](https://github.com/deepseek-ai/deepseek-harness/discussions/3897)；版本适配：[Discussion #5874](https://github.com/deepseek-ai/deepseek-harness/discussions/5874)。
-- 用户先前要求 GitHub SEO 必须含 `dsh-plugin` topic：已完成 topic/description 与双语 README 优化，发布文档提交 `3eba84d`。保留 `dsh-plugin`，无需重做；社交预览图 `docs/assets/session-graph-social-preview.png` 尚未通过 GitHub 设置界面配置，此前浏览器连接未成功。
-- 已应用 `dsh-plugin-dev`、`codebase-design`，并阅读兼容性分析伴随技能。没有调用多代理。当前任务不需要给 upstream 发帖、评论或消息。
-
-### 用户回来后的下一步
-
-1. 读本文件和 `AGENTS.md`，检查工作区；保存这份尚未提交的交接及两条本地提交。不要 reset、清理 artifacts 或覆盖既有改动。
-2. 以 A–H 为基础完成可执行的 Issue 正文；把下文历史 Merge 迁移等已知阻塞纳入兼容性拆分，必要时增加独立子 Issue。尚未决定的旧版支持政策与 URL/渠道方案应如实写成待验证设计，不能声称用户已经选定。
-3. 用 `gh` 重新读取现有 Issues 防止重复，然后创建总图和子 Issues。用户已授权创建。仓库要求标签 `wayfinder:map` / `wayfinder:task`；准备充分的任务用 `ready-for-agent`，其他分诊只用 `needs-triage`、`needs-info`、`ready-for-human`、`wontfix`。本轮未创建标签。
-4. 使用原生 sub-issues 和阻塞依赖。已查官方 REST：`POST /repos/{owner}/{repo}/issues/{number}/sub_issues` body 为 `sub_issue_id`（数据库 ID）；`POST .../dependencies/blocked_by` body 为 `issue_id`。不可用时采用总图 task list、子单 `Part of #N` / `Blocked by: #N`。
-5. Issue 正文使用文件加 `--body-file`，保留实际换行；public body 中使用仓库相对路径和固定提交源码链接，不复制本机绝对路径或认证信息。发布后读回正文、标签、父子和依赖，更新总图 frontier，再将真实链接写回本文件并给用户结果。
-6. 本次关机暂停前不执行以上创建和实施；用户回来后按其最新指令继续。
-
-## Resume snapshot
-
-- Repository: [`benz-ai-x/dsh-session-graph`](https://github.com/benz-ai-x/dsh-session-graph)
-- Package: [`@benz-ai-x/dsh-client-ui-session-graph`](https://www.npmjs.com/package/@benz-ai-x/dsh-client-ui-session-graph)
-- Checkout: `/Users/pc2026/Dev-Space/dsh-session-graph`
-- Branch: `main`, HEAD `b533c933eb24d531fe3135c785db7b813c59fb5c`; two commits ahead of the locally recorded `origin/main`. Preserve those commits; no fetch, reset, commit, push, or release was performed during this work.
-- Package version: `0.1.6`. Last recorded release: [`v0.1.6`](https://github.com/benz-ai-x/dsh-session-graph/releases/tag/v0.1.6), commit `cb48647`; the plugin's current npm dist-tags were not rechecked on September 9.
-- Target Harness checkout: `/Users/pc2026/Dev-Space/deepseek-harness`, clean `master`, official tag `dsh-v0.1.5-alpha.1`, commit `5dda764ed3aa172535a7967b06ff95d9cbfe536a`. The checkout has no root `.env` and already has dependencies and built output.
-- Local tools: Node `26.4.0`, pnpm `11.7.0`.
-- Scope: this handoff belongs to `dsh-session-graph`, not the separate `dsh-graph-workflow` repository.
-- Current task: paused after development analysis for the seven-requirement roadmap; actual GitHub Issues are still to be created. An earlier authorized Harness `0.1.5-alpha.1` adaptation audit is preserved below; implementation has **not started**. The latest shutdown instruction takes precedence over the implementation checklist below.
-
-## Earlier compatibility task: user intent and audit pause point
-
-The user first requested a compatibility audit against the local latest Harness, then said: “要怎么改？ 我希望支持最新的版本” (“How should it change? I want support for the latest version”). Adaptation work is authorized. They subsequently interrupted the investigation with “写交接文档，我等下再处理” (“Write a handoff; I will handle it later”). Stop after this handoff and resume implementation only when the user returns.
-
-An optional question about retaining support for Harness `0.1.2-alpha.1`–`alpha.3` was sent but **not answered**. The proposed new baseline is `0.1.5-alpha.1`; dropping old-version support is not an accepted decision. No business source, manifest, lockfile, CI, README, or test source has been changed. No actual user sessions or live profiles were read, migrated, or modified, and no real model calls were made.
-
-`gh issue list --repo benz-ai-x/dsh-session-graph --state open --json number,title,body,labels` returned no open issues. No issue or PR was created. The local `dsh-plugin-dev` skill was used; its pinned rc.1/historical contracts do not establish compatibility with this target. Follow the exact target source and the audit evidence. This project has no `dsh-reference.lock.json`, `docs/agent/PROJECT_CONTRACT.md`, `TODO.md`, or `context:check` script.
-
-## Confirmed incompatibilities
-
-| Surface | Failure and source | Required work |
-| --- | --- | --- |
-| Merge submission | `src/session-merge-harness.ts:101` spreads `agent.session.events`. The current Session class removed that getter; a real Session produces `agent.session.events is not iterable`, wrapped as `target-resolution-failed`. | Use the current immutable `snapshotEvents()` API; update the local adapter type and test with a real Session. This change was already present in Harness `0.1.2-alpha.4`. |
-| Session Digest | `src/index.ts:192` calls `ctx.sessionPersistence.inspect()`, removed by the handle-based persistence change in Harness `0.1.3-alpha.1`. A real JSONL service with a readable nonblank V3 session reproduces `inspect is not a function` before model invocation. | Select and implement the read seam: `SessionController.inspect()` still supports attached/cold sessions, or use `SessionPersistence.open(id, 'read', { signal })` plus handle `read()` and guaranteed `close()`. Adjust declared injections and preserve cancellation, read-only behavior, and freshness for running sessions. No choice has been implemented. |
-| Historical Merge sessions | `src/session-merge-host.ts:276` creates a `user/message` whose `source.kind` is `session-graph-merge`. Harness `packages/session/session-format-v2-to-v3/src/payload.ts:110` rejects this source as unclassified. | Decide an explicit historical-data migration route. Isolated tests through the complete official catalog confirmed that old V0, V1, and V2 artifacts containing this marker fail, while ordinary-message controls migrate successfully. Changing future writes alone cannot repair existing logs. |
-
-The historical failure rejects loading the affected session, not merely displaying its Merge edges. The audit did not establish whether the user has affected sessions. Native V3 encoding accepts this custom message source; do not confuse historical migration admission with current-format admission.
-
-The latest upstream investigation established a material constraint: `packages/session/session-format-catalog/src/generated.ts` statically imports the first-party migration chain. Its README explicitly states “external migration ownership and distribution are not supported”; feature plugins cannot register or reorder migrations at runtime. A transparent plugin-only migration hook is therefore unavailable. An upstream compatibility change or a separately designed, validated offline migration may be needed. Neither has been selected or implemented. Preserve existing generations and their bytes; do not overwrite, delete, or casually rewrite old user logs. Revisit the historical-compatibility assumption in `docs/adr/0003-record-merges-as-independent-session-projections.md` when deciding the durable approach.
-
-The release's removal of `ctx.agent` and the runtime `Inbox` class does not directly affect this plugin: it does not call those removed APIs. The `agent.inject()` / `agent.steer()` methods it uses still exist. The consumed Session list fields, `conversation.view` slot, and browser shared-module protocol remain available; the existing frontend tests pass.
-
-## Dependency and verification gaps
-
-- `package.json:102` pins `@deepseek-ai/dsh-llm` to `0.1.2-rc.1`; commit `11a9702` added that peer after the last recorded release. Installation resolves the old LLM/Typert packages and two Schemastery versions.
-- `pnpm run check` currently fails during type checking. `types/deepseek-harness.d.ts` shadows real Harness modules and conflicts with installed LLM/Context declarations; the LLM declaration graph lacks `dsh-attachment`, and duplicate Schemastery declarations also fail. These are current-repository dependency/type issues, not all newly introduced by Harness `0.1.5-alpha.1`.
-- The built Host imports `@deepseek-ai/dsh-typert-protocol` directly without declaring it. Ordinary Node import of `./lib/index.js` fails with `ERR_MODULE_NOT_FOUND`. This was tested outside a Harness profile; a profile's fallback resolution was not tested and must not be presumed to fail identically.
-- Registry reads confirmed that `@deepseek-ai/dsh-llm@0.1.5-alpha.1` and `@deepseek-ai/dsh-typert-protocol@0.1.5-alpha.1` are published; both declare Cordis `^4.0.2`. LLM depends on Schemastery `^3.18.2`; its public declarations reference attachment types. No updated dependencies have been installed yet.
-- Resolve direct runtime dependencies and real type declarations together. If using full upstream types, investigate separate Host and Client compiler faces because their Cordis `Context.sessions` services differ. Do not just silence the existing errors or let standalone stubs remain the only compatibility evidence. This architecture choice remains open.
-- `tests/host.harness.spec.ts:288` reads `target.events`; lines 290/297 use `cachedSnapshot(header)` and line 306 uses `coldSnapshot(header, events)`. Current cache signatures are `cachedSnapshot(header, inheritedEventCount, keys?)` and `coldSnapshot(header, inheritedEventCount, events)`.
-- Existing digest tests mock the removed `sessionPersistence.inspect`; Merge tests mock Sessions with the removed `events` property. Those passing tests conceal the two product failures. Add regression coverage using real current services and Session objects.
-- `.github/workflows/ci.yml` and both READMEs still claim only Harness `0.1.2-alpha.1`–`alpha.3`. Update the supported/tested matrix after settling the version scope and completing validation.
-
-## Current verification evidence
-
-| Check on September 9 | Result |
+| 用途 | 当前路径与状态 |
 | --- | --- |
-| Dependency installation and its prepare build | Build passed; ignored `node_modules/` and `lib/` were populated/refreshed. |
-| `pnpm run check` | Failed at `tsc --noEmit`; its subsequent test step did not run. |
-| Standalone `pnpm exec vitest run` | 18 files, 167/167 tests passed. |
-| Original `DSH_HARNESS_ROOT=/Users/pc2026/Dev-Space/deepseek-harness pnpm test:harness` | 96/97 passed: 87 frontend tests passed; the cache restoration Host test failed first on missing `inheritedEventCount`. |
-| Temporary updated test fixtures plus isolated probes | 3 files, 104/104 passed: 97 existing tests with temporary fixture conversion plus 7 probes. The probes assert the known failures; this does **not** mean the product was fixed. |
-| Ordinary Node import of built Host | Failed: missing directly resolvable `@deepseek-ai/dsh-typert-protocol`. |
-| Browser/profile/packed-artifact end-to-end acceptance | Not performed for this target. |
+| 主工作树、唯一实时交接 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`；`main`；产品发布基线 `8f54927`，插件 `0.1.5-rc.2.8`；后续文档提交以 `git log -1 --oneline` 核对 |
+| 未合并原型工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-prototype`；`prototype/research-workbench` / `e890247`，该树交接仍是历史副本 |
+| 已合并发布工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-release-rc.2.8`；`release/0.1.5-rc.2.8` / `5c11566`，干净保留验收证据，树内容与发布提交一致 |
+| 匹配 Harness | `/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.2`；官方 `dsh-v0.1.5-rc.2` / `fb2c4b9e69` |
 
-Local disposable evidence is in `.artifacts/compat-20260909/`: `report.md`, `probe.spec.ts`, `vitest.config.ts`, `harness.log`, `standalone.json`, and `standalone.log`. These are ignored outputs, not another handoff or committed tests; essential findings are recorded above so a clean checkout does not depend on them. The probe runner uses the real Harness source resolver and changes only the old test fixture expressions in memory:
+- 在主工作树运行 `pnpm preview:dsh`，在原型工作树运行 `pnpm prototype:dsh`。两套启动器优先使用 `DSH_HARNESS_ROOT`；未配置或指定目录不存在时，依次查找仓库相邻目录、上一级目录中的 `deepseek-harness-<目标 DSH 版本>`。找到但版本不匹配时直接报错；兼容目标读取精确 LLM peer 依赖。
+- 集成检查仍需显式指定宿主：`DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.2 pnpm check:harness`；`smoke:harness` 同理。
+- 目录同步阶段未启动 preview 或 Host；随后截图修复使用本轮独立 `.artifacts/graph-readability/preview/profile/` 验收，现已停止。原型旧 `state.json` 虽记录 `running: true`，其中两个 PID 在目录同步核对时均已不存在，不能将该文件或旧 URL 当作实时服务。原型保留的体验 profile 与历史来源中的旧工作目录未迁移；后续如需继续这些旧会话，应单独核对其目录归属，不能批量替换不可变历史材料。
+
+## Suggested skills（建议技能）
+
+按下一项任务选择并先读取对应 `SKILL.md`：
+
+- `code-review`：审查 PR 或分支时使用，路径 `~/.codex/skills/code-review/SKILL.md`。
+- `diagnosing-bugs`：复现并定位连线、布局恢复、投影或性能异常时使用，路径 `~/.codex/skills/diagnosing-bugs/SKILL.md`。
+- `codebase-design`：需要调整布局／路由模块接口与边界时使用，路径 `~/.codex/skills/codebase-design/SKILL.md`。
+- `domain-modeling`：澄清领域词汇与职责边界时使用，路径 `~/.codex/skills/domain-modeling/SKILL.md`。
+
+技能以当前会话实际提供的目录为准，不假定旧会话的技能仍可用；交接始终原地更新本项目根 `HANDOFF.md`。
+
+## 当前状态
+
+- 核心文档同步（2026-09-14，已完成）：更新 `AGENTS.md`、中英文 README、`CONTEXT.md`、本文、文档分工、布局 ADR 与 RC.2.8 发布验收。统一研究工作台／Agent 预设职责，修正工作位置恢复、布局入口和四个 Harness 编译面说明，并补齐正式 npm 包验收；旧状态移至下方历史区。用户随后要求 `commit push`，本次文档提交范围为上述八份文件，目标为 `origin/main`；包版本与发布 tag 不变，不另建 PR 或发布。提交与远端核对结果记录在 `.artifacts/docs-sync-20260914T061612Z/push.json`。196 处本地链接／锚点、命令、版本政策、双语内容和 `git diff --check` 通过，两个远端版本徽标均返回 RC.2.8；本次未重跑产品测试套件。验证记录见 `.artifacts/docs-sync-20260914T061612Z/validation.json` 与 `badges.json`；更新前八份文档备份在同目录 `before/`，原有五份未跟踪研究文件保持原样。
+- 用户本轮 `release` 已完成（2026-09-14）：**v0.1.5-rc.2.8** 已于 **13:59:47（Asia/Shanghai）**发布，npm `next` 已同步，继续适配官方 DSH **0.1.5-rc.2**。[PR #48](https://github.com/benz-ai-x/dsh-research-graph/pull/48) 包含实现 `351fd89` 与发布准备 `5c1156666d800040b529f55b952f6babe4193bee`，已合并为 `8f549276028d19462e29054ea73dcac0734201d4`；annotated tag object `1665a424429737259da9a0c9f7877db8a0c1fd7a` 指向该提交，远端标签与已验收树核对一致。发布范围为继承来源去重、短簇标题与布局、同名标识与图例、可查看的子代理记录，以及目录搬迁后的 preview 启动适配。原型未合并，#32 P5.1／P5.2 继续暂缓。
+  - 验证：本地 `check` **227 项**、官方 RC.2 四个编译面及 **343 Harness** 通过；候选与正式 npm 归档各通过 **19 次固定模型调用**的隔离安装／离线恢复／研究读写／移除验收。Chrome 两种图谱、两种窗口共 10 个几何场景无卡片或标题穿透、共享直线段或箭头端口错位；拖动、折叠、重复布局撤销、主题保存、冷重启后的 9 节点／5 关系及原生子代理记录均通过，页面错误 0。PR CI `34810939130`、[main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811268624) 的四项及 [OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811633079) 全部成功。
+  - 正式包 **516813 bytes**，Build ID **local-dafff617**，SHA-256 `67ee1e88a9187732db14136a9cf2de9a3beebdeca983e4090fefe12defdf932f`；SHA-1／SHA-512 与 registry 一致。来源记录的仓库、tag、commit、发布运行和制品摘要匹配，未另行验证证书签名密码学。[Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.8) 的安装包与 `SHA256SUMS` 已重新下载，和 npm 正式字节完全一致；正文已回读核对。
+  - 根 main 已快进同步并重新构建。发布前 42 个工作文件均先备份；36 个本轮实现／文档路径已纳入发布，其余研究资料和根交接保留，最后仅原地更新本交接。根树现有被 Git 忽略的 `src/.DS_Store` 使本机生成 Build ID 为 `local-6979c23c`；排除该 Finder 元数据后的所有构建输入与正式 `local-dafff617` 一致，包版本同为 `0.1.5-rc.2.8`，未删除用户的目录元数据。浏览器、隔离 Host 已停止，日常 profile 未改。冷启动时未打开分支的宿主列表标题／继承摘要暂缺仍作为已知观察保留，原生打开后恢复，不计为已修复。
+
+## 当前边界与后续
+
+| 事项 | 当前结论与接手方式 |
+| --- | --- |
+| 产品与 Agent 预设 | 研图提供研究工作台；专业预设需另外制作，Agent Team 执行仍属 DSH。当前没有预设注册或团队启动入口；子代理摘要只检查已委派任务。 |
+| 冷启动列表标题／继承来源 | 一个未打开分支的宿主列表可暂时使用目录名并缺少来源摘要，磁盘投影保留事实，原生打开后恢复。图谱节点／直接关系数量保持正确；宿主内部根因尚未定位，不能记为已修复。 |
+| 布局与视口 | 重新布局保留折叠、阅读和视口，重复操作保留有效撤销；要看全图使用适应。主题修改需显式保存排列才会同步。 |
+| Issue #32 | 2026-09-14 再次核对仍为 OPEN；P5.1／P5.2 结构化方向与假设两项暂缓、未完成。自由问题和轻量提示已交付，不能据此补勾 P5。 |
+| 未合并原型 | `prototype/research-workbench` 仍是独立原型，不把其能力或旧启动状态视为 main 已发布内容。 |
+| 文档与研究资料 | 本次文档提交覆盖八份核心文档及既有根交接历史；五份未跟踪资料继续保留本地，不纳入这次提交。 |
+
+当前文档职责见 [分工表](docs/agents/domain.md#documentation-map)。本地的 [DSH Agent 预设与研图 HTML 报告](docs/reports/dsh-agent-presets-research-graph-2026-09-14.html) 是先前任务生成、尚未纳入 Git 的阅读材料，不作为当前版本验收依据。
+
+## 历史记录
+
+以下完整保留各阶段记录的事实与措辞。「本地未提交」「尚未发布」、旧版本、旧路径与服务状态均指记录发生时；当前发布和目录以上文为准。历史归档映射仍见「本地工作区与文档清理」。
+
+- 截图可读性修复已本地完成（2026-09-14）：分支继承的 Merge 快照保留在详情中，不再重复产生直接 Merge 线；按宿主父会话事实分类，覆盖范围外父会话与主题元数据尚未刷新。短簇标题与路由共用几何，独立讨论集中排列，同名节点加短标识，常驻图例，重新布局／撤销直接可见。工作区和主题都可展开子代理任务，并以刷新后目录中的直接父地址及模式打开原生记录，包含失败重试与迟到结果取消。实际 9 节点样例从 11 条线收敛到 5 条；`check` 227 项、官方 RC.2 四个编译面及 Harness 343 项通过，真实 Chrome 两种视图／两种窗口共 10 个几何场景无卡片或标题穿透、共享直线段、端口错位；拖动、折叠、重复布局撤销、主题保存及冷重启后 9 节点／5 关系通过，页面错误 0。冷启动一个未打开分支的宿主列表标题／继承摘要暂缺，磁盘缓存保留，原生打开后恢复；该宿主内部根因尚未定位，不计为已修复。详情与截图见 [验收记录](docs/reviews/graph-readability.md)。版本保持 `0.1.5-rc.2.7`、Build ID `local-b6782883`；本轮浏览器和隔离 Host 已停止，日常 profile、原有研究文件与未合并原型未改。修改及目录同步内容均保留本地未提交，未创建 PR 或发布。私有证据在 `.artifacts/graph-readability/`，完整测试日志为 `.artifacts/graph-readability-check.log`、`.artifacts/graph-readability-harness.log`。
+- 目录搬迁同步已完成（2026-09-14）：`git worktree repair ../dsh-research-graph-prototype` 修复主仓库与原型之间的双向路径引用；两棵树的 Git 状态恢复正常，分支与 HEAD 保持不变。两棵树各自的 `scripts/resolve-harness.mjs` 与启动入口已适配项目文件夹层级，各自中英文 README 已同步。真实启动入口的路径选择阶段通过 18 项检查，覆盖当前目录、相邻目录、外层目录、显式路径优先、缺失回退、版本不匹配、损坏清单与全部缺失；没有启动构建后的 Host 或迁移 profile。两树 `pnpm run check` 通过，主树 216 项、原型 179 项独立测试；未重跑 `check:harness` 或实包 Host 验收。修改保持本地未提交；主树原有 4 个未跟踪资料文件保留，仅本文件的当前入口追加同步记录，历史验收记录未改写。备份、路径探针及检查日志在 [.artifacts/directory-sync-20260914T020725Z/](.artifacts/directory-sync-20260914T020725Z/)。
+- 用户进一步要求清理本项目已合并的分支和 worktree，现已完成（2026-09-13）：此前已删除的 **24 个本地／24 个远端分支**保持清理状态，本轮再移除 **20 个已合并的 detached worktree 及其目录**。当前本地／远端分支和工作树均仅保留 `main` 与尚未合并的 `prototype/research-workbench`；两者提交未变，发布 tags 未变。移除前确认无未提交内容、无相关运行进程或打开文件；使用普通 `git worktree remove`，未强制删除。每个工作树的 `.artifacts` 已移入本项目 [.artifacts/worktree-cleanup-20260913T151659Z/archive/](.artifacts/worktree-cleanup-20260913T151659Z/archive/)，按原工作树目录名分开保留，共 **13,541 个文件／150,913,873 bytes**，逐文件内容哈希及目录／符号链接记录前后核对一致；源码由 Git 提交保留，依赖和生成构建已随工作树移除。历史记录中的 `<旧工作树>/.artifacts/<相对路径>` 对应归档中的 `<旧工作树目录名>/.artifacts/<相对路径>`，归档脚本／profile 若需再次运行，应先按记录的 SHA 重建工作树并安装依赖。原提交与归档映射、清理结果见 [completed.json](.artifacts/worktree-cleanup-20260913T151659Z/completed.json)。根工作树原有研究文件及清理前 HANDOFF 哈希保持，本轮最后仅更新本交接及上述发布证据入口。
+- 用户要求的已合并分支清理已完成（2026-09-13）：以远端 main `73d4687e9a562ef9a5eb82345dc944035d946f9e` 的提交祖先关系核对后，删除 **24 个本地分支和 24 个远端分支**。两端均只保留 `main` 与尚未合并的 `prototype/research-workbench`，原提交均未变；发布 tags 保持。20 个关联工作树已转为原提交上的 detached HEAD，目录、验收证据和预览数据继续保留；本仓库的 22 个工作树 HEAD、原有文件状态及用户文件哈希均已核对。后续记录中的已清理分支名属于历史状态，继续开发时从合适基线创建新分支。远端删除使用原 SHA 校验及原子操作，本地使用合并检查删除；原分支映射、工作树映射及最终核对见 [.artifacts/branch-cleanup-20260913T150248Z/completed.json](.artifacts/branch-cleanup-20260913T150248Z/completed.json)，同目录 `before.json` 可用于恢复引用。本轮随后仅更新根交接记录。
+- 用户本轮 `release` 已完成：**v0.1.5-rc.2.7** 已于 2026-09-13 22:40:24（Asia/Shanghai）发布，npm `next` 已同步，继续适配官方 DSH **0.1.5-rc.2**，发布 #46 的两种折叠图谱窄缝汇入线分离修复。发布准备 [PR #47](https://github.com/benz-ai-x/dsh-research-graph/pull/47) 的 `77b4cc7f0665076ed9518b238bd6bd0d7392c065` 已合并为 `73d4687e9a562ef9a5eb82345dc944035d946f9e`；annotated tag object `c7377995fd6a371ee5b82660b4e47b060faea6ae` 指向该提交，根 main 已同步，合并树与已验收树完全一致。PR CI `34762979105`、[main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34763251061) 的四项与 [OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34763345018) 全部成功。本地 `check` 216 项、官方 RC.2 四个编译面及 337 Harness、候选与正式 npm 归档各 19 次固定模型隔离验收通过；Chrome 在两种图谱／两种窗口／重启后拖动／重复重新布局与撤销／保存重开和版本徽标通过，旧 SVG 重叠 44px、新 SVG 为 0，页面错误 0。Build ID `local-65d14523`；正式 npm 包 **505971 bytes**，SHA-256 `cb858b70fe4fda33a44fa6d82d11c47244443ccb060afef2b9c1e1dfeef3d2e7`，SHA-1／SHA-512 与 registry 一致，provenance metadata 中的仓库、tag、commit、发布运行和制品摘要均已核对（未另行作证书密码学校验）。[Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.7) 附件已重新下载，与 npm 正式字节／校验文件完全一致，正文回读正确。基线 main CI `34761837861` 一次主题重开 312px／432px 失败未在本地 230 次重复复现，同一失败 job 第 2 次全部通过；首次原生 Branch 的额外继承投影与重启后 7 条可见线差异已如实记录，均未凭推测修改产品／测试。发布工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-release-rc.2.7` 干净保留，浏览器和隔离 preview 已停止；日常 profile 未改，用户研究文件及同步前 HANDOFF 经哈希核对保留。无开放 PR，#32 P5 两项继续暂缓。完整私有记录 `.artifacts/release-0.1.5-rc.2.7/completed.json`。
+- 用户在 RC.2.6 发布后明确选择继续优化图谱使用体验。本轮在独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-tight-channels`、分支 `fix/graph-tight-channels`（基线 `e33bde1`）修复折叠 Branch 簇标题与首张卡片窄缝中的 Merge 汇入重叠。合法 8 节点／11 关系最小复现已先失败再通过，原始 14 节点复现也通过；18 项路由测试通过。只在普通路线仍重叠时补充小于 10px 间隔的中点坐标，3000 场景对比 30 项改善、0 项加重、0 卡片或标题穿透，仍有既存最多 34px 的短共线段，不承诺任意密图完全无重叠。100／300 节点本地路由中位耗时基本持平；两个窄缝案例增加约 1.3／1.5ms。完整 `check` 216 项、官方 RC.2 四个编译面与 337 Harness、19 次固定模型实包验收均通过。Chrome 153 在 1440×1000／900×820 两种视图中使用原生 Branch／Merge，实测 SVG 无共线重叠／卡片标题穿透／箭头端口错位；相同浏览器几何回放旧路由均为 44px。簇拖动、重复重新布局／撤销、主题显式保存与重新打开通过，page error 为 0，Build ID `local-a26f5c47`。提交 `9e86bda` 已推送并创建 [PR #46](https://github.com/benz-ai-x/dsh-research-graph/pull/46)，用户授权后已于 2026-09-13 22:09:19（Asia/Shanghai）合并为 `cd8f6743685689501e7c8b82e7200cae344ce6b8`；[PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34760512669) 的 Node 22.19／24／26 与 Matching DSH release 四项全部成功。用户随后对 PR #46 发起 code-review：固定 base `e33bde1`、head `9e86bda22e70a3da873ee24758fe01a290a8afc7`，Standards／Spec 两个独立子审查均 0 项发现；主审重跑 18 项路由测试通过，450 组平移／小数簇偏移中 239 个基线可通行排列有 116 改善、123 完全不变、0 加重或新穿透。另 6 组 20／40／80 节点手动密图探测无共享长度增加；最拥挤样例路由约 41→59ms、共享 polyline 1905→975px，记录为受控搜索开销而非阻塞项。审查通过，合并树与审查／验收 head 完全一致，根 main 已快进至 `cd8f674`，原有用户文件内容经哈希核对保留；本轮只读审查证据在工作树 `.artifacts/pr46-review/`，合并回读与同步核对在根 `.artifacts/pr46-merge/`。新验收记录 `docs/reviews/tight-channels.md` 与两种截图已随 PR 提交。自建 Chrome 与隔离 preview 已停止，工作树干净。包版本仍为 RC.2.6；#32 P5 暂缓不变；#33 当前已被外部关闭。本轮私有证据在该工作树 `.artifacts/graph-followup/`。
+- 用户本轮 `release` 已完成：**v0.1.5-rc.2.6** 已于 2026-09-13 17:02:48（Asia/Shanghai）发布，npm `next` 已同步，继续适配官方 DSH **0.1.5-rc.2**，发布 #44 的两种图谱布局与连线修复。发布准备 [PR #45](https://github.com/benz-ai-x/dsh-research-graph/pull/45) 的 `ae972f4` 合并为 `e33bde1ba6073a20429a2d2d58050d163fd5b332`，tag object `58e9b87c04be8700837f68a4962dce20d33248a8` 指向该提交，根 main 已同步且合并树与验收树一致。最终 [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34748724053) 四项与 [OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34748851237) 全部成功；PR CI `34748707631` 仍排队、不能计作已通过，发布门禁由同一源码树的成功 main CI 和本地验收满足。最新本地 214 独立测试、四个编译面与 337 Harness、19 次固定模型实包验收通过；Chrome 两种视图拖动／重复重新布局／撤销及版本徽标通过，错误 0。Build ID `local-a707ad91`；正式 npm 包 **505318 bytes**、SHA-256 `e10f72590871ab6275fc79b2cc5279d27e1cf9ebe5a2b2c465f1ae3b84a617f6`，SHA-1／SHA-512 与 registry 一致，provenance 的仓库、tag、commit 和发布运行均已核对；正式字节再次通过 RC.2 隔离实包验收。[Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.6) 附件与 npm 字节及校验文件一致，正文回读正确。GitHub 创建 PR／编辑 Release 曾返回 502／500，但回读确认操作已完成，未重复创建。发布工作树干净并保留，浏览器与临时预览已关闭；用户研究文件和原 HANDOFF 全文均校验保留，日常 profile 未改；无开放 PR，#32／#33 保持开放。完整私有记录在发布工作树 `.artifacts/release-0.1.5-rc.2.6/completed.json`。
+- [PR #44](https://github.com/benz-ai-x/dsh-research-graph/pull/44) 已按用户指令于 2026-09-13 15:28:03（Asia/Shanghai）合并为 `2a86ff54f67e66f491ed1680451d45b1f05e6829`，锁定第二轮复审 Standards／Spec 均 0 项的 head `2a7dbb99d3517d0195985e6fcc27c6576fb51c0b`。按仓库现有规则执行普通 merge，未使用管理员绕过；合并时四项 PR CI 仍在排队，随后开始执行。最终核对，[PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34737407493) 与 [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34745303406) 的四项检查均全部通过（Node 22.19.0／24／26 和 Matching DSH release，含四个编译面、Harness 及实包隔离验收）；两次运行已分别绑定复审 head 和合并提交。根 main 已快进同步，合并树与已复审 head 完全一致；同步前后用户原有 HANDOFF 及四份研究文档／图均逐项哈希核对保留，随后仅更新本交接。分支 `fix/graph-relayout` 与独立工作树保留，#32 继续开放；未发布版本或更改日常 profile。私有合并记录 `.artifacts/pr44-merge/completed.json`。
+- [PR #44](https://github.com/benz-ai-x/dsh-research-graph/pull/44) 第二轮 `$code-review` 已完成，固定完整两个提交 `ca8d193 → 2a7dbb9`、20 文件；独立并行 Standards **0** 项，Spec **0** 项，上轮端口穿卡与连续 Merge 重线两项 P2 均已确认修复。主代理重跑 16 项路由测试通过，并复核完整呈现／布局／撤销改动及已有 214 独立测试、四编译面、337 Harness、实包和 Chrome 验收；本轮未重复全套或浏览器。Spec 的 2,500 自动 Merge DAG、1,500 非重叠手动布局、1,600 Branch 几何探针均无穿卡或穿标题；前两批可见共线最大为 0px，Branch 压力批次最大 44px，且含未必可实现的领域组合，不能宣称所有图无共线。两轴报告、固定需求、diff 和统计在 relayout 工作树 `.artifacts/pr44-rereview/`。已确认 head 仍为 `2a7dbb99d3517d0195985e6fcc27c6576fb51c0b`，同 head [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34737407493) 仍在 GitHub 排队，尚不能计作 CI 通过，合并前需核对。产品工作树干净，本轮未修改产品代码或正式测试、发布 GitHub 审查评论、合并或发布版本。
+- [PR #44](https://github.com/benz-ai-x/dsh-research-graph/pull/44) 的两项 Spec P2 已按用户“修”处理，追加提交 `2a7dbb99d3517d0195985e6fcc27c6576fb51c0b` 已推送至 `fix/graph-relayout`，PR 正文与验收已更新。最终分配的端口先复核避障，受阻时使用空位或另一侧；存在共线的最佳路线先尝试不同出口，再按需进行有界搜索。新增 6 项回归，其中原审查 4 项在旧实现失败、修复后通过；最新 `check` **214** 项、匹配 RC.2 四个编译面与 Harness **337** 项、固定模型 **19** 次的实包验收通过。真实 Chrome 中工作区 5 卡受阻入口、主题 6 节点 8 条连续 Merge、撤销、重开及 900×820 窄容器通过，SVG 无穿卡、共线直段或端口／箭头错位，页面错误 0。两张新截图及测量边界在 `docs/reviews/relayout.md`；Build ID `local-8b98702b`，版本仍为 `0.1.5-rc.2.5`。同 head [CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34737407493) 已触发；最终核对四项均为 GitHub 排队状态、尚无执行结果，不能计作 CI 通过。下轮复审前需重新核对。修复工作树干净；私有日志、最小回归与实包信息在该工作树 `.artifacts/pr44-fixes/`，原审查证据保留于 `.artifacts/pr44-review/`。本轮自建预览和浏览器已关闭，未改日常 profile，未合并或发布版本；待新 head 复审，#32 仍开放。
+- [PR #44](https://github.com/benz-ai-x/dsh-research-graph/pull/44) 首轮 `$code-review` 已完成，固定 `ca8d193 → 2c30b55`；并行 Standards 0 项，Spec 2 项 P2，需修复后复审：① 分组重新分配端口后未复核最终出口避障，拖动后四张互不重叠的卡片仍可出现连线穿过无关卡片；② 六节点、八条 Merge 边的默认布局保留 102px 可见共线段，存在等长、无穿卡且完全消除共线的替代路径。两项均由独立 Spec 审查及主代理最小复现确认；详情、固定需求、diff、脚本及日志在 relayout 工作树 `.artifacts/pr44-review/`。最终再次确认 head 为 `2c30b553e129afc6b47572817ae39af280c846d3`，同 head 四项 CI 仍全通过；本轮没有重复浏览器或全套验收。产品工作树干净，未修改产品代码或正式测试，未发布 GitHub 审查评论、合并或发布版本；下条为实现阶段已覆盖样例的验证记录，不能替代本次新增边界场景。
+- 用户确认“按你建议执行”后，两种图谱的重新布局改善已开发并提交 [PR #44](https://github.com/benz-ai-x/dsh-research-graph/pull/44)，head `2c30b55`，分支 `fix/graph-relayout`，独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-relayout` 干净且已推送；同 head [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34731213817) 全部成功，PR 待合并。按依赖排列完整 Branch 簇，来源保持同排、结果居中，独立组单独排放；最终手动坐标、折叠、偏移之后统一计算避障圆角路线、独立端口、箭头、标签及完整 Fit 范围。重新布局保留一次撤销，后续排列动作或范围切换使其失效；阅读和主题显式保存语义保留。未引入 ELK：对其 0.12.0 作了本地体积/样例评估，固定位置拖动仍需独立路由，取舍见 ADR 0016。最终 `check` **208** 项、匹配 RC.2 的四个类型面与 Harness **337** 项、实包隔离验收通过；真实 Chrome 两种视图、来源→知识→后续讨论、手动纵排绕线、连续重新布局后撤销、重开恢复与窄容器通过，SVG 曲线采样无穿卡片/箭头错位，浏览器错误 0。截图与验收在 `docs/reviews/relayout.md`，私有脚本/日志/实包信息在该工作树 `.artifacts/relayout/`；初始故意失败的诊断复现仍在根 `.artifacts/relayout-analysis/`。本轮隔离预览与浏览器已关闭，未改日常 profile，未合并或发布版本；#32 仍开放。
+- 用户本轮 `release` 已完成：**v0.1.5-rc.2.5** 与 npm `next` 已发布，匹配 DSH **0.1.5-rc.2**。包含 #41／#42，以及发布准备中修复的节点／簇最终拖动位置保存。发布 PR #43、合并后 main CI 和 OIDC Publish 均全绿；正式 npm 包已校验并通过隔离实包验收，Release 附件与 npm 字节一致。根 main 为 `ca8d19362e649c122e5a0bb0249789f05678c75e`；#32 前四项 17 条已同步为已发布，P5 两条仍未勾选且 Issue 保持开放。详情见下方 RC.2.5 发布记录。
+- 用户询问代码是否均提交合并，已核对远端 main、开放 PR 与全部 17 个工作树：正式功能／修复／发布分支的 head 均已合入 main，产品工作树无未提交代码，开放 PR 为 0；唯一未合入的本地分支是有意保留的 `prototype/research-workbench`，其工作树干净。根 main 剩余未提交内容为 HANDOFF 与四份研究文档／图；状态核对记录 `.artifacts/pr42-merge/status-audit.json`。该次合并后 main CI 曾有一项布局恢复测试失败，已在 RC.2.5 发布准备中复现并修复；原始失败见下条。
+- [PR #42](https://github.com/benz-ai-x/dsh-research-graph/pull/42) 已按用户指令于 2026-09-13 06:44:51（Asia/Shanghai）合并为 `673bea877f4f9ecd05d9ea6145c434b71a482fe8`。合并锁定已复审 head `075ed832f6d05cea8915672fc450480785ccb970`，Standards／Spec 均 0 项且该 head [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34722584702) 全通过；合并树与该已验收 head 完全一致。根 main 已快进同步，用户原有 HANDOFF 及四个未跟踪文件在同步时逐项哈希核对保留；随后仅更新本交接。合并后的 [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34723573602) 已失败：三个 Node job 通过；Matching DSH release 的 Harness 334 项通过、1 项失败，`tests/views.client.spec.tsx:604` 的主题重开后未保存布局恢复断言预期 `432px`、实际 `312px`。当时仅核对日志，原因尚未确认；随后在 RC.2.5 发布准备中复现为最后移动与松手同批次时保存旧 React 状态，现已修复并通过发布 PR 及合并后 main CI。 功能分支 `fix/exploration-review` 和干净的修复工作树保留，#32 继续开放且 P5 两项暂缓；未发布新版本，未改日常 profile。私有合并记录 `.artifacts/pr42-merge/completed.json`。
+- [PR #42](https://github.com/benz-ai-x/dsh-research-graph/pull/42) 第二轮 `$code-review` 已完成，固定完整两个提交 `8ba7c56 → 075ed83`。并行 Standards：0 文档违规／0 启发式问题；Spec：0 项，上轮工作区关联失败后隐藏已创建分支入口的 P2 已修复。本轮独立核对匹配 RC.2 原生创建与打开契约、综合准备身份和同卡恢复、冻结内容与当前原文分开阅读，以及主题刷新保留面板。复核当前 head 的原始 `check` 198 项、四个类型面和 Harness 335 项、固定模型 19 次的实包日志，未重复运行全套或浏览器；故障回归使用真实创建控制器与 Agent／工作区存储替身，正常实包通过不替代完整故障注入。两轴报告与范围保存在修复工作树 `.artifacts/pr42-rereview/`。最终再次确认 PR head 为 `075ed832f6d05cea8915672fc450480785ccb970`，同 head [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34722584702) 全部通过。该次审查产品工作树干净，未修改产品代码或发布 GitHub 审查评论；随后按用户指令合并，见上条。
+- [PR #42](https://github.com/benz-ai-x/dsh-research-graph/pull/42) 复审的唯一 Spec P2 已按用户“继续修”处理，追加提交 `075ed832f6d05cea8915672fc450480785ccb970` 已推送至 `fix/exploration-review`，PR 正文已更新。官方 `session/workspace-attach-failed` 错误只有在目标会话和请求工作区身份同时匹配时才确认采用，记录 `created` 与错误，保留打开入口；重启后重试恢复同一目标的关联并保留新增讨论。新增 4 项回归，核心用例先复现再转绿，原审查探针也转绿；最新 `check` 198 项、官方 RC.2 四个编译面与 `check:harness` 335 项、固定模型 19 次的完整实包验收均通过。Build ID `local-2aaed408`，版本仍为 `0.1.5-rc.2.4`；[验收记录](https://github.com/benz-ai-x/dsh-research-graph/blob/075ed832f6d05cea8915672fc450480785ccb970/docs/reviews/pr41-review-fixes.md)明确区分首轮 Chrome 截图与本轮 Host 故障回归。本轮原生控制器测试替换 Agent 组合及工作区存储，不冒充真实浏览器故障注入。同 head 的 [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34722584702) 全部通过，已核对 workflow 与 PR head 均为 `075ed832f6d05cea8915672fc450480785ccb970`，PR 为 OPEN／CLEAN。修复工作树干净，追加日志与归档在 `.artifacts/pr42-workspace-fix/`；原审查固定 `8ba7c56 → 63a5987`，Standards 0／Spec 1 的两轴报告及失败证据原样保留在 `.artifacts/pr42-review/`。新 head 的两轴复审已完成且均无发现，见上条；随后已按用户指令合并，尚未发布；#32 与日常 profile 保持原状态。
+- 用户要求重修 PR #41，已从最新 main / `8ba7c56` 建立独立分支 `fix/exploration-review`，修复提交 `63a59876c096253619d52bc0a228f153ca5c23f6` 已推送并建立 [PR #42](https://github.com/benz-ai-x/dsh-research-graph/pull/42)，后续追加修复及合并见上方记录。原审查的四个行为问题与一项重复代码均已处理：同一卡片的综合改稿重试、冻结原文单独阅读、已创建分支的打开入口，以及主题刷新和成员变化后的返回焦点。新增 6 项回归；最终 `check` 198 项、官方 RC.2 四个编译面与 `check:harness` 331 项、固定模型 19 次的完整实包验收通过。实际 Chrome 中文浅色／英文深色、1440／800 px、保存后阅读与键盘焦点通过，页面错误 0；故障场景由 Harness 注入验证。Build ID `local-d81133be`，版本保持 `0.1.5-rc.2.4`；[验收与截图](https://github.com/benz-ai-x/dsh-research-graph/blob/63a59876c096253619d52bc0a228f153ca5c23f6/docs/reviews/pr41-review-fixes.md)。同 head 的 [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34720994922) 全部通过；后续代码审查发现的 Spec P2 已由上条追加修复。修复工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-pr41-fixes` 干净，日志与证据在 `.artifacts/review-fixes/`；自有预览和临时 Chrome 已停止，浏览器临时 profile 已清理，示例数据保留。未发布版本，#32 继续开放且 P5 两项暂缓，日常 profile 与主树原有文件保留。此前合并后审查固定范围 `059c53a → ad22ae7`，Standards 3 项、Spec 2 项，原报告保留在 exploration 工作树 `.artifacts/pr41-review/`。
+- [#32](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 前四项（P4 → P2 → P1 → P3）17 项已开发并验收，[PR #41](https://github.com/benz-ai-x/dsh-research-graph/pull/41) 已按用户指令于 2026-09-13 04:50:42（Asia/Shanghai）合并为 `8ba7c56c7419db08bdea5809fb2e8a394a21dbc9`。合并锁定 head `ad22ae7c46e3ef494dc914d920f71b195a0f2d03`，合并后的树与该已验收提交完全一致；功能提交 `10b6608`，最新 head 仅刷新验收截图。Issue 对应 17 项已勾选并更新为已合入 main、待发布；P5 两项继续暂缓，Issue 保持开放。最终本地 `check` 198 项、官方 RC.2 四个 Host／Client 编译面及 `check:harness` 325 项、固定模型 19 次的实包隔离验收全部通过；Chrome 中英文、深浅色、桌面／窄窗口及返回焦点通过，页面错误 0。真实模型合成样例为 8 条观点、12 处有效引用，记录 2 处人工收窄；详见 PR 内验收及质量报告。Build ID `local-d667a7c2`，版本保持 `0.1.5-rc.2.4`。合并前该 head 的 [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34704998393) 均已通过；本次没有发布新版本。分支 `feat/graph-exploration-synthesis` 与干净的独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-exploration` 保留。隔离 preview 和临时浏览器已关闭，临时认证配置副本已清理，日常 profile 及主工作树原有未跟踪文档保留。私有合并记录 `.artifacts/pr41-merge/completed.json`。
+- [#32 研究能力剩余工作](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 已于 2026-09-12 按用户要求深入复核，基线为 RC.2.4 / `059c53a`，对照旧单、主线源码、匹配 DSH、现有测试及真实 Chrome。原 19 项均未达到整项验收条件，0 项新增勾选；随后按用户“图谱使用第一优先、知识归纳第二优先”重排，近期入口改为指定历史轮次分支（原 P4）。Issue 已更新顺序、依据与依赖，保留原工作包编号和全部验收要求，保持开放。固定版本的[逐项调查报告](docs/research/issue-32-completion-audit-2026-09-12.md)已保存并标明排期更新；后续进度与顺序只维护 Issue。审计仅到两卡冻结预览，未确认创建讨论或执行 Agent，临时标签与 preview 已停止；本轮未修改产品代码。
+- **0.1.5-rc.2.4 已发布**，适配官方 DSH **0.1.5-rc.2**。[发布准备 PR #40](https://github.com/benz-ai-x/dsh-research-graph/pull/40) 的 `19941c9` 四项 CI 全通过后合并为 `059c53af2632082959a2f74541d19acf44a51e7f`；tag 与合并树均已核对。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.4) 于 2026-09-12 21:30:36（Asia/Shanghai）发布，OIDC npm 发布及最终 main CI 均成功。npm `next` 已为 RC.2.4，`latest` 仍为 RC.1；正式 npm 包再次通过隔离 profile 冒烟，Release 附件及 SHA256SUMS 与 registry 字节一致。发布工作树干净并保留，根 main 已同步；无开放 PR。详细验证、SHA 与边界见下方 RC.2.4 记录；未更新用户日常 profile。
+- [PR #39](https://github.com/benz-ai-x/dsh-research-graph/pull/39) 已按用户明确指令于 2026-09-12 21:12:03（Asia/Shanghai）合并，merge commit 为 `8473c736a31ae4f899d742aedcbc84e97be7b4d9`。合并锁定已复审的 head `6d027e12468a0ac487acb551a8b8a3f35f08f423`，当时四项 PR CI 全部通过，Standards / Spec 均为 0 项；合并后源码树与该 head 完全一致。#36、#37 已自动关闭，根 main 已快进同步至 merge commit，用户原有 HANDOFF 及三份未跟踪文件保留。功能分支与独立工作树保留；未发布新版本。私有合并记录 `.artifacts/pr39-merge/completed.json`。
+- PR #39 第二轮 `$code-review` 已完成，固定完整三提交 `53c3b62 → 6d027e1`，并行独立 Standards / Spec 均为 0 项，上轮提炼取消编辑的 P2 已修复。最新同 head CI 四项全部通过；本轮复核已有 `check` 197 项、RC.2 四个类型面、Harness 308 项及实包冒烟证据，没有重复运行全套检查。额外真实 Chrome 验证 45 段提炼卡片编辑后保存第 2 版：新正文与版本正确，版本选择器可见并获焦，Tab 可到达可见的“继续讨论”，console error 为 0，未复现候选焦点问题。私有两轴记录及浏览器证据位于修复工作树 `.artifacts/pr39-rereview/`；临时标签已关闭，56050 预览确认已停止。产品代码和 PR 未修改，未发布 GitHub 审查评论，随后已按用户指令合并，见上条。
+- PR #39 的审查 P2 已按用户“修”指令处理，提交 `6d027e12468a0ac487acb551a8b8a3f35f08f423` 已推送至 `refactor/reading-geometry`，PR 描述及双语 README 已更新。提炼容器明确向编辑器提供外层滚动元素；直接放弃／修改后确认放弃均恢复位置和焦点，保存新修订不重置整批草稿。两个回归在旧实现先失败、修复后通过；最终 `check` 197 项、RC.2 四个类型面及 `check:harness` 308 项、固定模型 11 次的实包隔离验收全部通过。Chrome 45 段正文实测 `5307 → 913 → 5307`，展开来源与另一张草稿的组合返回前后均为 `5369`，焦点可见且 console error 为 0；[最新验收与两张补充截图](https://github.com/benz-ai-x/dsh-research-graph/blob/6d027e12468a0ac487acb551a8b8a3f35f08f423/docs/reviews/reading-geometry.md)。Build ID `local-343e1448`，工作树干净，56050 预览已停止；日常 profile 未更新。新提交的 [CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34694591073) 四项全部通过，已核对 workflow 与 PR head 同为 `6d027e12468a0ac487acb551a8b8a3f35f08f423`；私有完成记录为修复工作树 `.artifacts/pr39-review/fix-completed.json`。
+- 用户对 PR #39 执行 `$code-review`，固定审查 `53c3b62 → 6b1d7eb`。Standards 0 项；Spec 确认 1 项 P2：提炼结果取消编辑时，新 `data-working-scroll` 命中 `overflow: visible` 的内部 editor，未恢复真正的外层阅读容器。真实 Chrome / DSH 复现长正文阅读位置 `4058.5 → 913`，返回焦点停在视口外的编辑按钮；应恢复外层 scrollport 并覆盖提炼嵌套场景。本次复跑两个相关 Harness 文件 17 项全部通过，同 head 四项 CI 仍通过；这些检查未覆盖该场景。审查未修改产品代码、发布 GitHub 评论或合并 PR。
+- #36 / #37 已按用户要求合入一个 [PR #39](https://github.com/benz-ai-x/dsh-research-graph/pull/39)，现已合并。独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-reading-geometry`，分支 `refactor/reading-geometry`，已同步 main `53c3b62`；首轮实现 `a1373ae`、验收文档 `6b1d7eb` 均已推送，工作树干净。共享 KnowledgeReader 覆盖搜索、保存提示与保存结果；reading-geometry 统一面板约束、拖动偏好及画布命令区域。真实 Chrome 发现的 inert 焦点时序问题已修复并回归。
+- PR #39 首轮验证：`pnpm run check` 197 项、匹配 RC.2 的四个类型面与 `check:harness` 306 项、实包隔离 profile 全流程冒烟通过（固定模型 11 次）。真实 Chrome 覆盖桌面／960／640、中英文深浅色、六个实际容器边界、旧修订编辑返回、原文留卡与画布中心，无 console error。Build ID `local-bdeebbc6`；[验收记录与六张截图](https://github.com/benz-ai-x/dsh-research-graph/blob/6b1d7eb303b6217576f78c5dffc82e4dcaa2628c/docs/reviews/reading-geometry.md)已提交。隔离预览 56050 已停止、示例数据保留；未更新日常 profile。[PR #39 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34693042833) 的 Node 22.19.0／24／26 与 Matching DSH release 四项全部通过，已核对 head 为 `6b1d7eb303b6217576f78c5dffc82e4dcaa2628c`。
+- 用户反馈 RC.2.3 摘要的 highlight 不够明显，样式增强 [PR #38](https://github.com/benz-ai-x/dsh-research-graph/pull/38) 已按用户指令于 2026-09-12 20:00:24（Asia/Shanghai）合并为 `53c3b621f03eeeac94257da7fd861753647c7396`，与已通过四项 PR CI 的 `dc6468e5d4ceca2f616a9d5708d2a11f09c9ad87` 源码树一致。独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-digest-highlight`、分支 `fix/digest-highlight` 保留，干净且已推送。尚未发布或更新用户日常 profile，未完成的浏览器视觉复验继续由 #33 跟踪。
+- 上一版发布 **0.1.5-rc.2.3** 已完成，适配 DSH **0.1.5-rc.2**。[PR #34](https://github.com/benz-ai-x/dsh-research-graph/pull/34) 合并为 `96d58d7`，[发布准备 PR #35](https://github.com/benz-ai-x/dsh-research-graph/pull/35) 合并为 `976e48ba0230bd93732a081236974595c5c3d5cd`。发布工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-release-rc.2.3`，分支 `release/0.1.5-rc.2.3` 于 `33843e4` 干净且已推送；其树与最终 main / tag 相同。功能工作树 insights 仍在 `6683256`，干净且已推送。[Issue #33](https://github.com/benz-ai-x/dsh-research-graph/issues/33) 保持开放，跟踪未完成的人工体验验收。
+- 产品：**DSH Research Graph · 研图**；仓库 `benz-ai-x/dsh-research-graph`，npm 包 `@benz-ai-x/dsh-research-graph`。
+- 当前主工作树为 `main`，与 `origin/main` 同步于 `673bea877f4f9ecd05d9ea6145c434b71a482fe8`，ahead / behind 均为 0。PR #42 合并树与已复审且通过四项 PR CI 的 head `075ed83` 完全一致；合并后的 CI 状态见顶部记录。用户原有 HANDOFF 改动与未跟踪研究文档、architecture.svg 保留。
+- 上一版 release 已完成：[v0.1.5-rc.2.3](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.3) 于 2026-09-12 18:58:45（Asia/Shanghai）发布，annotated tag 指向 `976e48b`。[npm OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34689836713) 成功，`next` 为 `0.1.5-rc.2.3`，`latest` 保持 RC.1；正式 npm 包再次通过隔离 profile 冒烟，Release 附件与 registry 字节一致，附 SHA256SUMS。没有部署服务器、升级或重启用户日常 profile。
+- 安装后报告的摘要生成失败已定位并在真实 profile 恢复：800-token 默认上限导致 `max-tokens`，有效配置提高至 4096 后同一会话实际生成成功。源码修复 [PR #28](https://github.com/benz-ai-x/dsh-research-graph/pull/28) 已合并至 main，Issue #27 已关闭，修复已随 `0.1.5-rc.2.2` 发布；具体状态见下方「摘要输出上限修复」。
+- 原文阅读、正文搜索、研究主题、知识卡片、审核提炼、材料沿用、工作位置恢复和 Markdown 导出已通过 PR #14–#17 合入；#3–#10 全部关闭。
+- 改名 [PR #20](https://github.com/benz-ai-x/dsh-research-graph/pull/20) 已合并，[Issue #19](https://github.com/benz-ai-x/dsh-research-graph/issues/19) 已关闭，npm 与 GitHub Release 均已更新。
+- 文档清理、现状 UI/UX 评估及 8 个问题的首轮修复已完成；详细逐项结果与截图见 [UX 验收记录](docs/reviews/ux-round-1.md)。
+- 下一代 DSH 插件原型已提交到 `prototype/research-workbench`（`e890247`）并推送，已增加跨工作区汇聚会话。A 图谱工作台、B 知识书桌、C 研究路径可在本机 DSH 中直接比较；[Issue #23](https://github.com/benz-ai-x/dsh-research-graph/issues/23) 已按用户指令于 2026-09-12 以原型交付完成结项，保留尚未完成的人工 UX 验收记录，关闭不代表最终产品体验已全部获认可。
+- 首轮正式实现 PR #25（代码 `581fafa`，文档修正后 `e7bcadd`）已合并，[Issue #24](https://github.com/benz-ai-x/dsh-research-graph/issues/24) 自动关闭；工作台随后随 `0.1.5-rc.2.1` 发布，服务器尚未部署。用户已指出正式界面与原型体验差距较大，并于 2026-09-12 授权按 UI/UX 洞察优化一轮（#29）；本轮边界见下文，不代表全部原型对齐或最终 UX 已通过。独立 DSH 人工体验入口仍为 `http://127.0.0.1:63402/`。
+
+### RC.2.5 发布（2026-09-13，完成）
+
+- 用户明确授权 release；从 main `673bea8` 建立独立发布工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-release-rc.2.5`，分支 `release/0.1.5-rc.2.5`。修复提交 `a22cf2d3524e39a57f565194eb0750ace3c1f712` 与发布提交 `611b9f12e4acf572930b2e7aaec19e9384547008` 均已推送，工作树干净。首次推送返回同名 ref 已存在，但随后直接核对远端指向本次精确提交；未强推，已正常设置跟踪分支。
+- 原 main CI 的主题重开位置 `432px`／`312px` 差异，已用最后 pointer move 与 pointer up 同批处理稳定复现 5/5；节点和簇两个最小回归在重挂载前即发现保存条目缺失。活动手势现在保留最终采样，松手保存时使用该采样；簇累计多次位移。三个回归先红后绿，拖动／取消／恢复定向 21 项通过。正式测试增加两项并强化原主题重开用例，双语 README 同步。
+- 插件递增为 **0.1.5-rc.2.5**，目标仍为官方 `dsh-v0.1.5-rc.2` / `fb2c4b9e698e30edb738bca4cf0618587db7d203`；所有 DSH 依赖、锁文件和离线恢复依赖不变。[发布验收记录](https://github.com/benz-ai-x/dsh-research-graph/blob/v0.1.5-rc.2.5/docs/reviews/release-0.1.5-rc.2.5.md)列出 #41／#42 的功能、修复和本轮验收边界。
+- pnpm 11.7.0 冻结安装、Node 26.4.0 下带 release tag 的 `check` **198 项 / 24 文件**，官方 RC.2 四个源码／声明编译面和 Harness **337 项 / 22 文件**全部通过。本地候选与正式 npm 归档分别通过安装、首次 Host 启动前离线恢复、历史分支、五轮继承两轮、独立继续、混合审阅综合、持久主题／知识／沿用／导出、只读查询及卸载，固定模型各 **19 次**。
+- 实际 Chrome `153.0.8010.36`、1440×1000 核对版本 **0.1.5-rc.2.5** / Build ID **local-43be00ad**；原生鼠标拖动后从 Chat 重开主题，位置保持 `(472, 100)`，保留未保存排列；页面错误 0，截图已提交并检查。精确事件批处理与簇保存由正式 Harness 回归覆盖。首次浏览器工具不可用后使用已有 Playwright 控制隔离 Chrome；预览与浏览器均已停止，自建示例数据保留。用户日常 profile 未升级或重启。
+- [PR #43](https://github.com/benz-ai-x/dsh-research-graph/pull/43) 的 [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34726406318) 全绿后，锁定 head `611b9f1` 于 **07:54:48** 合并为 `ca8d19362e649c122e5a0bb0249789f05678c75e`；合并树与验收 head 一致。根 main 已快进同步，原 HANDOFF 和四份本地研究资料先逐项哈希确认保留，随后仅更新本交接。[合并后 main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34726628269) 四项全通过，旧失败已解决。
+- annotated tag `v0.1.5-rc.2.5` 指向该 merge commit。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.5) 于 **07:55:43** 发布，[OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34726664328) 成功。官方 registry 的 `next` 为 RC.2.5、`latest` 保持 RC.1。正式 npm 包 **487913 bytes**，SHA-256 `c7e9d0018c39d5a78cabae18fac8d19e74090f7af483b32c1117ebeb4933b484`；SHA-1／SHA-512 与官方 integrity 一致，来源记录的 subject、仓库、tag、commit、publish.yml 和发布运行均匹配。Release 归档及 SHA256SUMS 下载回核与正式 npm 文件逐字节一致。
+- 本地候选归档为 **488088 bytes**，SHA-256 `b4c5f1cf58fed3fd163e2a7562be75308d306e5fdd501ef0c9657509806fbe43`，不要与正式包混用。私有日志、失败探针、正式包、attestations 与完成记录在发布工作树 `.artifacts/release-0.1.5-rc.2.5/`。#32 已更新发布状态，17 条勾选不变，P5 两条仍暂缓；无开放 PR。保留用户原有研究文档与独立原型分支，不发布 GitHub 评论。
+
+### RC.2.4 发布（2026-09-12，完成）
+
+- 用户明确授权 release，版本从 RC.2.3 递增为 **0.1.5-rc.2.4**，DSH 目标仍为官方 `dsh-v0.1.5-rc.2` / `fb2c4b9`。包含 #38 摘要高亮增强和 #39 统一知识阅读、响应式几何、提炼阅读位置修复；发布准备仅改包版本、双语 README 和带三张实拍截图的[发布验收记录](https://github.com/benz-ai-x/dsh-research-graph/blob/v0.1.5-rc.2.4/docs/reviews/release-0.1.5-rc.2.4.md)。依赖、锁文件、产品源码及离线恢复依赖均未变。
+- 独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-release-rc.2.4`、分支 `release/0.1.5-rc.2.4` 于 `19941c9b2f156abea2975de48dbd8a06786b65d4` 干净且已推送，源码树与最终 main / tag 一致。PR #40 同 head [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34696355593) 成功后合并，merge commit `059c53af2632082959a2f74541d19acf44a51e7f`。annotated tag `v0.1.5-rc.2.4` 指向该提交，tag 对象 `9b1d11398a19a5de5fd50ecc11e15424fdef6f9f`。
+- pnpm 11.7.0 冻结安装、带 release tag 的 `check` **197 项 / 23 文件**、官方 RC.2 四个类型面及 Harness **308 项 / 18 文件**通过；本地与正式 npm 归档各自通过实包隔离 profile 安装、启动、持久读写、提炼、沿用、冻结导出、只读标题建议／摘要／原文／搜索、离线恢复和移除，固定模型每次 **11 次**。首次 Harness 与 build 并行触发声明文件短暂缺失；构建完成后的完整顺序检查已通过，原始及成功日志均保留。
+- Chrome 2056×1160 实测包版本 **0.1.5-rc.2.4**、Build ID **local-7eacd91d**；生成固定示例摘要后，深浅色七处强调均可读、console error 为 0。版本菜单、深色摘要、浅色摘要截图随发布提交。此次未评价真实模型质量，#33 保持开放；#39 的中英文与窄容器、修订／来源及提炼取消恢复证据仍见 reading-geometry 验收。61673 临时标签已关闭，隔离 preview 已确认停止，样例数据保留；用户 3080 profile 未更新。
+- [Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.4) 于 **21:30:36** 发布；[OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34696623984) 和 [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34696578311) 均成功，运行 head 与 tag commit 一致。官方 registry `next` 为 RC.2.4，`latest` 保持 RC.1。正式包 **448603 bytes**，SHA-256 `6f68666171b3603d312358e03be4191ca4a94470d95ba29293fe98c17ddd47c4`；SHA-1 / SHA-512 与 registry integrity 一致，provenance 元数据指向正确仓库、tag、commit、publish.yml 和发布运行。下载回核 Release 归档与 SHA256SUMS 均与正式 npm 字节一致。
+- 本地候选归档为 448718 bytes，SHA-256 `c354931af8916b53f8279921c5b6d6143f63f3fa4f26fa092ff329acacad6fa1`；不要与正式归档混用。完整私有完成记录为发布工作树 `.artifacts/release-0.1.5-rc.2.4/completed.json`，其余校验、npm metadata、attestations 和发布正文均在同目录。根 main 已快进同步，原有用户本地文档与未跟踪文件保留；无开放 PR，未发布 GitHub 评论或部署服务器。
+
+### 摘要高亮增强（2026-09-12，PR #38 已合并）
+
+- 基线 main `976e48b`。仅调整摘要中的 Markdown `strong` 样式：12% 浅蓝底色与 650 字重改为暖黄色荧光笔底色、700 字重、2px 强调下缘及少量内边距；保留行内换行与分行装饰。颜色使用 DSH 的语义令牌，浅／深色主题自动适配，按官方令牌计算的文字／底色对比约 13.90:1 和 6.00:1。已有摘要中的加粗重点无需重新生成。
+- 冻结安装、`pnpm run check` 197 项、匹配 RC.2 的现有摘要 Markdown 集成测试（1 项定向）、`git diff --check` 通过。只改 CSS、双语 README 和既有验收记录，未新增重复样式实现的测试。Build ID `local-481c6c2e`，包版本及 DSH 依赖保持不变。已核对提交 `dc6468e` 的 PR [CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34691339768) 四项全部成功后合并。
+- 新构建通过 `pnpm preview:dsh` 安装到该工作树的隔离 profile，成功启动于 `http://127.0.0.1:54810/`；Chrome 创建页面再次报 `ERR_BLOCKED_BY_CLIENT`，因此没有改后截图，也未完成浅／深色和窄屏浏览器视觉复验。已正常停止本轮自建预览，数据与私有认证状态留在 `.artifacts/workbench-dsh/`，不要公开其中 token。未碰用户 3080 profile 和其他旧预览。
+- [PR #38](https://github.com/benz-ai-x/dsh-research-graph/pull/38) 关联 #33。用户在知晓视觉复验未完成后明确要求合并，已转为 ready 并按固定 head `dc6468e` 合并为 `53c3b62`；核对合并后的源码树与已验证提交完全一致。根 main 已快进同步，#33 继续跟踪未完成的人工验收。本次没有发布新版本，原有文档改动保留，此根文件是唯一实时交接。
+
+### RC.2.3 发布（2026-09-12，完成）
+
+- 包版本改为 `0.1.5-rc.2.3`，目标 DSH 仍为官方 `dsh-v0.1.5-rc.2`（`fb2c4b9`）。更新双语安装说明及 `docs/reviews/release-0.1.5-rc.2.3.md`，不改产品源码、锁文件或 DSH 依赖。预检 npm 新版本和远端 tag 均不存在，旧 `next` 为 RC.2.2，`latest` 为 RC.1。
+- pnpm 11.7.0 冻结安装、带 release tag 的 `pnpm run check` 197 项、四个匹配编译面及 `check:harness` 295 项、完整实包隔离 profile 冒烟全部通过，固定模型调用 11 次。
+- 本地候选包 443833 bytes，SHA-256 `b6bbfd588958546eaae80b477fa36071af7c86dbd309d0ba0c63125c3abd1a18`，Build ID `local-090a1611`。包清单和浏览器模块版本均为 RC.2.3；本地字节与发布流水线后续重建的 npm 字节分别核验。
+- 发布闭环已完成：#35 的同 head 四项 CI 成功后合并，main 快进到 `976e48b`，annotated tag 指向该提交，18:58:45 创建 GitHub prerelease；OIDC Publish 与最终 main CI 均成功。正式 npm 归档 443780 bytes，SHA-256 `50e4d8f489ab54a4f3f5e3eb56443676b65b5c0768d8837e292f2e4e09b3e51b`，Build ID `local-090a1611`。registry SHA-1 / SHA-512、provenance 的仓库、tag、commit、publish.yml 与发布运行地址全部核对一致。正式包再次通过完整隔离 profile 冒烟，固定模型调用 11 次；Release 附件字节、大小与 SHA-256 均与 npm 一致。私有证据与脚本在新工作树 `.artifacts/release-0.1.5-rc.2.3/`，最终结果 `release-complete.json`。
+- Chrome 的预览拦截与真实模型体验尚未解决；用户在知晓此限制后要求 release，发布说明如实保留，不写成人工体验通过，不修改浏览器安全设置或日常 DSH profile。
+
+### 会话标题与摘要速读（2026-09-12，PR #34 已合并）
+
+- 用户要求：根据对话生成更易识别的标题；摘要短篇化、以无序列表提炼要点、关键字高亮并使用 Markdown 渲染。实现与验收记录为新工作树 `docs/reviews/session-insights.md`、ADR 0013，双语 README 和 CONTEXT 已同步。
+- 标题在工作区／目录与可用的主题来源详情中明确触发，先预览并可编辑，“应用标题”才调用原生 Session rename，写用户标题事件并同步列表。生成不打开 Agent、不改源会话；切换选择、取消和卸载忽略迟到结果。应用前检查当前标题，失败保留编辑，回包丢失可通过原生列表确认。原生 rename 无原子条件更新，不能声称跨客户端锁定。
+- 摘要保留 overview / keyOutcomes / openItems 契约，呈现一句概览、最多五项结论和三项待办。目标中文 200–350 字／英文 100–160 词，概览 140 字符、每项 160、合计 1,000（含 Markdown）。完整过长输出最多压缩一次，不直接截断；默认输出 4,096 token 继续供推理使用。DSH MarkdownText 呈现加粗与背景高亮、列表、行内代码和来源链接。
+- 本地 `pnpm run check` 197 项；官方 RC.2 四个编译面与 `check:harness` 295 项通过；实包隔离 profile 安装、启动、标题建议只读、原生用户标题写入、摘要和原有持久操作、退出移除均通过，固定模型调用 11 次。最终通过前修正一处旧文案断言；预览构建曾与旧恢复测试争用 lib，已在构建结束后顺序重跑完整 Harness 并全部通过。
+- 新独立预览为 `http://127.0.0.1:50242/`，新工作树 `pnpm preview:dsh` 保持运行，数据在 `.artifacts/workbench-dsh/profile/`。私有认证 URL 在同目录 `state.json`，不要写入 GitHub 或交接。使用固定演示模型，无付费调用。Chrome 自动打开新端口报 `ERR_BLOCKED_BY_CLIENT`，标签 697330095 显示浏览器拦截页；用户随后确认手动访问也显示被 Chrome 拦截。不绕过拦截，不用旧截图充当验收，真实浏览器视觉与真实模型质量仍待人工体验。
+- PR #34 的 [CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34688136369) 四项全部成功，已核对 head 为 `6683256`。此前因真实浏览器视觉验收受阻保留草稿；用户随后要求 release，已转为 ready 并按该 head 合并，功能随 RC.2.3 发布。未完成的人工体验在 #33 保留。日常 3080 profile、此前 57926／63402／62593 预览、服务器与 #32 规划未改。
+
+### PR #28 / #30 后的 RC.2.2 发布（完成）
+
+- 用户明确要求 `release`，按已批准的修订规则发布插件 `0.1.5-rc.2.2`，继续适配 DSH `0.1.5-rc.2`。GitHub / npm 预检确认候选版本和 tag 不存在；旧 npm `next` 为 `0.1.5-rc.2.1`，`latest` 保持 `0.1.5-rc.1`。
+- 独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-release-rc.2.2`，分支 `release/0.1.5-rc.2.2`；发布准备 [PR #31](https://github.com/benz-ai-x/dsh-research-graph/pull/31)，head `ee5482ab36678e3360346e21452f1a1a6d99d240` 已推送，基线 main `52778c4`。只改 package 版本、双语安装命令和发布验收文档，产品源码、DSH 依赖、锁文件与离线恢复第三方依赖未改。
+- pnpm 11.7.0 冻结安装通过；带发布 tag 的 `pnpm run check` 192 项 / 23 文件通过，官方 RC.2 四组类型检查及 `check:harness` 278 项 / 15 文件通过；最终本地实包隔离 profile 安装、离线恢复、启动、持久读写与移除全部通过，固定模型调用 10 次。
+- 本地归档 `benz-ai-x-dsh-research-graph-0.1.5-rc.2.2.tgz`：432222 bytes，SHA-256 `c75361d495ef4de2340e95401107f1603db6c1689fb8a13a520b6a91b596fce0`，Build ID `local-f03d702f`。清单与浏览器模块确认 `0.1.5-rc.2.2`，Header 集成测试核对 package 派生版本。发布工作流已重新构建，npm 实际字节已单独验收并附到 Release。
+- [PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34674267096) 四项全部通过；#31 已合并为 `83c08b3d8aba92da531f5d39aee1d8772b29d9aa`，tree 与已验收 `ee5482a` 完全一致，根 main 已快进同步。远端 annotated tag `v0.1.5-rc.2.2` 指向该 merge commit，[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.2) 已发布；[Publish OIDC](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34674523062) 成功，[最终 main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34674456053) 四项成功。npm `next` 为 `0.1.5-rc.2.2`，`latest` 仍为 `0.1.5-rc.1`；GitHub stable latest 仍为历史 `v0.1.5`。
+- 正式 npm 归档：432172 bytes，SHA-256 `3a10536fe9e4c6ddfeee2e8a901b42a1aed2bba76b5a41890aa1f34300db8834`，Build ID `local-f03d702f`。核对 registry SHA-512 / SHA-1、provenance 的归档摘要、仓库、tag、commit、publish.yml 与此次运行全部一致。正式字节已再次通过 RC.2 隔离 profile 安装、启动、持久读写、离线恢复和移除，固定模型调用 10 次；两份 Release 附件的大小与 SHA-256 均核对一致。最终元数据 `.artifacts/release-0.1.5-rc.2.2/release-complete.json`。
+- 保留已接受的 P3 无范围标题文案问题，已写入 PR 与发布说明。本轮不改用户日常 Host 或其他预览，不部署服务器。根 HANDOFF 是唯一实时交接；日志与私有发布材料在新工作树 `.artifacts/release-0.1.5-rc.2.2/`。
+
+### 阅读与知识捕获体验优化（2026-09-12，已合并）
+
+- 用户授权「先根据 UIUX 洞察制定 TODO 清单优化一轮」及随后工具区、拖动面板、右上范围栏三次追加。[Issue #29](https://github.com/benz-ai-x/dsh-research-graph/issues/29) 的实现与本地验收均完成，并随 #30 合并自动关闭；最终产品 UX 仍由用户体验评判。
+- 代码在独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-ux`，分支 `feat/research-reading-ux`；最新提交 `26eb2fadb8bbdbe52b30c5a756114919222fa1ee` 已推送，工作树干净。[PR #30](https://github.com/benz-ai-x/dsh-research-graph/pull/30) 原 base 是 `fix/digest-output-budget`（PR #28 的 `a46c1de`）；按用户授权先合并 #28，再将 #30 切回 main 并合并，最终 merge commit `52778c4`。两项均已随 `0.1.5-rc.2.2` 发布。根 main 保留用户原有文档与 `.pnpm-store/`。
+- 最终布局：工作区与主题的范围 / 选择在上下文栏左侧，输入会话、缩放、适应、定位和图谱选项在右，与阅读面板右边缘对齐；桌面仍为 48px 单行。工具移出画布，展开或拖宽面板时不隐藏、不遮挡。提示改为“输入会话”，始终来自 Viewed Session，长名悬停可读；检查其他节点不改变发送对象。图谱选项向下展开，窄容器先收纳适应 / 定位，再收纳缩放；连续缩放保留菜单与焦点。小屏使用两行范围栏，知识库 / 图谱往返保持缩放与单一工具条。
+- 阅读与捕获：会话和知识详情固定身份 / 切换 / 操作，仅正文滚动，复用 DSH 公共 MarkdownText。完成轮次首尾可就近留卡，表单以标题 / 结论为主，保存后返回阅读并显示真实保存结果。主题新建 / 重命名 / 说明按需展开，排列仅在未保存时提示；单讨论图提供起步引导，小屏次要操作进入更多。
+- 面板共用可发现的左侧拖动边缘，按研究范围记住宽度，支持展开后返回自选宽度、键盘 / 默认恢复、Esc / 指针取消撤销；小屏隐藏手柄。此前 `9a3bc86` 的宽面板隐藏画布工具行为，已被最新范围栏方案替代。浏览器验证 560 → 860px 且节点不动、刷新返回主题恢复 860px、1180 → 860px 展开往返、长原文不回顶、右拖收窄与无文字误选。
+- 真实浏览器验收中同时修复主题刷新卸载阅读区、异步保存关闭后焦点未归还、另一张卡片继承旧滚动位置、临时隐藏画布的零尺寸引发镜头偏移四项问题；均有回归覆盖。主题卡片原文内留卡前后滚动为 1525、焦点返回该轮按钮；新卡片从头阅读，切入图谱仍为 0。
+- 最终本地验证：pnpm 11.7.0，`pnpm run check` 192 项；官方 `dsh-v0.1.5-rc.2`（`fb2c4b9e698e30edb738bca4cf0618587db7d203`）四个编译面及 `check:harness` 278 项；最终归档完整隔离 profile 冒烟通过，固定模型调用 10 次。右上工具新增 3 项回归，缩放修复再增加 2 项，之前增加 6 项面板回归。Chrome 2056 / 1280 / 640 / 400 宽度、两种范围、中英文深浅色、连续缩放与焦点通过；鼠标 560 → 963px 和键盘最宽 1742px 时右上工具仍可用，400px 无横向溢出，console error 为 0。
+- 最新 `26eb2fa` 的 [CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34672644094) 四项全部通过（Node 22.19.0 / 24 / 26 与 Matching DSH release），已核对与 PR head 一致。最新[验收记录与截图](https://github.com/benz-ai-x/dsh-research-graph/blob/26eb2fadb8bbdbe52b30c5a756114919222fa1ee/docs/reviews/reading-ux-round.md) 已提交，Issue #29 审查修复 TODO 已完成。
+- 用户随后对 PR #30 执行 `$code-review`，固定审查 `57aac78` 相对 `a46c1de` 全部四个提交。双轴结果：Standards 无硬性违规，1 项 P3 面板占位计算重复建议；Spec 有 1 项已在真实 Chrome 复现的 P2：宽阅读面板下“适应 → 连续放大”采用不同中心，1774px 画布 / 963px 面板时放大三次使节点左侧约 173px 被裁切，尽管可见区仍放得下。应统一适应 / 定位 / 工具缩放 / 100% 的可见区域中心。该审查说明四项 CI 未覆盖此缺陷，用户随后授权“修”；现已完成下述修复。私有记录 `.artifacts/reading-ux/pr30-code-review.md`，复现数据与截图为 `pr30-review-zoom.json` / `.png`；体验页已恢复适应 100%。
+- 审查修复提交 `26eb2fa` 已统一首次适应、适应、定位、按钮 / 键盘缩放、100% 复位和预览的面板占位测量，P2 中心不一致与 P3 重复计算均已处理。两项回归在旧实现先失败、修复后通过；完整检查与最终实包冒烟通过。Chrome 1774px 画布 / 963px 面板，100% → 173% 节点水平中心始终为 673.5px，完整位于可见区；展开至 1283px 后中心保持 513.5px。主题和 400px 菜单同样保持中心，滚轮指针锚点由回归保护；console error 为 0。
+- 用户再次 `$code-review PR #30`：固定复审 `a46c1de → 26eb2fa` 的完整五个提交；Standards 0 项，Spec 1 项 P3：`src/client/GraphView.tsx:196` 在既无 Workspace 又无 cwd 的合法会话状态下，标题错误回退为“当前目录”，与无范围提示矛盾。上轮缩放 P2 与重复计算 P3 已修复；本轮真实 Chrome 重验 963px / 1283px 面板下连续缩放中心和阅读位置均保持，未发现 P1/P2。四项 CI 与 PR head 再次核对一致；本次未修改产品源码。私有报告 `.artifacts/reading-ux/pr30-rereview.md`，复验数据 `pr30-rereview-browser.json`。
+- 用户接受存在一项非阻塞 P3 的审查结果并授权合并；该“无范围标题显示当前目录”问题保留为后续小修，已记入 PR #30 描述。合并过程没有修改已审查的产品代码。主工作树已快进到最终合并提交，保留原有 HANDOFF 改动、未跟踪研究文档、architecture.svg 与 .pnpm-store；体验工作树及预览服务保留。私有合并证据在主工作树 `.artifacts/pr30-merge/`，最终记录为 `merge-completed.json`。
+- 历史提交与 CI：初版 `d9fd060` / [34665059454](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34665059454)，首次工具整理 `55a9499` / [34666842432](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34666842432)，面板拖动 `9a3bc86` / [34669327961](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34669327961)，各自四项均通过。早期截图中的左下工具位置已被最新右上范围栏取代。
+- 体验版本保持 `0.1.5-rc.2.1`，Build ID **local-ff74f4d5**，已在实际浏览器更多菜单核对；它不是 npm 的新版本。最终 `.artifacts/reading-ux/zoom-fix-accepted.tgz` 为 432133 bytes，SHA-256 `9135def0e415032f1a53a67f414aff516844ae8a5f7d459cf3f7b6ae61bc3b85`。日志与 package / browser proof 在私有 `.artifacts/reading-ux/`；`zoom-fix-completed.json` 记录本次修复、全部通过的同一 head CI 与干净同步状态；`context-toolbar-*`、`resize-*`、`toolbar-*` 与 `completed.json` 保留前几次迭代历史。
+- 人工体验入口 `http://127.0.0.1:57926/`，Chrome 标签 `697330072`；已恢复中文浅色、桌面 2056×1160、当前工作区、原文阅读及 963px 面板。启动器 PID `29110`、Host PID `29267`，以后以该工作树私有 `.artifacts/workbench-dsh/state.json` 为准；重新进入可使用其中本机登录入口，令牌不公开。可在工作树执行 `pnpm preview:dsh` / `pnpm preview:dsh --stop`。演示调用真实 DSH Host，模型回答为明确标注的固定示例。
+- 本轮不包含知识语义关联、自动建议、句级来源、跨 Host 汇聚或跨重启草稿持久化；目录纯文本节选与节点预览可继续细化。用户真实 3080 profile、摘要 4096 修复及原有 62593 / 63402 服务保持；未连接或部署服务器。用户已授权并完成 #28 / #30 合并，并于后续明确要求 release；新版发布进度见下节。
+
+### 下一代研究工作台首批实现（2026-09-11）
+
+- TODO 与本轮边界记录于 [Issue #24](https://github.com/benz-ai-x/dsh-research-graph/issues/24)，依据原型 #23。采用图谱主工作区与知识阅读视图，将研究步骤融入上下文操作，不保留实验布局切换器。用户的原型控制确认已记录在 [#23 评论](https://github.com/benz-ai-x/dsh-research-graph/issues/23#issuecomment-5631236740)。
+- 交付分支 `feat/research-workbench`，工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-next`，代码提交 `581fafaac67ac81457aaad6706d32488851b0b1e`，最新 HEAD `e7bcadd1026d2b804af77a302f8b4d959c4e90e4` 仅修正原型指南链接；已推送且工作树干净。[PR #25](https://github.com/benz-ai-x/dsh-research-graph/pull/25) 基于 `main` 的 `00f6382`。主工作树继续保留原有本地文档改动。
+- 已实现 A / B 跨工作区来源汇聚到明确目标空间，捕获失败重试同一目标、主题关联失败只重试关联；原生 `@Remote` 的取消信号参数名修复已随 PR #25 纳入 main。正式领域决定为 ADR 0012，保留主线 ADR 0011 的固定导出决定。
+- 图谱显示已 accepted 的实际卡片修订 / 原文沿用关系，并包含尚未加入主题的后续目标；按来源、知识、后续讨论分层排列。关系读取失败不会误清除恢复中的选择，人工排列、折叠及既有 Branch / Merge 语义保留。
+- 知识正文完整阅读，原文预填留卡、一键编辑与指定修订继续讨论；卡片保存和核实状态分开。主题内往返图谱 / 阅读恢复卡片、修订、展开来源、阅读滚动与画布位置；迟到预填不覆盖用户输入。成功发送后保留工作台，由用户明确打开目标讨论。
+- 最终验证通过：`pnpm run check` 185 项；匹配官方 `dsh-v0.1.5-rc.2` 的四组编译检查与 `check:harness` 260 项；正式归档隔离 profile 安装 / 启动 / 持久读写 / 移除冒烟通过，固定模型调用 10 次。Chrome 走通跨工作区汇聚、原文留卡、卡片第 1 版继续讨论、保存第 2 版后核对固定材料及阅读恢复；中英文、深浅色、窄窗口可操作，最终 console error 为 0。
+- 分支最终提交 `e7bcadd` 的 [PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34578190455) 四项全部成功：Node 22.19.0 / 24 / 26 和 Matching DSH release；后者包含匹配编译 / 测试与正式归档隔离 profile 冒烟。功能提交 `581fafa` 的上一轮 CI 同样通过。合并时再次核对同一 head 的全部检查成功，以匹配 head 的 merge 操作合并；Issue #24 于 20:36:55 自动关闭。
+- 首轮保留体验构建的版本为 `0.1.5-rc.2`，最终体验 Build ID **local-0b10b795**。验收归档 `.artifacts/workbench/accepted-local-0b10b795.tgz` 为 410882 bytes，SHA-256 `23ba6bd7307ff746f03db235f9e3021683d2ea5fd274f3611b619ec5eb219695`；它不是已经发布 RC.2 的 npm 归档。详细证据与 7 张截图见 [首轮验收记录](https://github.com/benz-ai-x/dsh-research-graph/blob/581fafaac67ac81457aaad6706d32488851b0b1e/docs/reviews/research-workbench-acceptance.md)。
+- 人工体验通过新工作树的 `pnpm preview:dsh` 启动，停止命令 `pnpm preview:dsh --stop`。独立 profile `.artifacts/workbench-dsh/profile/` 保留样例及人工操作；当前入口 `http://127.0.0.1:63402/`，启动器 PID `96068`、Host PID `96157`，以后以该工作树私有 `.artifacts/workbench-dsh/state.json` 为准。Chrome 交付标签为 `697330025`；原型 `62593` 和用户原有 profile 保留。日志与 state 包含本机登录凭据，不进入 Git 或公开评论。
+- 演示使用明确标注的固定回答，不代表真实模型研究质量。#11 / #12 / #13、跨原生视图替换或重启的未保存正文恢复、知识语义关联仍属后续；首轮功能完成不代表后续范围已完成，也不代表用户已确认最终 UX。
+- 用户后续体验反馈：正式版与原型差距明显。已核对页面与源码，差距包括多层工具栏挤压研究内容、图节点缺少结论预览、阅读字段削弱主动作、分散弹窗破坏连续操作，以及缺少对照栏 / 快捷问题 / C 路径视图。已给出八项改造评估，粗估 8–12 人日；当时用户要求先评判是否做。2026-09-12 后续授权的有限优化范围与交付见上方 #29 / #30，不能据此视为全部原型对齐已完成。
+- 曾建议总计三个 PR，包含继续修改 #25；当时远程实际只有 #25，其余两个只是计划。用户随后明确要求先合并 #25，现已执行。后续 UI 改造由新的 #29 / #30 跟踪；不继续把已合并 #25 当作开放 PR，也不把尚未创建的计划说成 PR。
+
+### PR #25 后的 RC.2.1 发布（完成）
+
+- 用户已明确同意 `0.1.5-rc.2.1` 规则，release 本身与规则修改均已授权并执行。插件追加正整数修订号，后续同一 DSH 的修订为 `.2`、`.3`；所有直接 DSH 依赖仍固定为 `0.1.5-rc.2`。`@deepseek-ai/dsh-llm` 精确 peer 依赖是唯一兼容目标；CI、四个编译面、实包冒烟与预览共用 `scripts/release-versions.mjs`，不通过截断版本字符串猜测上游。规则已写入 AGENTS.md 和双语 README。
+- 发布准备 [PR #26](https://github.com/benz-ai-x/dsh-research-graph/pull/26) 已合并，head `a773f48150d28f3400ca3b0715b44e5dc7438b9b`，merge `6e87282e1f51d22ed8fd14f3bc9009200248e09b`。PR 的 [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34602931382) 与合并后 [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34603408988) 全部通过；合并 tree 与已验证 head 一致。锁文件、DSH 依赖和产品源码未改动。
+- 最终改号验证通过：冻结安装、`RELEASE_TAG=v0.1.5-rc.2.1 pnpm run check`（192 项 / 23 文件）、官方 RC.2 四个编译面及 `check:harness`（260 项 / 14 文件）、本地与正式 npm 归档分别通过真实 profile 安装 / 启动 / 持久读写 / 离线恢复 / 移除冒烟；每次固定模型调用 10 次。版本 `0.1.5-rc.2.1`，Build ID `local-62d0b818`。
+- 新版 preview 启动器未指定环境变量时能正确选择 RC.2 sibling checkout，完成样例准备后已停止本轮自建服务。Chrome 对本轮新端口返回 `ERR_BLOCKED_BY_CLIENT`，没有将它记为新版浏览器人工验收；自建错误标签已关闭。包内版本与页头渲染测试已核对。已有原型 `62593` 与正式体验 `63402` 服务继续运行，其保留构建仍为 RC.2 / 各自 Build ID。
+- 发布工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-release-workbench`，分支 `release/workbench`，干净且已推送于 `a773f48`。最终日志、PR / Release 正文、registry 元数据、provenance、远程 tag、附件核验在 `.artifacts/release-0.1.5-rc.2.1/`；`release-complete.json` 为最终结果。旧 `.artifacts/release-workbench/` 只是未改号的历史候选包，不能当作新版本。
+- 本地验收归档为 411535 bytes，SHA-256 `750cae0bc315c16b1d6af80bd1666407505f4bffe01e72ffb43e0ad60ea07edd`；正式 npm 归档为 411084 bytes，SHA-256 `54c80865d1d2cd5efbbdb34821515b589e2c7b7c51065ecff0957e0ce8940ef7`。两者分别验收，不能混用哈希。详见 [发布验收](docs/reviews/release-0.1.5-rc.2.1.md)。
+- 发布范围是当前已合并工作台基线，原型视觉与交互对齐改造尚未启动。本轮没有服务器连接或部署。
+
+### 用户安装后的依赖检查（2026-09-11）
+
+- 用户已在本机真实 `~/.dsh/profiles/web` 安装 `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.1`。安装成功；`minimumReleaseAgeExclude` 由 pnpm 11.25.0 添加两个精确版本条目。
+- `pnpm peers check` 在该 profile 中返回 1，提示缺少 `@deepseek-ai/cordis ^4.0.2` 和 `@deepseek-ai/dsh-llm 0.1.5-rc.2`。DSH profile 的 `autoInstallPeers: false` 与启动器维护的宿主依赖回退意味着 pnpm 的依赖图不表示运行时无法解析；未额外安装独立的 Host peer 副本。
+- 实际从已安装插件解析，Cordis 指向 `/Users/pc2026/DSH-Space/deepseek-harness/vendor/cordis/lib/index.js`（4.0.2），LLM 指向该 checkout 的 `packages/llm/llm/lib/index.js`（0.1.5-rc.1）。该源码目录仍是 RC.1，与新插件的 RC.2 目标不匹配。
+- 匹配的 `/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.2` 已有构建；建议用户停止旧 web 后在该目录执行 `pnpm dsh web`，继续使用同一个 web profile，无需重装插件。此轮仅诊断，未切换用户 checkout、安装额外依赖、重启真实 profile 或修改会话数据；也未将安装成功写成真实 profile 的运行验收通过。
+
+### 摘要输出上限修复（2026-09-11）
+
+- 用户截图为会话详情中的「摘要生成失败，请重试」。真实 Chrome `http://127.0.0.1:3080/` 的生成 RPC 返回 `generation-failed`，内部原因 `Session Digest model ended with max-tokens`；默认 `maxOutputTokens` 为 800。没有用 RC.1 / RC.2 版本差异替代已捕获的实际原因。
+- 已在 `/Users/pc2026/.dsh/profiles/web/cordis.patch.yml` 为 `ui-session-graph` 设置 `maxOutputTokens: 4096`，DSH 配置检查确认生效。真实 Host live reload 后，同一会话返回 `ok: true` / `kind: ready`，页面显示完整概览、关键结论和待处理项。未改动源会话、模型路由或推理设置，也未重启、升级真实 Host。该成功不意味着 4096 适合所有模型或所有会话，未测量实际推理 token 数。
+- 原 patch 的注释和 `[]` 已备份。首次追加没有替换 `[]`，造成 YAML 解析错误，宿主保留旧配置；已立即纠正并向用户说明。有效配置的 SHA-256 为 `59e1d616175edfd19025f1ece5200af53051f51d03cb2cc6ebecc93c24aa28d9`，保留此修复，不恢复失效的 800 上限。私有备份和改动记录在下述工作树 `.artifacts/digest-output-budget/`。
+- [Issue #27](https://github.com/benz-ai-x/dsh-research-graph/issues/27) → [PR #28](https://github.com/benz-ai-x/dsh-research-graph/pull/28)，分支 `fix/digest-output-budget`，工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-digest`；提交 `a46c1defc65bd57e982fefca6cad18ef1c594d8e` 已推送，工作树干净。默认上限调整为 4096，`max-tokens` 映射为 `output-limit` 并显示中英文明确提示；保留显式低预算、原摘要与显式重试，不缓存截断内容。双语 README 修正为 profile 的 `cordis.patch.yml`，说明空 `[]` 的替换方式。
+- 三项新增回归先失败、修复后通过；`pnpm run check` 192 项，官方 `dsh-v0.1.5-rc.2` 四组编译检查及 `check:harness` 263 项，实际归档隔离 profile 安装 / 启动 / 持久操作 / 离线恢复帮助入口 / 移除冒烟全部通过。Chrome 在同一归档的 RC.2 隔离 profile 验证默认预算实际传入 4096、成功摘要、固定输出上限失败、保留旧摘要和手动重试恢复，console error 为 0。验收记录和无私人会话内容的截图随提交保存，见 [验收记录](https://github.com/benz-ai-x/dsh-research-graph/blob/a46c1defc65bd57e982fefca6cad18ef1c594d8e/docs/reviews/digest-output-budget.md)。
+- 本轮实际验收包仍标记 `0.1.5-rc.2.1`，仅为未发布本地迭代，Build ID `local-e85b7727`，SHA-256 `f9a21462d63953917d099ad171911232eab3577f867fc770719a43bb8c17d823`。当时已发布 npm 包尚不含源码修复；现在已随 `0.1.5-rc.2.2` 发布。提交 `a46c1de` 的 [四项 PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34615435671) 全部成功：Node 22.19.0 / 24 / 26 和 Matching DSH release，后者包含实际归档 profile 冒烟。合并前核对 PR 为 OPEN / MERGEABLE / CLEAN；2026-09-12 按用户授权以匹配该 head 的 merge 操作合入 main，merge commit `3959b3b6ab5aa321f6ee11dd7633ce997e4b06a7`，Issue #27 自动关闭。本修复已随 `0.1.5-rc.2.2` 发布。
+- 自建验收 Host（64209，manager 70257 / Host 70358）已停止，标签 `697330064` 已不在 Chrome；真实 3080、正式体验 63402 和原型 62593 保留。请求诊断 Network 监听已关闭。真实 Host 最后观察仍为 RC.1；切换到已构建的 RC.2 建议尚未执行。主树保留原有未提交文档及 `.pnpm-store/`，未将工作树的基线 HANDOFF 副本作为实时交接。
+
+### 已发布版本与迁移
+
+当前已发布插件为 **0.1.5-rc.2.3**；全部直接 DSH 依赖及锁文件的 15 个 DSH 包保持 **0.1.5-rc.2**。匹配官方 `dsh-v0.1.5-rc.2`，Harness 提交 `fb2c4b9e698e30edb738bca4cf0618587db7d203`。版本规则见 [AGENTS.md](AGENTS.md)。用户日常 profile 的实际安装仍以其独立安装检查为准，本次 release 没有自动升级或重启它。
+
+- [npm RC.2.3](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph/v/0.1.5-rc.2.3) 已发布；`next` 为 `0.1.5-rc.2.3`，`latest` 保持 `0.1.5-rc.1`。GitHub Release 为 prerelease，历史稳定版 latest 保留。
+- [Publish 工作流](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34689836713) 通过 GitHub OIDC 发布。provenance 的归档 SHA-512、仓库、`refs/tags/v0.1.5-rc.2.3`、`publish.yml`、提交 `976e48b` 和运行地址均核对一致；远端 annotated tag 指向同一 merge commit。
+- 正式 npm 归档与 GitHub Release 附件相同：`benz-ai-x-dsh-research-graph-0.1.5-rc.2.3.tgz`，443780 bytes，SHA-256 `50e4d8f489ab54a4f3f5e3eb56443676b65b5c0768d8837e292f2e4e09b3e51b`。另附 SHA256SUMS，其 SHA-256 为 `98ef93e08b3cb6e6d7b7b614e4de56ea2e3862d6b2c4e81d6232b38da270d628`。两项附件 digest 均核对一致。
+
+停止已运行的 DSH web 后，在 **DSH 0.1.5-rc.2** 源码目录安装并重新启动：
 
 ```sh
-DSH_HARNESS_ROOT=/Users/pc2026/Dev-Space/deepseek-harness pnpm exec vitest run --config .artifacts/compat-20260909/vitest.config.ts
+pnpm dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.3
+pnpm dsh web
 ```
 
-The seven probes cover real JSONL digest failure, real Session Merge-target failure, V2-to-V3 marker rejection, native V3 marker encoding, and full V0/V1/V2-to-V3 rejection with successful ordinary-message controls. Convert suitable probes into assertions of the intended behavior when implementing fixes; do not leave tests asserting known breakage as acceptance tests.
+历史 RC.2 发布记录（当时的 dist-tag 与验收结果）：
 
-## Compatibility implementation checklist (preserved for the roadmap)
+- [npm RC.2](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph/v/0.1.5-rc.2) 已发布；`next` 为 RC.2，`latest` 保持 RC.1，符合预发布策略，安装时指定完整版本。
+- 官方 npm 归档与 RC.2 GitHub Release 附件相同：371682 bytes，SHA-256 `76ac7c70f7eb8127e8a33219d22f00d94027338311e4b41905e8c486e1137d20`。附件名为 `benz-ai-x-dsh-research-graph-0.1.5-rc.2.tgz`，另附 `SHA256SUMS`；GitHub 返回的两个附件 SHA-256 均已核对。
+- [Publish 工作流](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34544556427) 成功通过 GitHub OIDC 发布。npm 官方 provenance 的归档 SHA-512、仓库、`refs/tags/v0.1.5-rc.2`、`publish.yml`、提交 `00f6382` 和该次运行均已核对一致。来源记录及归档保留在发布工作树 `.artifacts/release-0.1.5-rc.2/`。
+- 本地验收归档与 CI 发布归档的字节不同，不能混用校验值；二者 Build ID 均为 `local-42728b60`，均分别通过完整实包冒烟。本地归档的校验值见[发布验收记录](docs/reviews/release-0.1.5-rc.2.md)。
 
-1. Read `AGENTS.md`, this file, `CONTEXT.md`, and relevant ADRs. Recheck both worktrees and the target Harness commit. Preserve `main`'s existing two local commits.
-2. Resume the authorized latest-version adaptation. Keep the unanswered old-version-support preference visible; do not report it as decided. Follow `docs/agents/issue-tracker.md` if tracking work externally; no ticket currently exists for this task.
-3. Fix the Session read APIs and add regressions using the real Host/Session stack. Preserve digest cancellation and disposal, Merge authority checks, retries, snapshot capture, and its durability barrier.
-4. Resolve dependency declarations, public type conflicts, and ordinary built-entry loading. Keep Host/Client type boundaries explicit if replacing the ambient stubs. Avoid broad unrelated refactoring.
-5. Settle historical Merge migration separately against the static-catalog restriction. Prove ordinary history, affected Merge history, preserved source generations, and native V3 behavior in isolated fixtures. Do not run a migration on the user's real data as part of routine validation.
-6. Update current cache fixtures, the agreed CI matrix, both READMEs, and any affected durable decision. Do not claim complete historical compatibility without the migration evidence.
-7. Run `pnpm run check`, the target Harness suite, actual Loader/profile tests, and packed-artifact add/load/remove smoke with an isolated temporary `DSH_HOME`. A build or mocked UI pass does not prove the deployed Host path. Check required Harness artifacts are current before using built paths.
-8. Update this root handoff with actual outcomes and remaining limits. No publication was requested; if later releasing, update `package.json` before tagging `v<version>` and keep the build-generated Graph badge in sync.
+历史 RC.1 改名迁移记录：
 
-## Previous completed releases
+- [新包 RC.1](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph/v/0.1.5-rc.1) 于 2026-09-10 11:12:12 UTC 首次发布，当时 `next` 和 `latest` 均为 RC.1。
+- RC.1 官方 npm 归档与当时的本地验收归档逐字节相同：358150 bytes，SHA-256 `408ecd0930edaf5d08e83ca59b085a26ea277e2857bcc7c10937a29fbc1699b6`。
+- [RC.1 GitHub Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) 保留原附件，并补充改名归档和校验文件，共 4 个附件。
+- 改名归档来自 `4782745`；原 `v0.1.5-rc.1` 标签仍指向 `e7f1a1dab2b8d97a6f1ceeccb24c3d0d3bcfc3bc`（tag object `b963b2ac8d20760e0150b335653185c6f6ee9a9a`）。GitHub 自动源码归档保留旧包名，不能移动标签或重复发布当前版本。
+- RC.1 新包首次发布使用本地验收归档，无 CI provenance。当时创建的 GitHub OIDC trusted publisher 绑定本仓库 `publish.yml` / `npm-publish`，已在本次 RC.2 发布中实际验证。配置的服务器响应与权限见 [#19 完成记录](https://github.com/benz-ai-x/dsh-research-graph/issues/19#issuecomment-5617967650)。
 
-The Harness `0.1.2-alpha.3` compatibility audit (2026-09-01) found no product-code incompatibility: every plugin-consumed API changed only additively (`ISession.loadThrough`, `PendingSubmission.placement`, conversation `openView`/`selectView` injections — none implemented or called by this plugin). The alpha.3 breakage was confined to the `tests/views.client.spec.tsx` bench, which hand-mounts the real Conversation skeleton and lacked the newly injected view-selection callbacks; the bench now supplies `selectView`/`openView` store-action twins that remain harmless extra props on alpha.1/alpha.2. Release `v0.1.6` (commit `cb48647`, no runtime change) carries the audit outcome: the CI harness matrix, both READMEs' CI paragraphs, and the release compatibility table all cover `dsh-v0.1.2-alpha.3`.
+先确认 DSH 为 `0.1.5-rc.2`。从旧包升级时先停止目标 web profile，继续使用同一 profile 和数据目录：
 
-Release `v0.1.5` fixes Host startup against DeepSeek Harness `0.1.2-alpha.2` while retaining `0.1.2-alpha.1` compatibility. The cause, implementation, regression coverage, version bump, bilingual documentation, and CI matrix are all captured in commit [`bb94fb2`](https://github.com/benz-ai-x/dsh-session-graph/commit/bb94fb25fcda5680ec71f5f9600bf89b61e295fc); do not reconstruct them in this document.
+```sh
+dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2
+dsh web
+```
 
-On September 1 the local `web` profile was observed on `127.0.0.1:3080`; its current status was not checked. Access requires the authenticated URL printed by `dsh web`; never copy its token into documentation or shared logs.
+首次安装或已使用新包名时省略 remove。中文入口为「研图」，英文为 Research Graph；当前版本徽标为 `Research Graph v0.1.5-rc.2 · local-42728b60`，已通过注册视图测试及 npm 浏览器产物核对。改名保留 `ui-session-graph` patch ID、RPC namespaces、Host 存储域、浏览器键及 `dsh-session-graph` provenance marker。恢复命令为 `dsh-research-graph-migrate`，保留 `dsh-session-graph-migrate` 别名。详见 [中文 README](README.zh.md)。
 
-## Documentation consolidation
+### 验收与证据
 
-The documentation consolidation requested after `v0.1.5` is complete and intentionally separate from the release commit:
+- RC.2 通过冻结安装、`pnpm run check`（175 项）、匹配 `check:harness`（四个编译面 / 254 项），本地归档及官方 npm 归档分别通过隔离 web profile 的安装、启动、持久读写、提炼、沿用、冻结导出、只读原文/搜索及移除；每次均为 10 次固定模型调用。离线恢复命令在 Host 首次启动前通过。RC.2 无产品源码改动，浏览器 UI 证据沿用 PR #21，未另做 RC.2 浏览器验收。
+- RC.2 的 [PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34544106261)、[main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34544663519) 及 [Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34544556427) 全部通过。发布后的实际安装包日志为发布工作树 `.artifacts/release-0.1.5-rc.2/smoke-published.log`，持久验收记录为 [RC.2 发布验收](docs/reviews/release-0.1.5-rc.2.md)。
+- 改名版本通过 `pnpm run check`（175 项）、匹配 `check:harness`（四个编译面 / 246 项）、实包安装/读写/卸载与 Chrome 验收。
+- 旧 npm rc.1 → 新归档的同 profile 迁移保留主题、排列、两版卡片、沿用记录、既有来源事件、卡片选择与 120% 缩放；新版页面无 console error。
+- [PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34469007988) 和 [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34469428852) 均四项通过。
+- 持久记录：[改名与迁移验收](docs/reviews/research-graph-rename.md)、[RC 发布验收](docs/reviews/release-0.1.5-rc.1.md)、[研究工作流验收](docs/reviews/issues-6-10-acceptance.md)、[原文位置恢复](docs/reviews/pr-17-position.md)、[真实模型定性实验](docs/reviews/issues-6-10-model-quality.md)。其他历史修复与截图在 `docs/reviews/`、`docs/assets/`。
+- 改名工作树 `.artifacts/package-name/` 保留最终检查、npm 归档比较与发布证据。post-browser-audit.json 解释原生打开 Viewed Session 追加空 `session/end-seed` 的行为；不要把该生命周期事件当成产品改写已有来源。
+- 所有自有验收 Host、临时 profile、UI state 和 npm 验证页面已清理。临时 npm 登录已 logout，临时 npmrc 与私有认证日志已删除；用户全局认证保持原样。
 
-- this root `HANDOFF.md` is the canonical handoff;
-- the tracked legacy `session-graph-handover.md` is deleted;
-- `docs/HANDOFF.md` is marked as historical;
-- `AGENTS.md` records the canonical-file rule;
-- `README.md` and `README.zh.md` present the same quick start, compatibility, data/model behavior, troubleshooting, and contributor guidance.
+### UI/UX 首轮修复（2026-09-10）
 
-Do not restore `session-graph-handover.md` or create another live handoff file.
+- 已完成：首页卡片/建卡入口、动态搜索文案、关闭/Esc/放弃编辑的草稿保护、紧凑表单与吸附保存栏、可读冻结预览、材料内直接选卡片/原文、紧凑主题工具栏/单节点简化，以及统一控件与容器响应式。
+- 保留 Host 保存/引用/发送协议与不可变修订。草稿仍在当前视图，本轮未加入跨 Host 视图替换的持久恢复；主题排列仍明确点击保存才同步到 Host。
+- 验证：175 项独立测试、四组 Harness 编译检查、251 项 Harness 测试及最终归档安装/启动/读写/移除冒烟全部通过。Chrome 检查桌面、960×900、640×820、中英文及浅/深色；原讨论事件结构校验通过。最终验收 Build ID `local-fc7e307d`，证据在 `.artifacts/ux-round-1/`。
+- [PR #21](https://github.com/benz-ai-x/dsh-research-graph/pull/21) 的 `8339bfd` 四项 CI 已通过。审查发现卡片入口覆盖会在图谱范围变化时重复生效，违反 ADR 0010；`8cbd34f` 将覆盖限定在打开时的范围，并在范围变化后清除。
+- 审查修复验证：原审查复现由失败转通过；3 项新增回归覆盖新范围默认值、已保存讨论/知识条件、返回原范围与重开入口。175 项独立测试、四组 Harness 编译检查及 254 项 Harness 测试全部通过，日志在 `.artifacts/pr21-fix/`，Build ID 为 `local-72df37c0`。本机全局 pnpm 11.25.0 自动切换版本时联网等待，检查改用 pnpm store 中已安装的 11.7.0，未修改全局配置。
+- `8cbd34f` 复审通过：Standards 与 Spec 均 0 项发现；搜索工作流与草稿保护定向测试通过。GitHub 网络已恢复，确认该提交的 [4 项 PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34493639597) 全部通过，随后按用户指令以 merge commit `1405d3b` 合入 `main`。本地已通过 `ssh.github.com:443` 拉取并快进同步，未修改全局 Git/SSH 配置。复审记录在 `.artifacts/pr21-review-8cbd34f/review.md`；PR 原说明保留首轮 251 项的数量，仓库验收记录已记载修复后的 254 项。
+- 自建浏览器页、Host、临时 profile 已清理，浏览器视口覆盖已恢复。用户真实 profile 未修改。
 
-## Authoritative references
+### 服务器部署准备（待目标）
 
-- Repository and release rules: [`AGENTS.md`](AGENTS.md)
-- Domain terminology and boundaries: [`CONTEXT.md`](CONTEXT.md)
-- Durable decisions: [`docs/adr/`](docs/adr/)
-- Historical project snapshot: [`docs/HANDOFF.md`](docs/HANDOFF.md)
-- Issue workflow: [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md)
-- Previous alpha.2 runtime compatibility fix: [`bb94fb2`](https://github.com/benz-ai-x/dsh-session-graph/commit/bb94fb25fcda5680ec71f5f9600bf89b61e295fc)
-- Current target release: [Harness `0.1.5-alpha.1`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.5-alpha.1)
-- Runtime-hardening review: [PR #2](https://github.com/benz-ai-x/dsh-session-graph/pull/2)
+- 用户此前已要求部署；服务器 SSH 目标尚未指定，已询问服务器别名或 `user@host` 及非默认 profile。尚未连接或修改任何服务器。当前 `main` 与已发布 `0.1.5-rc.2.1` 同为 `6e87282`，包含 PR #25；目标 DSH 保持 RC.2。服务器目标确认后使用新版本安装命令。
+- release 前曾为 `1405d3b` 准备 RC.1 归档，Build ID `local-72df37c0`，保留在 `.artifacts/deploy-main-1405d3b/benz-ai-x-dsh-research-graph-0.1.5-rc.1-main-1405d3b-local-72df37c0.tgz`。它是当时部署准备的历史产物，不是当前 RC.2 发布包。
+- 该历史归档大小 371961 bytes，SHA-256 `5afa2af5091535b88bfac5dc9af3103d5ea35fe3c722f6dc4429910778ce8c5c`；隔离 profile 冒烟曾通过，日志为同目录 `smoke.log`。
+- 目标确认后检查服务器 DSH 版本、运行用户、profile 和服务启动方式，选择匹配的发布包，保留现有数据及回滚所需配置，再安装、重启并核对版本/Build ID。
 
-## Historical verification record (September 1)
+### 产品目的与体验要求（2026-09-11）
 
-- Local package check: 18 files, 167 tests passed.
-- Local Harness integration, 2026-09-01: `0.1.2-alpha.1`, `0.1.2-alpha.2`, and `0.1.2-alpha.3` checkouts each pass 2 files, 97 tests (the alpha.3 leg required the bench fix above; alpha.1/alpha.2 were re-run to prove the fix stays backward compatible).
-- CI passed Node 22.19/24/26 plus Harness `alpha.1`, `alpha.2`, and `alpha.3` on the matrix commit: [run 33459461048](https://github.com/benz-ai-x/dsh-session-graph/actions/runs/33459461048).
-- Trusted Publishing and npm provenance for `v0.1.6` completed successfully: [run 33459622859](https://github.com/benz-ai-x/dsh-session-graph/actions/runs/33459622859); npm `latest` is `0.1.6`.
-- Both public READMEs pass relative-link checks and render through GitHub's GFM API; the post-update package check still passes 167 tests.
+- 用户明确：可视化 AI 交互以帮助发散和聚拢；留下人认为有价值的知识以便快速查找和复现；关联会话与知识，通过图谱启发创新。用户对 UI/UX 要求非常高，应以完整研究任务、内容阅读、操作连续性和视觉完成度验收。
+- 目的—现状差距与交互建议见[产品与 UI/UX 评估](docs/reviews/product-purpose-and-ux-gap.md)，基线 `00f6382` / RC.2。核心缺口：卡片到新讨论的沿用已有持久记录但未绘制到图；知识之间的内容关系未建立。简化卡片需同时保留依据、条件和历史。
+- `CONTEXT.md` 已澄清研图目的与知识卡片定义：人选择保留以供理解和复用，保存不表示结论已经正确。关于“复现”的可选澄清尚未收到回复，评估优先按找回原文、恢复思路并继续研究处理；严格环境重执行单列。
+- 用户已确认评估结论，并授权记录结论及开发接入 DSH 的下一代原型；实施记录为 [Issue #23](https://github.com/benz-ai-x/dsh-research-graph/issues/23)。原型在独立工作树 `/Users/pc2026/DSH-Space/dsh-research-graph-prototype`、分支 `prototype/research-workbench` 开发，主工作树继续保留 main 与既有文档改动。
+- 原型提供同一研图标签内的 A 图谱工作台、B 知识书桌、C 研究路径，共享草稿、来源阅读和真实保存/沿用流程。代码位于 `src/client/prototype/`；启动命令 `pnpm prototype:dsh`，停止为 `pnpm prototype:dsh --stop`。启动器使用已构建的 RC.2 Harness，隔离数据位于原型工作树 `.artifacts/prototype-dsh/profile/`。
+- 独立 DSH 已启动于 `http://127.0.0.1:62593/`，当前进程和私有登录链接由原型工作树 `.artifacts/prototype-dsh/state.json` 管理；不要把令牌写入 GitHub。原生 DSH 保存与新讨论接口真实运行，`research-prototype/demo` 是明确标注、不产生付费调用的演示模型。
+- 原型最新交付提交为 `e890247bf548a8c77319e03a5d9cfe77befa8046`，本地与远端分支同步；[完整体验指南与截图](https://github.com/benz-ai-x/dsh-research-graph/blob/e890247bf548a8c77319e03a5d9cfe77befa8046/docs/reviews/research-workbench-prototype.md) 已提交。实际安装构建为 `Research Graph v0.1.5-rc.2 · local-78f59ccc`，当前启动器 PID `70375`、Host PID `70523`；以后以私有状态文件为准。
+- 用户补充跨工作区研究：工作区 A 与 B 的会话应能汇聚。原型已提供「汇聚会话」，选择同一 Host 的 2–3 个来源、填写研究问题、明确目标工作区，先预览再确认。目标可以在 A、B 或单独的研究空间；来源留在原工作区，目标使用自己的文件与执行环境。研究主题横跨工作区，图中实际汇聚关系由原生捕获投影给出。
+- 原型 [ADR 0011](https://github.com/benz-ai-x/dsh-research-graph/blob/e890247bf548a8c77319e03a5d9cfe77befa8046/docs/adr/0011-cross-workspace-research-merges.md) 记录显式目标工作区的领域决定，现以 ADR 0012 随 PR #25 纳入 main。旧画布入口没有显式目标时仍遵循同目录规则。来源选择预览不提前冻结会话内容，快照在确认时捕获，受 DSH 上下文预算约束；文件、工具结果、执行环境不合并。
+- 最新验证：179 项独立测试、四组匹配 Harness 类型检查与 258 项 Harness 测试通过。新增流程测试覆盖跨筛选/布局保留、显式确认、捕获失败复用目标、主题关联失败不重复提交；Host 校验真实目标工作区及来源资格。
+- 真实打包 DSH 中 A/B 来源汇聚到研究空间，核对原来源事件数、目标目录、独立根会话与实际捕获；Chrome 中另将同一对来源汇聚到 A，收到原生回答并显示两个来源与工作区。实际界面调用发现 Remote 最后参数名 `callerSignal` 导致 DSH 源码模式未注入取消信号；已改为 `signal`，通过真实 Typert Gateway 回归测试，浏览器原地重试同一目标成功。此修复已纳入首轮正式实现 PR #25，随后随 RC.2.1 发布；历史 RC.2 不包含它。
+- 浏览器控制本轮已经恢复，用用户 Chrome 中自建的跨工作区验收页完成实际操作；640×820 下按钮完整可见、无页面横向溢出，已恢复视口覆盖。保留的交付标签为 `697330008`；用户原有标签和日常 DSH profile 未改动。5 张新增操作/关系/小屏截图已提交，服务继续运行。
+- 首轮 `7b1ddaa` 验证记录仍保留：175 项独立测试 / 257 项 Harness，通过来源留卡、跨布局编辑、搜索、准确来源、一卡继续与两卡对照、AI 草稿审核回存、不可变修订及多次重装恢复。首轮工具故障时使用独立无头 Chromium，桌面、窄容器、小屏及深浅主题已检查；本轮使用恢复后的 Chrome 控制。
+- 当前体验数据：原有主题 5 条讨论、4 条知识、5 条实际沿用关系；「跨工作区：缓存方案对照」为 2 个来源和 2 个汇聚结果，分别位于研究汇聚空间和 A。固定演示模型不代表真实推理质量。原型不交付跨 Host 汇聚、任意深度图布局、知识语义关系或跨原生会话/重启的未保存草稿恢复。最终布局仍待用户体验，不要把工具验收写成用户已经确认通过。
 
-## Suggested skills
+### 后续范围
 
-- `dsh-plugin-dev` for Cordis lifecycle, Remote compatibility, Harness integration, packaging, or releases.
-- `diagnosing-bugs` for runtime, lifecycle, cancellation, persistence, or performance failures.
-- `code-review` before approving or releasing subsequent implementation changes.
-- `domain-modeling` when changing Session Graph terminology, projections, lineage, or ADR-backed boundaries.
+2026-09-12 用户要求将架构评审 01、02 展开分析并分别建单，已建立 [#36 统一已保存知识卡片的阅读路径与修订操作](https://github.com/benz-ai-x/dsh-research-graph/issues/36) 和 [#37 收拢画布与阅读面板的几何协同](https://github.com/benz-ai-x/dsh-research-graph/issues/37)，均为 `enhancement` / `ready-for-agent`，已互相链接。两单按当前 `976e48b / 0.1.5-rc.2.3` 复核，包含源码证据、职责与 interface、实施及验收清单；建议先做 #36，#37 可独立交付，两项没有硬性依赖。详细范围仅在各 Issue 维护；#32 继续承接研究新能力。本轮完成分析与建单，尚未开始这两项产品代码改造。
+
+2026-09-12 用户明确产品侧重为“图谱使用第一优先、知识归纳第二优先”：先让图中阅读、定位、分支、继续探索与返回路径顺畅，再完善知识综合。[#32 研究能力剩余工作整合与优先级](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 继续承接 #11、#12、#13 的 19 个未完成项，已据此重排。近期入口改为指定历史轮次分支，具体顺序、依赖、来源映射和验收以 Issue 为准；本交接不复制任务清单。
+
+原 [#11](https://github.com/benz-ai-x/dsh-research-graph/issues/11)、[#12](https://github.com/benz-ai-x/dsh-research-graph/issues/12)、[#13](https://github.com/benz-ai-x/dsh-research-graph/issues/13) 已按用户指令于 2026-09-12 以“重复于 #32”关闭归档，移除 `ready-for-agent` 标签，保留原有勾选、历史规格与代码证据。关闭不表示剩余功能已实现或需求已取消；后续统一跟踪 #32。本轮仅整理 Issue，尚未开始这些新功能的开发。开工前读取 #32 及相关原单的最新正文、评论和依赖，并按用户当次指定范围执行。
+
+保留有独立证据价值的[社区需求研究](docs/research/dsh-discussions-product-opportunities-2026-09-09.md)和[竞品对标](docs/research/session-graph-competitive-benchmark-2026-09-09.md)。二者基于 2026-09-09 的 alpha.1，不代表当前功能或最新竞品状态；其中性能数据与建议需按当前源码复核。重复的目标路线图、Issue 初稿已移除，不再维护第二份任务清单。
+
+### 本地工作区与文档清理
+
+以下为早期工作树与文档清理记录，路径和保留状态不再代表当前布局；当前两棵工作树见「当前目录与启动」，已移除目录的验收材料见上方 2026-09-13 清理归档。
+
+- 主工作树：`/Users/pc2026/DSH-Space/dsh-session-graph`，`main`，与 `origin/main` 同步于 `6e87282`；目录名保留，不影响产品/仓库/npm 名称。主树本轮仅快进同步，未重新安装依赖或构建 `lib/`。合并源码树与已验收分支完全一致。
+- 改名工作树：`/Users/pc2026/DSH-Space/dsh-session-graph-package-name`，`fix/package-name`，干净于 `46bf305d442fe172d726dbbec6689fcbae028d3b`。
+- 发布工作树：`/Users/pc2026/DSH-Space/dsh-session-graph-release-0.1.5-rc.1`，`release/0.1.5-rc.1`，干净于 `1f8f3a29389b5548d690a3181f9152ac82fe5665`。
+- RC.2 发布工作树：`/Users/pc2026/DSH-Space/dsh-session-graph-release-0.1.5-rc.2`，`release/0.1.5-rc.2`，干净于 `0943981`。归档与日志在该工作树 `.artifacts/release-0.1.5-rc.2/`，Build ID `local-42728b60`。匹配 Harness 工作树 `/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.2` 已完成 native/lib/web 构建，源码干净。
+- 下一代原型工作树：`/Users/pc2026/DSH-Space/dsh-research-graph-prototype`，`prototype/research-workbench`，干净于 `e890247`，已推送；该工作树的 `HANDOFF.md` 仍是基线副本，实时状态只读本文件。测试日志、私有登录状态和安装包在 `.artifacts/prototype-dsh/`，不进入 Git。
+- 下一代正式实现工作树：`/Users/pc2026/DSH-Space/dsh-research-graph-next`，`feat/research-workbench`，干净于 `e7bcadd`；PR #25 已合并，分支和工作树为体验服务保留。该树 `HANDOFF.md` 同样为基线副本；验收日志和归档在 `.artifacts/workbench/`，当前体验 profile 与私有状态在 `.artifacts/workbench-dsh/`。
+- 匹配 Harness：`/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.1`，官方源码干净，已有 native/lib/web 构建。验证命令与要求见 [AGENTS.md](AGENTS.md)。
+- UI/UX 源码、双语 README、回归测试和截图已提交；文档清理后的本交接及 2 份研究报告仍作为本地未提交内容保留。验收期间出现的 `docs/assets/research-graph/architecture.svg` 非本轮创建，未纳入 PR #21。
+- 清理前 6 份文档已保存为本地压缩备份 `.artifacts/document-cleanup-20260910-212256.tgz`，并核对归档内字节一致。它仅用于撤销本次清理，不是另一份实时交接。
+- PR #25 同步前的六份本地文档已逐字节备份至 `.artifacts/pr25-main-sync-20260911-123854Z/`。`CONTEXT.md` 的本地修改已全部包含在上游；产品评估文档仅将原型分支链接固定为具体提交后纳入 Git。其余本地文档内容已核对未变，本交接随后更新；当前未提交内容为本交接、两份研究报告及既有 architecture.svg。

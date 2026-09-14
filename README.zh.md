@@ -6,12 +6,14 @@ kind: "package-bundle"
 # DSH Research Graph · 研图
 
 [![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
+[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph/next?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
 [![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
-[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases/latest)
+[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?include_prereleases&logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [English](README.md) | 中文
+
+[快速开始](#快速开始) · [DSH 与 Agent 预设](#dsh-与-agent-预设) · [使用图谱](#使用图谱) · [故障排查](#故障排查) · [开发](#开发与贡献)
 
 **在 DeepSeek Harness 中，将 AI 讨论沉淀为可追溯、可复用的研究知识。**
 
@@ -55,9 +57,30 @@ dsh web
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`、`0.1.2-alpha.2`、`0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`、`0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI、真实 Harness 集成、打包 profile 安装/移除 |
 
-在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。研究工作流已随 `0.1.5-rc.1` 发布；`0.1.5-rc.2` 加入首轮 UI/UX 修复，包括草稿保护、直接选择材料和搜索范围恢复。`0.1.5-rc.2.1` 加入研究工作台、完整知识阅读与跨工作区汇聚。`0.1.5-rc.2.2` 修复会话摘要截断，加入可拖宽的 Markdown 阅读、就近留卡及范围栏中的图谱工具。`0.1.5-rc.2.3` 新增可编辑的会话标题建议，以及简短、突出关键信息的 Markdown 摘要。`0.1.5-rc.2.4` 统一各入口的已保存知识阅读，保留提炼批次编辑前的阅读位置，集中响应式阅读布局规则，并增强摘要高亮。`0.1.5-rc.2.5` 加入历史轮次分支、可编辑的发散提示、混合材料的审阅式综合与工作位置恢复，并修复快速拖动后的最终位置保存。`0.1.5-rc.2.6` 改善两种图谱的重新布局，按依赖排列，连线避让卡片并分配独立端口，支持撤销最近一次重新布局。`0.1.5-rc.2.7` 分离折叠簇标题附近窄缝中的 Merge 汇入线，减少重叠。`0.1.5-rc.2.8` 消除分支继承造成的重复汇聚线，收拢标题与排列，区分同名节点，并支持从详情打开子代理任务记录。验证与尚待验收的边界详见[发布验收记录](docs/reviews/release-0.1.5-rc.2.8.md)。已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
+当前预发布 **0.1.5-rc.2.8** 适配 **DSH 0.1.5-rc.2**：消除分支继承造成的重复汇聚线，使用短簇标题与集中排列、同名标识和常驻图例，并支持打开子代理任务记录。正式包验收、截图与已知限制见[发布验收记录](docs/reviews/release-0.1.5-rc.2.8.md)。
+
+在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。
+
+<details>
+<summary>历史版本与旧宿主兼容性</summary>
+
+研究工作流已随 `0.1.5-rc.1` 发布；`0.1.5-rc.2` 加入首轮 UI/UX 修复，包括草稿保护、直接选择材料和搜索范围恢复。`0.1.5-rc.2.1` 加入研究工作台、完整知识阅读与跨工作区汇聚。`0.1.5-rc.2.2` 修复会话摘要截断，加入可拖宽的 Markdown 阅读、就近留卡及范围栏中的图谱工具。`0.1.5-rc.2.3` 新增可编辑的会话标题建议，以及简短、突出关键信息的 Markdown 摘要。`0.1.5-rc.2.4` 统一各入口的已保存知识阅读，保留提炼批次编辑前的阅读位置，集中响应式阅读布局规则，并增强摘要高亮。`0.1.5-rc.2.5` 加入历史轮次分支、可编辑的发散提示、混合材料的审阅式综合与工作位置恢复，并修复快速拖动后的最终位置保存。`0.1.5-rc.2.6` 改善两种图谱的重新布局，按依赖排列，连线避让卡片并分配独立端口，支持撤销最近一次重新布局。`0.1.5-rc.2.7` 分离折叠簇标题附近窄缝中的 Merge 汇入线，减少重叠。已发布的 `0.1.5-alpha.1` 保留其原有功能。旧版 `v0.1.0`–`v0.1.6` 保留原标签；使用 DSH `0.1.2-alpha.1`–`alpha.3` 时仍应固定插件 `0.1.6`，新版源码不承诺旧宿主兼容性。不要仅按 npm `latest` 或插件版本号大小选择安装版本。
+
+</details>
 
 本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
+
+## DSH 与 Agent 预设
+
+研图为产品、技术、市场等不同研究提供工作台，组织讨论、保留的证据和经过审核的结论。研究方法与可执行工具由 DSH 环境及所选 Agent 预设提供。
+
+| 部分 | 职责 |
+| --- | --- |
+| DSH Agent 预设 | 为会话提供可复用的工具、提示词段落和技能组合 |
+| DSH 运行时 | 执行会话、调用模型与工具、委派子代理任务，并保存原生历史 |
+| 研图 | 研究主题、讨论关系、原文阅读、审核后的知识卡片，以及冻结材料的显式沿用 |
+
+专业研究 Agent 预设可以定义研究方法和专用工具，配合研图检查并沉淀成果。这样的预设需要单独制作：安装本插件不会自动注册专业预设，也没有增加 Agent Team 启动器。详情里的子代理摘要用于查看已有委派任务及打开原生记录，不代表团队成员表或调度控件。
 
 ## 研究工作台
 
@@ -69,7 +92,7 @@ dsh web
 
 主题图按依赖关系分层排列来源、知识与后续讨论，保留 Branch 簇和人工排列；选中知识时突出它的直接来源及后续研究。主题图用来源线连接讨论与知识，用“已沿用”线连接知识与后续讨论。只有 Host 已确认接收的沿用才绘制关系；新讨论不必先加入主题成员。卡片后来修改不会改写当时使用的版本，点击后续研究可核对固定材料并打开目标会话。
 
-讨论与知识正文使用 DSH 的 Markdown 排版，支持标题、列表、引用、表格和代码。详情可**展开阅读**，标题、版本或原文切换与底部操作保持可见，仅正文滚动；展开状态与原文位置可在返回时恢复。原文允许正常选择、复制文本。范围与工作区 / 主题选择合为一条上下文栏；主题名旁的**主题选项**提供新建、重命名与说明。窄容器下，汇聚会话与新建卡片收进**更多**。研究范围栏右侧集中放置输入会话、缩放、适应和定位，**图谱选项**提供重新布局、重置布局、关系图例，以及主题的刷新来源和导出；只有排列尚未保存时显示保存提示。展开或拖宽阅读面板时，工具条仍可操作。适应、定位、工具缩放与 100% 复位共用可见画布中心；滚轮缩放仍以指针位置为中心。图谱选项向下展开；窄容器依次将适应 / 定位、缩放收进菜单，连续缩放时菜单保持打开。「输入会话 · 会话名」标明输入框所属会话，长名称可悬停查看完整提示，选择图中其他内容不会切换发送对象。
+讨论与知识正文使用 DSH 的 Markdown 排版，支持标题、列表、引用、表格和代码。详情可**展开阅读**，标题、版本或原文切换与底部操作保持可见，仅正文滚动；展开状态与原文位置可在返回时恢复。原文允许正常选择、复制文本。范围与工作区 / 主题选择合为一条上下文栏；主题名旁的**主题选项**提供新建、重命名与说明。窄容器下，汇聚会话与新建卡片收进**更多**。研究范围栏右侧集中放置输入会话、缩放、适应和定位，**重新布局**与可用时的**撤销重新布局**直接显示在画布工具栏，分支／汇聚图例常驻画布；**图谱选项**提供重置布局、详细关系图例，以及主题的刷新来源和导出；只有排列尚未保存时显示保存提示。展开或拖宽阅读面板时，工具条仍可操作。适应、定位、工具缩放与 100% 复位共用可见画布中心；滚轮缩放仍以指针位置为中心。图谱选项向下展开；窄容器依次将适应 / 定位、缩放收进菜单，连续缩放时菜单保持打开。「输入会话 · 会话名」标明输入框所属会话，长名称可悬停查看完整提示，选择图中其他内容不会切换发送对象。
 
 首轮正式实现见[工作台验收记录](docs/reviews/research-workbench-acceptance.md)；阅读与留卡优化见[阅读体验验收](docs/reviews/reading-ux-round.md)，共享阅读器与几何模块的验证和截图见[统一阅读与几何协同验收](docs/reviews/reading-geometry.md)。
 
@@ -202,10 +225,10 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 - 拖动节点或整个簇框来排列画布；对齐参考线会吸附临近卡片边缘。快速拖动后重新打开图谱，也会保留松手时的最终位置。
 - Session Arrangement 持久化采用 fail-soft 策略。浏览器存储不可用、被拒绝、损坏或空间耗尽时，实时图谱仍会使用自动几何继续渲染。
 - 小圆点表示关系连接位置，不是拖动手柄；Branch 使用中性色带方向实线，Merge Relation 使用品牌色带方向实线，Subagent Derivation 使用虚线。
-- 常驻图例解释分支和汇聚线；分支簇共用配色，独立讨论使用中性色，运行状态单独呈现。节点标明汇聚／分支，同名讨论附有不同的简短标识，详情中可查看完整标题。分组标题改为带数量的短标签，为上方汇入关系留出通道。互不关联的讨论集中排列，与有依赖关系的研究链分开。
-- 分支继承的汇聚快照保留在详情的**继承的汇聚来源**中，按需展开；即使父会话位于图外，也不会重复绘制直接汇聚线。展开子代理摘要可查看任务标题和状态，并打开对应讨论；子代理仍不单独占用画布节点。
+- 常驻图例解释分支和汇聚线；分支簇共用配色，独立讨论使用中性色，运行状态单独呈现。节点标明汇聚／分支，同名讨论附有不同的简短标识，详情中可查看完整标题；节点简称和同名标识不会修改原生会话名称。分组标题改为带数量的短标签，为上方汇入关系留出通道。互不关联的讨论集中排列，与有依赖关系的研究链分开。
+- 分支继承的汇聚快照保留在详情的**继承的汇聚来源**中，按需展开；即使父会话位于图外，也不会重复绘制直接汇聚线。展开子代理摘要可查看任务标题和状态，并打开对应讨论；子代理仍不单独占用画布节点。“当前未运行”仅表示没有运行或等待活动，不能据此认定任务已完成。
 - 工作区和研究主题都按依赖关系排列：相关来源保持同排，共同结果位于下方，独立资料另行排放。Branch 簇保留树形结构，并预留折叠所需空间。圆角连线会避开卡片和簇标题，使用分开的端口和箭头；受阻端口会移到空位或卡片另一侧，连续跨层关系会尝试不同的出口通道，减少长线段重合。窄缝两侧已有连线时，会尝试缝内的额外通道，让汇入关系更易区分。拖动、折叠后重新绕线，“适应”也会包含外侧路线和标签。
-- 工具栏直接提供**重新布局**，清除手动节点位置和簇偏移，保留折叠及阅读状态。**撤销重新布局**可恢复上一次排列，直到后续拖动、折叠、重置或切换范围；连续点击重新布局仍保留有效撤销。已有自定义排列在点击此操作前保持原样。主题排列仍需点击**保存排列**才会通过 Host 共享。
+- 工具栏直接提供**重新布局**，清除手动节点位置和簇偏移，保留折叠、阅读状态与视口平移／缩放。**撤销重新布局**可恢复上一次排列，直到后续拖动、折叠、重置或切换范围；连续点击重新布局仍保留有效撤销。已有自定义排列在点击此操作前保持原样。需要把排列后的图谱带回可视范围时点击**适应**。主题排列仍需点击**保存排列**才会通过 Host 共享。
 - 使用滚轮缩放、背景拖动平移、适应、100%、重新布局、重置、定位 Viewed Session（当前查看会话）或 minimap。内容离开可视范围时才显示 minimap；容器尺寸变化会保留当前内容中心与缩放比例。
 - 按标题过滤；Enter 居中第一个匹配项，Escape 清空过滤条件。
 - 悬停节点或边会强调对应的 Branch Lineage（分支谱系）。
@@ -356,6 +379,9 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 | GitHub 源码安装报告 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | 检查固定版本源码，把 dsh 打印的完整键加入该 profile 的 `allowBuilds`，然后重试 |
 | 生成摘要时报告没有模型路由 | 使用日志中带路由的 Session，或配置 `provider` 与 `model` 兜底字段对 |
 | 摘要达到生成上限 | 在当前 profile 的 `cordis.patch.yml` 中为 `ui-session-graph` 调高 `maxOutputTokens`，再重试 |
+| 升级后仍显示旧排列 | 点击**重新布局**应用自动排列，必要时再点**适应**；重新布局可撤销，主题仍需**保存排列**才会同步 |
+| Host 冷重启后，分支暂时显示目录名或缺少继承来源 | 在 DSH 中原生打开该会话，再返回图谱；验收中这会恢复保留的标题和来源摘要。宿主内部根因尚未定位，见[发布验收边界](docs/reviews/release-0.1.5-rc.2.8.md#acceptance-boundary) |
+| 子代理任务无法打开 | 从详情重试以刷新直接父会话的原生任务目录；刷新后目录中仍不存在的任务无法从该条目打开 |
 | Web URL 拒绝访问 | 打开 `dsh web` 打印的完整认证 URL；不要复用或分享被截掉 token 的地址 |
 
 若问题仍然存在，请在 [GitHub Issue](https://github.com/benz-ai-x/dsh-research-graph/issues/new) 中附上 研图页头显示的包版本、Harness 版本以及相关 Host/浏览器错误。
@@ -363,6 +389,8 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 ## 开发与贡献
 
 环境要求为 Node.js `^22.19.0 || >=24.0.0` 与 pnpm `11.7.0`。
+
+接手时先读 [AGENTS.md](AGENTS.md) 的开发规则、[CONTEXT.md](CONTEXT.md) 的领域词汇，以及根 [HANDOFF.md](HANDOFF.md) 的当前状态和本地工作树。[文档分工表](docs/agents/domain.md#documentation-map) 区分实时状态、长期决策与版本验收；`docs/HANDOFF.md` 仅为历史快照。
 
 ```sh
 pnpm install --frozen-lockfile
@@ -379,7 +407,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 修改 Session、Merge、Digest 或持久化行为前，请先阅读 [`CONTEXT.md`](CONTEXT.md) 的领域模型与 [`docs/adr/`](docs/adr/) 的持久设计决策。安装方式或产品行为变化时必须同时更新本文与 [`README.md`](README.md)。面向用户的工作应从 [GitHub Issue](https://github.com/benz-ai-x/dsh-research-graph/issues) 开始。
 
-`check:harness` 要求宿主版本与 `package.json` 中 `peerDependencies["@deepseek-ai/dsh-llm"]` 固定的目标版本一致。它用该 checkout 构建的真实公开声明检查 Host/Client 源码及打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并根据校验后的 DSH peer 依赖选择 `dsh-v<dsh-version>`，不受插件修订号影响。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件。History 读取还经过与浏览器相同的 RPC Gateway，覆盖传输层提供的取消信号；仅模型传输使用固定响应。
+`check:harness` 要求宿主版本与 `package.json` 中 `peerDependencies["@deepseek-ai/dsh-llm"]` 固定的目标版本一致。它用该 checkout 构建的真实公开声明检查四个编译面：Host／Client 源码与 Host／Client 打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并根据校验后的 DSH peer 依赖选择 `dsh-v<dsh-version>`，不受插件修订号影响。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件。History 读取还经过与浏览器相同的 RPC Gateway，覆盖传输层提供的取消信号；仅模型传输使用固定响应。
 
 使用以下命令构建可安装归档：
 
@@ -400,7 +428,7 @@ pnpm preview:dsh --stop
 
 启动器打包并安装常规插件，在 `.artifacts/workbench-dsh/profile/` 中运行独立 DSH，打印本机访问地址并保留研究数据。示例包含 A / B 跨工作区讨论、知识卡片和后续研究；模型是明确标注的固定演示回答，不调用付费模型。停止后再启动会保留示例与人工操作，不影响已有 DSH profile。启动地址含本机登录凭据，不要发布原始日志或 `state.json`。
 
-本地构建会根据 `package.json`、`tsdown.config.ts` 与 `src/` 内容生成稳定的 `local-<hash>` Build ID；发布流水线可在构建时设置 `DSH_SESSION_GRAPH_BUILD_ID` 来替换它。
+本地构建会根据 `package.json`、`tsdown.config.ts` 与 `src/` 下的全部文件生成稳定的 `local-<hash>` Build ID，其中也包括未跟踪或被忽略的文件。因此 Finder 元数据等本地额外文件可能改变 Build ID，而包版本不变。发布流水线可在构建时设置 `DSH_SESSION_GRAPH_BUILD_ID` 来替换它；核对发布时应比较具体归档与记录的构建输入。
 
 ### 发布
 
@@ -410,18 +438,20 @@ pnpm preview:dsh --stop
 
 首次适配 DSH 版本时，`package.json.version` 使用目标 DSH 的完整版本。同一 DSH 预发布版下的后续发布追加一个正整数修订号，如 `0.1.5-rc.2.1`、`0.1.5-rc.2.2`；所有直接 DSH 依赖仍固定为 `0.1.5-rc.2`。`@deepseek-ai/dsh-llm` 的精确 peer 依赖是兼容目标的唯一来源。插件 tag 为 `v<plugin-version>`，上游 tag 为 `dsh-v<dsh-version>`。`check-version.mjs` 拒绝无效修订号、依赖漂移及发布 tag 不一致，`--dsh-version` 输出校验后的目标供 CI 使用；`check:harness`、打包验收和预览启动器都使用这一目标。发布前完成 `pnpm run check`、`check:harness` 和打包 profile 验收，并确认 研图页头徽标读取同一版本，再合入变更、创建不可移动的 tag 和 Release。尚未发布的本地迭代使用 Build ID 区分，不覆盖已发布版本或重命名历史标签。
 
+发布流水线会重新构建 tag。发布后应单独下载 npm 正式包，核对清单、版本／Build ID 和 registry 完整性，运行 `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness /absolute/path/official.tgz`。将正式包与校验文件附到 GitHub Release 后重新下载比对；最终提交、运行记录、归档摘要与验收结果写入版本验收和根交接。
+
 本包导出两个 Node 侧入口和一个惰性加载的浏览器模块；实际打包归档中的每个 JavaScript 入口都带有匹配的 TypeScript 声明：
 
 | 导出 | 用途 |
 |---|---|
-| `.` | 用于生成 Session Digest 与持久提交 Session Merge 的 Cordis Host services |
+| `.` | 研究主题、知识、分支／沿用、会话摘要与标题、原文／搜索及持久 Merge 提交的 Cordis Host services |
 | `./invariant` | 运行时注册不变量 |
 | `./client` | 构建后的 dsh 客户端模块 |
 | `./cordis.patch.yml` | profile 组合包补丁 |
 
 ## 实现
 
-`GraphView` 读取 Viewed Session、Workspace 成员关系、会话摘要与待处理交互映射。带索引的纯 helper 推导 Session Cluster、Branch 与 Merge 边、Subagent Summary、跨簇顺序、布局、吸附、Title Filter 匹配与视口状态；独立 presentation pipeline 再按顺序应用节点位置、折叠状态和簇偏移，最后交给 `GraphCanvas` 渲染。Host 通过两个包自有 Remote 分别提供只读 Session Digest 与原子 Session Merge 捕获；Merge 提交会重新校验 Host 权威状态、排入显式 marker 与规范引用，等待匹配投影，再写入 Projection Cache，之后才报告成功。
+`GraphView` 读取 Viewed Session、Workspace 成员关系、会话摘要与待处理交互映射。带索引的纯 helper 推导 Session Cluster、Branch 与 Merge 边、Subagent Summary、跨簇顺序、布局、吸附、Title Filter 匹配与视口状态；独立 presentation pipeline 再按顺序应用节点位置、折叠状态和簇偏移，再围绕最终卡片与可见簇标题路由，交给 `GraphCanvas` 渲染。Host 注册主题、知识、沿用、历史分支、搜索、原文、摘要、标题与汇聚等包自有服务；Merge 提交会重新校验 Host 权威状态、排入显式 marker 与规范引用，等待匹配投影，再写入 Projection Cache，之后才报告成功。
 
 | 文件 | 职责 |
 |---|---|
@@ -430,7 +460,9 @@ pnpm preview:dsh --stop
 | [`src/client/GraphView.tsx`](src/client/GraphView.tsx) | Workspace/Directory Scope 解析、图谱推导与视图头部 |
 | [`src/client/GraphCanvas.tsx`](src/client/GraphCanvas.tsx) | 画布渲染、端子、检查器、控件、手势、悬停状态与 minimap |
 | [`src/config.ts`](src/config.ts) | 对外 Standard Schema、默认值与规范化 Host 配置 |
-| [`src/index.ts`](src/index.ts) | Session Digest 与 Session Merge Host services、投影注册、配置和 Remote 错误 |
+| [`src/index.ts`](src/index.ts) | Host 服务与存储域注册、配置、生命周期和 Remote 错误 |
+| [`src/knowledge-host.ts`](src/knowledge-host.ts)、[`src/knowledge-extraction.ts`](src/knowledge-extraction.ts)、[`src/knowledge-synthesis.ts`](src/knowledge-synthesis.ts)、[`src/knowledge-export.ts`](src/knowledge-export.ts) | 持久卡片修订与来源、审阅式生成、冻结引用和 Markdown 导出 |
+| [`src/history-branch-host.ts`](src/history-branch-host.ts) 与 [`src/research-reuse-host.ts`](src/research-reuse-host.ts) | 可恢复的历史分支与冻结研究材料的确认提交 |
 | [`src/session-digest.ts`](src/session-digest.ts) 与 [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | 摘要输出校验、revision 缓存、并发控制与 Harness 路由重建 |
 | [`src/session-merge.ts`](src/session-merge.ts)、[`src/session-merge-host.ts`](src/session-merge-host.ts) 与 [`src/session-merge-harness.ts`](src/session-merge-harness.ts) | 浏览器流程、Host 校验、规范引用提交、有界捕获、幂等重试与持久性屏障 |
 | [`src/session-merge-projection.ts`](src/session-merge-projection.ts) | 版本化 Merge marker/reference 投影与严格持久状态校验 |
@@ -439,23 +471,30 @@ pnpm preview:dsh --stop
 | [`src/session-title-host.ts`](src/session-title-host.ts)、[`src/session-insight-source.ts`](src/session-insight-source.ts)、[`src/session-insight-model.ts`](src/session-insight-model.ts) | 只读标题建议及共享的限量讨论输入、模型调用 |
 | [`src/client/session-digest-remote.ts`](src/client/session-digest-remote.ts) | 严格的浏览器 Remote 请求/结果契约 |
 | [`src/client/session-merge-remote.ts`](src/client/session-merge-remote.ts) | 严格的浏览器 Session Merge Remote 请求/结果契约 |
-| [`src/client/graph-model.ts`](src/client/graph-model.ts) | 图谱范围解析、Branch 与 Merge 边、Session Cluster 排序、Subagent Summary、Title Filter 匹配与 Branch Lineage |
+| [`src/client/graph-model.ts`](src/client/graph-model.ts) | 图谱范围、直接／继承汇聚来源、Branch 边、会话簇、子代理摘要、标题匹配与分支谱系 |
+| [`src/client/knowledge-graph.ts`](src/client/knowledge-graph.ts) 与 [`src/research-relations.ts`](src/research-relations.ts) | 知识、来源与综合的图谱投影，以及已确认的材料沿用关系 |
+| [`src/client/node-labels.ts`](src/client/node-labels.ts)、[`src/client/SubagentDetails.tsx`](src/client/SubagentDetails.tsx)、[`src/client/index.ts`](src/client/index.ts) | 展示标题、同名短标识、委派任务检查，以及基于原生目录的子代理导航 |
 | [`src/client/canvas-presentation.ts`](src/client/canvas-presentation.ts) | 有序 Session Arrangement 投影以及最终/自动内容边界 |
-| [`src/client/layout.ts`](src/client/layout.ts) 与 [`src/client/clusters.ts`](src/client/clusters.ts) | Branch 坐标、依赖排列、簇框、折叠与偏移 |
+| [`src/client/dependency-layout.ts`](src/client/dependency-layout.ts)、[`src/client/layout.ts`](src/client/layout.ts)、[`src/client/clusters.ts`](src/client/clusters.ts) | 完整 Branch 簇的依赖排列、独立讨论集中布局、共享标题几何、折叠与偏移 |
 | [`src/client/viewport.ts`](src/client/viewport.ts)、[`src/client/preview-placement.ts`](src/client/preview-placement.ts) 与 [`src/client/snap.ts`](src/client/snap.ts) | 缩放、平移、尺寸保持、适应、minimap/预览定位与对齐参考线 |
 | [`src/client/edge-routing.ts`](src/client/edge-routing.ts) | 最终避障路由、关系端口、箭头、标签与完整路线边界 |
 | [`src/client/layout-store.ts`](src/client/layout-store.ts) | 按范围的 Session Arrangement 持久化、迁移与 fail-soft 存储恢复 |
+| [`src/client/working-position.ts`](src/client/working-position.ts) | 按 Host／范围隔离的视口、选择、阅读与搜索恢复 |
+| [`scripts/resolve-harness.mjs`](scripts/resolve-harness.mjs) 与 [`scripts/workbench/start.mjs`](scripts/workbench/start.mjs) | 匹配 Harness 查找和保留数据的隔离演示 profile |
 
 ## 当前限制
 
 - 无会话主页与全新空白会话没有对话视图环，因此无法使用研图。
 - 范围图一次跟随一个工作区或目录；研究主题可跨同一 Host 内的工作区，正文搜索使用独立视图。
-- 切换标签或刷新会重置平移与缩放；节点位置、簇偏移与折叠状态会持久化。
+- 工作位置与未保存的主题排列可在同一浏览器及 Host／范围中恢复；清理浏览器存储会丢失这些本地选择，主题排列只有**保存排列**后才会共享。
 - Session Digest 只按需生成并缓存在 Host 内存中，不作为长期产物持久化；Host 重启会清空缓存。
 - 没有日志模型路由的 Session 必须配置兜底路由后才能生成摘要。
 - 从 Subagent Session 创建的 Branch 没有 Canvas Session 父边，因此显示为 Root Session。
 - 一次 Merge 只接受两个或三个来源；可跨同一 Host 的工作区，不支持跨 Host 汇聚。
 - Merge 捕获的是不可变来源快照；来源后续新增消息不会自动刷新已有 Merge Session。
+- Host 冷启动时，未打开分支的原生标题或继承来源摘要可能暂缺，处理方式见故障排查；本版没有将尚未定位的宿主原因计为已修复。
+- 任意密集图或手动重叠的卡片仍可能产生交叉或受阻端口；[发布验收](docs/reviews/release-0.1.5-rc.2.8.md) 列出了实际通过的几何场景。
+- 结构化探索方向与假设字段仍按 [Issue #32 的 P5](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 暂缓；可编辑问题提示与冻结材料沿用已可使用。
 - 触屏只使用指针事件回退，没有专用控件。
 
 ## 许可证

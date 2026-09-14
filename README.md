@@ -6,12 +6,14 @@ kind: "package-bundle"
 # DSH Research Graph · 研图
 
 [![CI](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/benz-ai-x/dsh-research-graph/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
+[![npm](https://img.shields.io/npm/v/%40benz-ai-x%2Fdsh-research-graph/next?logo=npm)](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph)
 [![dsh-plugin](https://img.shields.io/badge/DeepSeek_Harness-dsh--plugin-4D6BFE)](https://github.com/topics/dsh-plugin)
-[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases/latest)
+[![GitHub release](https://img.shields.io/github/v/release/benz-ai-x/dsh-research-graph?include_prereleases&logo=github)](https://github.com/benz-ai-x/dsh-research-graph/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 English | [中文](README.zh.md)
+
+[Quick start](#quick-start) · [DSH and Agent presets](#dsh-and-agent-presets) · [Use the graph](#use-the-graph) · [Troubleshooting](#troubleshooting) · [Develop](#develop-and-contribute)
 
 **Turn AI discussions into traceable, reusable research knowledge in DeepSeek Harness.**
 
@@ -55,9 +57,30 @@ If `dsh web` is already running, stop it before restarting. Open the one-time au
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 || >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 
-In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name. The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. `0.1.5-rc.2.2` fixes truncated Session Digests and adds resizable Markdown reading, nearby knowledge capture, and graph controls in the research context bar. `0.1.5-rc.2.3` adds editable Session title suggestions and concise Markdown digests with highlighted key points. `0.1.5-rc.2.4` unifies saved knowledge reading across entry points, preserves extraction-batch reading position after editing, centralizes responsive reading geometry, and makes digest highlights more visible. `0.1.5-rc.2.5` adds historical-turn branching, editable exploration prompts, reviewed synthesis from mixed materials, and working-position restoration, including reliable final drag positions. `0.1.5-rc.2.6` improves Relayout in both graph scopes with dependency rows, obstacle-aware routes, distinct terminals and one-step undo. `0.1.5-rc.2.7` separates overlapping Merge arrivals in narrow gaps around compact cluster titles. `0.1.5-rc.2.8` removes duplicate Merge lines inherited by Branches, adds compact headers and layouts, distinguishes equal titles, and opens delegated task records from the inspector. See the [release acceptance record](docs/reviews/release-0.1.5-rc.2.8.md) for validation and remaining acceptance. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+Current prerelease **0.1.5-rc.2.8** targets **DSH 0.1.5-rc.2**: it removes duplicate Branch-inherited Merge lines, adds compact cluster headers, grouped independent discussions, distinct equal-title labels and a visible legend, and opens delegated-task records. See the [release acceptance record](docs/reviews/release-0.1.5-rc.2.8.md) for official-package verification, screenshots, and known limitations.
+
+In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name.
+
+<details>
+<summary>Earlier releases and legacy Host compatibility</summary>
+
+The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. `0.1.5-rc.2.2` fixes truncated Session Digests and adds resizable Markdown reading, nearby knowledge capture, and graph controls in the research context bar. `0.1.5-rc.2.3` adds editable Session title suggestions and concise Markdown digests with highlighted key points. `0.1.5-rc.2.4` unifies saved knowledge reading across entry points, preserves extraction-batch reading position after editing, centralizes responsive reading geometry, and makes digest highlights more visible. `0.1.5-rc.2.5` adds historical-turn branching, editable exploration prompts, reviewed synthesis from mixed materials, and working-position restoration, including reliable final drag positions. `0.1.5-rc.2.6` improves Relayout in both graph scopes with dependency rows, obstacle-aware routes, distinct terminals and one-step undo. `0.1.5-rc.2.7` separates overlapping Merge arrivals in narrow gaps around compact cluster titles. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+
+</details>
 
 This prerelease uses npm tag `next`; the commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
+
+## DSH and Agent presets
+
+Research Graph provides a research workbench across subjects such as product, technical, or market research. It organizes discussions, retained evidence, and reviewed conclusions; the research method and available execution tools come from the DSH environment and its chosen Agent preset.
+
+| Part | Responsibility |
+| --- | --- |
+| DSH Agent preset | Reusable composition of tools, prompt sections, and skills for a Session |
+| DSH runtime | Session execution, model/tool calls, delegated work, and native history |
+| Research Graph | Research Topics, discussion relationships, original reading, reviewed Knowledge Cards, and explicit reuse of frozen materials |
+
+A professional research preset can define a method and specialist tools while using Research Graph to inspect and retain the results. Such a preset is a separate deliverable: installing this package does not register one or add an Agent Team launcher. The inspector's Subagent Summary shows existing delegated tasks and opens their native records; it is not a team roster or scheduling control.
 
 ## Research Workbench
 
@@ -69,7 +92,7 @@ Search results, **View knowledge**, and saved manual or extracted cards use the 
 
 Topic graphs arrange source discussions, knowledge, and follow-ups in dependency rows while preserving Branch clusters and manual arrangements. Selecting knowledge emphasizes its immediate sources and follow-ups. Topic graphs connect discussions to knowledge through source edges, and knowledge to follow-up discussions through **Used in discussion** edges. Only Host-acknowledged admissions produce these edges. A new discussion need not be a topic member to remain traceable. Later card edits do not rewrite the version used; select follow-up research to inspect frozen materials and open its target.
 
-Discussion and knowledge bodies use DSH Markdown rendering for headings, lists, quotes, tables, and code. **Expand reading** gives the document more space. Identity, revision or Original tabs, and main actions stay visible while only the body scrolls. Expansion and Original position restore on return; text remains selectable for copying. Scope and workspace/topic selection share one context bar; **Topic options** offers creation, renaming, and scope help. In narrow containers, **More** contains Merge discussions and New Knowledge Card. Zoom, Fit, and Locate sit at the right of the research context bar, alongside the input session. **Graph options** contains Relayout, Reset layout, the relationship legend, and topic refresh/export. Save arrangement appears only for an unsaved arrangement. The toolbar remains available when reading is expanded or resized. Fit, Locate, toolbar zoom, and the 100% reset share the visible canvas center; wheel zoom stays anchored to the pointer. Graph options opens downward; in narrower containers, Fit/Locate and then zoom move into the menu. Menu zoom stays open for repeated steps. **Input session · title** identifies the composer's Viewed Session, which does not change when inspecting other content; the full title is available on hover.
+Discussion and knowledge bodies use DSH Markdown rendering for headings, lists, quotes, tables, and code. **Expand reading** gives the document more space. Identity, revision or Original tabs, and main actions stay visible while only the body scrolls. Expansion and Original position restore on return; text remains selectable for copying. Scope and workspace/topic selection share one context bar; **Topic options** offers creation, renaming, and scope help. In narrow containers, **More** contains Merge discussions and New Knowledge Card. Zoom, Fit, and Locate sit at the right of the research context bar, alongside the input session. **Relayout** and the available **Undo relayout** action appear directly in the canvas toolbar, with a persistent Branch/Merge legend on the canvas. **Graph options** contains Reset layout, the detailed relationship legend, and topic refresh/export. Save arrangement appears only for an unsaved arrangement. The toolbar remains available when reading is expanded or resized. Fit, Locate, toolbar zoom, and the 100% reset share the visible canvas center; wheel zoom stays anchored to the pointer. Graph options opens downward; in narrower containers, Fit/Locate and then zoom move into the menu. Menu zoom stays open for repeated steps. **Input session · title** identifies the composer's Viewed Session, which does not change when inspecting other content; the full title is available on hover.
 
 See the [workbench acceptance record](docs/reviews/research-workbench-acceptance.md), [reading UX round](docs/reviews/reading-ux-round.md), and [unified reading and geometry acceptance](docs/reviews/reading-geometry.md) for scope, validation, and screenshots.
 
@@ -202,10 +225,10 @@ Open a non-blank session and choose **Research Graph** beside the standard conve
 - Drag nodes or complete cluster frames to arrange the canvas. Alignment guides snap nearby card edges. Reopening the graph retains the final released position, including quick drags.
 - Session Arrangement persistence fails soft. If browser storage is unavailable, denied, corrupt, or full, the live graph continues with automatic geometry instead of failing to render.
 - Small connection dots show relationship anchors; they are not drag handles. Branches are neutral solid directed edges, Merge Relations are branded solid directed edges, and Subagent Derivations are dashed.
-- The visible legend distinguishes Branch and Merge lines. Branch clusters share a color and independent discussions use neutral dots; activity is shown separately. Nodes label Merges and Branches, and equal titles receive distinct short identity labels. Full titles remain available in the inspector. Compact cluster headers show the member count and leave an arrival channel for relations. Unconnected discussions pack together separately from connected research components.
-- Inherited Merge snapshots remain inspectable under **Inherited Merge sources** on a Branch. They do not create another set of direct Merge lines, including when the parent is outside the graph. Expand the subagent summary to inspect delegated task titles and activity, or open a delegated discussion; subagents remain folded out of the canvas.
+- The visible legend distinguishes Branch and Merge lines. Branch clusters share a color and independent discussions use neutral dots; activity is shown separately. Nodes label Merges and Branches, and equal titles receive distinct short identity labels. Full titles remain available in the inspector; short labels and identifiers do not rename native Sessions. Compact cluster headers show the member count and leave an arrival channel for relations. Unconnected discussions pack together separately from connected research components.
+- Inherited Merge snapshots remain inspectable under **Inherited Merge sources** on a Branch. They do not create another set of direct Merge lines, including when the parent is outside the graph. Expand the subagent summary to inspect delegated task titles and activity, or open a delegated discussion; subagents remain folded out of the canvas. “Not running” alone does not establish that a task completed.
 - Both Workspace and Research Topic graphs keep related sources on the same dependency row, with their shared result below; disconnected collections pack separately. Branch clusters retain their tree and reserve room for collapse. Rounded connections avoid cards and cluster titles, with separate terminals and arrowheads. Blocked terminals move to a clear position or another card side; relations across successive layers try separate departure channels to reduce long shared segments. When crowded routes share the edges of a narrow gap, an extra channel inside the gap can separate their arrivals. Dragging and collapse reroute connections, and Fit includes their outer routes and labels.
-- **Relayout**, directly in the canvas toolbar, clears manual positions and cluster offsets while preserving collapse and reading state. **Undo relayout** restores the last placement until a later drag, collapse, Reset, or scope switch; repeated Relayout keeps the useful undo. Existing custom arrangements remain intact until this action is chosen. Topic changes still require **Save arrangement** to share through the Host.
+- **Relayout**, directly in the canvas toolbar, clears manual positions and cluster offsets while preserving collapse, reading state, and viewport pan/zoom. **Undo relayout** restores the last placement until a later drag, collapse, Reset, or scope switch; repeated Relayout keeps the useful undo. Existing custom arrangements remain intact until this action is chosen. Use **Fit** to bring the resulting graph into view. Topic changes still require **Save arrangement** to share through the Host.
 - Use wheel zoom, background-drag panning, fit, 100%, relayout, reset, Viewed Session location, or the minimap. The minimap appears when content leaves the visible surface and is hidden in narrow containers. Resizing preserves the current content center and scale.
 - Filter by title; Enter centers the first match and Escape clears the filter.
 - Hover a node or edge to emphasize its Branch Lineage.
@@ -358,6 +381,9 @@ The output cap leaves room for reasoning and the structured digest; providers ma
 | GitHub source install reports `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | Inspect the pinned source, add the exact key printed by dsh to that profile's `allowBuilds`, and retry |
 | Digest generation reports no model route | Use a Session with a logged route or configure the `provider` and `model` fallback pair |
 | Digest generation reaches its output limit | Increase `maxOutputTokens` in the `ui-session-graph` override in the active profile’s `cordis.patch.yml`, then retry |
+| An upgrade still shows the old arrangement | Choose **Relayout** to apply automatic placement, then **Fit** if needed. Relayout has an Undo action; a Topic still needs **Save arrangement** to synchronize |
+| After a cold Host restart, a Branch briefly shows a directory title or lacks inherited sources | Open that Session through native DSH, then return to the graph. This restored the retained title and source summary in acceptance; the Host's internal cause remains unlocated. See the [release boundary](docs/reviews/release-0.1.5-rc.2.8.md#acceptance-boundary) |
+| A delegated task cannot be opened | Retry from the inspector so it refreshes the direct parent's native task catalog. A task absent from the refreshed catalog cannot be opened from that entry |
 | The Web URL rejects access | Open the complete authenticated URL printed by `dsh web`; do not reuse or share a stripped token |
 
 If the problem persists, include the package version shown in the Research Graph header, the Harness version, and the relevant Host/browser error in a [GitHub issue](https://github.com/benz-ai-x/dsh-research-graph/issues/new).
@@ -365,6 +391,8 @@ If the problem persists, include the package version shown in the Research Graph
 ## Develop and contribute
 
 Requirements are Node.js `^22.19.0 || >=24.0.0` and pnpm `11.7.0`.
+
+Start with [AGENTS.md](AGENTS.md) for contributor rules, [CONTEXT.md](CONTEXT.md) for domain vocabulary, and root [HANDOFF.md](HANDOFF.md) for current state and local worktrees. The [documentation map](docs/agents/domain.md#documentation-map) distinguishes live status, durable decisions, and versioned acceptance; `docs/HANDOFF.md` is historical.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -381,7 +409,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 Read [`CONTEXT.md`](CONTEXT.md) for the domain model and [`docs/adr/`](docs/adr/) for durable design decisions before changing Session, Merge, Digest, or persistence behavior. Setup or behavior changes must update both this file and [`README.zh.md`](README.zh.md). Start user-visible work from a [GitHub issue](https://github.com/benz-ai-x/dsh-research-graph/issues).
 
-`check:harness` requires the Host version to equal the exact target pinned by `peerDependencies["@deepseek-ai/dsh-llm"]` in `package.json`. It checks both source and published declarations for Host and Client against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<dsh-version>` using the validated DSH peer pin, independently of the plugin revision. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
+`check:harness` requires the Host version to equal the exact target pinned by `peerDependencies["@deepseek-ai/dsh-llm"]` in `package.json`. It checks four compiler faces: source Host/Client and published Host/Client declarations against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<dsh-version>` using the validated DSH peer pin, independently of the plugin revision. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
 
 Build an installable archive with:
 
@@ -402,7 +430,7 @@ pnpm preview:dsh --stop
 
 The launcher packs and installs the standard plugin in an isolated DSH profile at `.artifacts/workbench-dsh/profile/`, prints its local URL, and retains research data. Examples include A/B discussions, knowledge, and follow-up research. The clearly labelled model returns fixed demo responses without paid model calls. Restarting preserves examples and manual work while existing DSH profiles remain separate. The startup URL contains a local login credential; do not publish raw logs or `state.json`.
 
-Local builds derive a stable `local-<hash>` Build ID from `package.json`, `tsdown.config.ts`, and `src/`. Release automation can replace it by setting `DSH_SESSION_GRAPH_BUILD_ID` while building.
+Local builds derive a stable `local-<hash>` Build ID from `package.json`, `tsdown.config.ts`, and all files under `src/`, including untracked or ignored files. Extra local files such as Finder metadata can therefore change the Build ID without changing the package version. Release automation can replace it by setting `DSH_SESSION_GRAPH_BUILD_ID` while building; compare the exact archive and recorded inputs when verifying a release.
 
 ### Release
 
@@ -412,18 +440,20 @@ The package uses an [npm trusted publisher](https://docs.npmjs.com/trusted-publi
 
 For the first adaptation to a DSH release, set `package.json.version` to the full target DSH version. Further releases on the same DSH prerelease append one positive integer, such as `0.1.5-rc.2.1`, then `0.1.5-rc.2.2`; all direct DSH dependencies remain pinned to `0.1.5-rc.2`. The exact `@deepseek-ai/dsh-llm` peer pin is the canonical compatibility target. The plugin tag is `v<plugin-version>` and the upstream tag is `dsh-v<dsh-version>`. `check-version.mjs` rejects malformed revisions, dependency drift, and mismatched release tags; its `--dsh-version` option prints the validated target for CI. `check:harness`, packed acceptance, and the preview launcher all use this same target. Before release, pass `pnpm run check`, `check:harness`, and packed-profile acceptance, verify the Research Graph badge reads the same version, then merge and create the immutable tag and Release. Use Build IDs for unpublished local iterations; never overwrite published versions or rename historical tags.
 
+The publishing workflow rebuilds the tag. After publication, download the official npm archive, check its manifest, version/Build ID and registry integrity, then run `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness /absolute/path/official.tgz`. Attach those official bytes and checksums to the GitHub Release and download them again to compare. Record the final commit, workflow runs, archive hashes, and acceptance in the versioned review and root handoff.
+
 The package exports two Node-facing entries and one lazy browser module. Every JavaScript entry ships a matching TypeScript declaration in the packed archive:
 
 | Export | Purpose |
 |---|---|
-| `.` | Cordis Host services for Session Digest generation and durable Session Merge submission |
+| `.` | Cordis Host services for research topics, knowledge, branching/reuse, Session insights, history/search, and durable Merge submission |
 | `./invariant` | Runtime registration invariant |
 | `./client` | Built dsh client module |
 | `./cordis.patch.yml` | Profile bundle patch |
 
 ## Implementation
 
-`GraphView` reads the Viewed Session, Workspace membership, session summaries, and pending-interaction map. Indexed pure helpers derive Session Clusters, Branch and Merge edges, Subagent Summaries, cross-cluster ordering, layout, snapping, Title Filter matches, and viewport state. A separate presentation pipeline applies node positions, collapse state, and cluster offsets, then routes edges around the final cards and visible frame titles before `GraphCanvas` renders the result. The Host exposes separate package-owned Remotes for read-only Session Digests and atomic Session Merge capture. Merge submission revalidates Host truth, queues an explicit marker and canonical references, waits for the matching projection, then writes the Projection Cache before reporting success.
+`GraphView` reads the Viewed Session, Workspace membership, session summaries, and pending-interaction map. Indexed pure helpers derive Session Clusters, Branch and Merge edges, Subagent Summaries, cross-cluster ordering, layout, snapping, Title Filter matches, and viewport state. A separate presentation pipeline applies node positions, collapse state, and cluster offsets, then routes edges around the final cards and visible frame titles before `GraphCanvas` renders the result. The Host registers package-owned services for topics, knowledge, reuse, historical branching, search, original history, digests, titles, and Merge capture. Merge submission revalidates Host truth, queues an explicit marker and canonical references, waits for the matching projection, then writes the Projection Cache before reporting success.
 
 | File | Responsibility |
 |---|---|
@@ -432,7 +462,9 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 | [`src/client/GraphView.tsx`](src/client/GraphView.tsx) | Workspace/Directory Scope resolution, graph derivation, and view header |
 | [`src/client/GraphCanvas.tsx`](src/client/GraphCanvas.tsx) | Canvas rendering, ports, inspector, controls, gestures, hover state, and minimap |
 | [`src/config.ts`](src/config.ts) | Exported Standard Schema, defaults, and normalized Host configuration |
-| [`src/index.ts`](src/index.ts) | Session Digest and Session Merge Host services, projection registration, configuration, and Remote errors |
+| [`src/index.ts`](src/index.ts) | Host service/domain registration, configuration, lifecycle, and Remote errors |
+| [`src/knowledge-host.ts`](src/knowledge-host.ts), [`src/knowledge-extraction.ts`](src/knowledge-extraction.ts), [`src/knowledge-synthesis.ts`](src/knowledge-synthesis.ts), and [`src/knowledge-export.ts`](src/knowledge-export.ts) | Durable card revisions and sources, reviewed generation, frozen citations, and Markdown export |
+| [`src/history-branch-host.ts`](src/history-branch-host.ts) and [`src/research-reuse-host.ts`](src/research-reuse-host.ts) | Recoverable historical branches and acknowledged admission of frozen research materials |
 | [`src/session-digest.ts`](src/session-digest.ts) and [`src/session-digest-harness.ts`](src/session-digest-harness.ts) | Digest output validation, revision cache, concurrency control, and Harness route reconstruction |
 | [`src/session-merge.ts`](src/session-merge.ts), [`src/session-merge-host.ts`](src/session-merge-host.ts), and [`src/session-merge-harness.ts`](src/session-merge-harness.ts) | Browser workflow, Host validation, canonical reference submission, bounded capture, idempotent retry, and durability barrier |
 | [`src/session-merge-projection.ts`](src/session-merge-projection.ts) | Versioned Merge marker/reference projection and strict persisted-state validation |
@@ -441,23 +473,30 @@ The package exports two Node-facing entries and one lazy browser module. Every J
 | [`src/session-title-host.ts`](src/session-title-host.ts), [`src/session-insight-source.ts`](src/session-insight-source.ts), [`src/session-insight-model.ts`](src/session-insight-model.ts) | Read-only title suggestions and shared bounded discussion/model requests |
 | [`src/client/session-digest-remote.ts`](src/client/session-digest-remote.ts) | Strict browser Remote request/result contract |
 | [`src/client/session-merge-remote.ts`](src/client/session-merge-remote.ts) | Strict browser Session Merge Remote request/result contract |
-| [`src/client/graph-model.ts`](src/client/graph-model.ts) | Graph Scope resolution, Branch and Merge edges, Session Cluster ordering, Subagent Summaries, Title Filter matches, and Branch Lineages |
+| [`src/client/graph-model.ts`](src/client/graph-model.ts) | Graph Scope resolution, direct/inherited Merge provenance, Branch edges, clusters, Subagent Summaries, title matches, and Branch Lineages |
+| [`src/client/knowledge-graph.ts`](src/client/knowledge-graph.ts) and [`src/research-relations.ts`](src/research-relations.ts) | Knowledge/source/synthesis projection and acknowledged material-reuse relations |
+| [`src/client/node-labels.ts`](src/client/node-labels.ts), [`src/client/SubagentDetails.tsx`](src/client/SubagentDetails.tsx), and [`src/client/index.ts`](src/client/index.ts) | Display-only titles, distinct short identities, delegated-task inspection, and native catalog-based navigation |
 | [`src/client/canvas-presentation.ts`](src/client/canvas-presentation.ts) | Ordered Session Arrangement projection and final/automatic content bounds |
-| [`src/client/layout.ts`](src/client/layout.ts) and [`src/client/clusters.ts`](src/client/clusters.ts) | Branch coordinates, dependency placement, frames, collapse, and offsets |
+| [`src/client/dependency-layout.ts`](src/client/dependency-layout.ts), [`src/client/layout.ts`](src/client/layout.ts), and [`src/client/clusters.ts`](src/client/clusters.ts) | Dependency rows over intact Branch clusters, independent-discussion packing, shared header geometry, collapse, and offsets |
 | [`src/client/viewport.ts`](src/client/viewport.ts), [`src/client/preview-placement.ts`](src/client/preview-placement.ts), and [`src/client/snap.ts`](src/client/snap.ts) | Zoom, pan, resize preservation, fit, minimap/preview placement, and alignment guides |
 | [`src/client/edge-routing.ts`](src/client/edge-routing.ts) | Final obstacle routing, relation terminals, arrows, labels, and complete route bounds |
 | [`src/client/layout-store.ts`](src/client/layout-store.ts) | Per-scope Session Arrangement persistence, migration, and fail-soft storage recovery |
+| [`src/client/working-position.ts`](src/client/working-position.ts) | Host/scope-isolated viewport, selection, reading, and search restoration |
+| [`scripts/resolve-harness.mjs`](scripts/resolve-harness.mjs) and [`scripts/workbench/start.mjs`](scripts/workbench/start.mjs) | Matching Harness discovery and retained isolated demonstration profiles |
 
 ## Current limitations
 
 - Research Graph is unavailable on the no-session home screen and in a fresh blank session because neither has a conversation view ring.
 - The scope graph follows one Workspace or Directory Scope at a time. Research Topics span Workspaces within one Host; discussion search is a separate body-text view.
-- Pan and zoom reset on tab switch or reload; node positions, cluster offsets, and collapse state persist.
+- Working positions and unsaved Topic arrangements restore in the same browser and Host/scope. Clearing browser storage loses those local choices; Topic arrangements are shared only after **Save arrangement**.
 - Session Digests are generated only on demand and cached in Host memory, not persisted as durable artifacts. A Host restart clears the cache.
 - A Session without a logged model route needs a configured fallback route before it can be digested.
 - A Branch created from a Subagent Session has no Canvas Session parent edge and appears as a Root Session.
 - One Merge accepts two or three sources across Workspaces on the same Host; cross-Host merging is not supported.
 - Merge captures immutable source snapshots; later source messages do not automatically refresh an existing Merge Session.
+- Cold Host startup can temporarily omit an unopened Branch's native title or inherited-source summary; see Troubleshooting. This release preserves the observation rather than claiming its Host cause is fixed.
+- Arbitrarily dense graphs or physically overlapping cards may still have crossings or obstructed terminals. The [release acceptance](docs/reviews/release-0.1.5-rc.2.8.md) describes the verified geometry scenarios.
+- Structured exploration-direction and hypothesis fields remain deferred in [Issue #32, P5](https://github.com/benz-ai-x/dsh-research-graph/issues/32); editable question prompts and frozen-material reuse are available.
 - Touch uses pointer-event fallbacks and has no dedicated controls.
 
 ## License

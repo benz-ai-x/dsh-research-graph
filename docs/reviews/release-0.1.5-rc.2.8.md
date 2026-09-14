@@ -23,7 +23,22 @@ This revision releases the [graph readability repair](graph-readability.md). A M
 - After stopping and restarting the same isolated Host, both scopes retained **nine discussions, three Merge relations and two Branch relations**. The 18-task subagent summary remained available, and the native one-shot execution record opened with its complete fixed response.
 - Browser page errors: **0**. `git diff --check` passed. Browser and isolated preview were stopped after verification.
 
-The local candidate archive is **517070 bytes**, SHA-256 `0c4fc2b1a9bf72f73037bc76beec7018cdb468f55948310eaf282d9142521316`. The Publish workflow rebuilds the tag, so official npm bytes are verified and smoke-tested separately before attachment to the GitHub Release. Private release evidence lives in `.artifacts/release-0.1.5-rc.2.8/`; disposable browser fixtures are in `.artifacts/graph-readability/` in the release worktree. Local authentication addresses are not public evidence.
+The local candidate archive is **517070 bytes**, SHA-256 `0c4fc2b1a9bf72f73037bc76beec7018cdb468f55948310eaf282d9142521316`. The Publish workflow rebuilt the tag; the official npm archive was verified separately as recorded below. Private release evidence lives in `.artifacts/release-0.1.5-rc.2.8/`; browser fixtures are retained in `.artifacts/graph-readability/` in the release worktree. Local authentication addresses are not public evidence.
+
+## Published artifact
+
+Publication completed on **2026-09-14 at 05:59:47 UTC**. [PR #48](https://github.com/benz-ai-x/dsh-research-graph/pull/48) merged to `8f549276028d19462e29054ea73dcac0734201d4`; tag `v0.1.5-rc.2.8` points to that commit. The [GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.8) and npm `next` were verified after publication.
+
+| Official npm artifact | Verified value |
+| --- | --- |
+| Archive | `benz-ai-x-dsh-research-graph-0.1.5-rc.2.8.tgz` |
+| Size | 516813 bytes |
+| Build ID | `local-dafff617` |
+| SHA-256 | `67ee1e88a9187732db14136a9cf2de9a3beebdeca983e4090fefe12defdf932f` |
+
+The official archive passed the same isolated install, offline recovery, native Host, persistent research operations, and removal acceptance with **19 fixed model calls**. Registry SHA-1/SHA-512 and provenance metadata matched the repository, tag, commit, publish run, and artifact digest; certificate signatures were not separately cryptographically verified. The Release archive and `SHA256SUMS` were downloaded again and matched the official bytes. [PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34810939130), [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811268624), and [OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811633079) all passed.
+
+These are release-time results. The subsequent core-documentation update does not change the tagged artifact or represent a new run of the product test suites.
 
 ## Acceptance boundary
 
