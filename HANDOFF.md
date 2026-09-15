@@ -1,6 +1,6 @@
 # Research Graph Handoff
 
-Updated: 2026-09-14 (Asia/Shanghai)
+Updated: 2026-09-15 (Asia/Shanghai)
 
 根 `HANDOFF.md` 是唯一实时交接；`docs/HANDOFF.md` 仅为历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准。
 
@@ -22,7 +22,7 @@ Updated: 2026-09-14 (Asia/Shanghai)
 | 用途 | 当前路径与状态 |
 | --- | --- |
 | 主工作树、唯一实时交接 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`；`main`；产品发布基线 `8f54927`，插件 `0.1.5-rc.2.8`；后续文档提交以 `git log -1 --oneline` 核对 |
-| 未合并原型工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-prototype`；`prototype/research-workbench` / `e890247`，该树交接仍是历史副本 |
+| 未合并原型工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-prototype`；`prototype/research-workbench` / `b43b69d`，干净且已推送；该树交接仍是历史副本 |
 | 已合并发布工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-release-rc.2.8`；`release/0.1.5-rc.2.8` / `5c11566`，干净保留验收证据，树内容与发布提交一致 |
 | 匹配 Harness | `/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.2`；官方 `dsh-v0.1.5-rc.2` / `fb2c4b9e69` |
 
@@ -43,6 +43,7 @@ Updated: 2026-09-14 (Asia/Shanghai)
 
 ## 当前状态
 
+- 原型路径适配已提交并推送（2026-09-15）：按用户 `commit push` 指令，将原型工作树的两份脚本与双语 README 提交为 [`b43b69d`](https://github.com/benz-ai-x/dsh-research-graph/commit/b43b69da4c1040b9fa924326b296692a6c6f6778)，并回读确认远端 `prototype/research-workbench` 指向同一提交。改动为搬迁后查找匹配 Harness，优先配置路径，再依次查找相邻与上一级目录；版本不匹配明确报错。`pnpm run typecheck`、两份脚本语法检查和 9 个路径场景通过，原型工作树已干净；本轮未启动 Host 或重跑完整产品套件。原型未合并到 main，发布版本不变，主工作树五份未跟踪研究资料保留。验证与推送记录在 `.artifacts/prototype-path-sync-20260915/`；当前交接仅更新本文件，不改原型中的历史副本。
 - README 对齐 DSH 文档规范（2026-09-14，基线 `07416f0`）：遍历用户指定 Harness `docs/` 的 375 个文件并检索全部文本，跟进元数据、品牌指南、模板和检查源码；[研究记录](docs/research/dsh-readme-guidelines-2026-09-14.md) 区分对外品牌要求、bundle 安装机制和上游仓库内部文档规则。双语 README 恢复 `description` / `kind: package-bundle`，纠正前轮仅以本仓库无消费者为由删除元数据的判断；首句明确社区独立维护的 DSH Web 插件，保留能力图谱、常显截图和精简结构，补齐 pnpm 前提及指南中的 CLI／npx／源码入口。AGENTS 记录适用约定；上游推荐的 `dsh-plugin` Topic 已存在。文档来源 checkout 为干净 `c291e796`，比 RC.2 标签多 139 提交；关键规范与标签内容一致，不据此扩展产品兼容承诺。135 处本地引用、20 处固定上游来源、命令语法与版本核对通过；双语桌面／手机预览确认元数据表、10 节点能力图谱及常显截图正常，无页面横向溢出。README 保持 91／90 行；未重跑产品测试。验证、预览与推送回读记录保存在 `.artifacts/dsh-readme-guidelines-20260914/`；插件仍为 RC.2.8，目标仍为 DSH RC.2。
 - README 功能截图常显（2026-09-14，基线 `cc81612`）：按用户补充要求，在中英文能力图谱下方增加明确的功能截图章节，直接展示已确认的高清工作台截图，保留演示数据说明与原图链接；移除折叠容器。能力图谱、精简能力表和独立指南保持现有组织。文档与图片显示核对、推送回读记录在 `.artifacts/readme-screenshot-visible-20260914/`；本轮不发布新版本。
 - README 精简（2026-09-14，基线 `fbf6b26`）：用户要求突出功能能力图谱、关键能力与关键信息。中英文首页由 564／562 行收敛为 89／88 行，保留三条能力主线、六项关键能力、适配版本与安装入口；已确认的高清截图放入可展开预览。详细操作、历史兼容与故障排查迁至双语 `docs/user-guide*.md`，开发、发布与源码导航迁至 `docs/development*.md`；同步文档分工及恢复说明链接。72 个迁移章节完整保留并核对，247 处本地引用、版本与命令检查通过；双语 10 节点／9 关系能力图谱、桌面／手机布局及截图展开通过，正文与显示记录在 `.artifacts/readme-concise-20260914/`。仅进行文档验证，未重跑产品测试。本轮仅调整文档组织，目标为 `origin/main`，不发布新版本；推送与远端回读以该目录 `push.json` 为准。
