@@ -24,9 +24,9 @@ export const DISCUSSION_SEARCH_REMOTE: TypertRemoteContribution = {
     invocation: { kind: 'direct' },
     parameters: [{
       name: 'request', wire: 'request', source: 'json',
-      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#DiscussionSearchRequest`, schema: discussionSearchRequestSchema },
+      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#DiscussionSearchRequest`, create: () => discussionSearchRequestSchema },
     }],
     cancellation: { parameter: 'signal' },
-    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#DiscussionSearchResult`, schema: discussionSearchResultSchema },
+    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#DiscussionSearchResult`, create: () => discussionSearchResultSchema },
   }],
 }

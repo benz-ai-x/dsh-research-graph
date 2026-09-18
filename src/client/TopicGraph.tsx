@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ResearchTopic, ResearchTopicSnapshot } from '../research-topic.ts'
@@ -31,7 +32,7 @@ export interface TopicGraphContext {
   readonly workingKey: string
   readonly sessions: SessionListState
   readonly workspaces: WorkspaceSnapshot
-  readonly pendingInteractions: ReadonlyMap<SessionId, unknown>
+  readonly sessionStatus: SessionStatusSnapshot
   readonly viewedId: SessionId
   readonly actions: GraphViewInjected
 }
@@ -89,8 +90,8 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         ...source.workspace, title: workspaceTitles.get(source.workspace.id) || source.workspace.title,
       } }),
     }))
-    return withResearchRelations(withKnowledgeCards(deriveTopicGraph({ sources, topic: snapshot.topic }, context.sessions, context.viewedId, context.pendingInteractions), [...cards, ...sourceCards], context.sessions, archived), relations.relations, context.sessions, context.workspaces)
-  }, [snapshot, context.sessions, context.workspaces, context.viewedId, context.pendingInteractions, cards, sourceCards, relations.relations])
+    return withResearchRelations(withKnowledgeCards(deriveTopicGraph({ sources, topic: snapshot.topic }, context.sessions, context.viewedId, context.sessionStatus), [...cards, ...sourceCards], context.sessions, archived), relations.relations, context.sessions, context.workspaces)
+  }, [snapshot, context.sessions, context.workspaces, context.viewedId, context.sessionStatus, cards, sourceCards, relations.relations])
   const laid = useMemo(() => graph === undefined ? undefined : layoutResearchGraph(graph), [graph])
   // Keep the last complete graph while a save refreshes cards and relations.
   // An incomplete relation result must not unmount the reader or clear selection.

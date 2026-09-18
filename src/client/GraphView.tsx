@@ -108,12 +108,12 @@ export function GraphView(props: GraphViewProps): ReactElement {
 
 function GraphViewBody(props: GraphViewProps): ReactElement {
   const {
-    sessionId, useSessions, useSessionPendingInteraction, useWorkspaces,
+    sessionId, useSessions, useSessionStatus, useWorkspaces,
     hostId, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, reuse, t,
   } = props
   const knowledgeContext = useKnowledge()
   const sessions = useSessions(state => state)
-  const pendingInteractions = useSessionPendingInteraction(state => state)
+  const sessionStatus = useSessionStatus(state => state)
   const workspaces = useWorkspaces(state => state)
   const [searchOpen, setSearchOpen] = useState(false)
   const [knowledgeEntryKey, setKnowledgeEntryKey] = useState<string>()
@@ -145,8 +145,8 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
     [sessionId, sessions, workspaces],
   )
   const graph = useMemo(
-    () => deriveSessionGraph(sessions, scope, sessionId, pendingInteractions),
-    [sessions, scope, sessionId, pendingInteractions],
+    () => deriveSessionGraph(sessions, scope, sessionId, sessionStatus),
+    [sessions, scope, sessionId, sessionStatus],
   )
   const laid = useMemo(() => layoutSessionGraph(graph), [graph])
 
@@ -210,7 +210,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
         </div>}
         <KnowledgeSavedNotice t={t} />
         {mergedTarget ? <div className={styles.workbenchNotice} role="status">{t('workbench.mergeSaved')} <button type="button" onClick={() => { openSession(mergedTarget) }}>{t('panel.open')}</button><button type="button" onClick={() => { setMergedTarget(undefined) }} aria-label={t('panel.close')}>×</button></div> : null}
-        {topicMode ? <ResearchTopics key={workingKey} scopeControl={scopeControl} contextTools={contextTools} api={topics} refresh={topicRevision} view={view} context={{ sessions, workspaces, pendingInteractions, viewedId: sessionId, toolbarTarget,
+        {topicMode ? <ResearchTopics key={workingKey} scopeControl={scopeControl} contextTools={contextTools} api={topics} refresh={topicRevision} view={view} context={{ sessions, workspaces, sessionStatus, viewedId: sessionId, toolbarTarget,
           workingKey, actions: { ...props, hostId, topics, knowledge, reuse, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge },
         }} t={t} /> : view === 'reading' ? <KnowledgeLibrary key={workingKey} workingKey={workingKey} actions={props} t={t} /> : scope === undefined ? <div className={styles.empty}>{t('empty.outside')}</div>
           : graph.nodes.size === 0 ? <div className={styles.empty}>{t('empty.none')}</div> : <GraphCanvas

@@ -69,8 +69,8 @@ export const KNOWLEDGE_REMOTE: TypertRemoteContribution = {
     id: `${PACKAGE_NAME}#sessionGraphKnowledge/${method}`,
     service: 'sessionGraphKnowledge', namespace: 'sessionGraphKnowledge', method, invocation: { kind: 'direct' },
     parameters: request === undefined ? [] : [{ name: 'request', wire: 'request', source: 'json',
-      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#Knowledge/${method}/Request`, schema: request } }],
+      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#Knowledge/${method}/Request`, create: () => request } }],
     cancellation: { parameter: 'signal' },
-    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#Knowledge/${method}/Result`, schema: result },
+    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#Knowledge/${method}/Result`, create: () => result },
   })),
 }

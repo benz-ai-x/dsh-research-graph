@@ -26,8 +26,8 @@ export const HISTORY_BRANCH_REMOTE: TypertRemoteContribution = {
   ].map(({ method, request, result }) => ({
     id: `${PACKAGE_NAME}#sessionGraphBranch/${method}`, service: 'sessionGraphBranch', namespace: 'sessionGraphBranch', method,
     invocation: { kind: 'direct' }, parameters: [{ name: 'request', wire: 'request', source: 'json',
-      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#HistoryBranch/${method}/Request`, schema: request } }],
+      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#HistoryBranch/${method}/Request`, create: () => request } }],
     cancellation: { parameter: 'signal' },
-    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#HistoryBranch/${method}/Result`, schema: result },
+    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#HistoryBranch/${method}/Result`, create: () => result },
   })),
 }

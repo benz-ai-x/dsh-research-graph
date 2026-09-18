@@ -103,14 +103,14 @@ export const SESSION_MERGE_REMOTE: TypertRemoteContribution = {
       codec: {
         mode: 'strict',
         typeSymbol: `${PACKAGE_NAME}#SessionMergeSubmission`,
-        schema: { parse: parseRequest },
+        create: () => ({ parse: parseRequest }),
       },
     }],
     cancellation: { parameter: 'signal' },
     result: {
       mode: 'strict',
       typeSymbol: `${PACKAGE_NAME}#SessionMergeProjection`,
-      schema: { parse: parseResult },
+      create: () => ({ parse: parseResult }),
     },
   }],
 }

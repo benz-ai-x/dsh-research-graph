@@ -36,8 +36,8 @@ import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
 
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
-/** Required services: the conversation view slot, the sessions list, and the locale service. */
-export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'remote']
+/** Required services: the conversation view slot, the sessions list, the Workspace navigation, and the locale service. */
+export const inject = ['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote']
 
 const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
   package: SESSION_DIGEST_REMOTE.package,
@@ -116,7 +116,7 @@ async function registerUi(ctx: Context): Promise<void> {
       }
     },
     openTarget: targetSessionId => {
-      ctx.sessions.open(targetSessionId as SessionId)
+      ctx.uiWorkspace.openSession(targetSessionId as SessionId)
     },
     createOperationId: () => crypto.randomUUID(),
   })
@@ -265,7 +265,7 @@ async function registerUi(ctx: Context): Promise<void> {
       // Canvas Sessions exclude Subagent Sessions by construction, so
       // navigation is a plain open.
       openSession: (id: SessionId) => {
-        ctx.sessions.open(id)
+        ctx.uiWorkspace.openSession(id)
       },
       openSubagent: async (parentId, childId, signal) => {
         signal.throwIfAborted()
@@ -276,7 +276,7 @@ async function registerUi(ctx: Context): Promise<void> {
         if (catalog?.state !== 'ready' || entry?.kind !== 'child') {
           throw new Error('Subagent catalog address is unavailable')
         }
-        ctx.sessions.openSubagent({ parentSessionId: parentId, childSessionId: childId, mode: entry.mode })
+        ctx.uiWorkspace.openSession({ parentSessionId: parentId, childSessionId: childId, mode: entry.mode })
       },
       branchSession: async (id: SessionId) => {
         await ctx.sessions.fork({ sessionId: id, increaseTitle: true })
@@ -325,6 +325,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'slots',
       'sessions',
       'workspaces',
+      'uiWorkspace',
       'locale',
       'remote.sessionGraphDigest',
       'remote.sessionGraphTitle',

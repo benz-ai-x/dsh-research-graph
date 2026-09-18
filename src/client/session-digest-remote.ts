@@ -103,14 +103,14 @@ export const SESSION_DIGEST_REMOTE: TypertRemoteContribution = {
       codec: {
         mode: 'strict',
         typeSymbol: `${PACKAGE_NAME}#SessionDigestRequest`,
-        schema: requestSchema,
+        create: () => requestSchema,
       },
     }],
     cancellation: { parameter: 'signal' },
     result: {
       mode: 'strict',
       typeSymbol: `${PACKAGE_NAME}#SessionDigestResult`,
-      schema: resultSchema,
+      create: () => resultSchema,
     },
   }],
 }

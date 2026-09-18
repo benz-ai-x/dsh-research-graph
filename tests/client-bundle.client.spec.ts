@@ -61,8 +61,10 @@ interface FakeContext {
         rename: (title: string) => Promise<unknown>
       }
     } | undefined
-    open: (id: string) => void
     fork: (request: { readonly sessionId: string; readonly increaseTitle: boolean }) => Promise<string>
+  }
+  uiWorkspace: {
+    openSession: (id: string) => void
   }
   workspaces: {
     list: {
@@ -122,7 +124,7 @@ describe('tsdown client artifact', () => {
     const { handoff, plugin } = await loadArtifact()
     expect(handoff.id).toBe(PLUGIN_ID)
     expect(plugin.apply).toBeTypeOf('function')
-    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'locale', 'remote'])
+    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote'])
   })
 
   it('registers and disposes the Graph view through the dsh Client services', async () => {
@@ -232,11 +234,13 @@ describe('tsdown client artifact', () => {
               },
             }
           : undefined,
-        open: id => { opened.push(id) },
         fork: async (request) => {
           forkRequests.push(request)
           return 'child'
         },
+      },
+      uiWorkspace: {
+        openSession: id => { opened.push(id) },
       },
       workspaces: {
         list: {
@@ -273,7 +277,7 @@ describe('tsdown client artifact', () => {
     const disposePlugin = await plugin.apply(ctx)
     expect(mountRemote).toHaveBeenCalledOnce()
     expect(injectedServices).toEqual([[
-      'slots', 'sessions', 'workspaces', 'locale',
+      'slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale',
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
       'remote.sessionGraphSearch', 'remote.sessionGraphTopics',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',

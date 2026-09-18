@@ -29,9 +29,9 @@ export const SESSION_HISTORY_REMOTE: TypertRemoteContribution = {
     invocation: { kind: 'direct' },
     parameters: [{
       name: 'request', wire: 'request', source: 'json',
-      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionHistoryRequest`, schema: requestSchema },
+      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionHistoryRequest`, create: () => requestSchema },
     }],
     cancellation: { parameter: 'signal' },
-    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionHistoryResult`, schema: resultSchema },
+    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionHistoryResult`, create: () => resultSchema },
   }],
 }

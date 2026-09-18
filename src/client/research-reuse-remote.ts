@@ -41,8 +41,8 @@ export const RESEARCH_REUSE_REMOTE: TypertRemoteContribution = {
   ].map(({ method, request, result }) => ({
     id: `${PACKAGE_NAME}#sessionGraphReuse/${method}`, service: 'sessionGraphReuse', namespace: 'sessionGraphReuse', method,
     invocation: { kind: 'direct' }, parameters: [{ name: 'request', wire: 'request', source: 'json',
-      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchReuse/${method}/Request`, schema: request } }],
+      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchReuse/${method}/Request`, create: () => request } }],
     cancellation: { parameter: 'signal' },
-    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchReuse/${method}/Result`, schema: result },
+    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchReuse/${method}/Result`, create: () => result },
   })),
 }

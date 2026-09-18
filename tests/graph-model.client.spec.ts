@@ -362,16 +362,20 @@ describe('deriveSessionGraph visibility rules', () => {
 
   it('derives one Display Status with Running before Waiting for Input before Completed', () => {
     const list = listState({
-      running: session('running', { running: true, completed: true }),
-      waiting: session('waiting', { completed: true }),
-      completed: session('completed', { completed: true }),
+      running: session('running', { running: true }),
+      waiting: session('waiting'),
+      completed: session('completed'),
     })
     const scope = resolveGraphScope(id('running'), list, workspacesState([]))
     const graph = deriveSessionGraph(
       list,
       scope,
       id('running'),
-      new Map([[id('running'), {}], [id('waiting'), {}]]),
+      new Map([
+        [id('running'), { running: true, pendingInteraction: {}, completionUnread: true }],
+        [id('waiting'), { running: false, pendingInteraction: {}, completionUnread: false }],
+        [id('completed'), { running: false, pendingInteraction: undefined, completionUnread: true }],
+      ]),
     )
 
     expect(graph.nodes.get('running')?.displayStatus).toBe('running')

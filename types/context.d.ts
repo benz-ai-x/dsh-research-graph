@@ -43,13 +43,7 @@ declare module '@deepseek-ai/cordis' {
       create: (options: { readonly workspaceId?: string; readonly cwd?: string }) => Promise<
         import('@deepseek-ai/dsh-session/types').SessionId
       >
-      open: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => void
       refreshSubagents: (parentSessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
-      openSubagent: (address: {
-        readonly parentSessionId: import('@deepseek-ai/dsh-session/types').SessionId
-        readonly childSessionId: import('@deepseek-ai/dsh-session/types').SessionId
-        readonly mode: 'one-shot' | 'continuable'
-      }) => void
       fork: (request: {
         readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId
         readonly increaseTitle: boolean
@@ -67,6 +61,13 @@ declare module '@deepseek-ai/cordis' {
       readonly list: {
         getSnapshot: () => import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
       }
+    }
+    readonly uiWorkspace: {
+      openSession: (target: import('@deepseek-ai/dsh-session/types').SessionId | {
+        readonly parentSessionId: import('@deepseek-ai/dsh-session/types').SessionId
+        readonly childSessionId: import('@deepseek-ai/dsh-session/types').SessionId
+        readonly mode: 'one-shot' | 'continuable'
+      }) => void
     }
     readonly sessionPersistence: {
       stat: (id: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<unknown | undefined>

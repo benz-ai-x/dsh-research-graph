@@ -1,4 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { releaseVersions } from '../scripts/release-versions.mjs'
@@ -58,9 +59,12 @@ describe('release version policy', () => {
 
   it('provides a validated DSH version to CI before dependency installation', () => {
     const cli = fileURLToPath(new URL('../scripts/check-version.mjs', import.meta.url))
+    const pinned = (JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')) as {
+      readonly peerDependencies: Readonly<Record<string, string>>
+    }).peerDependencies['@deepseek-ai/dsh-llm']
     const env = { ...process.env }
     delete env.RELEASE_TAG
-    expect(execFileSync(process.execPath, [cli, '--dsh-version'], { encoding: 'utf8', env })).toBe('0.1.5-rc.2\n')
+    expect(execFileSync(process.execPath, [cli, '--dsh-version'], { encoding: 'utf8', env })).toBe(`${pinned}\n`)
     const rejected = spawnSync(process.execPath, [cli, '--dsh-version'], {
       encoding: 'utf8',
       env: { ...env, RELEASE_TAG: 'v0.0.0' },
