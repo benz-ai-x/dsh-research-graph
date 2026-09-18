@@ -30,10 +30,13 @@ jobs:
           cache: true
           install: false
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run check
+      # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude;
+      # the day-old DSH 0.1.6-alpha.2 set is explicitly excluded in
+      # pnpm-workspace.yaml, so the redundant age gate stays off here.
+      - run: pnpm --config.minimumReleaseAge=0 install --frozen-lockfile
+      - run: pnpm --config.minimumReleaseAge=0 run check
       - if: matrix.node == '24'
-        run: pnpm pack --pack-destination .artifacts
+        run: pnpm --config.minimumReleaseAge=0 pack --pack-destination .artifacts
 
   harness:
     name: Matching DSH release
@@ -65,7 +68,9 @@ jobs:
           install: false
 
       - name: Install plugin dependencies
-        run: pnpm install --frozen-lockfile
+        # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude;
+        # see the check job above.
+        run: pnpm --config.minimumReleaseAge=0 install --frozen-lockfile
 
       - name: Install Harness dependencies
         run: pnpm --dir harness install --frozen-lockfile
@@ -82,7 +87,7 @@ jobs:
         run: pnpm check:harness
 
       - name: Pack the plugin
-        run: pnpm pack --pack-destination .artifacts
+        run: pnpm --config.minimumReleaseAge=0 pack --pack-destination .artifacts
 
       - name: Build the Harness Web frontend
         run: pnpm --dir harness run build:web

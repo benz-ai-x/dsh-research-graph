@@ -54,11 +54,13 @@ jobs:
             exit 1
           fi
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run check
+      # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude;
+      # the excluded day-old DSH 0.1.6-alpha.2 set must not block publishing.
+      - run: pnpm --config.minimumReleaseAge=0 install --frozen-lockfile
+      - run: pnpm --config.minimumReleaseAge=0 run check
 
       - name: Pack the verified package
-        run: pnpm pack --pack-destination .artifacts
+        run: pnpm --config.minimumReleaseAge=0 pack --pack-destination .artifacts
 
       - name: Publish the verified archive
         run: |
