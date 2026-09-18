@@ -84,7 +84,7 @@ jobs:
       - name: Check Host and Client against the matching Harness
         env:
           DSH_HARNESS_ROOT: ${{ github.workspace }}/harness
-        run: pnpm check:harness
+        run: pnpm --config.minimumReleaseAge=0 check:harness
 
       - name: Pack the plugin
         run: pnpm --config.minimumReleaseAge=0 pack --pack-destination .artifacts
@@ -95,4 +95,4 @@ jobs:
       - name: Exercise the packed plugin in an isolated web profile
         env:
           DSH_HARNESS_ROOT: ${{ github.workspace }}/harness
-        run: pnpm smoke:harness
+        run: pnpm --config.minimumReleaseAge=0 smoke:harness
