@@ -23,7 +23,7 @@ import type {
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { TypertRemoteMap } from '@deepseek-ai/dsh-typert-protocol'
-import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -1395,13 +1395,17 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   }))
   ctx.provide('sessions', {
     list: sessionsStore,
-    open,
-    openSubagent,
     refreshSubagents,
     fork,
     create,
     binding: () => ({ session: { rename } }),
   })
+  ctx.provide('uiWorkspace', {
+    openSession: (target: unknown) => {
+      if (typeof target === 'string') open(target)
+      else openSubagent(target)
+    },
+  } as never)
   ctx.provide('workspaces', { list: createSnapshotStore(workspacesState()) })
   slots.register({
     name: 'root',
@@ -1460,12 +1464,12 @@ function mount(
   sessionsStore: SnapshotStore<SessionListState>,
   viewed: string,
   workspaces: WorkspaceSnapshot | SnapshotStore<WorkspaceSnapshot> = workspacesState(),
-  pendingInteractions: SessionPendingInteractionSnapshot = new Map(),
+  sessionStatus: SessionStatusSnapshot = new Map(),
 ) {
   const SID = id(viewed)
   const useSessions = bindSnapshotSelector(sessionsStore)
-  const useSessionPendingInteraction = bindSnapshotSelector(
-    createSnapshotStore<SessionPendingInteractionSnapshot>(pendingInteractions),
+  const useSessionStatus = bindSnapshotSelector(
+    createSnapshotStore<SessionStatusSnapshot>(sessionStatus),
   )
   const useWorkspaces = bindSnapshotSelector('getSnapshot' in workspaces ? workspaces : createSnapshotStore(workspaces))
   const useSession = bindSnapshotSelector(createSnapshotStore({ blank: false } as never))
@@ -1518,7 +1522,7 @@ function mount(
           sessionId: SID,
           useSession,
           useSessions,
-          useSessionPendingInteraction,
+          useSessionStatus,
           useWorkspaces,
           useConversation,
           useConversationViews,
@@ -1536,7 +1540,7 @@ function mount(
         SessionProvider={({ children }) => children}
         useSession={useSession}
         useSessions={useSessions}
-        useSessionPendingInteraction={useSessionPendingInteraction}
+        useSessionStatus={useSessionStatus}
         useWorkspaces={useWorkspaces}
         useConversation={useConversation}
         useConversationViews={useConversationViews}
@@ -1556,7 +1560,7 @@ function mount(
         SessionProvider={({ children }) => children}
         useSession={useSession}
         useSessions={useSessions}
-        useSessionPendingInteraction={useSessionPendingInteraction}
+        useSessionStatus={useSessionStatus}
         useWorkspaces={useWorkspaces}
         useConversation={useConversation}
         useConversationViews={useConversationViews}
@@ -2779,7 +2783,7 @@ describe('relayout button', () => {
       'branch-session-a': session('branch-session-a', { displayTitle: title, parentId: id('merged'), projectionValues }),
       'branch-session-b': session('branch-session-b', { displayTitle: title, parentId: id('merged'), projectionValues }),
       delegate: session('delegate', { displayTitle: '核对财报来源', origin: 'subagent', parentId: id('source-a'), running: true }),
-      nested: session('nested', { displayTitle: '核对原始引用', origin: 'subagent', parentId: id('delegate'), completed: true }),
+      nested: session('nested', { displayTitle: '核对原始引用', origin: 'subagent', parentId: id('delegate') }),
     }
     const b = await bench(rows)
     const sources = Object.values(rows).filter(row => row.origin !== 'subagent').map(row => ({
@@ -3862,16 +3866,20 @@ describe('node selection, double-click, and keyboard navigation', () => {
 
   it('shows one Display Status on the Selected Session using the agreed priority', async () => {
     const b = await bench({
-      running: session('running', { running: true, completed: true }),
-      waiting: session('waiting', { completed: true }),
-      completed: session('completed', { completed: true }),
+      running: session('running', { running: true }),
+      waiting: session('waiting'),
+      completed: session('completed'),
     })
     mount(
       b.slots,
       b.sessionsStore,
       'running',
       workspacesState(),
-      new Map([[id('running'), {}], [id('waiting'), {}]]) as SessionPendingInteractionSnapshot,
+      new Map([
+        [id('running'), { running: true, pendingInteraction: {}, completionUnread: true }],
+        [id('waiting'), { running: false, pendingInteraction: {}, completionUnread: false }],
+        [id('completed'), { running: false, pendingInteraction: undefined, completionUnread: true }],
+      ]) as SessionStatusSnapshot,
     )
     switchTab('Research Graph')
 

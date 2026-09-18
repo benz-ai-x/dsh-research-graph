@@ -17,9 +17,9 @@ export const SESSION_TITLE_REMOTE: TypertRemoteContribution = {
     id: `${PACKAGE_NAME}#sessionGraphTitle/generate`, service: 'sessionGraphTitle', namespace: 'sessionGraphTitle', method: 'generate',
     invocation: { kind: 'direct' },
     parameters: [{ name: 'request', wire: 'request', source: 'json', codec: {
-      mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionTitleRequest`, schema: sessionTitleRequestSchema,
+      mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionTitleRequest`, create: () => sessionTitleRequestSchema,
     } }],
     cancellation: { parameter: 'signal' },
-    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionTitleResult`, schema: sessionTitleResultSchema },
+    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#SessionTitleResult`, create: () => sessionTitleResultSchema },
   }],
 }

@@ -34,9 +34,9 @@ export const RESEARCH_TOPICS_REMOTE: TypertRemoteContribution = {
     invocation: { kind: 'direct' },
     parameters: request === undefined ? [] : [{
       name: 'request', wire: 'request', source: 'json',
-      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchTopics/${method}/Request`, schema: request },
+      codec: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchTopics/${method}/Request`, create: () => request },
     }],
     cancellation: { parameter: 'signal' },
-    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchTopics/${method}/Result`, schema: result },
+    result: { mode: 'strict', typeSymbol: `${PACKAGE_NAME}#ResearchTopics/${method}/Result`, create: () => result },
   })),
 }

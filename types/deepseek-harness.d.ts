@@ -52,7 +52,7 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
     readonly parentId?: import('@deepseek-ai/dsh-session/types').SessionId
     readonly origin?: 'subagent'
     readonly running: boolean
-    readonly completed?: boolean
+    readonly retainedBy: Readonly<Partial<Record<string, number>>>
     readonly blank: boolean
     readonly updatedAt: number
     readonly projectionValues?: Readonly<{
@@ -116,21 +116,29 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
   type SessionListState = import('@deepseek-ai/dsh-api-session-controller/client').SessionListState
+  type SessionStatusSnapshot = import('@deepseek-ai/dsh-client-ui-session/client').SessionStatusSnapshot
   type WorkspaceSnapshot = import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
 
   export interface ConvViewProps {
     readonly sessionId: SessionId
     readonly useSessions: <T>(selector: (state: SessionListState) => T) => T
-    readonly useSessionPendingInteraction: <T>(
-      selector: (state: ReadonlyMap<SessionId, unknown>) => T,
-    ) => T
+    readonly useSessionStatus: <T>(selector: (state: SessionStatusSnapshot) => T) => T
     readonly useWorkspaces: <T>(selector: (state: WorkspaceSnapshot) => T) => T
   }
 }
 
 declare module '@deepseek-ai/dsh-client-locale/client' {}
 declare module '@deepseek-ai/dsh-client-ui-renderer/client' {}
-declare module '@deepseek-ai/dsh-client-ui-session/client' {}
+declare module '@deepseek-ai/dsh-client-ui-session/client' {
+  type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
+
+  export interface SessionStatus {
+    readonly running: boolean | undefined
+    readonly pendingInteraction: unknown
+    readonly completionUnread: boolean
+  }
+  export type SessionStatusSnapshot = ReadonlyMap<SessionId, SessionStatus>
+}
 declare module '@deepseek-ai/dsh-client-ui-workspace/client' {}
 
 

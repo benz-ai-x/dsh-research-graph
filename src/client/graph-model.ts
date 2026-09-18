@@ -8,6 +8,7 @@
  * @module @benz-ai-x/dsh-research-graph/src/client/graph-model
  */
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionMergeProjectionSource } from '../session-merge-projection.ts'
@@ -251,14 +252,14 @@ function byRecency(a: SessionSummary, b: SessionSummary): number {
  * @param list - the sessions-list snapshot.
  * @param scope - the resolved graph scope, or undefined for the empty state.
  * @param viewedId - the Viewed Session (kept when blank, highlighted).
- * @param pendingInteractions - pending UI interactions keyed by Session id.
+ * @param statuses - unified UI status facts (pending interaction, unread completion) keyed by Session id.
  * @returns the derived graph.
  */
 export function deriveSessionGraph(
   list: SessionListState,
   scope: GraphScope | undefined,
   viewedId: SessionId | undefined,
-  pendingInteractions: ReadonlyMap<SessionId, unknown>,
+  statuses: SessionStatusSnapshot,
 ): SessionGraph<SessionGraphNode> {
   const visible = new Map<SessionId, SessionSummary>()
   if (scope !== undefined) {
@@ -269,7 +270,7 @@ export function deriveSessionGraph(
     }
   }
 
-  return deriveRowsGraph(visible, viewedId, pendingInteractions)
+  return deriveRowsGraph(visible, viewedId, statuses)
 }
 
 /** Project explicit references without widening the scope-bound Canvas rules. */
@@ -277,7 +278,7 @@ export function deriveTopicGraph(
   snapshot: ResearchTopicSnapshot,
   list: SessionListState,
   viewedId: SessionId | undefined,
-  pendingInteractions: ReadonlyMap<SessionId, unknown>,
+  statuses: SessionStatusSnapshot,
 ): SessionGraph<SessionGraphNode> {
   const sources = new Map(snapshot.sources.map(source => [source.sessionId, source]))
   const visible = new Map<SessionId, SessionSummary>()
@@ -289,18 +290,18 @@ export function deriveTopicGraph(
       id: reference.sessionId as SessionId,
       displayTitle: row?.displayTitle.trim() || reference.title,
       blank: false, running: row?.running ?? false, updatedAt: row?.updatedAt ?? 0,
-      ...(row?.completed === undefined ? {} : { completed: row.completed }),
+      retainedBy: row?.retainedBy ?? {},
       ...(parent === undefined || sources.get(parent)?.status !== 'listed' ? {} : { parentId: parent as SessionId }),
       ...(row?.projectionValues === undefined ? {} : { projectionValues: row.projectionValues }),
     })
   }
-  return deriveRowsGraph(visible, viewedId, pendingInteractions, sources, new Map(Object.values(list.byId).map(row => [row.id, row])))
+  return deriveRowsGraph(visible, viewedId, statuses, sources, new Map(Object.values(list.byId).map(row => [row.id, row])))
 }
 
 function deriveRowsGraph(
   visible: ReadonlyMap<SessionId, SessionSummary>,
   viewedId: SessionId | undefined,
-  pendingInteractions: ReadonlyMap<SessionId, unknown>,
+  statuses: SessionStatusSnapshot,
   sources?: ReadonlyMap<string, ResearchTopicSource>,
   hostRows?: ReadonlyMap<SessionId, SessionSummary>,
 ): SessionGraph<SessionGraphNode> {
@@ -326,7 +327,8 @@ function deriveRowsGraph(
   /** Place one member; the caller walks descendants with an explicit stack. */
   const placeMember = (row: SessionSummary, clusterRootId: SessionId, members: SessionId[]): void => {
     const badge = sources?.get(row.id)?.status === 'unavailable' ? undefined : badges.get(row.id)
-    const pending = pendingInteractions.has(row.id)
+    const status = statuses.get(row.id)
+    const pending = status?.pendingInteraction !== undefined
     const mergeSources = row.projectionValues?.sessionGraphMerge?.sources ?? []
     // Merge targets are unparented. Replayed Branch history can carry the
     // same projection, even when its parent is outside this graph's scope.
@@ -338,15 +340,15 @@ function deriveRowsGraph(
       blank: row.blank,
       displayStatus: row.running ? 'running'
         : pending ? 'waiting-input'
-          : row.completed === true ? 'completed' : undefined,
+          : status?.completionUnread === true ? 'completed' : undefined,
       viewed: row.id === viewedId,
       updatedAt: row.updatedAt,
       subagentCount: badge?.count ?? 0,
       runningSubagents: badge?.runningCount ?? 0,
       ...(badge?.sessions.length ? { subagents: [...badge.sessions].sort(byRecency).map(session => ({
         id: session.id, parentId: session.parentId!, title: session.displayTitle,
-        displayStatus: session.running ? 'running' as const : pendingInteractions.has(session.id) ? 'waiting-input' as const
-          : session.completed === true ? 'completed' as const : undefined,
+        displayStatus: session.running ? 'running' as const : statuses.get(session.id)?.pendingInteraction !== undefined ? 'waiting-input' as const
+          : statuses.get(session.id)?.completionUnread === true ? 'completed' as const : undefined,
       })) } : {}),
       branchFrom: branchParent.get(row.id),
       mergeSources: inheritedMerge ? [] : mergeSources,
