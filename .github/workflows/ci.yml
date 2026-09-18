@@ -10,6 +10,10 @@ permissions:
 
 env:
   DSH_REPOSITORY: deepseek-ai/deepseek-harness
+  # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude; the
+  # day-old DSH set explicitly excluded in pnpm-workspace.yaml must not fail
+  # frozen installs or pre-run dependency checks for 24 hours.
+  pnpm_config_minimum_release_age: 0
 
 jobs:
   check:
@@ -30,13 +34,10 @@ jobs:
           cache: true
           install: false
 
-      # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude;
-      # the day-old DSH 0.1.6-alpha.2 set is explicitly excluded in
-      # pnpm-workspace.yaml, so the redundant age gate stays off here.
-      - run: pnpm --config.minimumReleaseAge=0 install --frozen-lockfile
-      - run: pnpm --config.minimumReleaseAge=0 run check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
       - if: matrix.node == '24'
-        run: pnpm --config.minimumReleaseAge=0 pack --pack-destination .artifacts
+        run: pnpm pack --pack-destination .artifacts
 
   harness:
     name: Matching DSH release
@@ -68,9 +69,7 @@ jobs:
           install: false
 
       - name: Install plugin dependencies
-        # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude;
-        # see the check job above.
-        run: pnpm --config.minimumReleaseAge=0 install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Install Harness dependencies
         run: pnpm --dir harness install --frozen-lockfile
@@ -84,10 +83,10 @@ jobs:
       - name: Check Host and Client against the matching Harness
         env:
           DSH_HARNESS_ROOT: ${{ github.workspace }}/harness
-        run: pnpm --config.minimumReleaseAge=0 check:harness
+        run: pnpm check:harness
 
       - name: Pack the plugin
-        run: pnpm --config.minimumReleaseAge=0 pack --pack-destination .artifacts
+        run: pnpm pack --pack-destination .artifacts
 
       - name: Build the Harness Web frontend
         run: pnpm --dir harness run build:web
@@ -95,4 +94,4 @@ jobs:
       - name: Exercise the packed plugin in an isolated web profile
         env:
           DSH_HARNESS_ROOT: ${{ github.workspace }}/harness
-        run: pnpm --config.minimumReleaseAge=0 smoke:harness
+        run: pnpm smoke:harness

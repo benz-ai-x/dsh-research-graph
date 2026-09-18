@@ -25,6 +25,10 @@ jobs:
     environment: npm-publish
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude; the
+      # day-old DSH set explicitly excluded in pnpm-workspace.yaml must not
+      # fail frozen installs or pre-run dependency checks for 24 hours.
+      pnpm_config_minimum_release_age: 0
     steps:
       - uses: actions/checkout@v7
         with:
@@ -56,11 +60,11 @@ jobs:
 
       # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude;
       # the excluded day-old DSH 0.1.6-alpha.2 set must not block publishing.
-      - run: pnpm --config.minimumReleaseAge=0 install --frozen-lockfile
-      - run: pnpm --config.minimumReleaseAge=0 run check
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run check
 
       - name: Pack the verified package
-        run: pnpm --config.minimumReleaseAge=0 pack --pack-destination .artifacts
+        run: pnpm pack --pack-destination .artifacts
 
       - name: Publish the verified archive
         run: |
