@@ -15,10 +15,10 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 
 ## Quick start
 
-Requires **DeepSeek Harness 0.1.5-rc.2**, Node.js `^22.19.0 || >=24.0.0`, and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
+Requires **DeepSeek Harness 0.1.6-alpha.2**, Node.js `^22.19.0 || >=24.0.0`, and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.6-alpha.2
 dsh web
 ```
 
@@ -28,7 +28,7 @@ Open the one-time authenticated URL printed by the command; do not share its tok
 2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
 3. Open the saved card in **Knowledge**, inspect its sources, and choose **Continue discussion** to preview the materials for another question.
 
-Current plugin **0.1.5-rc.2.8** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
+Current plugin **0.1.6-alpha.2** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
 
 ## Research workflow
 
@@ -59,9 +59,9 @@ Source discovery and tool execution come from your selected DSH environment. Res
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.8` | `0.1.5-rc.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
+| `@benz-ai-x/dsh-research-graph@0.1.6-alpha.2` | `0.1.6-alpha.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 
-Current prerelease **0.1.5-rc.2.8** targets **DSH 0.1.5-rc.2**: it removes duplicate Branch-inherited Merge lines, adds compact cluster headers, grouped independent discussions, distinct equal-title labels and a visible legend, and opens delegated-task records. See the [release acceptance record](reviews/release-0.1.5-rc.2.8.md) for official-package verification, screenshots, and known limitations.
+Current prerelease **0.1.6-alpha.2** targets **DSH 0.1.6-alpha.2**: the first adaptation of this DSH line, it follows four upstream client contract changes without behavior changes — Typert codecs materialize schemas lazily through `create()`, the unified `useSessionStatus` feed replaces `useSessionPendingInteraction` (the completion reminder is now `SessionStatus.completionUnread` and `SessionSummary` gains required `retainedBy` ownership counts), and session navigation moves to `ctx.uiWorkspace.openSession`. See the [release acceptance record](reviews/release-0.1.6-alpha.2.md) for official-package verification and known limitations.
 
 In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name.
 
@@ -70,6 +70,7 @@ In the DSH-aligned release line, the first plugin adaptation uses the full targe
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.1.5-rc.2.8` | `0.1.5-rc.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.2` | `0.1.5-rc.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.1.5-rc.1` | `0.1.5-rc.1` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime and package migration acceptance |
 | Previous package: [`v0.1.5-rc.1`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.1) | `0.1.5-rc.1` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests, packed-profile runtime acceptance |
@@ -77,7 +78,7 @@ In the DSH-aligned release line, the first plugin adaptation uses the full targe
 | [`v0.1.6`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6) | `0.1.2-alpha.1`, `0.1.2-alpha.2`, `0.1.2-alpha.3` | `^22.19.0 \|\| >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 | [`v0.1.5`](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5) | `0.1.2-alpha.1`, `0.1.2-alpha.2` | `^22.19.0 \|\| >=24.0.0` | CI, real Harness integration, packed-profile add/remove |
 
-The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. `0.1.5-rc.2.2` fixes truncated Session Digests and adds resizable Markdown reading, nearby knowledge capture, and graph controls in the research context bar. `0.1.5-rc.2.3` adds editable Session title suggestions and concise Markdown digests with highlighted key points. `0.1.5-rc.2.4` unifies saved knowledge reading across entry points, preserves extraction-batch reading position after editing, centralizes responsive reading geometry, and makes digest highlights more visible. `0.1.5-rc.2.5` adds historical-turn branching, editable exploration prompts, reviewed synthesis from mixed materials, and working-position restoration, including reliable final drag positions. `0.1.5-rc.2.6` improves Relayout in both graph scopes with dependency rows, obstacle-aware routes, distinct terminals and one-step undo. `0.1.5-rc.2.7` separates overlapping Merge arrivals in narrow gaps around compact cluster titles. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
+The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX repair round, including draft protection, direct material selection and search-scope restoration. `0.1.5-rc.2.1` adds the research workbench, full knowledge reading, and cross-workspace merge. `0.1.5-rc.2.2` fixes truncated Session Digests and adds resizable Markdown reading, nearby knowledge capture, and graph controls in the research context bar. `0.1.5-rc.2.3` adds editable Session title suggestions and concise Markdown digests with highlighted key points. `0.1.5-rc.2.4` unifies saved knowledge reading across entry points, preserves extraction-batch reading position after editing, centralizes responsive reading geometry, and makes digest highlights more visible. `0.1.5-rc.2.5` adds historical-turn branching, editable exploration prompts, reviewed synthesis from mixed materials, and working-position restoration, including reliable final drag positions. `0.1.5-rc.2.6` improves Relayout in both graph scopes with dependency rows, obstacle-aware routes, distinct terminals and one-step undo. `0.1.5-rc.2.7` separates overlapping Merge arrivals in narrow gaps around compact cluster titles. `0.1.5-rc.2.8` removes duplicate Branch-inherited Merge lines, adds compact cluster headers, grouped independent discussions, distinct equal-title labels and a visible legend, and opens delegated-task records. The earlier `0.1.5-alpha.1` package retains its original feature set. Historical `v0.1.0`–`v0.1.6` tags remain unchanged. For DSH `0.1.2-alpha.1`–`alpha.3`, keep plugin `0.1.6`; current source does not promise compatibility with those older hosts. Select by the compatibility table, not npm `latest` or plugin version ordering.
 
 </details>
 
@@ -200,16 +201,16 @@ Confirming creates an independent Session and sends the frozen preview through n
 
 ## Install
 
-The [DSH plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.5-rc.2/apps/cli/reference/README.md#plugin-management) invokes `pnpm`, which must be on your `PATH`. Use the launcher for your matching DSH installation throughout the commands below:
+The [DSH plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.6-alpha.2/apps/cli/reference/README.md#plugin-management) invokes `pnpm`, which must be on your `PATH`. Use the launcher for your matching DSH installation throughout the commands below:
 
 - Installed CLI: use `dsh`.
-- npm launcher: replace `dsh` with `npx @deepseek-ai/dsh@0.1.5-rc.2`.
-- Source checkout: build the `dsh-v0.1.5-rc.2` checkout using the [upstream setup](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.5-rc.2/README.md#run-from-source), run from that checkout, and replace `dsh` with `pnpm dsh`.
+- npm launcher: replace `dsh` with `npx @deepseek-ai/dsh@0.1.6-alpha.2`.
+- Source checkout: build the `dsh-v0.1.6-alpha.2` checkout using the [upstream setup](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.1.6-alpha.2/README.md#run-from-source), run from that checkout, and replace `dsh` with `pnpm dsh`.
 
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.6-alpha.2
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -226,7 +227,7 @@ The product is now **DSH Research Graph · 研图**, and the repository is `benz
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.5-rc.2.8
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.6-alpha.2
 dsh web
 ```
 
@@ -244,7 +245,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
 
-Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.1.5-rc.2` for plugin `0.1.5-rc.2.8`).
+Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.1.6-alpha.2` for plugin `0.1.6-alpha.2`).
 
 ## Use the graph
 
@@ -314,7 +315,7 @@ See the [discussion search browser acceptance record and screenshots](reviews/pr
 <a id="enable-discussion-search"></a>
 ### Enable discussion search
 
-DSH `0.1.5-rc.2` disables full-text indexing by default. If Research Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
+DSH `0.1.6-alpha.2` disables full-text indexing by default. If Research Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
 
 ```yaml
 - id: session-query-sqlite
@@ -413,7 +414,7 @@ The output cap leaves room for reasoning and the structured digest; providers ma
 | Digest generation reports no model route | Use a Session with a logged route or configure the `provider` and `model` fallback pair |
 | Digest generation reaches its output limit | Increase `maxOutputTokens` in the `ui-session-graph` override in the active profile’s `cordis.patch.yml`, then retry |
 | An upgrade still shows the old arrangement | Choose **Relayout** to apply automatic placement, then **Fit** if needed. Relayout has an Undo action; a Topic still needs **Save arrangement** to synchronize |
-| After a cold Host restart, a Branch briefly shows a directory title or lacks inherited sources | Open that Session through native DSH, then return to the graph. This restored the retained title and source summary in acceptance; the Host's internal cause remains unlocated. See the [release boundary](reviews/release-0.1.5-rc.2.8.md#acceptance-boundary) |
+| After a cold Host restart, a Branch briefly shows a directory title or lacks inherited sources | Open that Session through native DSH, then return to the graph. This restored the retained title and source summary in acceptance; the Host's internal cause remains unlocated. See the [release boundary](reviews/release-0.1.6-alpha.2.md#acceptance-boundary) |
 | A delegated task cannot be opened | Retry from the inspector so it refreshes the direct parent's native task catalog. A task absent from the refreshed catalog cannot be opened from that entry |
 | The Web URL rejects access | Open the complete authenticated URL printed by `dsh web`; do not reuse or share a stripped token |
 
@@ -430,7 +431,7 @@ If the problem persists, include the package version shown in the Research Graph
 - One Merge accepts two or three sources across Workspaces on the same Host; cross-Host merging is not supported.
 - Merge captures immutable source snapshots; later source messages do not automatically refresh an existing Merge Session.
 - Cold Host startup can temporarily omit an unopened Branch's native title or inherited-source summary; see Troubleshooting. This release preserves the observation rather than claiming its Host cause is fixed.
-- Arbitrarily dense graphs or physically overlapping cards may still have crossings or obstructed terminals. The [release acceptance](reviews/release-0.1.5-rc.2.8.md) describes the verified geometry scenarios.
+- Arbitrarily dense graphs or physically overlapping cards may still have crossings or obstructed terminals. The [release acceptance](reviews/release-0.1.6-alpha.2.md) describes the verified geometry scenarios.
 - Structured exploration-direction and hypothesis fields remain deferred in [Issue #32, P5](https://github.com/benz-ai-x/dsh-research-graph/issues/32); editable question prompts and frozen-material reuse are available.
 - Touch uses pointer-event fallbacks and has no dedicated controls.
 

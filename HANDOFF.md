@@ -1,17 +1,17 @@
 # Research Graph Handoff
 
-Updated: 2026-09-15 (Asia/Shanghai)
+Updated: 2026-09-18 (Asia/Shanghai)
 
 根 `HANDOFF.md` 是唯一实时交接；`docs/HANDOFF.md` 仅为历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准。
 
 ## 下一会话接手入口
 
-用户明确要求交接文档保存在本项目文件夹；后续 `$handoff` 直接原地更新本文件。目录搬迁同步与截图可读性修复已完成，并已按用户 `release` 要求发布为 **v0.1.5-rc.2.8**；GitHub Release、npm `next` 和主工作树均已同步。接手时先读下方「当前目录与启动」「当前状态」与「当前边界与后续」；「历史记录」保留当时状态，不能覆盖当前结论。
+用户明确要求交接文档保存在本项目文件夹；后续 `$handoff` 直接原地更新本文件。DSH 0.1.6-alpha.2 线的首次兼容适配已完成，并已按用户 `release` 要求发布为 **v0.1.6-alpha.2**；GitHub Release、npm `next` 和主工作树均已同步。接手时先读下方「当前目录与启动」「当前状态」与「当前边界与后续」；「历史记录」保留当时状态，不能覆盖当前结论。
 
 - 用户优先级：图谱使用体验第一，知识库归纳第二。[Issue #32](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 的 P5 两项仍暂缓；新工作以用户下一条要求及 Issue 当前范围为准。
-- 功能与验收入口：[截图可读性修复](docs/reviews/graph-readability.md)、[窄缝连线修复](docs/reviews/tight-channels.md)、[本次发布验收](docs/reviews/release-0.1.5-rc.2.8.md)。复现场景、测试结果和未定位现象已在其中记录；继续调查时读取原始证据，不将未定位现象视为已修复。
-- 本次发布结果：[completed.json](.artifacts/release-0.1.5-rc.2.8/completed.json)；正式 npm 归档与校验文件在同目录 `official/`，原有工作区文件备份在 `original/`。
-- 上一版 v0.1.5-rc.2.7 的发布结果：[归档中的 completed.json](.artifacts/worktree-cleanup-20260913T151659Z/archive/dsh-research-graph-release-rc.2.7/.artifacts/release-0.1.5-rc.2.7/completed.json)。该文件索引正式包、CI、隔离验收和附件核对记录；原发布工作树已清理，历史证据中的旧路径按下方归档映射查找。
+- 功能与验收入口：[本次发布验收](docs/reviews/release-0.1.6-alpha.2.md)，记录 0.1.6-alpha.2 线首次适配的四处契约跟随与官方包验证；上一版功能验收保留 [截图可读性修复](docs/reviews/graph-readability.md)、[窄缝连线修复](docs/reviews/tight-channels.md) 与 [0.1.5-rc.2.8 发布验收](docs/reviews/release-0.1.5-rc.2.8.md)。复现场景、测试结果和未定位现象已在其中记录；继续调查时读取原始证据，不将未定位现象视为已修复。
+- 本次发布结果：[completed.json](.artifacts/release-0.1.6-alpha.2/completed.json)；正式 npm 归档与校验文件在同目录 `official/`。
+- 上一版 v0.1.5-rc.2.8 的发布结果：[completed.json](.artifacts/release-0.1.5-rc.2.8/completed.json)；再上一版 v0.1.5-rc.2.7 的证据在 [归档中的 completed.json](.artifacts/worktree-cleanup-20260913T151659Z/archive/dsh-research-graph-release-rc.2.7/.artifacts/release-0.1.5-rc.2.7/completed.json)。历史证据中的旧路径按下方归档映射查找。
 - 开发规则读取 [AGENTS.md](AGENTS.md)、[领域上下文](CONTEXT.md) 与 [Issue 流程](docs/agents/issue-tracker.md)。执行新的远端操作前重新核对相应状态。
 - 根工作树原有文档改动和未跟踪研究文件继续保留，见下方「本地工作区与文档清理」。本轮浏览器和隔离 preview 已停止，日常 DSH profile 未改；历史实例按实际归属处理。私有日志可能含本机登录凭据，后续交接仅引用位置，不复制凭据。
 
@@ -21,13 +21,13 @@ Updated: 2026-09-15 (Asia/Shanghai)
 
 | 用途 | 当前路径与状态 |
 | --- | --- |
-| 主工作树、唯一实时交接 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`；`main`；产品发布基线 `8f54927`，插件 `0.1.5-rc.2.8`；后续文档提交以 `git log -1 --oneline` 核对 |
+| 主工作树、唯一实时交接 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`；`main`；产品发布基线 `259262b`，插件 `0.1.6-alpha.2`；后续文档提交以 `git log -1 --oneline` 核对 |
 | 未合并原型工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-prototype`；`prototype/research-workbench` / `b43b69d`，干净且已推送；该树交接仍是历史副本 |
-| 已合并发布工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-release-rc.2.8`；`release/0.1.5-rc.2.8` / `5c11566`，干净保留验收证据，树内容与发布提交一致 |
-| 匹配 Harness | `/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.2`；官方 `dsh-v0.1.5-rc.2` / `fb2c4b9e69` |
+| 上一版发布工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-release-rc.2.8`；`release/0.1.5-rc.2.8` / `5c11566`，干净保留验收证据，树内容与发布提交一致；本轮 0.1.6-alpha.2 在根工作树完成，未另建发布工作树 |
+| 匹配 Harness | `/Users/pc2026/DSH-Space/deepseek-harness`；官方 `dsh-v0.1.6-alpha.2` / `ddefc45fbc` |
 
 - 在主工作树运行 `pnpm preview:dsh`，在原型工作树运行 `pnpm prototype:dsh`。两套启动器优先使用 `DSH_HARNESS_ROOT`；未配置或指定目录不存在时，依次查找仓库相邻目录、上一级目录中的 `deepseek-harness-<目标 DSH 版本>`。找到但版本不匹配时直接报错；兼容目标读取精确 LLM peer 依赖。
-- 集成检查仍需显式指定宿主：`DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness-0.1.5-rc.2 pnpm check:harness`；`smoke:harness` 同理。
+- 集成检查仍需显式指定宿主：`DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness pnpm check:harness`；`smoke:harness` 同理。
 - 目录同步阶段未启动 preview 或 Host；随后截图修复使用本轮独立 `.artifacts/graph-readability/preview/profile/` 验收，现已停止。原型旧 `state.json` 虽记录 `running: true`，其中两个 PID 在目录同步核对时均已不存在，不能将该文件或旧 URL 当作实时服务。原型保留的体验 profile 与历史来源中的旧工作目录未迁移；后续如需继续这些旧会话，应单独核对其目录归属，不能批量替换不可变历史材料。
 
 ## Suggested skills（建议技能）
@@ -43,16 +43,16 @@ Updated: 2026-09-15 (Asia/Shanghai)
 
 ## 当前状态
 
+- 用户本轮 `release` 已完成（2026-09-18）：**v0.1.6-alpha.2** 已于 **10:24:06（Asia/Shanghai）**发布（02:24:06 UTC，npm 02:29 UTC 可见），npm `next` 已同步；这是官方 DSH **0.1.6-alpha.2** 线的首次适配，插件按发布政策取完整目标版本。[PR #49](https://github.com/benz-ai-x/dsh-research-graph/pull/49) 已合并为 `259262bf55303496521d88a964bc40ce7124abf4`，轻量标签 `v0.1.6-alpha.2` 指向该提交。适配内容为上游客户端契约四处漂移，功能行为不变：Typert codec 改经 `create()` 惰性实例化 schema；统一的 `useSessionStatus` 取代 `useSessionPendingInteraction`（完成提醒改为 `SessionStatus.completionUnread`，`SessionSummary` 新增必填 `retainedBy` 归属计数）；会话导航由 `ctx.sessions.open`／`openSubagent` 改为 `ctx.uiWorkspace.openSession`。全部直接 `@deepseek-ai/dsh-*` 依赖钉到 `0.1.6-alpha.2`。#32 P5.1／P5.2 继续暂缓，原型未合并。
+  - 验证：本地 `check` **227 项**、官方 `dsh-v0.1.6-alpha.2`（`ddefc45fbc`）四个编译面及 **343 Harness** 通过；候选与正式 npm 归档各通过 **19 次固定模型调用**的隔离安装／离线恢复／研究读写／移除验收。[PR CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/35298567640)、[main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/35298952458) 及 [OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/35298980335) 全部成功。CI 因 pnpm 11.7 冻结安装校验不读 `minimumReleaseAgeExclude`，在 ci.yml／publish.yml 顶层 env 设 `pnpm_config_minimum_release_age=0`；0.1.6-alpha.2 发布满 24 小时（2026-09-18 21:42 本地）后或 pnpm 修复该校验后可还原。
+  - 正式包 **479441 bytes**，Build ID **local-0f5ce7dc**，SHA-256 `67ab36751d0f90fce4970ad31d2b3740cb0d54dd2fb28dfdfb871664327992ba`；SHA-1／SHA-512 与 registry 一致，provenance 的仓库、tag、commit、发布运行与制品摘要匹配（transparency log 2882406081），未另行验证证书签名密码学。候选 Build ID（`local-bdc0369a`）差异已查明：本地被 Git 忽略的 `src/.DS_Store` 进入构建指纹，排除后精确复现正式 ID，该文件已删除。[Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6-alpha.2) 的安装包与 `SHA256SUMS` 已重新下载，和 npm 正式字节完全一致；正文已回读核对。
+  - 根 main 已快进同步。本轮适配与发布在根工作树完成，未另建发布工作树；浏览器、隔离 Host 已停止，日常 profile 未改。冷启动时未打开分支的宿主列表标题／继承摘要暂缺仍作为已知观察保留，原生打开后恢复，不计为已修复。完整私有记录 [.artifacts/release-0.1.6-alpha.2/completed.json](.artifacts/release-0.1.6-alpha.2/completed.json)。
 - 原型路径适配已提交并推送（2026-09-15）：按用户 `commit push` 指令，将原型工作树的两份脚本与双语 README 提交为 [`b43b69d`](https://github.com/benz-ai-x/dsh-research-graph/commit/b43b69da4c1040b9fa924326b296692a6c6f6778)，并回读确认远端 `prototype/research-workbench` 指向同一提交。改动为搬迁后查找匹配 Harness，优先配置路径，再依次查找相邻与上一级目录；版本不匹配明确报错。`pnpm run typecheck`、两份脚本语法检查和 9 个路径场景通过，原型工作树已干净；本轮未启动 Host 或重跑完整产品套件。原型未合并到 main，发布版本不变，主工作树五份未跟踪研究资料保留。验证与推送记录在 `.artifacts/prototype-path-sync-20260915/`；当前交接仅更新本文件，不改原型中的历史副本。
 - README 对齐 DSH 文档规范（2026-09-14，基线 `07416f0`）：遍历用户指定 Harness `docs/` 的 375 个文件并检索全部文本，跟进元数据、品牌指南、模板和检查源码；[研究记录](docs/research/dsh-readme-guidelines-2026-09-14.md) 区分对外品牌要求、bundle 安装机制和上游仓库内部文档规则。双语 README 恢复 `description` / `kind: package-bundle`，纠正前轮仅以本仓库无消费者为由删除元数据的判断；首句明确社区独立维护的 DSH Web 插件，保留能力图谱、常显截图和精简结构，补齐 pnpm 前提及指南中的 CLI／npx／源码入口。AGENTS 记录适用约定；上游推荐的 `dsh-plugin` Topic 已存在。文档来源 checkout 为干净 `c291e796`，比 RC.2 标签多 139 提交；关键规范与标签内容一致，不据此扩展产品兼容承诺。135 处本地引用、20 处固定上游来源、命令语法与版本核对通过；双语桌面／手机预览确认元数据表、10 节点能力图谱及常显截图正常，无页面横向溢出。README 保持 91／90 行；未重跑产品测试。验证、预览与推送回读记录保存在 `.artifacts/dsh-readme-guidelines-20260914/`；插件仍为 RC.2.8，目标仍为 DSH RC.2。
 - README 功能截图常显（2026-09-14，基线 `cc81612`）：按用户补充要求，在中英文能力图谱下方增加明确的功能截图章节，直接展示已确认的高清工作台截图，保留演示数据说明与原图链接；移除折叠容器。能力图谱、精简能力表和独立指南保持现有组织。文档与图片显示核对、推送回读记录在 `.artifacts/readme-screenshot-visible-20260914/`；本轮不发布新版本。
 - README 精简（2026-09-14，基线 `fbf6b26`）：用户要求突出功能能力图谱、关键能力与关键信息。中英文首页由 564／562 行收敛为 89／88 行，保留三条能力主线、六项关键能力、适配版本与安装入口；已确认的高清截图放入可展开预览。详细操作、历史兼容与故障排查迁至双语 `docs/user-guide*.md`，开发、发布与源码导航迁至 `docs/development*.md`；同步文档分工及恢复说明链接。72 个迁移章节完整保留并核对，247 处本地引用、版本与命令检查通过；双语 10 节点／9 关系能力图谱、桌面／手机布局及截图展开通过，正文与显示记录在 `.artifacts/readme-concise-20260914/`。仅进行文档验证，未重跑产品测试。本轮仅调整文档组织，目标为 `origin/main`，不发布新版本；推送与远端回读以该目录 `push.json` 为准。
 - README 发现与阅读优化（2026-09-14，基线 `98436a8`）：按最新已发布功能重写中英文 README 首屏，突出 DeepSeek Harness 插件、AI 研究工作台、会话图谱与知识管理；前置完整能力表，新增三步上手、研究流程图、使用场景、FAQ 与指南导航。首屏截图按用户反馈重新采集：用当前 RC.2.8 常规构建与全新隔离演示 profile，在同一屏展示两篇来源讨论、两张知识卡片、一篇后续研究及卡片详情；高清原图为 `docs/assets/readme/research-workbench.png`（3360×2400），双语替代文本与图注同步，注明演示数据。截图过程、节点无遮挡及双语 README 首屏图片的桌面／手机显示核对记录在 `.artifacts/readme-hero-20260914/`；本轮自建浏览器与 Host 已停止，样例数据保留在 `.artifacts/workbench-dsh/profile/`。保留历史版本与旧章节锚点；修正兼容表管道转义，并移除未被项目代码使用的 README YAML 元数据。GitHub Markdown 渲染和本地桌面／手机预览、Mermaid 流程图、链接／锚点及版本校验记录在 `.artifacts/readme-seo-20260914T064139Z/`；预览采用本地样式，不声称与 GitHub 页面像素一致。用户已确认 README 与新截图，本次文档提交同步到 `origin/main`；提交与远端回读记录见 `.artifacts/readme-hero-20260914/push.json`。本轮不发布新版本，也不把文案调整计为搜索排名或流量提升。仓库 About 的主页仍指向旧 npm 包，已整理 `github-metadata-proposal.json` 中的简介、主页和 17 个 Topics 建议，尚未修改远端设置；五份既有未跟踪资料保持原样。
 - 核心文档同步（2026-09-14，已完成）：更新 `AGENTS.md`、中英文 README、`CONTEXT.md`、本文、文档分工、布局 ADR 与 RC.2.8 发布验收。统一研究工作台／Agent 预设职责，修正工作位置恢复、布局入口和四个 Harness 编译面说明，并补齐正式 npm 包验收；旧状态移至下方历史区。用户随后要求 `commit push`，本次文档提交范围为上述八份文件，目标为 `origin/main`；包版本与发布 tag 不变，不另建 PR 或发布。提交与远端核对结果记录在 `.artifacts/docs-sync-20260914T061612Z/push.json`。196 处本地链接／锚点、命令、版本政策、双语内容和 `git diff --check` 通过，两个远端版本徽标均返回 RC.2.8；本次未重跑产品测试套件。验证记录见 `.artifacts/docs-sync-20260914T061612Z/validation.json` 与 `badges.json`；更新前八份文档备份在同目录 `before/`，原有五份未跟踪研究文件保持原样。
-- 用户本轮 `release` 已完成（2026-09-14）：**v0.1.5-rc.2.8** 已于 **13:59:47（Asia/Shanghai）**发布，npm `next` 已同步，继续适配官方 DSH **0.1.5-rc.2**。[PR #48](https://github.com/benz-ai-x/dsh-research-graph/pull/48) 包含实现 `351fd89` 与发布准备 `5c1156666d800040b529f55b952f6babe4193bee`，已合并为 `8f549276028d19462e29054ea73dcac0734201d4`；annotated tag object `1665a424429737259da9a0c9f7877db8a0c1fd7a` 指向该提交，远端标签与已验收树核对一致。发布范围为继承来源去重、短簇标题与布局、同名标识与图例、可查看的子代理记录，以及目录搬迁后的 preview 启动适配。原型未合并，#32 P5.1／P5.2 继续暂缓。
-  - 验证：本地 `check` **227 项**、官方 RC.2 四个编译面及 **343 Harness** 通过；候选与正式 npm 归档各通过 **19 次固定模型调用**的隔离安装／离线恢复／研究读写／移除验收。Chrome 两种图谱、两种窗口共 10 个几何场景无卡片或标题穿透、共享直线段或箭头端口错位；拖动、折叠、重复布局撤销、主题保存、冷重启后的 9 节点／5 关系及原生子代理记录均通过，页面错误 0。PR CI `34810939130`、[main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811268624) 的四项及 [OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811633079) 全部成功。
-  - 正式包 **516813 bytes**，Build ID **local-dafff617**，SHA-256 `67ee1e88a9187732db14136a9cf2de9a3beebdeca983e4090fefe12defdf932f`；SHA-1／SHA-512 与 registry 一致。来源记录的仓库、tag、commit、发布运行和制品摘要匹配，未另行验证证书签名密码学。[Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.8) 的安装包与 `SHA256SUMS` 已重新下载，和 npm 正式字节完全一致；正文已回读核对。
-  - 根 main 已快进同步并重新构建。发布前 42 个工作文件均先备份；36 个本轮实现／文档路径已纳入发布，其余研究资料和根交接保留，最后仅原地更新本交接。根树现有被 Git 忽略的 `src/.DS_Store` 使本机生成 Build ID 为 `local-6979c23c`；排除该 Finder 元数据后的所有构建输入与正式 `local-dafff617` 一致，包版本同为 `0.1.5-rc.2.8`，未删除用户的目录元数据。浏览器、隔离 Host 已停止，日常 profile 未改。冷启动时未打开分支的宿主列表标题／继承摘要暂缺仍作为已知观察保留，原生打开后恢复，不计为已修复。
 
 ## 当前边界与后续
 
@@ -63,7 +63,8 @@ Updated: 2026-09-15 (Asia/Shanghai)
 | 布局与视口 | 重新布局保留折叠、阅读和视口，重复操作保留有效撤销；要看全图使用适应。主题修改需显式保存排列才会同步。 |
 | Issue #32 | 2026-09-14 再次核对仍为 OPEN；P5.1／P5.2 结构化方向与假设两项暂缓、未完成。自由问题和轻量提示已交付，不能据此补勾 P5。 |
 | 未合并原型 | `prototype/research-workbench` 仍是独立原型，不把其能力或旧启动状态视为 main 已发布内容。 |
-| 文档与研究资料 | 本次文档提交覆盖八份核心文档及既有根交接历史；五份未跟踪资料继续保留本地，不纳入这次提交。 |
+| CI 安装年龄门 | ci.yml／publish.yml 顶层 env 暂设 `pnpm_config_minimum_release_age=0`：pnpm 11.7 冻结安装校验不读锁文件配套的 `minimumReleaseAgeExclude`，发布时 0.1.6-alpha.2 包仍在默认 24 小时年龄窗口内。窗口于 2026-09-18 21:42（本地）过后或 pnpm 修复该校验后可还原；`npm_config_` 前缀与 `--config` 传参均无效，已验证。 |
+| 文档与研究资料 | 本轮提交覆盖发布验收记录、双语 README／用户指南与根交接；`docs/research/` 三份研究记录、`docs/reports/` 与 `architecture.svg` 等未跟踪资料继续保留本地，不纳入提交。 |
 
 当前文档职责见 [分工表](docs/agents/domain.md#documentation-map)。本地的 [DSH Agent 预设与研图 HTML 报告](docs/reports/dsh-agent-presets-research-graph-2026-09-14.html) 是先前任务生成、尚未纳入 Git 的阅读材料，不作为当前版本验收依据。
 
@@ -71,6 +72,10 @@ Updated: 2026-09-15 (Asia/Shanghai)
 
 以下完整保留各阶段记录的事实与措辞。「本地未提交」「尚未发布」、旧版本、旧路径与服务状态均指记录发生时；当前发布和目录以上文为准。历史归档映射仍见「本地工作区与文档清理」。
 
+- 用户本轮 `release` 已完成（2026-09-14）：**v0.1.5-rc.2.8** 已于 **13:59:47（Asia/Shanghai）**发布，npm `next` 已同步，继续适配官方 DSH **0.1.5-rc.2**。[PR #48](https://github.com/benz-ai-x/dsh-research-graph/pull/48) 包含实现 `351fd89` 与发布准备 `5c1156666d800040b529f55b952f6babe4193bee`，已合并为 `8f549276028d19462e29054ea73dcac0734201d4`；annotated tag object `1665a424429737259da9a0c9f7877db8a0c1fd7a` 指向该提交，远端标签与已验收树核对一致。发布范围为继承来源去重、短簇标题与布局、同名标识与图例、可查看的子代理记录，以及目录搬迁后的 preview 启动适配。原型未合并，#32 P5.1／P5.2 继续暂缓。
+  - 验证：本地 `check` **227 项**、官方 RC.2 四个编译面及 **343 Harness** 通过；候选与正式 npm 归档各通过 **19 次固定模型调用**的隔离安装／离线恢复／研究读写／移除验收。Chrome 两种图谱、两种窗口共 10 个几何场景无卡片或标题穿透、共享直线段或箭头端口错位；拖动、折叠、重复布局撤销、主题保存、冷重启后的 9 节点／5 关系及原生子代理记录均通过，页面错误 0。PR CI `34810939130`、[main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811268624) 的四项及 [OIDC Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/34811633079) 全部成功。
+  - 正式包 **516813 bytes**，Build ID **local-dafff617**，SHA-256 `67ee1e88a9187732db14136a9cf2de9a3beebdeca983e4090fefe12defdf932f`；SHA-1／SHA-512 与 registry 一致。来源记录的仓库、tag、commit、发布运行和制品摘要匹配，未另行验证证书签名密码学。[Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.5-rc.2.8) 的安装包与 `SHA256SUMS` 已重新下载，和 npm 正式字节完全一致；正文已回读核对。
+  - 根 main 已快进同步并重新构建。发布前 42 个工作文件均先备份；36 个本轮实现／文档路径已纳入发布，其余研究资料和根交接保留，最后仅原地更新本交接。根树现有被 Git 忽略的 `src/.DS_Store` 使本机生成 Build ID 为 `local-6979c23c`；排除该 Finder 元数据后的所有构建输入与正式 `local-dafff617` 一致，包版本同为 `0.1.5-rc.2.8`，未删除用户的目录元数据。浏览器、隔离 Host 已停止，日常 profile 未改。冷启动时未打开分支的宿主列表标题／继承摘要暂缺仍作为已知观察保留，原生打开后恢复，不计为已修复。
 - 截图可读性修复已本地完成（2026-09-14）：分支继承的 Merge 快照保留在详情中，不再重复产生直接 Merge 线；按宿主父会话事实分类，覆盖范围外父会话与主题元数据尚未刷新。短簇标题与路由共用几何，独立讨论集中排列，同名节点加短标识，常驻图例，重新布局／撤销直接可见。工作区和主题都可展开子代理任务，并以刷新后目录中的直接父地址及模式打开原生记录，包含失败重试与迟到结果取消。实际 9 节点样例从 11 条线收敛到 5 条；`check` 227 项、官方 RC.2 四个编译面及 Harness 343 项通过，真实 Chrome 两种视图／两种窗口共 10 个几何场景无卡片或标题穿透、共享直线段、端口错位；拖动、折叠、重复布局撤销、主题保存及冷重启后 9 节点／5 关系通过，页面错误 0。冷启动一个未打开分支的宿主列表标题／继承摘要暂缺，磁盘缓存保留，原生打开后恢复；该宿主内部根因尚未定位，不计为已修复。详情与截图见 [验收记录](docs/reviews/graph-readability.md)。版本保持 `0.1.5-rc.2.7`、Build ID `local-b6782883`；本轮浏览器和隔离 Host 已停止，日常 profile、原有研究文件与未合并原型未改。修改及目录同步内容均保留本地未提交，未创建 PR 或发布。私有证据在 `.artifacts/graph-readability/`，完整测试日志为 `.artifacts/graph-readability-check.log`、`.artifacts/graph-readability-harness.log`。
 - 目录搬迁同步已完成（2026-09-14）：`git worktree repair ../dsh-research-graph-prototype` 修复主仓库与原型之间的双向路径引用；两棵树的 Git 状态恢复正常，分支与 HEAD 保持不变。两棵树各自的 `scripts/resolve-harness.mjs` 与启动入口已适配项目文件夹层级，各自中英文 README 已同步。真实启动入口的路径选择阶段通过 18 项检查，覆盖当前目录、相邻目录、外层目录、显式路径优先、缺失回退、版本不匹配、损坏清单与全部缺失；没有启动构建后的 Host 或迁移 profile。两树 `pnpm run check` 通过，主树 216 项、原型 179 项独立测试；未重跑 `check:harness` 或实包 Host 验收。修改保持本地未提交；主树原有 4 个未跟踪资料文件保留，仅本文件的当前入口追加同步记录，历史验收记录未改写。备份、路径探针及检查日志在 [.artifacts/directory-sync-20260914T020725Z/](.artifacts/directory-sync-20260914T020725Z/)。
 - 用户进一步要求清理本项目已合并的分支和 worktree，现已完成（2026-09-13）：此前已删除的 **24 个本地／24 个远端分支**保持清理状态，本轮再移除 **20 个已合并的 detached worktree 及其目录**。当前本地／远端分支和工作树均仅保留 `main` 与尚未合并的 `prototype/research-workbench`；两者提交未变，发布 tags 未变。移除前确认无未提交内容、无相关运行进程或打开文件；使用普通 `git worktree remove`，未强制删除。每个工作树的 `.artifacts` 已移入本项目 [.artifacts/worktree-cleanup-20260913T151659Z/archive/](.artifacts/worktree-cleanup-20260913T151659Z/archive/)，按原工作树目录名分开保留，共 **13,541 个文件／150,913,873 bytes**，逐文件内容哈希及目录／符号链接记录前后核对一致；源码由 Git 提交保留，依赖和生成构建已随工作树移除。历史记录中的 `<旧工作树>/.artifacts/<相对路径>` 对应归档中的 `<旧工作树目录名>/.artifacts/<相对路径>`，归档脚本／profile 若需再次运行，应先按记录的 SHA 重建工作树并安装依赖。原提交与归档映射、清理结果见 [completed.json](.artifacts/worktree-cleanup-20260913T151659Z/completed.json)。根工作树原有研究文件及清理前 HANDOFF 哈希保持，本轮最后仅更新本交接及上述发布证据入口。
