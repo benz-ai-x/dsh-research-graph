@@ -1354,14 +1354,20 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
   const openSubagent = vi.fn()
-  const refreshProjections = vi.fn(async (parentId: SessionId) => {
+  const refreshProjections = vi.fn(async (sessionId: SessionId) => {
     const current = sessionsStore.getSnapshot()
-    const subagentCatalog = Object.values(current.byId).filter(row => row.origin === 'subagent' && row.parentId === parentId).map(row => ({
+    // Mirror the Host manager: a ready read short-circuits repeat refreshes.
+    if (current.projectionsBySession[sessionId]?.state === 'ready') return
+    const subagentCatalog = Object.values(current.byId).filter(row => row.origin === 'subagent' && row.parentId === sessionId).map(row => ({
       id: row.id, createdAt: row.updatedAt, mode: 'one-shot' as const,
     }))
-    sessionsStore.set({ ...current, projectionsBySession: { ...current.projectionsBySession,
-      [parentId]: { state: 'ready', error: null, values: { subagentCatalog } },
-    } } as SessionListState)
+    const row = current.byId[sessionId]
+    sessionsStore.set({ ...current,
+      byId: row === undefined ? current.byId : { ...current.byId,
+        [sessionId]: { ...row, projectionValues: { ...row.projectionValues, subagentCatalog } } },
+      projectionsBySession: { ...current.projectionsBySession,
+        [sessionId]: { state: 'ready', error: null, values: { subagentCatalog } } },
+    } as SessionListState)
   })
   const fork = vi.fn(async () => id('branched'))
   const create = vi.fn(async () => id('merged'))
@@ -1688,6 +1694,123 @@ describe('Session insights in the registered Graph', () => {
     expect(digest.querySelectorAll('ul > li')).toHaveLength(3)
     expect(digest.querySelector('a[href^="javascript:"]')).toBeNull()
     expect(digest.textContent).not.toContain('**')
+  })
+})
+
+describe('projection facts in the registered Graph', () => {
+  const factValues = {
+    title: '缓存架构调研',
+    sessionStats: { turns: 3, steps: 12, llmMs: 45_000, toolMs: 8_200, ttftMs: 300, ttftSteps: 3, decodeMs: 4_000, decodeTokens: 700 },
+    modelSelection: { lastUsed: { provider: 'deepseek', model: 'deepseek-chat' }, next: { provider: 'deepseek', model: 'deepseek-reasoner' } },
+    turnOutline: [
+      { turn: 1, seq: 1, prompt: '调研缓存方案', response: '已比较三种方案' },
+      { turn: 2, seq: 5, prompt: '比较一致性边界', response: '一致性取决于失效策略' },
+    ],
+    tokenUsage: { uncachedInputTokens: 1_200, outputTokens: 800, cacheReadTokens: 3_000, cacheWriteTokens: 400 },
+    contextPressure: { projectedTokens: 63_000, contextWindow: 100_000 },
+    goal: {
+      goal: { id: 'goal-1', revision: 2, objective: '输出缓存调研报告', phase: 'active', maxGoalRounds: 10 },
+      roundsStarted: 2, createdAt: 1, updatedAt: 2,
+    },
+    todos: [
+      { content: '收集方案', status: 'completed' },
+      { content: '对比验证', status: 'completed' },
+      { content: '撰写报告', status: 'in_progress' },
+    ],
+    agentPreset: 'researcher',
+  }
+
+  /** Projection read that lands rich facts once per Session, then short-circuits like the Host. */
+  function mockFactsRefresh(b: Awaited<ReturnType<typeof bench>>): void {
+    b.refreshProjections.mockImplementation(async (sessionId: SessionId) => {
+      const current = b.sessionsStore.getSnapshot()
+      if (current.projectionsBySession[sessionId]?.state === 'ready') return
+      const row = current.byId[sessionId]
+      if (row === undefined) return
+      b.sessionsStore.set({ ...current,
+        byId: { ...current.byId, [sessionId]: {
+          ...row, title: factValues.title, displayTitle: factValues.title, projectionValues: factValues,
+        } },
+        projectionsBySession: { ...current.projectionsBySession,
+          [sessionId]: { state: 'ready', error: null, values: factValues } },
+      } as SessionListState)
+    })
+  }
+
+  it('refreshes canvas members on scope entry, restores durable titles, and renders card and panel facts', async () => {
+    const b = await bench({
+      root: session('root', { displayTitle: 'w' }),
+      delegate: session('delegate', { origin: 'subagent', parentId: id('root') }),
+    })
+    mockFactsRefresh(b)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    await waitFor(() => { expect(nodeButton('root').textContent).toContain('缓存架构调研') })
+    expect(nodeButton('root').textContent).toContain('3 轮')
+    // The projection reports the effective preset (default included), so a
+    // card badge would repeat the same value on every node; preset stays off
+    // the card and is only folded onto the node model.
+    expect(nodeButton('root').textContent).not.toContain('researcher')
+    expect(nodeButton('root').title).toContain('比较一致性边界')
+    // Subagent Sessions stay off the non-activating projection pass.
+    expect(b.refreshProjections.mock.calls.map(call => call[0])).not.toContain('delegate')
+    fireEvent.click(nodeButton('root'))
+    const facts = await screen.findByTestId('session-graph-facts')
+    expect(facts.textContent).toContain('deepseek/deepseek-reasoner')
+    expect(facts.textContent).toContain('3 轮 · 12 步')
+    expect(facts.textContent).toContain('模型 45.0s · 工具 8.2s')
+    expect(facts.textContent).toContain('累计 5400 tokens')
+    expect(facts.textContent).toContain('上下文占用 63%')
+    expect(facts.textContent).toContain('输出缓存调研报告')
+    expect(facts.textContent).toContain('进行中')
+    expect(facts.textContent).toContain('待办 2/3')
+    expect(facts.textContent).toContain('最近提问：比较一致性边界')
+    expect(facts.textContent).toContain('最近回复：一致性取决于失效策略')
+    await b.fiber.dispose()
+  })
+
+  it('keeps the directory fallback and adds no facts when projection reads fail', async () => {
+    const b = await bench({ root: session('root', { displayTitle: 'w' }) })
+    b.refreshProjections.mockRejectedValue(new Error('offline'))
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    await waitFor(() => { expect(b.refreshProjections).toHaveBeenCalledWith('root') })
+    await act(async () => { await Promise.resolve() })
+    expect(nodeButton('root').textContent).toContain('w')
+    expect(nodeButton('root').textContent).not.toContain('轮')
+    fireEvent.click(nodeButton('root'))
+    expect(screen.queryByTestId('session-graph-facts')).toBeNull()
+    await b.fiber.dispose()
+  })
+
+  it('keeps a newer list state when the projection read resolves late', async () => {
+    const b = await bench({ root: session('root', { displayTitle: 'w' }) })
+    const pending = Promise.withResolvers<void>()
+    b.refreshProjections.mockImplementation(async (sessionId: SessionId) => {
+      await pending.promise
+      // First-wins mirror of the Host's watermark merge: a late cold read
+      // must not replace facts a newer frame already supplied.
+      const current = b.sessionsStore.getSnapshot()
+      const row = current.byId[sessionId]
+      if (row === undefined || row.projectionValues !== undefined) return
+      b.sessionsStore.set({ ...current, byId: { ...current.byId, [sessionId]: {
+        ...row, title: '迟到的标题', displayTitle: '迟到的标题', projectionValues: { title: '迟到的标题' },
+      } } } as SessionListState)
+    })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    await waitFor(() => { expect(b.refreshProjections).toHaveBeenCalledWith('root') })
+    await act(async () => {
+      const current = b.sessionsStore.getSnapshot()
+      b.sessionsStore.set({ ...current, byId: { ...current.byId, root: {
+        ...session('root'), title: '更新的标题', displayTitle: '更新的标题', projectionValues: { title: '更新的标题' },
+      } } } as SessionListState)
+    })
+    expect(nodeButton('root').textContent).toContain('更新的标题')
+    await act(async () => { pending.resolve() })
+    expect(nodeButton('root').textContent).toContain('更新的标题')
+    expect(nodeButton('root').textContent).not.toContain('迟到的标题')
+    await b.fiber.dispose()
   })
 })
 
@@ -2715,15 +2838,21 @@ describe('cluster drag', () => {
 describe('relayout button', () => {
   it.each(['stale', 'missing'] as const)('does not open a subagent with a %s catalog entry', async mode => {
     const b = await bench({ root: session('root'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
-    b.refreshProjections.mockImplementationOnce(async () => {
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    // The scope projection pass refreshes canvas members on entry; degrade
+    // the catalog only after that pass settles so the click reads it.
+    await waitFor(() => { expect(b.sessionsStore.getSnapshot().projectionsBySession.root?.state).toBe('ready') })
+    let degraded = false
+    b.refreshProjections.mockImplementation(async () => {
+      if (degraded) return
+      degraded = true
       const current = b.sessionsStore.getSnapshot()
       b.sessionsStore.set({ ...current, projectionsBySession: { ...current.projectionsBySession, root: {
         state: mode === 'stale' ? 'error' : 'ready', error: null,
         values: { subagentCatalog: mode === 'stale' ? [{ id: id('delegate'), createdAt: 1, mode: 'one-shot' }] : [] },
       } } } as SessionListState)
     })
-    mount(b.slots, b.sessionsStore, 'root')
-    switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByText('1 个子代理 · 0 个运行中'))
     fireEvent.click(screen.getByRole('button', { name: 'Session delegate' }))
@@ -2735,9 +2864,11 @@ describe('relayout button', () => {
 
   it('keeps a failed subagent catalog read local and retries with the catalog mode', async () => {
     const b = await bench({ root: session('root'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
-    b.refreshProjections.mockRejectedValueOnce(new Error('catalog unavailable'))
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
+    // Let the scope projection pass settle before degrading the catalog read.
+    await waitFor(() => { expect(b.sessionsStore.getSnapshot().projectionsBySession.root?.state).toBe('ready') })
+    b.refreshProjections.mockRejectedValue(new Error('catalog unavailable'))
     fireEvent.click(nodeButton('root'))
     fireEvent.click(screen.getByText('1 个子代理 · 0 个运行中'))
     const task = screen.getByRole('button', { name: 'Session delegate' })
@@ -2745,11 +2876,18 @@ describe('relayout button', () => {
     await screen.findByText(zh['panel.subagentOpenError'])
     expect(b.open).not.toHaveBeenCalled()
     expect(b.openSubagent).not.toHaveBeenCalled()
-    b.refreshProjections.mockImplementationOnce(async () => {
+    let repaired = false
+    b.refreshProjections.mockImplementation(async () => {
+      if (repaired) return
+      repaired = true
       const current = b.sessionsStore.getSnapshot()
-      b.sessionsStore.set({ ...current, projectionsBySession: { ...current.projectionsBySession, root: { state: 'ready', error: null,
-        values: { subagentCatalog: [{ id: id('delegate'), createdAt: 1, mode: 'continuable' }] },
-      } } } as SessionListState)
+      const row = current.byId.root!
+      b.sessionsStore.set({ ...current,
+        byId: { ...current.byId, root: { ...row, projectionValues: { ...row.projectionValues,
+          subagentCatalog: [{ id: id('delegate'), createdAt: 1, mode: 'continuable' }] } } },
+        projectionsBySession: { ...current.projectionsBySession, root: { state: 'ready', error: null,
+          values: { subagentCatalog: [{ id: id('delegate'), createdAt: 1, mode: 'continuable' }] },
+        } } } as SessionListState)
     })
     fireEvent.click(task)
     await waitFor(() => { expect(b.openSubagent).toHaveBeenCalledWith({ parentSessionId: 'root', childSessionId: 'delegate', mode: 'continuable' }) })
@@ -2759,6 +2897,9 @@ describe('relayout button', () => {
   it('does not open a late subagent catalog result after the inspector selection changes', async () => {
     const b = await bench({ root: session('root'), other: session('other'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
     const pending = Promise.withResolvers<void>()
+    // The scope projection pass consumes the pending read on entry; the
+    // click's own catalog read then resolves at once, and its continuation
+    // must stay behind the selection change.
     b.refreshProjections.mockReturnValueOnce(pending.promise)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')

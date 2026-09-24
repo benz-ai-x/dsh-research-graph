@@ -33,6 +33,9 @@ import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
 import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './working-position.ts'
 
+/** Projection refresh concurrency per scope pass, bounding cold-start disk reads. */
+const PROJECTION_REFRESH_BATCH = 6
+
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
   readonly historyBranch?: HistoryBranchApi
@@ -59,6 +62,12 @@ export interface GraphViewInjected {
   openSession: (id: SessionId) => void
   /** Refresh the native catalog and open a delegated discussion through its direct-parent address. */
   readonly openSubagent: (parentId: SessionId, childId: SessionId, signal: AbortSignal) => Promise<void>
+  /**
+   * Load one canvas Session's non-activating projections (durable title plus
+   * stats/outline facts). The Host single-flights per connection and
+   * short-circuits ready reads, so repeat calls are free.
+   */
+  readonly refreshSessionProjections?: (id: SessionId) => Promise<void>
   /** Create a Branch from one session (the panel's New-branch verb). */
   branchSession: (id: SessionId) => Promise<void>
   /** Explicitly generate or refresh one read-only Session Digest. */
@@ -149,6 +158,29 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
     [sessions, scope, sessionId, sessionStatus],
   )
   const laid = useMemo(() => layoutSessionGraph(graph), [graph])
+
+  // Cold-scope fact recovery: read each canvas member's projections without
+  // activating its Agent, restoring durable titles over directory-name
+  // fallbacks and filling node fact fields. The Host single-flights each
+  // Session per connection and short-circuits ready reads, so scope-churn
+  // re-runs cost nothing; failures stay silent (the Host records the error
+  // state and a later scope change retries naturally).
+  const refreshSessionProjections = props.refreshSessionProjections
+  useEffect(() => {
+    if (refreshSessionProjections === undefined || scope === undefined) return
+    const targets = [...scope.members]
+      .filter(member => sessions.byId[member]?.origin !== 'subagent')
+    let stale = false
+    void (async () => {
+      for (let index = 0; index < targets.length; index += PROJECTION_REFRESH_BATCH) {
+        if (stale) return
+        await Promise.all(targets.slice(index, index + PROJECTION_REFRESH_BATCH).map(
+          member => refreshSessionProjections(member).catch(() => undefined),
+        ))
+      }
+    })()
+    return () => { stale = true }
+  }, [refreshSessionProjections, scope, sessions])
 
   const now = Date.now()
   const workingKey = workingPositionKey(hostId, scope?.arrangement.key ?? `viewed:${sessionId}`)

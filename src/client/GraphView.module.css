@@ -818,6 +818,30 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+.sessionFacts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-module-platform);
+}
+
+.factRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.factText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .mergeRelations ol {
   display: flex;
   flex-direction: column;

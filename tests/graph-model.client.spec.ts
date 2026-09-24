@@ -382,6 +382,82 @@ describe('deriveSessionGraph visibility rules', () => {
   })
 })
 
+describe('deriveSessionGraph projection facts', () => {
+  const factValues = {
+    title: '缓存架构调研',
+    sessionStats: { turns: 3, steps: 12, llmMs: 45_000, toolMs: 8_200, ttftMs: 300, ttftSteps: 3, decodeMs: 4_000, decodeTokens: 700 },
+    modelSelection: { lastUsed: { provider: 'deepseek', model: 'deepseek-chat' }, next: { provider: 'deepseek', model: 'deepseek-reasoner' } },
+    turnOutline: [
+      { turn: 1, seq: 1, prompt: '调研缓存方案', response: '已比较三种方案' },
+      { turn: 2, seq: 5, prompt: '比较一致性边界', response: '一致性取决于失效策略' },
+    ],
+    tokenUsage: { uncachedInputTokens: 1_200, outputTokens: 800, cacheReadTokens: 3_000, cacheWriteTokens: 400 },
+    contextPressure: { projectedTokens: 63_000, contextWindow: 100_000 },
+    goal: {
+      goal: { id: 'goal-1' as never, revision: 2, objective: '输出缓存调研报告', phase: 'active' as const, maxGoalRounds: 10 },
+      roundsStarted: 2, createdAt: 1, updatedAt: 2,
+    },
+    todos: [
+      { content: '收集方案', status: 'completed' as const },
+      { content: '对比验证', status: 'completed' as const },
+      { content: '撰写报告', status: 'in_progress' as const },
+    ],
+    agentPreset: 'researcher',
+  }
+
+  it('folds projection values into the node fact fields', () => {
+    const graph = graphFor({ root: session('root', { projectionValues: factValues }) })
+    expect(graph.nodes.get('root')).toMatchObject({
+      turns: 3,
+      sessionStats: factValues.sessionStats,
+      modelLabel: 'deepseek/deepseek-reasoner',
+      lastPromptPreview: '比较一致性边界',
+      lastResponsePreview: '一致性取决于失效策略',
+      tokenTotal: 5_400,
+      goalLabel: '输出缓存调研报告',
+      goalPhase: 'active',
+      todoProgress: { completed: 2, total: 3 },
+      contextPressurePercent: '63%',
+      presetLabel: 'researcher',
+    })
+  })
+
+  it('keeps every fact field absent when no projection values exist', () => {
+    const node = graphFor({ root: session('root') }).nodes.get('root')
+    expect(node).toBeDefined()
+    for (const key of ['turns', 'sessionStats', 'modelLabel', 'lastPromptPreview', 'lastResponsePreview',
+      'tokenTotal', 'goalLabel', 'goalPhase', 'todoProgress', 'contextPressurePercent', 'presetLabel'] as const) {
+      expect(node).not.toHaveProperty(key)
+    }
+  })
+
+  it('falls back to the last-used route and skips empty previews, a null goal, and empty todos', () => {
+    const graph = graphFor({
+      root: session('root', {
+        projectionValues: {
+          modelSelection: { lastUsed: { provider: 'p', model: 'm' }, next: null },
+          turnOutline: [{ turn: 1, seq: 1, prompt: '', response: '' }],
+          goal: null,
+          todos: [],
+          contextPressure: { projectedTokens: 50 },
+        },
+      }),
+    })
+    const node = graph.nodes.get('root')
+    expect(node?.modelLabel).toBe('p/m')
+    for (const key of ['lastPromptPreview', 'lastResponsePreview', 'goalLabel', 'goalPhase', 'todoProgress', 'contextPressurePercent'] as const) {
+      expect(node).not.toHaveProperty(key)
+    }
+  })
+
+  it('omits the context pressure text without a positive context window', () => {
+    for (const contextPressure of [{ contextWindow: 100_000 }, { projectedTokens: 63_000, contextWindow: 0 }]) {
+      const node = graphFor({ root: session('root', { projectionValues: { contextPressure } }) }).nodes.get('root')
+      expect(node).not.toHaveProperty('contextPressurePercent')
+    }
+  })
+})
+
 describe('branchLineage', () => {
   it('collects the Branch ancestors, self, and descendants — never siblings', () => {
     const graph = graphFor({

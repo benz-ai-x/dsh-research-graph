@@ -11,6 +11,16 @@ import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-sess
 import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionStatsProjection } from '@deepseek-ai/dsh-session-stats/client'
+import type { GoalPhase } from '@deepseek-ai/dsh-goal/client'
+// Type-only: pull the Host projection-key declarations into the program so the
+// merged SessionProjectionMap behind `SessionSummary.projectionValues` carries
+// every key this module folds. check:harness compiles these against the real
+// Harness declarations.
+import type {} from '@deepseek-ai/dsh-session-turn-outline/client'
+import type {} from '@deepseek-ai/dsh-token-meter/client'
+import type {} from '@deepseek-ai/dsh-tool-todo/client'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
 import type { SessionMergeProjectionSource } from '../session-merge-projection.ts'
 import type { ResearchTopicSnapshot, ResearchTopicSource } from '../research-topic.ts'
 import type { SessionArrangementIdentity } from './layout-store.ts'
@@ -89,6 +99,37 @@ export interface SessionGraphNode extends GraphNodeBase {
   readonly topicSource?: ResearchTopicSource
   readonly reuseRelations?: readonly ResearchRelation[]
   readonly retainedSource?: SessionDiscussionSource
+  /**
+   * Non-activating projection facts, present only once the Host's
+   * `refreshProjections` read lands. Every field stays absent without the
+   * corresponding projection value, so a cold node behaves exactly as before.
+   */
+  /** Closed turns from the whole-log sessionStats projection. */
+  readonly turns?: number
+  /** Whole-log step counts and model/tool wall times behind the inspector's stats block. */
+  readonly sessionStats?: SessionStatsProjection
+  /** Active model route as `provider/model`, preferring the next pending selection. */
+  readonly modelLabel?: string
+  /** Newest turn's bounded one-line prompt preview. */
+  readonly lastPromptPreview?: string
+  /** Newest turn's bounded response preview. */
+  readonly lastResponsePreview?: string
+  /** Cumulative provider tokens summed over all four usage buckets. */
+  readonly tokenTotal?: number
+  /** Current durable goal objective. */
+  readonly goalLabel?: string
+  /** Current durable goal lifecycle phase. */
+  readonly goalPhase?: GoalPhase
+  /** Whole todo list progress (completed of total). */
+  readonly todoProgress?: { readonly completed: number; readonly total: number }
+  /**
+   * projectedTokens/contextWindow as display text, absent without both
+   * figures. The upstream fields sample different moments — this is a
+   * reference readout, never a threshold input.
+   */
+  readonly contextPressurePercent?: string
+  /** Agent preset the Session runs. */
+  readonly presetLabel?: string
 }
 
 /** Knowledge nodes have card identities and cannot be passed to Session actions. */
@@ -333,6 +374,19 @@ function deriveRowsGraph(
     // Merge targets are unparented. Replayed Branch history can carry the
     // same projection, even when its parent is outside this graph's scope.
     const inheritedMerge = (sources?.get(row.id)?.parentSessionId ?? hostRows?.get(row.id)?.parentId ?? row.parentId) !== undefined
+    const projections = row.projectionValues
+    const stats = projections?.sessionStats
+    const model = projections?.modelSelection?.next ?? projections?.modelSelection?.lastUsed ?? undefined
+    const lastTurn = projections?.turnOutline?.at(-1)
+    const usage = projections?.tokenUsage
+    const goal = projections?.goal ?? undefined
+    const todos = projections?.todos ?? undefined
+    const pressure = projections?.contextPressure
+    const preset = projections?.agentPreset ?? undefined
+    const pressurePercent = pressure?.projectedTokens !== undefined
+      && pressure.contextWindow !== undefined && pressure.contextWindow > 0
+      ? `${String(Math.round((pressure.projectedTokens / pressure.contextWindow) * 100))}%`
+      : undefined
     nodes.set(row.id, {
       id: row.id,
       clusterId: clusterRootId,
@@ -354,6 +408,19 @@ function deriveRowsGraph(
       mergeSources: inheritedMerge ? [] : mergeSources,
       ...(inheritedMerge && mergeSources.length > 0 ? { inheritedMergeSources: mergeSources } : {}),
       ...(sources?.get(row.id) === undefined ? {} : { topicSource: sources.get(row.id)! }),
+      ...(stats === undefined ? {} : { turns: stats.turns, sessionStats: stats }),
+      ...(model === undefined ? {} : { modelLabel: `${model.provider}/${model.model}` }),
+      ...(lastTurn === undefined || lastTurn.prompt === '' ? {} : { lastPromptPreview: lastTurn.prompt }),
+      ...(lastTurn === undefined || lastTurn.response === '' ? {} : { lastResponsePreview: lastTurn.response }),
+      ...(usage === undefined ? {} : { tokenTotal: usage.uncachedInputTokens + usage.outputTokens
+        + usage.cacheReadTokens + usage.cacheWriteTokens }),
+      ...(goal === undefined ? {} : { goalLabel: goal.goal.objective, goalPhase: goal.goal.phase }),
+      ...(todos === undefined || todos.length === 0 ? {} : { todoProgress: {
+        completed: todos.filter(item => item.status === 'completed').length,
+        total: todos.length,
+      } }),
+      ...(pressurePercent === undefined ? {} : { contextPressurePercent: pressurePercent }),
+      ...(preset === undefined ? {} : { presetLabel: preset }),
     })
     members.push(row.id)
     const childKeys: string[] = []
