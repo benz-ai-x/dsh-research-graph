@@ -5,11 +5,12 @@ import { Context } from '@deepseek-ai/cordis'
 import SessionStore from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
+import { createSessionFormatCatalogWithChildren } from '@deepseek-ai/dsh-session-format-catalog'
 import { createSessionTestController } from 'harness-session-controller-test-support'
 import { describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 import { sessionMergeDependenciesFromHarness } from '../src/session-merge-harness.ts'
+import { sessionMergeMarkerOfEvent } from '../src/session-merge-projection.ts'
 
 describe('current Harness public APIs', () => {
   it('digests cold JSONL and newer attached state through the real Session Controller', async () => {
@@ -91,7 +92,7 @@ describe('current Harness public APIs', () => {
     }
   })
 
-  it.each([0, 1, 2, 3])('keeps new Merge markers readable through the V%i format catalog', async version => {
+  it.each([0, 1, 2, 3])('keeps released Merge markers readable through the V%i format catalog', async version => {
     const ctx = new Context()
     try {
       let marker: unknown
@@ -102,22 +103,35 @@ describe('current Harness public APIs', () => {
         marker: { kind: 'session-graph-merge', version: 1, operationId: 'operation', sourceIds: ['a', 'b'] },
         directText: 'Compare the sources.',
       })
-      const restore = sessionFormatCatalog.createRestore({
+      expect(marker).toMatchObject({ source: {
+        kind: 'dsh-session-graph', form: 'notice', summary: expect.any(String),
+      } })
+      // Historical artifacts carry the released V3 plugin envelope; the
+      // current producer kind only exists in V4-native logs.
+      const historicalMarker = {
+        ...marker as Record<string, unknown>,
+        source: {
+          kind: 'plugin', plugin: 'dsh-session-graph', form: 'notice',
+          summary: 'Session Merge source snapshot request.',
+        },
+      }
+      const restore = createSessionFormatCatalogWithChildren([]).createRestore({
         type: 'session', version, id: 'target', createdAt: 1, delegationDepth: 0,
         ...(version < 2 ? {} : { isSeeded: false }),
       }, { recovery: 'strict', validation: 'current' })
       const events = [
         { type: 'turn/start', data: { turn: 1 } },
         { type: 'step/start', data: { turn: 1, step: 1 } },
-        { type: 'user/message', data: marker, surfaceOp: 'append' },
+        { type: 'user/message', data: historicalMarker, surfaceOp: 'append' },
         { type: 'step/end', data: { turn: 1, step: 1 } },
         { type: 'turn/end', data: { turn: 1, reason: { kind: 'completed' } } },
       ]
       for (const [seq, event] of events.entries()) restore.decodeRow({ ...event, seq, time: 1 })
-      expect(restore.finish().header.version).toBe(3)
-      expect(marker).toMatchObject({ source: {
-        kind: 'plugin', plugin: 'dsh-session-graph', form: 'notice', summary: expect.any(String),
-      } })
+      const artifact = restore.finish()
+      expect(artifact.header.version).toBe(4)
+      const migrated = artifact.events.find(event => event.type === 'user/message')
+      expect(migrated).toBeDefined()
+      expect(sessionMergeMarkerOfEvent(migrated!)).toEqual({ operationId: 'operation', sourceIds: ['a', 'b'] })
     } finally {
       await ctx.fiber.dispose()
     }

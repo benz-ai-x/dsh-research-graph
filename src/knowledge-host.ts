@@ -5,6 +5,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { SESSION_GRAPH_MESSAGE_KIND } from './message-source.ts'
 import type { ResolvedConfig } from './config.ts'
 import { sessionDigestInspectionFromHarness } from './session-digest-harness.ts'
 import { EXTRACTION_SYSTEM_PROMPT, type ExtractionDraft, type ExtractionPreparation, type ExtractionPreparationRequest, type ExtractionRequest, type ExtractionResult } from './knowledge-extraction.ts'
@@ -158,7 +159,7 @@ export class KnowledgeService extends TypertRemoteService {
       const assembler = new BlockAssembler()
       let size = 0
       for await (const chunk of this.ctx.llm.stream({ provider: command.provider, model: command.model,
-        messages: [createUserMessage({ source: { kind: 'plugin', plugin: 'dsh-session-graph' }, content: [{ type: 'text', text: preparation.materialText }] })],
+        messages: [createUserMessage({ source: { kind: SESSION_GRAPH_MESSAGE_KIND }, content: [{ type: 'text', text: preparation.materialText }] })],
         system: SYNTHESIS_SYSTEM_PROMPT, maxTokens: 8192, signal: callSignal,
       })) {
         callSignal.throwIfAborted()
@@ -232,7 +233,7 @@ export class KnowledgeService extends TypertRemoteService {
       const assembler = new BlockAssembler()
       let outputSize = 0
       for await (const chunk of this.ctx.llm.stream({ provider: command.provider, model: command.model,
-        messages: [createUserMessage({ source: { kind: 'plugin', plugin: 'dsh-session-graph' },
+        messages: [createUserMessage({ source: { kind: SESSION_GRAPH_MESSAGE_KIND },
           content: [{ type: 'text', text: prepared.materialText }] })],
         system: EXTRACTION_SYSTEM_PROMPT, maxTokens: 4096, sessionId: prepared.selected.sessionId as SessionId, signal: callSignal,
       })) {

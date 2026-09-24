@@ -7,7 +7,7 @@ import { basename, dirname, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseArgs, promisify } from 'node:util'
 import { constants, zstdCompress, zstdDecompress } from 'node:zlib'
-import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
+import { historicalSessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
 
 const compress = promisify(zstdCompress)
 const decompress = promisify(zstdDecompress)
@@ -64,7 +64,7 @@ function repairRow(row, report) {
 }
 
 function restoreRows(rows, transform) {
-  const restore = sessionFormatCatalog.createRestore(rows[0], { recovery: 'strict', validation: 'current' })
+  const restore = historicalSessionFormatCatalog.createRestore(rows[0], { recovery: 'strict', validation: 'current' })
   for (const row of rows.slice(1)) restore.decodeRow(transform(row))
   return restore.finish()
 }
@@ -107,14 +107,14 @@ export async function migrateMergeHistory(input, { output, maxBytes = DEFAULT_MA
   const report = {
     sessionId: rows[0]?.id,
     sourceVersion: version,
-    targetVersion: sessionFormatCatalog.currentVersion,
+    targetVersion: historicalSessionFormatCatalog.currentVersion,
     repairedMessages: 0,
     sourceSha256: digest(bytes),
   }
   const artifact = restoreRows(rows, row => repairRow(row, report))
   if (report.repairedMessages === 0) throw new Error('No legacy Session Graph Merge marker found; use normal DSH migration')
-  const header = sessionFormatCatalog.encodeCurrentHeader(artifact.header, artifact.inheritedEventCount)
-  const events = artifact.events.map(event => sessionFormatCatalog.encodeCurrentEvent(event))
+  const header = historicalSessionFormatCatalog.encodeCurrentHeader(artifact.header, artifact.inheritedEventCount)
+  const events = artifact.events.map(event => historicalSessionFormatCatalog.encodeCurrentEvent(event))
   // A second complete current-format restore validates exactly what will be published.
   restoreRows([header, ...events], row => row)
   const headerBytes = Buffer.from(`${JSON.stringify(header)}\n`)

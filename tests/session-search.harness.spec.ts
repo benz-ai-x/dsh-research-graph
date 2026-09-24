@@ -12,6 +12,12 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    fixture: { kind: 'fixture' }
+  }
+}
+
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
@@ -116,7 +122,7 @@ describe('Discussion Search public Host interface', () => {
     source.append('turn/start', { turn: 2 })
     source.append('step/start', { turn: 2, step: 1 })
     source.append('user/message', createUserMessage({
-      source: { kind: 'plugin', plugin: 'fixture' }, content: [{ type: 'text', text: 'injected-only café' }],
+      source: { kind: 'fixture' }, content: [{ type: 'text', text: 'injected-only café' }],
     }), { surfaceOp: 'append' })
     source.append('assistant/message', {
       turn: 2, step: 1, stream: [], message: createAssistantMessage({

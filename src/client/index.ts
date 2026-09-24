@@ -269,11 +269,11 @@ async function registerUi(ctx: Context): Promise<void> {
       },
       openSubagent: async (parentId, childId, signal) => {
         signal.throwIfAborted()
-        await ctx.sessions.refreshSubagents(parentId)
+        await ctx.sessions.refreshProjections(parentId)
         signal.throwIfAborted()
-        const catalog = ctx.sessions.list.getSnapshot().subagentsByParent[parentId]
-        const entry = catalog?.entries.find(entry => entry.id === childId)
-        if (catalog?.state !== 'ready' || entry?.kind !== 'child') {
+        const projection = ctx.sessions.list.getSnapshot().projectionsBySession[parentId]
+        const entry = projection?.values.subagentCatalog?.find(entry => entry.id === childId)
+        if (projection?.state !== 'ready' || entry === undefined) {
           throw new Error('Subagent catalog address is unavailable')
         }
         ctx.uiWorkspace.openSession({ parentSessionId: parentId, childSessionId: childId, mode: entry.mode })
