@@ -22,7 +22,18 @@ This is the first adaptation of the DSH 0.1.7-rc.1 line; per the release policy 
 
 ## Published artifact
 
-_Publication pending; filled in after the OIDC publish run._
+Publication completed on **2026-09-24 at 13:05 UTC** through the OIDC publish workflow.
+
+| Official npm artifact | Verified value |
+| --- | --- |
+| Archive | `benz-ai-x-dsh-research-graph-0.1.7-rc.1.tgz` |
+| Size | 492637 bytes |
+| Build ID | `local-65054815` |
+| SHA-256 | `ec728fa7e4334becf3ab993ab45a9c5abf85670f6eb4b255c491c8c16dc8930d` |
+
+The registry SHA-1 (`12dbf98dfd88c6b539e3759addb3487fcc960fc5`) and SHA-512 integrity match the official bytes; the SLSA provenance attestation names this repository, `refs/tags/v0.1.7-rc.1`, `publish.yml`, and publish run [36003192076](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36003192076), with the archive's SHA-512 as the subject digest (transparency log entry present; certificate signatures were not separately cryptographically verified). The local candidate archive differed in bytes (493307 bytes) because it was packed locally rather than by CI — both passed the same acceptance independently. The official archive passed the same isolated packed-profile acceptance with **19 fixed model calls**, and its Build ID `local-65054815` equals the badge verified in the browser preview. The Release archive and `SHA256SUMS` were downloaded again and matched the official npm bytes exactly; the release body was read back. [PR #51 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36002158027), the merged [main CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36002930158), and the OIDC Publish all passed.
+
+Private release evidence lives in `.artifacts/release-0.1.7-rc.1/`; the official archive and checksums are in `official/`.
 
 ## Acceptance boundary
 
