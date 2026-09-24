@@ -43,7 +43,7 @@ flowchart LR
   </a>
 </p>
 
-Version 0.1.5-rc.2.8 with demo data. Click the image for the full-resolution screenshot.
+Version 0.1.7-rc.1 with demo data. Click the image for the full-resolution screenshot.
 
 <a id="features"></a>
 <a id="what-it-adds"></a>
