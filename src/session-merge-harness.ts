@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import type {} from '@deepseek-ai/dsh-workspace'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { SESSION_GRAPH_MESSAGE_KIND } from './message-source.ts'
 import {
   createSessionMergeHostModule,
   type SessionMergeHostDependencies,
@@ -118,8 +119,7 @@ export function sessionMergeDependenciesFromHarness(
     enqueue: (target, input) => {
       const agent = agentOf(target)
       const source = {
-        kind: 'plugin' as const,
-        plugin: 'dsh-session-graph',
+        kind: SESSION_GRAPH_MESSAGE_KIND,
         form: 'notice' as const,
         summary: 'Session Merge source snapshot request.',
       }

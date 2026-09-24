@@ -6,8 +6,8 @@ import { zstdCompressSync } from 'node:zlib'
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { logPath } from '@deepseek-ai/dsh-session-persistence-jsonl/src/format.ts'
-import { sessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
+import { generationLogPath } from '@deepseek-ai/dsh-session-persistence-jsonl/src/format.ts'
+import { historicalSessionFormatCatalog } from '@deepseek-ai/dsh-session-format-catalog'
 import { describe, expect, it } from 'vitest'
 import { migrateMergeHistory } from '../scripts/migrate-merge-history.mjs'
 import { projectSessionMerge } from '../src/session-merge-projection.ts'
@@ -52,7 +52,7 @@ describe('offline legacy Merge recovery', () => {
         const bytes = Buffer.from(history(version))
         expect(() => {
           const [header, ...events] = history(version).trimEnd().split('\n').map(line => JSON.parse(line))
-          const restore = sessionFormatCatalog.createRestore(header, { recovery: 'strict', validation: 'current' })
+          const restore = historicalSessionFormatCatalog.createRestore(header, { recovery: 'strict', validation: 'current' })
           events.forEach(event => restore.decodeRow(event))
           restore.finish()
         }).toThrow('unclassified message source')
@@ -63,7 +63,7 @@ describe('offline legacy Merge recovery', () => {
         const bundled = JSON.parse(execFileSync(process.execPath, ['lib/migrate-merge-history.js', '--input', source], { encoding: 'utf8' }))
         expect(bundled).toEqual(checked)
         expect(await readdir(root)).toEqual([source.slice(root.length + 1)])
-        const output = logPath(join(root, 'recovered'), '/test', 'old-merge' as never, compression as 'none' | 'zstd')
+        const output = generationLogPath(join(root, 'recovered'), '/test', 'old-merge' as never, 3, compression as 'none' | 'zstd')
         await mkdir(dirname(output), { recursive: true })
         expect(await migrateMergeHistory(source, { output })).toMatchObject({
           mode: 'written', repairedMessages: 1, sourceSha256: checked.sourceSha256,

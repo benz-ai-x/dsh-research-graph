@@ -393,14 +393,14 @@ describe('Session Graph Host integration', () => {
     const header = structuredClone(target.header)
     const events = structuredClone(target.snapshotEvents())
     await first.sessionProjectionCache.write(target)
-    expect(first.sessionProjectionCache.cachedSnapshot(header, target.inheritedEventCount)?.values.sessionGraphMerge)
+    expect(first.sessionProjectionCache.cachedSnapshot(header)?.values.sessionGraphMerge)
       .toMatchObject({ operationId: 'operation-1', contextEventSeq: 2 })
 
     await first.fiber.dispose()
     contexts.splice(contexts.indexOf(first), 1)
 
     const restarted = await durableContext(root)
-    expect(restarted.sessionProjectionCache.cachedSnapshot(header, target.inheritedEventCount)?.values.sessionGraphMerge)
+    expect(restarted.sessionProjectionCache.cachedSnapshot(header)?.values.sessionGraphMerge)
       .toEqual({
         operationId: 'operation-1',
         contextEventSeq: 2,
@@ -490,8 +490,7 @@ describe('Session Graph Host integration', () => {
     expect(queued[0]).toMatchObject({
       role: 'user',
       source: {
-        kind: 'plugin',
-        plugin: 'dsh-session-graph',
+        kind: 'dsh-session-graph',
         form: 'notice',
         summary: 'Session Merge source snapshot request.',
       },

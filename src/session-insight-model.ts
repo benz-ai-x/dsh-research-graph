@@ -1,6 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { SESSION_GRAPH_MESSAGE_KIND } from './message-source.ts'
 import type { ResolvedConfig } from './config.ts'
 import { parseSessionDigestOutput, SessionDigestError, SessionDigestLengthError, SESSION_DIGEST_LIMITS, type SessionDigestModelRequest } from './session-digest.ts'
 import { SESSION_TITLE_MAX_LENGTH } from './session-title.ts'
@@ -62,7 +63,7 @@ export async function callSessionInsightModel(
   const callSignal = AbortSignal.any([signal, timeout])
   const message = createUserMessage({
     content: [{ type: 'text', text: promptFor(request) }],
-    source: { kind: 'plugin', plugin: 'dsh-session-graph' },
+    source: { kind: SESSION_GRAPH_MESSAGE_KIND },
   })
   const assembler = new BlockAssembler()
   for await (const chunk of ctx.llm.stream({

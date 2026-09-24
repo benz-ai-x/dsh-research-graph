@@ -1,6 +1,7 @@
 /** Pure projection of one explicit Session Merge from durable Session events. */
 
 import { z } from 'zod'
+import { SESSION_GRAPH_MESSAGE_KIND } from './message-source.ts'
 
 /** Structurally readable Session event consumed by the projection. */
 export interface SessionMergeProjectionEvent {
@@ -150,8 +151,13 @@ export function sessionMergeMarkerOfEvent(
   if (source?.kind === 'session-graph-merge' && source.version === 1) {
     return mergeMarkerFields(source)
   }
-  if (source?.kind !== 'plugin' || source.plugin !== 'dsh-session-graph'
-    || !Array.isArray(message?.content)) return undefined
+  // Ownership spans three durable shapes: the current producer kind, the
+  // V3→V4 migration's `plugin:` prefix for the same producer, and the legacy
+  // V3 plugin envelope kept by unmigrated fixtures and older tooling.
+  const owned = source?.kind === SESSION_GRAPH_MESSAGE_KIND
+    || source?.kind === `plugin:${SESSION_GRAPH_MESSAGE_KIND}`
+    || (source?.kind === 'plugin' && source.plugin === SESSION_GRAPH_MESSAGE_KIND)
+  if (!owned || !Array.isArray(message?.content)) return undefined
   const block = recordOf(message.content.at(-1))
   if (block?.type !== 'text' || typeof block.text !== 'string') return undefined
   let marker: Readonly<Record<string, unknown>> | undefined

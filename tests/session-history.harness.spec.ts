@@ -12,6 +12,12 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    fixture: { kind: 'fixture' }
+  }
+}
+
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup()
@@ -135,7 +141,7 @@ describe('Session History public Host interface', () => {
       source: { kind: 'user' }, content: [{ type: 'image', attachment: image }],
     }), { surfaceOp: 'append' })
     session.append('user/message', createUserMessage({
-      source: { kind: 'plugin', plugin: 'fixture' },
+      source: { kind: 'fixture' },
       content: [{ type: 'text', text: 'Injected context must stay out.' }],
     }), { surfaceOp: 'append' })
     session.append('assistant/message', {

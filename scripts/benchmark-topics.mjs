@@ -7,7 +7,7 @@ import { layoutSessionGraph } from '../src/client/layout.ts'
 import { deriveCanvasPresentation } from '../src/client/canvas-presentation.ts'
 
 const list = byId => ({ byId, ids: Object.keys(byId), phase: 'ready', current: undefined,
-  subagentsByParent: {}, jobsBySession: {}, currentAddress: undefined })
+  projectionsBySession: {} })
 const fixture = researchTopicFixture()
 const rows = list(fixture.rows)
 const samples = []

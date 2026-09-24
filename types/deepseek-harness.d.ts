@@ -60,20 +60,25 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
     }>
   }
 
+  export interface SessionProjectionSnapshot {
+    readonly values: Readonly<{
+      readonly subagentCatalog?: readonly {
+        readonly id: import('@deepseek-ai/dsh-session/types').SessionId
+        readonly createdAt: number
+        readonly mode: 'one-shot' | 'continuable' | 'unknown'
+        readonly label?: string
+      }[]
+    }>
+    readonly state: 'idle' | 'loading' | 'ready' | 'error'
+    readonly error: unknown
+  }
+
   export interface SessionListState {
     readonly ids: import('@deepseek-ai/dsh-session/types').SessionId[]
     readonly byId: Record<import('@deepseek-ai/dsh-session/types').SessionId, SessionSummary>
     readonly current: import('@deepseek-ai/dsh-session/types').SessionId | undefined
     readonly phase: string
-    readonly subagentsByParent: Readonly<Record<string, {
-      readonly state: 'idle' | 'loading' | 'ready' | 'error'
-      readonly entries: readonly (
-        | { readonly id: import('@deepseek-ai/dsh-session/types').SessionId; readonly kind: 'child'; readonly mode: 'one-shot' | 'continuable' }
-        | { readonly id: import('@deepseek-ai/dsh-session/types').SessionId; readonly kind: 'diagnostic' }
-      )[]
-    }>>
-    readonly jobsBySession: Readonly<Record<string, unknown>>
-    readonly currentAddress: unknown
+    readonly projectionsBySession: Readonly<Record<string, SessionProjectionSnapshot>>
   }
 }
 

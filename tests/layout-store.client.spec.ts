@@ -25,9 +25,7 @@ function laidFor(byId: Record<string, SessionSummary>) {
     byId,
     current: undefined,
     phase: 'ready',
-    subagentsByParent: {},
-    jobsBySession: {},
-    currentAddress: undefined,
+    projectionsBySession: {},
   }
   const scope = resolveGraphScope(id(Object.keys(byId)[0] ?? ''), list, {
     items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,

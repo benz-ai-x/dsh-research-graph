@@ -15,7 +15,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { FC, ReactNode } from 'react'
-import { bindSnapshotSelector, stubSettingsScope } from '@deepseek-ai/dsh-client-test-runtime'
+import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
@@ -1277,9 +1277,7 @@ function listState(byId: Record<string, SessionSummary>): SessionListState {
     byId,
     current: undefined,
     phase: 'ready',
-    subagentsByParent: {},
-    jobsBySession: {},
-    currentAddress: undefined,
+    projectionsBySession: {},
   }
 }
 
@@ -1356,12 +1354,14 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const sessionsStore = createSnapshotStore(listState(byId))
   const open = vi.fn()
   const openSubagent = vi.fn()
-  const refreshSubagents = vi.fn(async (parentId: SessionId) => {
+  const refreshProjections = vi.fn(async (parentId: SessionId) => {
     const current = sessionsStore.getSnapshot()
-    const entries = Object.values(current.byId).filter(row => row.origin === 'subagent' && row.parentId === parentId).map(row => ({
-      id: row.id, kind: 'child' as const, mode: 'one-shot' as const,
+    const subagentCatalog = Object.values(current.byId).filter(row => row.origin === 'subagent' && row.parentId === parentId).map(row => ({
+      id: row.id, createdAt: row.updatedAt, mode: 'one-shot' as const,
     }))
-    sessionsStore.set({ ...current, subagentsByParent: { ...current.subagentsByParent, [parentId]: { state: 'ready', entries, error: null } } } as SessionListState)
+    sessionsStore.set({ ...current, projectionsBySession: { ...current.projectionsBySession,
+      [parentId]: { state: 'ready', error: null, values: { subagentCatalog } },
+    } } as SessionListState)
   })
   const fork = vi.fn(async () => id('branched'))
   const create = vi.fn(async () => id('merged'))
@@ -1395,7 +1395,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   }))
   ctx.provide('sessions', {
     list: sessionsStore,
-    refreshSubagents,
+    refreshProjections,
     fork,
     create,
     binding: () => ({ session: { rename } }),
@@ -1435,13 +1435,13 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
     membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
   ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse, relations: relationsReuse } as never)
   ctx.provide('remote.sessionGraphBranch', { prepare: prepareBranch, submit: submitBranch, read: readBranch } as never)
-  ctx.provide('settingsScope', { bind: () => stubSettingsScope().scope } as never)
+  ctx.provide('configForms', { get: () => undefined } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber
   return {
-    ctx, slots, fiber, sessionsStore, open, openSubagent, refreshSubagents, fork, create, rename, generateDigest, generateTitle, submitMerge, readHistory, searchDiscussion,
+    ctx, slots, fiber, sessionsStore, open, openSubagent, refreshProjections, fork, create, rename, generateDigest, generateTitle, submitMerge, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge, prepareExport,
     prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse, prepareBranch, submitBranch, readBranch,
@@ -1489,6 +1489,7 @@ function mount(
   const useInput = bindSnapshotSelector(createSnapshotStore<InputState>({
     draft: '', imageIds: [], draftRev: 0, phase: 'plain', occurrences: [], queue: [],
   }))
+  const useInspectCall = bindSnapshotSelector(createSnapshotStore<((callId: string) => void) | undefined>(undefined))
   const inputActions: InputActions = {
     setDraft: vi.fn(),
     addImages: vi.fn(() => false),
@@ -1570,6 +1571,7 @@ function mount(
         renderSlot={renderSlot}
         bindDraftMirror={() => () => {}}
         openView={openView}
+        useInspectCall={useInspectCall}
         useInput={useInput}
         inputActions={inputActions}
       />
@@ -2711,14 +2713,13 @@ describe('cluster drag', () => {
 })
 
 describe('relayout button', () => {
-  it.each(['stale', 'diagnostic'] as const)('does not open a subagent with a %s catalog entry', async mode => {
+  it.each(['stale', 'missing'] as const)('does not open a subagent with a %s catalog entry', async mode => {
     const b = await bench({ root: session('root'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
-    b.refreshSubagents.mockImplementationOnce(async () => {
+    b.refreshProjections.mockImplementationOnce(async () => {
       const current = b.sessionsStore.getSnapshot()
-      b.sessionsStore.set({ ...current, subagentsByParent: { root: {
+      b.sessionsStore.set({ ...current, projectionsBySession: { ...current.projectionsBySession, root: {
         state: mode === 'stale' ? 'error' : 'ready', error: null,
-        entries: mode === 'stale' ? [{ id: id('delegate'), kind: 'child', mode: 'one-shot' }]
-          : [{ id: id('delegate'), kind: 'diagnostic', reason: 'unavailable' }],
+        values: { subagentCatalog: mode === 'stale' ? [{ id: id('delegate'), createdAt: 1, mode: 'one-shot' }] : [] },
       } } } as SessionListState)
     })
     mount(b.slots, b.sessionsStore, 'root')
@@ -2734,7 +2735,7 @@ describe('relayout button', () => {
 
   it('keeps a failed subagent catalog read local and retries with the catalog mode', async () => {
     const b = await bench({ root: session('root'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
-    b.refreshSubagents.mockRejectedValueOnce(new Error('catalog unavailable'))
+    b.refreshProjections.mockRejectedValueOnce(new Error('catalog unavailable'))
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
@@ -2744,10 +2745,10 @@ describe('relayout button', () => {
     await screen.findByText(zh['panel.subagentOpenError'])
     expect(b.open).not.toHaveBeenCalled()
     expect(b.openSubagent).not.toHaveBeenCalled()
-    b.refreshSubagents.mockImplementationOnce(async () => {
+    b.refreshProjections.mockImplementationOnce(async () => {
       const current = b.sessionsStore.getSnapshot()
-      b.sessionsStore.set({ ...current, subagentsByParent: { root: { state: 'ready', error: null,
-        entries: [{ id: id('delegate'), kind: 'child', mode: 'continuable' }],
+      b.sessionsStore.set({ ...current, projectionsBySession: { ...current.projectionsBySession, root: { state: 'ready', error: null,
+        values: { subagentCatalog: [{ id: id('delegate'), createdAt: 1, mode: 'continuable' }] },
       } } } as SessionListState)
     })
     fireEvent.click(task)
@@ -2758,7 +2759,7 @@ describe('relayout button', () => {
   it('does not open a late subagent catalog result after the inspector selection changes', async () => {
     const b = await bench({ root: session('root'), other: session('other'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
     const pending = Promise.withResolvers<void>()
-    b.refreshSubagents.mockReturnValueOnce(pending.promise)
+    b.refreshProjections.mockReturnValueOnce(pending.promise)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
     fireEvent.click(nodeButton('root'))
