@@ -65,8 +65,8 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.1.6-alpha.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.6-alpha.2)，npm `next` |
-| 适配宿主 | **DSH 0.1.6-alpha.2 · Web**，Node.js `^22.19.0 \|\| >=24.0.0` |
+| 当前插件 | [0.1.7-rc.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.1.7-rc.1)，npm `next` |
+| 适配宿主 | **DSH 0.1.7-rc.1 · Web**，Node.js `^22.19.0 \|\| >=24.0.0` |
 | 数据保存 | 研究数据保存在 DSH Host；工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出不调用模型；AI 生成与新讨论按需调用 |
 | Agent 能力 | 模型、工具、预设与 Agent 执行由 DSH 提供；插件不内置预设或 Agent Team 启动器。[详细说明](docs/user-guide.zh.md#dsh-与-agent-预设) |
@@ -76,10 +76,10 @@ flowchart LR
 
 ## 快速开始
 
-需要 **DSH 0.1.6-alpha.2**，并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
+需要 **DSH 0.1.7-rc.1**，并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.6-alpha.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.1.7-rc.1
 dsh web
 ```
 
@@ -87,4 +87,4 @@ dsh web
 
 ## 文档与支持
 
-[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.1.6-alpha.2.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.1.7-rc.1.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
