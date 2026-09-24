@@ -122,7 +122,7 @@ export function apply(ctx) {
     assert.deepEqual(merge.sources.map(source => source.sessionId), sourceIds)
     const target = await waitForTurn(targetSessionId)
     const marker = target.snapshotEvents().find(event => event.type === 'user/message'
-      && event.data.source.kind === 'plugin' && event.data.source.plugin === 'dsh-session-graph')
+      && event.data.source.kind === 'dsh-session-graph')
     assert.ok(marker)
     const digest = await ctx.sessionGraphDigest.generate({ sessionId: sourceIds[0], refresh: true }, signal)
     assert.equal(digest.kind, 'ready')
