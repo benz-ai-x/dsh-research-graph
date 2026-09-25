@@ -42,6 +42,9 @@ export function apply(ctx) {
     '两种观点可以组合为按数据风险分层的缓存策略：展示数据优先优化延迟，权限数据优先保持一致性。\n\n下一步可以做一个小实验：保持相同请求负载，分别测量命中与失效路径的延迟，并加入权限撤销事件，检查是否仍能访问。两个维度分别判定，不合成一个模糊的“缓存效果”。\n\n新的问题：当权限校验服务不可用时，哪些请求应该暂停，哪些可以返回降级结果？这需要结合业务风险继续讨论。',
   ]
   class DemoAdapter extends LlmAdapter {
+    async listModels() {
+      return [{ provider, id: model, name: 'Demo' }]
+    }
     async *stream(options) {
       options.signal?.throwIfAborted()
       const userText = options.messages.filter(message => message.role === 'user').flatMap(message => message.content)

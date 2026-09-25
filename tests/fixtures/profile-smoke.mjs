@@ -14,6 +14,9 @@ export function apply(ctx) {
   let calls = 0
   const modelRequests = []
   class FixtureAdapter extends LlmAdapter {
+    async listModels() {
+      return [{ provider: 'graph-fixture', id: 'fixture', name: 'Fixture' }]
+    }
     async *stream(options) {
       options.signal?.throwIfAborted()
       calls += 1
