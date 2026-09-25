@@ -6,7 +6,7 @@ Updated: 2026-09-25 (Asia/Shanghai)
 
 ## 下一会话接手入口
 
-用户明确要求交接文档保存在本项目文件夹；后续 `$handoff` 直接原地更新本文件。DSH **0.1.7-rc.1** 线的首次兼容适配已完成并发布为 **v0.1.7-rc.1**（2026-09-24）；GitHub Release、npm `next` 和主工作树均已同步。随后（2026-09-25）：CI 年龄门 env 已按窗口还原（[PR #52](https://github.com/benz-ai-x/dsh-research-graph/pull/52)，合并为 `46baebb`）；**会话投影事实**（节点轮数徽标、悬停最近提问、检查器会话统计、冷启动标题规避）已开发验收并经 [PR #53](https://github.com/benz-ai-x/dsh-research-graph/pull/53) 合并为 `2d1e12a`，**尚未发布**（版本仍为 `0.1.7-rc.1`，发布待 `release` 指令，递增为 `0.1.7-rc.1.1`）。接手时先读下方「当前目录与启动」「当前状态」与「当前边界与后续」；「历史记录」保留当时状态，不能覆盖当前结论。
+用户明确要求交接文档保存在本项目文件夹；后续 `$handoff` 直接原地更新本文件。DSH **0.1.7-rc.2** 线的首次兼容适配已完成（2026-09-25）：分支 `feat/dsh-0.1.7-rc.2` / `b9b0c9c`，[PR #54](https://github.com/benz-ai-x/dsh-research-graph/pull/54) 已开且同 head 四项 CI 全绿，**待用户合并指令**；发布（插件版本 `0.1.7-rc.2`，携带 PR #53 的会话投影事实）待 `release` 指令，原 `0.1.7-rc.1.1` 递增计划被新线取代。此前 DSH **0.1.7-rc.1** 线的首次兼容适配已发布为 **v0.1.7-rc.1**（2026-09-24）；GitHub Release、npm `next` 和主工作树均已同步。接手时先读下方「当前目录与启动」「当前状态」与「当前边界与后续」；「历史记录」保留当时状态，不能覆盖当前结论。
 
 - 用户优先级：图谱使用体验第一，知识库归纳第二。[Issue #32](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 的 P5 两项仍暂缓；新工作以用户下一条要求及 Issue 当前范围为准。
 - 功能与验收入口：[0.1.7-rc.1 发布验收](docs/reviews/release-0.1.7-rc.1.md)，记录该线首次适配的三处契约跟随与官方包验证；最新功能验收为[会话投影事实](docs/reviews/projection-facts.md)（已合并未发布）。早期功能验收保留 [截图可读性修复](docs/reviews/graph-readability.md) 与 [窄缝连线修复](docs/reviews/tight-channels.md)。复现场景、测试结果和未定位现象已在其中记录；继续调查时读取原始证据，不将未定位现象视为已修复。
@@ -21,10 +21,10 @@ Updated: 2026-09-25 (Asia/Shanghai)
 
 | 用途 | 当前路径与状态 |
 | --- | --- |
-| 主工作树、唯一实时交接 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`；`main`；产品发布基线 `f5bc40c`（插件 `0.1.7-rc.1`，tag `v0.1.7-rc.1`），其后已合并 PR #52（CI 年龄门还原）与 PR #53（会话投影事实，未发布），当前 head `2d1e12a`；后续文档提交以 `git log -1 --oneline` 核对 |
+| 主工作树、唯一实时交接 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`；工作树当前在适配分支 `feat/dsh-0.1.7-rc.2` / `b9b0c9c`（[PR #54](https://github.com/benz-ai-x/dsh-research-graph/pull/54)，四项 CI 全绿，待合并）；`main` 产品发布基线 `f5bc40c`（插件 `0.1.7-rc.1`，tag `v0.1.7-rc.1`），其后已合并 PR #52（CI 年龄门还原）与 PR #53（会话投影事实，将随 0.1.7-rc.2 发布），另有文档提交 `a38cdfd`（新增 dsh-compat-fix 技能）；后续提交以 `git log -1 --oneline` 核对 |
 | 未合并原型工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-prototype`；`prototype/research-workbench` / `b43b69d`，干净且已推送；该树交接仍是历史副本 |
 | 上一版发布工作树 | `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-release-rc.2.8`；`release/0.1.5-rc.2.8` / `5c11566`，干净保留验收证据，树内容与发布提交一致；本轮 0.1.6-alpha.2 在根工作树完成，未另建发布工作树 |
-| 匹配 Harness | `/Users/pc2026/DSH-Space/deepseek-harness`；官方 `dsh-v0.1.7-rc.1` / `46a7f68b09`，master 与 origin 同步，native/lib/web 构建已在该 tag 完成 |
+| 匹配 Harness | `/Users/pc2026/DSH-Space/deepseek-harness`；官方 `dsh-v0.1.7-rc.2` / `477b4f4205`，工作树干净，native/lib/web 构建已在该 tag 完成 |
 
 - 在主工作树运行 `pnpm preview:dsh`，在原型工作树运行 `pnpm prototype:dsh`。两套启动器优先使用 `DSH_HARNESS_ROOT`；未配置或指定目录不存在时，依次查找仓库相邻目录、上一级目录中的 `deepseek-harness-<目标 DSH 版本>`。找到但版本不匹配时直接报错；兼容目标读取精确 LLM peer 依赖。
 - 集成检查仍需显式指定宿主：`DSH_HARNESS_ROOT=/Users/pc2026/DSH-Space/deepseek-harness pnpm check:harness`；`smoke:harness` 同理。
@@ -44,7 +44,9 @@ Updated: 2026-09-25 (Asia/Shanghai)
 
 ## 当前状态
 
-- 会话投影事实已开发验收并合并（2026-09-25）：[PR #53](https://github.com/benz-ai-x/dsh-research-graph/pull/53) 合并为 `2d1e12acda6200c9b977ec937f1948c95341bd66`，合并树与已验收 head `87a1377` 完全一致；**未发布**，包版本保持 `0.1.7-rc.1`，发布按政策递增为 `0.1.7-rc.1.1`、待 `release` 指令。功能：进入图谱时对 canvas 会话批量读取免激活投影（`refreshProjections`，每批 6 个、宿主单 flight、失败静默）；卡片元信息行新增「N 轮」与悬停最近提问预览（卡片几何不变）；检查器新增**会话统计**区块（模型、轮/步与耗时、累计 tokens、上下文占用文本、目标与待办进度、最近问答预览）；同一读取走宿主冷路径，未打开过的分支讨论在图谱中恢复持久标题（冷启动目录名现象对图谱用户不可见，宿主根因仍未定位，见「当前边界与后续」）。审查决定：`agentPreset` 投影报告的是含默认值的生效预设，卡片徽章会全图重复同一值，已从卡片移除、仅保留节点模型字段。设计见 [ADR 0017](docs/adr/0017-session-projection-facts.md)，验收（含三张实拍截图）见 [docs/reviews/projection-facts.md](docs/reviews/projection-facts.md)。
+- DSH **0.1.7-rc.2** 首次兼容适配已完成（2026-09-25）：分支 `feat/dsh-0.1.7-rc.2`，提交 `b9b0c9c1ecfa20a4e25f87dd57d776ee03ad1f6f`，[PR #54](https://github.com/benz-ai-x/dsh-research-graph/pull/54) 已开，同 head [四项 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36082035626)（Node 22.19／24／26 与 Matching DSH release）全部通过；**待用户合并指令**，发布待 `release` 指令。上游 rc.1→rc.2 共 3429 文件变更，插件实际依赖面零破坏性变化（dsh-llm 消息模型、Session Controller 客户端、Typert、格式目录、注入服务名、Conversation 挂钩、`plugin-compatibility.ts` 全部无 diff）；两处真实 breaking（`workspace-controller.initializeDefault` 删请求参数、`AgentPresetRoster.modeSelectionEnabled` 删除）插件均未引用。唯一触及项：`selectModel` 新增模型目录成员校验（`session/model-unavailable`），不公开广告的模型不可选；两处 fixture 适配器（`tests/fixtures/profile-smoke.mjs`、`scripts/workbench/fixture.mjs`）经 `listModels` 公开固定模型，与上游自有 fixture 一致。插件版本与全部直接 `@deepseek-ai/dsh-*` 依赖钉到 `0.1.7-rc.2`；ci.yml／publish.yml 临时恢复 `pnpm_config_minimum_release_age=0`（rc.2 各包 2026-09-24 21:58 本地发布，未满 24 小时，窗口过后按 PR #52 方式还原）。`pnpm peers check` 的 cordis `~4.0.4` 警告为 rc.1 既有状态，非本轮漂移。
+  - 验证：`pnpm run check` **231 项 / 26 文件**；官方 `dsh-v0.1.7-rc.2`（`477b4f4205`，native/lib/web 已在该 tag 重新构建）四个编译面与 **347 项 / 23 文件 Harness** 全部通过；本地打包实包通过隔离 profile 安装／离线恢复／研究读写／移除验收，固定模型 **19 次**（首轮因 fixture 未公开目录模型失败，修复后复跑通过）；真实浏览器隔离预览核对徽标 `Research Graph v0.1.7-rc.2 · local-3920560a`、工作区图（轮数徽标、检查器会话统计）与主题图来源／沿用连线渲染；预览已停止，样例数据保留在主树 `.artifacts/workbench-dsh/`（本轮复用 0.1.5 时代保留 profile，顺带验证旧数据在 rc.2 下正常加载；其中「workspace」空会话为历史遗留，标题按目录名回退属已知冷启动现象）。
+- 会话投影事实已开发验收并合并（2026-09-25）：[PR #53](https://github.com/benz-ai-x/dsh-research-graph/pull/53) 合并为 `2d1e12acda6200c9b977ec937f1948c95341bd66`，合并树与已验收 head `87a1377` 完全一致；**未单独发布**，将随 `0.1.7-rc.2` 一起发布（原 `0.1.7-rc.1.1` 递增计划被新 DSH 线取代）。功能：进入图谱时对 canvas 会话批量读取免激活投影（`refreshProjections`，每批 6 个、宿主单 flight、失败静默）；卡片元信息行新增「N 轮」与悬停最近提问预览（卡片几何不变）；检查器新增**会话统计**区块（模型、轮/步与耗时、累计 tokens、上下文占用文本、目标与待办进度、最近问答预览）；同一读取走宿主冷路径，未打开过的分支讨论在图谱中恢复持久标题（冷启动目录名现象对图谱用户不可见，宿主根因仍未定位，见「当前边界与后续」）。审查决定：`agentPreset` 投影报告的是含默认值的生效预设，卡片徽章会全图重复同一值，已从卡片移除、仅保留节点模型字段。设计见 [ADR 0017](docs/adr/0017-session-projection-facts.md)，验收（含三张实拍截图）见 [docs/reviews/projection-facts.md](docs/reviews/projection-facts.md)。
   - 验证：`pnpm run check` **231 项 / 26 文件**；官方 `dsh-v0.1.7-rc.1` 四个编译面与 **347 项 / 23 文件 Harness** 全部通过（新增真实宿主栈冷会话标题恢复 spec：列表行由目录名回退恢复为持久标题，ready 后重复读取零 RPC）；真实浏览器隔离 preview（固定演示模型）覆盖工作区图 1280px／约 783px、主题图、检查器统计、冷启动刷新恢复标题与事实、Relayout，无页面错误。英文界面由 locale 键单测覆盖，深色主题未重新截图。
   - 开发工作树 `/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-projection-facts`（`feat/graph-projection-facts`）保留，隔离 preview 已停止、样例数据留在其 `.artifacts/workbench-dsh/`；用户日常 profile 未改。本轮五份既有未跟踪研究资料保持原样。
 - CI 年龄门 env 已还原（2026-09-25）：0.1.7-rc.1 各包发布满 24 小时后，[PR #52](https://github.com/benz-ai-x/dsh-research-graph/pull/52) 移除 ci.yml／publish.yml 的 `pnpm_config_minimum_release_age=0`，合并为 `46baebb`；PR 与合并后 main CI 四项均在无绕过下通过，本地 `env -u pnpm_config_minimum_release_age pnpm install --frozen-lockfile` 亦通过。`pnpm-workspace.yaml` 的精确豁免条目保留作记录。
@@ -71,7 +73,7 @@ Updated: 2026-09-25 (Asia/Shanghai)
 | 布局与视口 | 重新布局保留折叠、阅读和视口，重复操作保留有效撤销；要看全图使用适应。主题修改需显式保存排列才会同步。 |
 | Issue #32 | 2026-09-14 再次核对仍为 OPEN；P5.1／P5.2 结构化方向与假设两项暂缓、未完成。自由问题和轻量提示已交付，不能据此补勾 P5。 |
 | 未合并原型 | `prototype/research-workbench` 仍是独立原型，不把其能力或旧启动状态视为 main 已发布内容。 |
-| CI 安装年龄门 | 已于 2026-09-25 还原（PR #52）：窗口过后 ci.yml／publish.yml 不再携带 `pnpm_config_minimum_release_age=0`，PR 与 main CI 均验证通过。若未来同日适配新 DSH 版本，需按同样方式临时恢复该 env（pnpm 11.7 冻结安装校验不读 `minimumReleaseAgeExclude`；豁免条目仍在 `pnpm-workspace.yaml`）。 |
+| CI 安装年龄门 | 2026-09-25 已临时恢复：rc.2 各包发布未满 24 小时，适配分支 `feat/dsh-0.1.7-rc.2` 的 ci.yml／publish.yml 重新携带 `pnpm_config_minimum_release_age=0`（pnpm 11.7 冻结安装校验不读 `minimumReleaseAgeExclude`；豁免条目仍在 `pnpm-workspace.yaml`）。窗口过后（2026-09-24 21:58 本地 + 24h）按 PR #52 同样方式还原。 |
 | 文档与研究资料 | 本轮提交覆盖发布验收记录、双语 README／用户指南与根交接；`docs/research/` 三份研究记录、`docs/reports/` 与 `architecture.svg` 等未跟踪资料继续保留本地，不纳入提交。 |
 
 当前文档职责见 [分工表](docs/agents/domain.md#documentation-map)。本地的 [DSH Agent 预设与研图 HTML 报告](docs/reports/dsh-agent-presets-research-graph-2026-09-14.html) 是先前任务生成、尚未纳入 Git 的阅读材料，不作为当前版本验收依据。
