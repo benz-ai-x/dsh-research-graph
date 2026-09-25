@@ -52,7 +52,7 @@ Version 0.1.7-rc.1 with demo data. Click the image for the full-resolution scree
 
 | Capability | What you can do |
 | --- | --- |
-| **Research graph** | Organize discussions, inspect branches and merges; drag, collapse, and relayout |
+| **Research graph** | Organize discussions, inspect branches and merges; drag, collapse, and relayout; cards show turn counts and the inspector reports Session stats |
 | **Source tracing** | Search discussion text and return to the exact original turns |
 | **Knowledge capture** | Save conclusions, conditions, and open questions; edit through new revisions |
 | **AI analysis** | Extract selected discussion and compare 2–3 materials; review before saving |

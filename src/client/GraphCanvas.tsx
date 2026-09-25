@@ -146,6 +146,13 @@ function displayStatusLabel(status: DisplayStatus | undefined, t: Translate): st
   return ''
 }
 
+/** Compact wall-time label for projection stats (340ms / 8.2s / 2m 5s). */
+function durationLabel(ms: number): string {
+  if (ms < 1_000) return `${String(Math.round(ms))}ms`
+  if (ms < 60_000) return `${(ms / 1_000).toFixed(1)}s`
+  return `${String(Math.floor(ms / 60_000))}m ${String(Math.round((ms % 60_000) / 1_000))}s`
+}
+
 /** Node pointer-gesture callbacks owned by the canvas (drag + click routing). */
 interface NodeGestureHandlers {
   onPointerDown: (event: React.PointerEvent<HTMLElement>) => void
@@ -202,7 +209,7 @@ function NodeCard({
         data-node-kind={node.kind ?? 'session'}
         data-display-status={session?.displayStatus}
         data-merge-selected={mergeOrder}
-        title={`${node.title}${identity === undefined ? '' : `\n${t('node.identity', { id: node.id })}`}`}
+        title={`${node.title}${identity === undefined ? '' : `\n${t('node.identity', { id: node.id })}`}${session?.lastPromptPreview === undefined ? '' : `\n${session.lastPromptPreview}`}`}
         aria-current={session?.viewed ? 'true' : undefined}
         aria-selected={selected || mergeOrder !== undefined}
         onPointerDown={gestures.onPointerDown}
@@ -244,6 +251,9 @@ function NodeCard({
                   {badge}
                 </span>
               )
+              : null}
+            {session !== undefined && session.turns !== undefined && session.turns > 0
+              ? <span className={styles.badge}>{t('node.turns', { count: session.turns })}</span>
               : null}
           </span>
         </span>
@@ -540,6 +550,11 @@ function SelectedSessionPanel({
   const status = displayStatusLabel(node.displayStatus, t)
   const inherited = node.mergeSources.length === 0 && !!node.inheritedMergeSources?.length
   const mergeSources = inherited ? node.inheritedMergeSources! : node.mergeSources
+  const stats = node.sessionStats
+  const noFacts = node.modelLabel === undefined && stats === undefined && node.tokenTotal === undefined
+    && node.contextPressurePercent === undefined && node.goalLabel === undefined
+    && node.todoProgress === undefined && node.lastPromptPreview === undefined
+    && node.lastResponsePreview === undefined
   const sourceList = <ol>{mergeSources.map((source, index) => <li key={source.sessionId}>
     <span className={styles.mergeSourceOrder}>{index + 1}</span>
     <span className={styles.mergeRelationSource}>{mergeSourceTitles.get(source.sessionId)
@@ -632,6 +647,54 @@ function SelectedSessionPanel({
         ? <div className={styles.panelError} role="alert">{t('panel.branchError')}</div>
         : null}</>}
     >
+      {noFacts
+        ? null
+        : (
+          <section className={styles.sessionFacts} aria-label={t('facts.title')} data-testid="session-graph-facts">
+            <div className={styles.mergeRelationsTitle}>{t('facts.title')}</div>
+            {node.modelLabel === undefined
+              ? null
+              : <div className={styles.factRow}>{t('facts.model', { label: node.modelLabel })}</div>}
+            {stats === undefined
+              ? null
+              : (
+                <div className={styles.factRow}>
+                  {t('facts.turnsSteps', { turns: stats.turns, steps: stats.steps })}
+                  {' · '}
+                  {t('facts.timing', { llm: durationLabel(stats.llmMs), tool: durationLabel(stats.toolMs) })}
+                </div>
+              )}
+            {node.tokenTotal === undefined && node.contextPressurePercent === undefined
+              ? null
+              : (
+                <div className={styles.factRow}>
+                  {[
+                    node.tokenTotal === undefined ? undefined : t('facts.tokens', { count: node.tokenTotal }),
+                    node.contextPressurePercent === undefined ? undefined : t('facts.context', { percent: node.contextPressurePercent }),
+                  ].filter(part => part !== undefined).join(' · ')}
+                </div>
+              )}
+            {node.goalLabel === undefined
+              ? null
+              : (
+                <div className={styles.factRow}>
+                  <span className={styles.factText}>{t('facts.goal', { objective: node.goalLabel })}</span>
+                  {node.goalPhase === undefined
+                    ? null
+                    : <span className={styles.panelStatus}>{t(`facts.phase.${node.goalPhase}`)}</span>}
+                </div>
+              )}
+            {node.todoProgress === undefined
+              ? null
+              : <div className={styles.factRow}>{t('facts.todos', node.todoProgress)}</div>}
+            {node.lastPromptPreview === undefined
+              ? null
+              : <div className={styles.factRow}>{t('facts.lastPrompt', { text: node.lastPromptPreview })}</div>}
+            {node.lastResponsePreview === undefined
+              ? null
+              : <div className={styles.factRow}>{t('facts.lastResponse', { text: node.lastResponsePreview })}</div>}
+          </section>
+        )}
       {branchedFrom === undefined
         ? null
         : <div className={styles.panelRelation}>{t('node.branchedFrom', { name: branchedFrom })}</div>}

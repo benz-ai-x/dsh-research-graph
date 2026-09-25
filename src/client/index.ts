@@ -267,6 +267,9 @@ async function registerUi(ctx: Context): Promise<void> {
       openSession: (id: SessionId) => {
         ctx.uiWorkspace.openSession(id)
       },
+      refreshSessionProjections: async (id: SessionId) => {
+        await ctx.sessions.refreshProjections(id)
+      },
       openSubagent: async (parentId, childId, signal) => {
         signal.throwIfAborted()
         await ctx.sessions.refreshProjections(parentId)

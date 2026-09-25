@@ -96,6 +96,7 @@ export type SessionGraphKey =
   | 'node.running'
   | 'node.subagents'
   | 'node.branchedFrom'
+  | 'node.turns'
   | 'time.now'
   | 'time.minutes'
   | 'time.hours'
@@ -152,6 +153,20 @@ export type SessionGraphKey =
   | 'panel.mergeUnavailable'
   | 'panel.mergeCapturedThrough'
   | 'panel.mergeCompleteSnapshot'
+  | 'facts.title'
+  | 'facts.model'
+  | 'facts.turnsSteps'
+  | 'facts.timing'
+  | 'facts.tokens'
+  | 'facts.context'
+  | 'facts.goal'
+  | 'facts.phase.active'
+  | 'facts.phase.paused'
+  | 'facts.phase.blocked'
+  | 'facts.phase.complete'
+  | 'facts.todos'
+  | 'facts.lastPrompt'
+  | 'facts.lastResponse'
   | 'digest.title'
   | 'digest.intro'
   | 'digest.generate'
@@ -291,6 +306,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'node.running': '{count} 运行中',
   'node.subagents': '{count} 子代理',
   'node.branchedFrom': '分支自：{name}',
+  'node.turns': '{count} 轮',
   'time.now': '刚刚',
   'time.minutes': '{n}分钟',
   'time.hours': '{n}小时',
@@ -347,6 +363,20 @@ export const zh: Record<SessionGraphKey, string> = {
   'panel.mergeUnavailable': '不可用会话（{id}）',
   'panel.mergeCapturedThrough': '快照至事件 {seq}',
   'panel.mergeCompleteSnapshot': '完整快照',
+  'facts.title': '会话统计',
+  'facts.model': '模型 {label}',
+  'facts.turnsSteps': '{turns} 轮 · {steps} 步',
+  'facts.timing': '模型 {llm} · 工具 {tool}',
+  'facts.tokens': '累计 {count} tokens',
+  'facts.context': '上下文占用 {percent}',
+  'facts.goal': '目标：{objective}',
+  'facts.phase.active': '进行中',
+  'facts.phase.paused': '已暂停',
+  'facts.phase.blocked': '已阻塞',
+  'facts.phase.complete': '已完成',
+  'facts.todos': '待办 {completed}/{total}',
+  'facts.lastPrompt': '最近提问：{text}',
+  'facts.lastResponse': '最近回复：{text}',
   'digest.title': '会话摘要',
   'digest.intro': '用简短要点回顾结论、关键信息与下一步。',
   'digest.generate': '生成摘要',
@@ -480,6 +510,7 @@ export const en: Record<SessionGraphKey, string> = {
   'node.running': '{count} running',
   'node.subagents': '{count} subagents',
   'node.branchedFrom': 'branched from: {name}',
+  'node.turns': '{count} turns',
   'time.now': 'now',
   'time.minutes': '{n}min',
   'time.hours': '{n}h',
@@ -536,6 +567,20 @@ export const en: Record<SessionGraphKey, string> = {
   'panel.mergeUnavailable': 'Unavailable session ({id})',
   'panel.mergeCapturedThrough': 'Snapshot through event {seq}',
   'panel.mergeCompleteSnapshot': 'Complete snapshot',
+  'facts.title': 'Session stats',
+  'facts.model': 'Model {label}',
+  'facts.turnsSteps': '{turns} turns · {steps} steps',
+  'facts.timing': 'Model {llm} · tools {tool}',
+  'facts.tokens': '{count} tokens total',
+  'facts.context': 'Context usage {percent}',
+  'facts.goal': 'Goal: {objective}',
+  'facts.phase.active': 'Active',
+  'facts.phase.paused': 'Paused',
+  'facts.phase.blocked': 'Blocked',
+  'facts.phase.complete': 'Complete',
+  'facts.todos': 'Todos {completed}/{total}',
+  'facts.lastPrompt': 'Latest prompt: {text}',
+  'facts.lastResponse': 'Latest response: {text}',
   'digest.title': 'Session digest',
   'digest.intro': 'Scan the key findings and next steps in a short digest.',
   'digest.generate': 'Generate digest',

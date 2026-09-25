@@ -39,14 +39,128 @@ declare module '@deepseek-ai/dsh-agent' {
   }
 }
 
+declare module '@deepseek-ai/dsh-session-stats/client' {
+  export interface SessionStatsProjection {
+    turns: number
+    steps: number
+    llmMs: number
+    toolMs: number
+    ttftMs: number
+    ttftSteps: number
+    decodeMs: number
+    decodeTokens: number
+  }
+}
+
+declare module '@deepseek-ai/dsh-session-turn-outline/client' {
+  export interface TurnOutlineEntry {
+    readonly turn: number
+    readonly seq: number
+    readonly prompt: string
+    readonly response: string
+  }
+}
+
+declare module '@deepseek-ai/dsh-token-meter/client' {
+  export interface TokenUsageProjection {
+    uncachedInputTokens: number
+    outputTokens: number
+    cacheReadTokens: number
+    cacheWriteTokens: number
+  }
+  export interface ContextPressureProjection {
+    pressureTokens?: number
+    projectedTokens?: number
+    contextWindow?: number
+  }
+}
+
+declare module '@deepseek-ai/dsh-goal/client' {
+  const goalIdBrand: unique symbol
+  export type GoalId = string & { readonly [goalIdBrand]: true }
+  export type GoalPhase = 'active' | 'paused' | 'blocked' | 'complete'
+  export interface GoalBlockReason {
+    readonly code: string
+    readonly message: string
+  }
+  export interface GoalSnapshot {
+    readonly id: GoalId
+    readonly revision: number
+    readonly objective: string
+    readonly phase: GoalPhase
+    readonly blockedReason?: GoalBlockReason
+    readonly maxGoalRounds: number
+  }
+  export interface GoalProjection {
+    readonly goal: GoalSnapshot
+    readonly roundsStarted: number
+    readonly createdAt: number
+    readonly updatedAt: number
+  }
+}
+
+declare module '@deepseek-ai/dsh-tool-todo/client' {
+  export interface TodoItem {
+    content: string
+    status: 'pending' | 'in_progress' | 'completed'
+  }
+}
+
+declare module '@deepseek-ai/dsh-agent-preset-registry/types' {}
+
+declare module '@deepseek-ai/dsh-subagent/projection-types' {
+  export type SubagentCatalogEntry =
+    & {
+      readonly id: import('@deepseek-ai/dsh-session/types').SessionId
+      readonly createdAt: number
+    }
+    & (
+      | { readonly mode: 'one-shot'; readonly label?: string }
+      | { readonly mode: 'continuable'; readonly label: string }
+      | { readonly mode: 'unknown'; readonly label?: string }
+    )
+}
+
 declare module '@deepseek-ai/dsh-session-projection/types' {
   export interface SessionProjectionStateMap {}
-  export interface SessionProjectionMap {}
+  export interface SessionProjectionMap {
+    title: string | null
+    modelSelection: import('@deepseek-ai/dsh-api-session-controller/client').ModelSelectionProjection
+    sessionStats: import('@deepseek-ai/dsh-session-stats/client').SessionStatsProjection
+    turnOutline: readonly import('@deepseek-ai/dsh-session-turn-outline/client').TurnOutlineEntry[]
+    tokenUsage: import('@deepseek-ai/dsh-token-meter/client').TokenUsageProjection
+    contextPressure: import('@deepseek-ai/dsh-token-meter/client').ContextPressureProjection
+    goal: import('@deepseek-ai/dsh-goal/client').GoalProjection | null
+    todos: import('@deepseek-ai/dsh-tool-todo/client').TodoItem[] | null
+    agentPreset: string | null
+    subagentCatalog: import('@deepseek-ai/dsh-subagent/projection-types').SubagentCatalogEntry[]
+  }
 }
 
 declare module '@deepseek-ai/dsh-api-session-controller/client' {
+  /** Persisted facts used to summarize a Session without activating it. */
+  export interface SessionListMetadata {
+    readonly blank: boolean
+    readonly lastPromptAt: number | null
+  }
+
+  /** Complete model selection for one Session. */
+  export interface ModelSelection {
+    readonly provider: string
+    readonly model: string
+    readonly reasoningEffort?: string
+  }
+
+  /** Client view of the durable model-selection fold. */
+  export interface ModelSelectionProjection {
+    readonly lastUsed: ModelSelection | null
+    readonly next: ModelSelection | null
+  }
+
   export interface SessionSummary {
     readonly id: import('@deepseek-ai/dsh-session/types').SessionId
+    /** Latest durable log-backed title, absent until the host projects one. */
+    readonly title?: string
     readonly displayTitle: string
     readonly cwd?: string
     readonly parentId?: import('@deepseek-ai/dsh-session/types').SessionId
@@ -55,20 +169,15 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
     readonly retainedBy: Readonly<Partial<Record<string, number>>>
     readonly blank: boolean
     readonly updatedAt: number
-    readonly projectionValues?: Readonly<{
-      readonly sessionGraphMerge?: import('../src/session-merge-projection.ts').SessionMergeProjection | null
-    }>
+    readonly projectionValues?: Readonly<
+      Partial<import('@deepseek-ai/dsh-session-projection/types').SessionProjectionMap>
+    >
   }
 
   export interface SessionProjectionSnapshot {
-    readonly values: Readonly<{
-      readonly subagentCatalog?: readonly {
-        readonly id: import('@deepseek-ai/dsh-session/types').SessionId
-        readonly createdAt: number
-        readonly mode: 'one-shot' | 'continuable' | 'unknown'
-        readonly label?: string
-      }[]
-    }>
+    readonly values: Readonly<
+      Partial<import('@deepseek-ai/dsh-session-projection/types').SessionProjectionMap>
+    >
     readonly state: 'idle' | 'loading' | 'ready' | 'error'
     readonly error: unknown
   }
