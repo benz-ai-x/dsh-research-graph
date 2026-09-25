@@ -94,3 +94,7 @@ This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See
 ### Handoffs
 
 The repository root `HANDOFF.md` is the only canonical live handoff. Update it in place and do not create alternate handoff files. `docs/HANDOFF.md` is a historical snapshot and must not override the root handoff.
+
+### Skills
+
+`.agents/skills/dsh-compat-fix/SKILL.md` encodes the DSH upgrade adaptation, validation, and release procedure; it is manual-invocation only (`/skill:dsh-compat-fix` in Kimi Code).
