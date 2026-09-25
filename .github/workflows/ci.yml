@@ -10,6 +10,10 @@ permissions:
 
 env:
   DSH_REPOSITORY: deepseek-ai/deepseek-harness
+  # pnpm 11.7 lockfile verification ignores minimumReleaseAgeExclude; the
+  # day-old DSH set explicitly excluded in pnpm-workspace.yaml must not fail
+  # frozen installs or pre-run dependency checks for 24 hours.
+  pnpm_config_minimum_release_age: 0
 
 jobs:
   check:
