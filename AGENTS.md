@@ -2,9 +2,7 @@
 
 ## Start Here
 
-Read root `CONTEXT.md` and relevant `docs/adr/` decisions before changing behavior, then root `HANDOFF.md` for the current release, worktrees, evidence, and unfinished work. The bilingual READMEs provide the product overview; `docs/user-guide.md` / `docs/user-guide.zh.md` describe supported usage, and `docs/development.md` / `docs/development.zh.md` cover development and releases. Historical entries in the handoff and `docs/HANDOFF.md` do not override its current-state section.
-
-Research Graph is a DSH research workbench plugin. DSH owns Agent presets, agent execution, Subagent Sessions, Session history, and Workspace facts. The plugin owns research topics, knowledge revisions, retained provenance, and their presentation. Installing this package does not register a professional Agent preset or add an Agent Team launcher; those would be separate features.
+Read root `CONTEXT.md` and relevant `docs/adr/` decisions before changing behavior, then root `HANDOFF.md` for the current release, worktrees, evidence, and unfinished work. When editing user-facing documentation, follow the bilingual READMEs (product overview), `docs/user-guide.md` / `docs/user-guide.zh.md` (supported usage), and `docs/development.md` / `docs/development.zh.md` (development and releases).
 
 ## Project Structure & Module Organization
 
@@ -14,24 +12,17 @@ In `src/client/`, `graph-model.ts` derives Session facts and `knowledge-graph.ts
 
 Tests live in `tests/` and generally mirror the module they cover. `types/deepseek-harness.d.ts` supplies standalone Host adapters, not proof of upstream compatibility. `cordis.patch.yml` defines plugin wiring, `scripts/workbench/` supplies the isolated preview, and `.github/workflows/` contains CI and publishing automation.
 
-Do not commit generated `lib/`, `coverage/`, archives, or `.artifacts/`. Preview profiles and acceptance evidence under `.artifacts/` may contain retained research data: preserve or archive them before cleanup. Keep credential-bearing URLs, logs, and `state.json` out of public documents; publish only inspected, sanitized evidence.
+`.gitignore` already excludes generated `lib/`, `coverage/`, archives, and `.artifacts/`. Preview profiles and acceptance evidence under `.artifacts/` may contain retained research data: preserve or archive them before cleanup, and publish only inspected, sanitized evidence — credential-bearing URLs, logs, and `state.json` stay out of public documents.
 
 ## Build, Test, and Development Commands
 
-- `pnpm install --frozen-lockfile` installs the pnpm 11.7.0 dependency graph exactly as locked.
-- `pnpm run build` bundles Node entries and the lazy browser module into `lib/` with tsdown.
-- `pnpm run typecheck` runs strict TypeScript validation without emitting files.
-- `pnpm test` builds first, then runs the standalone Vitest suite.
-- `pnpm run check` runs type checking, building, and standalone tests; use it before every PR.
-- `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm test:harness` runs `views.client.spec.tsx` and `tests/**/*.harness.spec.{ts,tsx}` against a prepared Harness checkout.
-- `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness` checks four compiler faces (source Host/Client and published Host/Client), then runs the full Harness suite. Build this plugin first; prepare the matching checkout with `build:native-system` and `build:lib`.
-- `pnpm pack --pack-destination .artifacts` creates the installable package archive.
-- `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness` installs, boots, exercises, and removes that archive in an isolated web profile. The Harness checkout also needs `build:web`. Append `/absolute/path/plugin.tgz` to test a particular archive, including official npm bytes.
-- `pnpm preview:dsh` starts the standard plugin with fixed demo responses in a retained isolated profile; `pnpm preview:dsh --stop` stops that preview. This is a demonstration, not real-provider or Agent Team acceptance.
+`package.json` declares the script set and Node range. What the environment does not say:
 
-Use Node.js `^22.19.0 || >=24.0.0`.
+- `pnpm run check` (typecheck + build + standalone Vitest suite) is the pre-PR gate.
+- Harness gates need an explicit `DSH_HARNESS_ROOT=/path/to/deepseek-harness`. `pnpm check:harness` checks four compiler faces (source and published, Host and Client) against that checkout, then runs the full Harness suite; build this plugin first and prepare the checkout with `build:native-system` and `build:lib`. `pnpm smoke:harness` additionally needs `build:web`; append an archive path to test specific bytes, including official npm ones.
+- `pnpm pack --pack-destination .artifacts` creates the installable archive. `pnpm preview:dsh` starts the standard plugin with fixed demo responses in a retained isolated profile (`--stop` stops it); it is a demonstration, not real-provider or Agent Team acceptance. The launcher prefers `DSH_HARNESS_ROOT`, then searches for `deepseek-harness-<target DSH version>` beside the repository and one level higher; an incompatible discovered checkout fails.
 
-The preview launcher prefers `DSH_HARNESS_ROOT`, then searches for `deepseek-harness-<target DSH version>` beside the repository and one directory level higher. A missing checkout falls through; a discovered incompatible version fails. Harness checks and smoke acceptance still require an explicit `DSH_HARNESS_ROOT`. Keep machine-specific paths in `HANDOFF.md`.
+Keep machine-specific paths in `HANDOFF.md`.
 
 ## Behavior Invariants
 
@@ -61,11 +52,7 @@ Recent history uses concise Conventional Commit-style subjects such as `feat: ..
 
 In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Subsequent releases for the same DSH prerelease append one positive integer revision: plugin `0.1.5-rc.2.1`, then `0.1.5-rc.2.2`, both target DSH `0.1.5-rc.2`. All direct `@deepseek-ai/dsh-*` dependencies remain pinned to the target DSH version. The exact `@deepseek-ai/dsh-llm` peer dependency in `package.json` is the canonical target; never infer it by stripping a numeric suffix. `scripts/release-versions.mjs` validates this policy for CI, Harness type checks, packed acceptance, and the preview launcher. The upstream tag is `dsh-v<dsh-version>`; this plugin uses `v<plugin-version>`. Historical independent `v0.1.0`–`v0.1.6` tags remain unchanged. Unpublished local iteration uses the generated Build ID.
 
-Every GitHub Release must update the `version` field in `package.json` before tagging. The release tag must be `v<version>`, and the Graph header version badge must show the same version after `pnpm run build`. The badge reads the version from `package.json` at build time; never hard-code or maintain a second version string in source. Run `pnpm run check` before publishing the release.
-
-Also pass `check:harness` and packed-profile acceptance against the matching DSH tag before release. Keep the standalone Host adapters out of the Harness compiler programs; they must never hide upstream API drift.
-
-After publication, verify the official npm archive separately from the local candidate: manifest, version badge/Build ID, registry integrity, and packed-profile acceptance. Attach those official bytes and checksums to the GitHub Release and read them back. Record final commit, CI/publish runs, hashes, and known limitations in the release acceptance record and current handoff.
+Every GitHub Release must update the `version` field in `package.json` before tagging. The release tag must be `v<version>`, and the Graph header version badge must show the same version after `pnpm run build`; the badge reads the version from `package.json` at build time, so the package version stays the single source. Before release, pass `pnpm run check`, `check:harness`, and packed-profile acceptance against the matching DSH tag; after publication, verify the official npm archive independently of the local candidate. `/skill:dsh-compat-fix` encodes the full adaptation and release procedure, including official-artifact verification and evidence recording. Keep the standalone Host adapters out of the Harness compiler programs; they must never hide upstream API drift.
 
 The Build ID fingerprints build inputs, not a release number or Git commit. Untracked or ignored files under `src/` can change it. Keep the package version authoritative and investigate differing inputs before claiming an official archive matches a local build.
 
@@ -73,28 +60,28 @@ Keep the offline history recovery executable self-contained so it runs before a 
 
 ## Core Documentation
 
-Keep bilingual README frontmatter with a concrete `description` and `kind: "package-bundle"`, derived from this package's `dsh.bundle.patch`. Use the DSH abbreviation in the project name and describe its independently maintained Web plugin role accurately. These choices follow the [upstream documentation and brand guidance](docs/research/dsh-readme-guidelines-2026-09-14.md); upstream monorepo templates and translation checks are not external-plugin installation requirements.
+Keep bilingual README frontmatter with a concrete `description` and `kind: "package-bundle"`, derived from this package's `dsh.bundle.patch`; name the project with the DSH abbreviation as an independently maintained Web plugin. The rationale follows the [upstream documentation and brand guidance](docs/research/dsh-readme-guidelines-2026-09-14.md); upstream monorepo templates and translation checks are not external-plugin installation requirements.
 
-Keep both READMEs concise: product positioning, a capability map, key capabilities, essential compatibility and installation information, and links to detailed documentation. Put operational detail in the bilingual `docs/user-guide*.md` files and development, release, and source navigation in `docs/development*.md`. Keep durable rules in this file, domain vocabulary in `CONTEXT.md`, and design trade-offs in `docs/adr/`. The root handoff holds live status and local paths; `docs/reviews/` holds versioned validation and inspected screenshots. Test counts, release hashes, and machine-specific observations belong in those evidence records, not in the glossary. See [the documentation map](docs/agents/domain.md#documentation-map).
+Keep both READMEs concise — positioning, capability map, key capabilities, essential compatibility and installation, links to detail — and put operational detail in `docs/user-guide*.md` and development, release, and source navigation in `docs/development*.md`. Document ownership otherwise follows the [documentation map](docs/agents/domain.md#documentation-map).
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues and PRDs are tracked in GitHub Issues for `benz-ai-x/dsh-research-graph`. See `docs/agents/issue-tracker.md`.
+Issues and PRDs live in GitHub Issues for `benz-ai-x/dsh-research-graph`; when creating, updating, or closing one, follow `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Use the default five-role triage label vocabulary. See `docs/agents/triage-labels.md`.
+When labeling or re-scoping an Issue, use the default five-role triage label vocabulary in `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
-This is a single-context repository using root `CONTEXT.md` and `docs/adr/`. See `docs/agents/domain.md`.
+When deciding where a rule, term, or decision belongs, follow `docs/agents/domain.md`; this is a single-context repository using root `CONTEXT.md` and `docs/adr/`.
 
 ### Handoffs
 
-The repository root `HANDOFF.md` is the only canonical live handoff. Update it in place and do not create alternate handoff files. `docs/HANDOFF.md` is a historical snapshot and must not override the root handoff.
+The repository root `HANDOFF.md` is the only canonical live handoff: update it in place, create no alternates, and treat `docs/HANDOFF.md` and historical entries as snapshots that never override current state.
 
 ### Skills
 
-`.agents/skills/dsh-compat-fix/SKILL.md` encodes the DSH upgrade adaptation, validation, and release procedure; it is manual-invocation only (`/skill:dsh-compat-fix` in Kimi Code).
+For a DSH version upgrade — adaptation, validation, and release — use `/skill:dsh-compat-fix` (`.agents/skills/dsh-compat-fix/SKILL.md`, manual-invocation only in Kimi Code).
