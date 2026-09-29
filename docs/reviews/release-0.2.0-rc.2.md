@@ -22,7 +22,16 @@ This is the first adaptation of the DSH 0.2.0-rc.2 line; per the release policy 
 
 ## Published artifact
 
-Publication completed through the OIDC publish workflow; verified values are recorded here after publication.
+Publication completed on **2026-09-29 at 14:25 UTC** (22:25 Asia/Shanghai) through the OIDC publish workflow (run [36582596124](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36582596124)).
+
+| Official npm artifact | Verified value |
+| --- | --- |
+| Archive | `benz-ai-x-dsh-research-graph-0.2.0-rc.2.tgz` |
+| Size | 500616 bytes |
+| Build ID | `local-cfbd9569` |
+| SHA-256 | `eab4a022a6d1027e052436f105e6a09d878bb8f4e47c13922ef87f4db64ee052` |
+
+The registry SHA-1 (`6c7f5bf993ca9305ebc492f0398959ff1e3b0281`) and SHA-512 integrity (`sha512-FEr4GUuMzUdbPoeOD71PIT9n4Oe0vqJRIA0HpCEEkoyl1FO6O0tidZmKdtdRTV+HSxQJVT070OppvdVjIUiEjA==`) match the official bytes. The SLSA provenance attestation names this repository, `refs/tags/v0.2.0-rc.2`, `.github/workflows/publish.yml`, invocation `…/actions/runs/36582596124/attempts/1`, with the archive's SHA-512 as the subject digest (certificate signatures were not separately cryptographically verified). The official archive passed the same isolated packed-profile acceptance with **19 fixed model calls**, and its Build ID `local-cfbd9569` equals the candidate's and the badge verified in the browser preview. The local candidate archive (501481 bytes, SHA-256 `28f519a004f9b6759d0f188859187cad14bc8c4aff86675e2c67d9956fd78606`) differed in bytes because it was packed locally rather than by CI — both passed the same acceptance independently. The Release archive and `SHA256SUMS` were uploaded, downloaded again, and matched the official npm bytes exactly; the release body was read back. [PR #56 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36576999108), [PR #57 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36581584382), the merged main CI, and the OIDC Publish all passed; npm `next` is `0.2.0-rc.2` and `latest` remains `0.1.5-rc.1`.
 
 Private release evidence lives in `.artifacts/release-0.2.0-rc.2/`; the official archive and checksums are in `official/`.
 
