@@ -15,7 +15,7 @@ beforeEach(() => {
   available = 1400
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
     if (!this.hasAttribute('data-reading-panel')) return rect(available)
-    const preferred = parseFloat(this.style.getPropertyValue('--reading-width')) || 560
+    const preferred = parseFloat(this.style.getPropertyValue('--reading-width')) || 460
     const expanded = this.dataset.readingExpanded === 'true'
     return rect(Math.min(available - 32, expanded ? Math.max(880, preferred + 320) : preferred))
   })
@@ -40,23 +40,23 @@ describe('reading panel resize', () => {
     scroller.scrollTop = 320
     fireEvent.pointerDown(view.handle, { pointerId: 1, button: 0, clientX: 840 })
     fireEvent.pointerMove(view.handle, { pointerId: 2, clientX: 100 })
-    expect(view.handle.getAttribute('aria-valuenow')).toBe('560')
+    expect(view.handle.getAttribute('aria-valuenow')).toBe('460')
     fireEvent.pointerMove(view.handle, { pointerId: 1, clientX: 600 })
-    expect(view.handle.getAttribute('aria-valuenow')).toBe('800')
+    expect(view.handle.getAttribute('aria-valuenow')).toBe('700')
     expect(loadWorkingPosition('resize-test').inspectorWidth).toBeUndefined()
     fireEvent.pointerUp(view.handle, { pointerId: 1, clientX: 600 })
-    expect(loadWorkingPosition('resize-test')).toMatchObject({ inspectorWidth: 800, inspectorExpanded: false })
+    expect(loadWorkingPosition('resize-test')).toMatchObject({ inspectorWidth: 700, inspectorExpanded: false })
     expect(screen.getByTestId('reader-scroll')).toBe(scroller)
     expect(scroller.scrollTop).toBe(320)
     expect(document.activeElement).toBe(view.handle)
     expect(view.onCanvas).not.toHaveBeenCalled()
     view.unmount()
     mount()
-    expect(screen.getByTestId('reader').getBoundingClientRect().width).toBe(800)
+    expect(screen.getByTestId('reader').getBoundingClientRect().width).toBe(700)
     fireEvent.click(screen.getByRole('button', { name: '展开阅读' }))
-    expect(screen.getByTestId('reader').getBoundingClientRect().width).toBe(1120)
+    expect(screen.getByTestId('reader').getBoundingClientRect().width).toBe(1020)
     fireEvent.click(screen.getByRole('button', { name: '收起阅读' }))
-    expect(screen.getByTestId('reader').getBoundingClientRect().width).toBe(800)
+    expect(screen.getByTestId('reader').getBoundingClientRect().width).toBe(700)
   })
 
   it.each(['Escape', 'pointercancel', 'lostpointercapture'])('cancels a drag with %s without closing or overwriting the saved width', cancel => {
@@ -79,15 +79,15 @@ describe('reading panel resize', () => {
     const view = mount()
     fireEvent.pointerDown(view.handle, { pointerId: 1, button: 0, clientX: 840 })
     fireEvent.pointerMove(view.handle, { pointerId: 1, clientX: 2000 })
-    expect(view.handle.getAttribute('aria-valuenow')).toBe('440')
+    expect(view.handle.getAttribute('aria-valuenow')).toBe('400')
     fireEvent.pointerMove(view.handle, { pointerId: 1, clientX: -2000 })
     expect(view.handle.getAttribute('aria-valuenow')).toBe('1368')
     fireEvent.pointerUp(view.handle, { pointerId: 1 })
     fireEvent.keyDown(view.handle, { key: 'Home' })
     fireEvent.keyDown(view.handle, { key: 'ArrowLeft' })
-    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(460)
+    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(420)
     fireEvent.keyDown(view.handle, { key: 'ArrowRight', shiftKey: true })
-    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(440)
+    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(400)
     available = 900
     fireEvent.keyDown(view.handle, { key: 'End' })
     expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(876)
@@ -105,7 +105,7 @@ describe('reading panel resize', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('storage denied') })
     const view = mount()
     fireEvent.keyDown(view.handle, { key: 'ArrowLeft' })
-    expect(view.handle.getAttribute('aria-valuenow')).toBe('580')
+    expect(view.handle.getAttribute('aria-valuenow')).toBe('480')
     expect(view.onClose).not.toHaveBeenCalled()
   })
 })
@@ -120,7 +120,7 @@ it.each([759, 760, 761, 999, 1000, 1001])('uses the research container at %spx f
     expect(loadWorkingPosition('resize-test').inspectorWidth).toBeUndefined()
     expect(view.handle.tabIndex).toBe(-1)
   } else {
-    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(width <= 1000 ? 380 : 440)
+    expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(width <= 1000 ? 380 : 400)
     fireEvent.keyDown(view.handle, { key: 'End' })
     expect(loadWorkingPosition('resize-test').inspectorWidth).toBe(width - (width <= 1000 ? 24 : 32))
   }

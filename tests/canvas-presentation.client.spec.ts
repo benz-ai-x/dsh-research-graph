@@ -3,7 +3,8 @@ import type { ClusterInfo, GraphNode } from '../src/client/graph-model.ts'
 import type { LaidOutGraph } from '../src/client/layout.ts'
 import { deriveCanvasPresentation } from '../src/client/canvas-presentation.ts'
 import { deriveSessionGraph, resolveGraphScope } from '../src/client/graph-model.ts'
-import { layoutSessionGraph } from '../src/client/layout.ts'
+import { CARD_H, COLLAPSED_ROW, DEPTH_PITCH, NODE_W, layoutSessionGraph } from '../src/client/layout.ts'
+import { FRAME_PAD, FRAME_TITLE_H } from '../src/client/clusters.ts'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
@@ -23,7 +24,7 @@ describe('Canvas presentation derivation', () => {
       collapsed: new Set(), offsets: {},
     })
     const arrival = presentation.shown.edges.find(({ edge }) => edge.kind === 'merge')!
-    expect(arrival.points.every(point => point.x === 120)).toBe(true)
+    expect(arrival.points.every(point => point.x === NODE_W / 2)).toBe(true)
   })
 
   it('applies positions, collapse, and offsets in domain order and preserves automatic bounds', () => {
@@ -31,7 +32,7 @@ describe('Canvas presentation derivation', () => {
     const laid: LaidOutGraph = {
       nodes: [
         { node: node('root'), key: 'root', x: 100, y: 0 },
-        { node: node('child'), key: 'child', x: 100, y: 120 },
+        { node: node('child'), key: 'child', x: 100, y: DEPTH_PITCH },
       ],
       edges: [{
         edge: { id: 'branch:root->child', kind: 'branch', from: 'root', to: 'child' },
@@ -39,8 +40,8 @@ describe('Canvas presentation derivation', () => {
       }],
       x: 100,
       y: 0,
-      width: 240,
-      height: 176,
+      width: NODE_W,
+      height: DEPTH_PITCH + CARD_H,
     }
     const clusters: readonly ClusterInfo[] = [{
       rootId: 'root',
@@ -58,15 +59,25 @@ describe('Canvas presentation derivation', () => {
 
     expect(presentation.shown.nodes.map(({ key, x, y }) => ({ key, x, y }))).toEqual([
       { key: 'root', x: 150, y: 30 },
-      { key: 'child', x: 150, y: 94 },
+      { key: 'child', x: 150, y: 30 + COLLAPSED_ROW },
     ])
     expect(presentation.frames[0]).toMatchObject({
       clusterId: 'root',
       collapsed: true,
-      x: 134,
-      y: -18,
+      x: 150 - FRAME_PAD,
+      y: 30 - FRAME_PAD - FRAME_TITLE_H,
     })
-    expect(presentation.bounds).toEqual({ x: 134, y: -18, width: 272, height: 184 })
-    expect(presentation.automaticBounds).toEqual({ x: 84, y: -48, width: 272, height: 240 })
+    expect(presentation.bounds).toEqual({
+      x: 150 - FRAME_PAD,
+      y: 30 - FRAME_PAD - FRAME_TITLE_H,
+      width: NODE_W + 2 * FRAME_PAD,
+      height: COLLAPSED_ROW + CARD_H + 2 * FRAME_PAD + FRAME_TITLE_H,
+    })
+    expect(presentation.automaticBounds).toEqual({
+      x: 100 - FRAME_PAD,
+      y: -FRAME_PAD - FRAME_TITLE_H,
+      width: NODE_W + 2 * FRAME_PAD,
+      height: DEPTH_PITCH + CARD_H + 2 * FRAME_PAD + FRAME_TITLE_H,
+    })
   })
 })

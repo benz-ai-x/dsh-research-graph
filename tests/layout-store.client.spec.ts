@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { deriveSessionGraph, resolveGraphScope } from '../src/client/graph-model.ts'
-import { applyPositions, layoutSessionGraph } from '../src/client/layout.ts'
+import { applyPositions, CARD_H, NODE_W, layoutSessionGraph } from '../src/client/layout.ts'
 import { loadArrangement, loadLayout, saveLayout } from '../src/client/layout-store.ts'
 
 const id = (value: string): SessionId => value as SessionId
@@ -55,10 +55,10 @@ describe('applyPositions', () => {
     const moved = applyPositions(laid, { child: { x: 0, y: 500 } })
     expect(moved.nodes.find(node => node.key === 'child')).toMatchObject({ x: 0, y: 500 })
     expect(moved.nodes.find(node => node.key === 'parent')).toMatchObject({ x: 0, y: 0 })
-    // The Branch edge curves down to the moved child's top edge: the 444px
-    // vertical gap bends each control arm by half of it (222px).
-    expect(moved.edges[0]?.path).toBe('M 120 56 C 120 278, 120 278, 120 500')
-    expect(moved.height).toBeGreaterThanOrEqual(556)
+    // The Branch edge curves down to the moved child's top edge: the 380px
+    // vertical gap bends each control arm by half of it (190px).
+    expect(moved.edges[0]?.path).toBe(`M ${NODE_W / 2} ${CARD_H} C ${NODE_W / 2} ${CARD_H + 190}, ${NODE_W / 2} ${500 - 190}, ${NODE_W / 2} 500`)
+    expect(moved.height).toBeGreaterThanOrEqual(500 + CARD_H)
   })
 
   it('tracks the complete bounds when a node moves left and up', () => {
@@ -67,7 +67,7 @@ describe('applyPositions', () => {
       child: session('child', { parentId: id('parent'), updatedAt: 200 }),
     })
     const moved = applyPositions(laid, { child: { x: -300, y: -200 } })
-    expect(moved).toMatchObject({ x: -300, y: -200, width: 540, height: 256 })
+    expect(moved).toMatchObject({ x: -300, y: -200, width: 300 + NODE_W, height: 200 + CARD_H })
   })
 
   it('floors the curve bend on short vertical gaps', () => {
@@ -75,9 +75,10 @@ describe('applyPositions', () => {
       parent: session('parent', { updatedAt: 300 }),
       child: session('child', { parentId: id('parent'), updatedAt: 200 }),
     })
-    // A 4px gap bends by the 40px floor instead of the half-gap (2px).
+    // The 60px gap (child overlaps the parent's card height) bends by the
+    // 40px floor instead of the half-gap (30px).
     const moved = applyPositions(laid, { child: { x: 300, y: 60 } })
-    expect(moved.edges[0]?.path).toBe('M 120 56 C 120 96, 420 20, 420 60')
+    expect(moved.edges[0]?.path).toBe(`M ${NODE_W / 2} ${CARD_H} C ${NODE_W / 2} ${CARD_H + 40}, ${300 + NODE_W / 2} ${60 - 40}, ${300 + NODE_W / 2} 60`)
   })
 
   it('keeps unknown ids out of the result', () => {

@@ -13,6 +13,18 @@
   box-sizing: border-box;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-layer-1);
+  /* Research-graph display stack per docs/design/brand-spec.md; the missing
+     webfont falls back to the host system stack, so hosts without it are unaffected. */
+  --rg-font-display: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+.workbenchBrand strong,
+.researchContext h1,
+.panelTitle,
+.searchHeader h2,
+.firstDiscovery h2,
+.knowledgeReading h2 {
+  font-family: var(--rg-font-display);
 }
 
 
@@ -28,7 +40,7 @@
 .topicControls button,
 .topics > [role='alert'] button {
   border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-primary);
   padding: 6px 10px;
@@ -245,7 +257,7 @@
   display: flex;
   align-items: center;
   z-index: 10;
-  gap: 2px;
+  gap: 6px;
   padding: 0;
   border-radius: 10px;
   background: transparent;
@@ -257,7 +269,7 @@
 .controls button {
   font-size: 12px;
   min-width: 30px;
-  height: 28px;
+  height: 30px;
   padding: 0 8px;
   color: var(--dsw-alias-label-secondary);
   background: none;
@@ -289,32 +301,30 @@
   background: var(--dsw-alias-border-l2);
 }
 
-.filterBox {
-  position: absolute;
-  top: 12px;
-  left: 12px;
+/* Find-and-locate field living in the canvas toolbar row (design: one
+   find/tools bar above the canvas). The match dropdown anchors below it. */
+.canvasFind {
+  position: relative;
   display: flex;
   align-items: center;
-  z-index: 10;
   gap: 6px;
-  min-height: 38px;
+  min-height: 34px;
   box-sizing: border-box;
-  padding: 4px 6px 4px 12px;
-  border-radius: 10px;
-  background: var(--dsw-alias-bg-layer-3);
+  padding: 3px 5px 3px 11px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
   border: 1px solid var(--dsw-alias-border-l2);
-  box-shadow: var(--dsw-shadow-lv1);
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 
-.filterBox:focus-within {
+.canvasFind:focus-within {
   border-color: var(--dsw-alias-state-business-primary);
-  box-shadow: 0 0 0 1px var(--dsw-alias-state-business-primary), var(--dsw-shadow-lv1);
+  box-shadow: 0 0 0 1px var(--dsw-alias-state-business-primary);
 }
 
 .filterInput {
-  width: 180px;
-  font-size: 13px;
+  width: 168px;
+  font-size: 12.5px;
   color: var(--dsw-alias-label-primary);
   background: none;
   border: none;
@@ -332,7 +342,7 @@
   white-space: nowrap;
 }
 
-.filterBox button {
+.canvasFind > button {
   flex: none;
   min-width: 22px;
   padding: 2px 6px;
@@ -344,14 +354,82 @@
   cursor: pointer;
 }
 
-.filterBox button:hover {
+.canvasFind > button:hover {
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-.filterBox button:focus-visible {
+.canvasFind > button:focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary);
   outline-offset: 1px;
+}
+
+.findResults {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 70;
+  display: grid;
+  gap: 1px;
+  width: min(340px, 90vw);
+  max-height: 246px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+  padding: 5px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: 0 8px 30px var(--dsw-alias-bg-overlay);
+}
+
+.findResults > button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.findResults > button:hover,
+.findResults > button:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.findResults > button:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -2px;
+}
+
+.findResults strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.findResults small {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.findEmpty {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .frame {
@@ -540,20 +618,21 @@
   position: absolute;
   z-index: 3;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 240px;
-  height: 56px;
+  flex-direction: column;
+  gap: 3px;
+  width: 280px;
+  height: 120px;
   box-sizing: border-box;
-  padding: 7px 12px;
+  padding: 10px 12px;
   text-align: left;
   font: inherit;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-layer-3);
   border: 1px solid var(--dsw-alias-border-l3);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: var(--dsw-shadow-lv1);
   cursor: pointer;
+  overflow: hidden;
   transition:
     border-color 120ms ease,
     background 120ms ease,
@@ -613,11 +692,33 @@
 }
 
 .dot {
+  position: absolute;
+  top: 13px;
+  right: 12px;
   flex: none;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--dsw-alias-label-dimmed);
+}
+
+/* Kind eyebrow: the readable first line of the card (design node-top). */
+.nodeKind {
+  min-width: 0;
+  padding-right: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 14px;
+  letter-spacing: .02em;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* Low-zoom level of detail: the card reduces to the cluster dot. */
+.lowZoom .body,
+.lowZoom .nodeKind {
+  opacity: 0;
 }
 
 @keyframes dshSessionGraphPulse {
@@ -631,9 +732,11 @@
   }
 }
 
+/* Design spec: selection reads as an accent border plus a soft halo, not a
+   hard ring — the accent stays on the selection story, not the whole card. */
 .nodeSelected {
-  /* React Flow discipline: the border stays neutral, selection is a ring. */
-  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary), var(--dsw-shadow-lv2);
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-tertiary), var(--dsw-shadow-lv2);
 }
 
 .nodeMergeSelected {
@@ -1265,10 +1368,10 @@
 .preview {
   position: absolute;
   z-index: 11;
-  width: 240px;
+  width: 280px;
   box-sizing: border-box;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--dsw-alias-bg-layer-3);
   border: 1px solid var(--dsw-alias-border-l2);
   box-shadow: var(--dsw-shadow-lv2);
@@ -1303,9 +1406,10 @@
 .body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   flex: 1;
   min-width: 0;
+  min-height: 0;
   transition: opacity 160ms ease;
 }
 
@@ -1314,19 +1418,40 @@
   align-items: center;
   gap: 6px;
   min-width: 0;
+  margin-top: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 14px;
 }
 
-/* Low-zoom level of detail: cards reduce to dot + chrome, text fades out. */
-.lowZoom .body {
-  opacity: 0;
+/* Design node-status: the activity label closes the meta line from the right. */
+.nodeStatus {
+  flex: none;
+  margin-left: auto;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Two-line readable excerpt: the newest conclusion or the last prompt. */
+.nodeSummary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--dsw-alias-label-secondary);
 }
 
 .title {
-  font-size: 14px;
-  font-weight: 500;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 17px;
+  white-space: normal;
 }
 
 .meta {
@@ -1359,14 +1484,8 @@
     white-space: nowrap;
   }
 
-  .filterBox {
-    right: 12px;
-  }
-
   .filterInput {
-    flex: 1;
-    width: auto;
-    min-width: 0;
+    width: 132px;
   }
 
   .controls button {
@@ -1681,7 +1800,8 @@
 .knowledgeSource details { margin: 10px 0; }
 
 .knowledgeNode { border-style: dashed; border-color: var(--dsw-alias-brand-primary); }
-.edgeSource { fill: none; stroke: var(--dsw-alias-brand-primary); stroke-width: 2; stroke-dasharray: 3 5; }
+/* Design legend: original-source edges read solid, reused material dashed. */
+.edgeSource { fill: none; stroke: var(--dsw-alias-brand-primary); stroke-width: 2; }
 .knowledgeResults { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
 
 .reuseNotice {
@@ -1781,8 +1901,7 @@
 .topicSelection select, .topicControls input { min-height: 34px; padding: 5px 8px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 6px; color: inherit; background: var(--dsw-alias-bg-layer-2); font: inherit; }
 .frameToggle { width: 28px; height: 28px; }
 .frameTitle .frameToggle { width: 20px; height: 28px; padding: 0; }
-.title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; line-height: 16px; font-size: 13px; }
-.node { padding: 4px 12px; }
+.title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; line-height: 17px; font-size: 13px; }
 .nodePort::after { width: 4px; height: 4px; border: none; background: var(--dsw-alias-label-tertiary); box-shadow: none; }
 
 @container (max-width: 760px) {
@@ -1823,8 +1942,8 @@
 .workbenchViews button[aria-pressed='true'] { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-1); box-shadow: var(--dsw-shadow-lv1); font-weight: 600; }
 .workbenchActions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .workbenchActions > button, .workbenchMore > summary, .readingActions button, .readingPaper button, .workbenchNotice button {
-  min-height: 34px; padding: 7px 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 7px;
-  color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); font: inherit; font-size: 13px; cursor: pointer;
+  min-height: 36px; padding: 7px 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px;
+  color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
 }
 .workbenchActions > button:hover, .readingActions button:hover, .readingPaper button:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .workbenchMore { position: relative; font-size: 12px; }
@@ -1850,15 +1969,15 @@
 .readingCatalogItem:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .readingCatalogItem[aria-pressed='true'] { background: var(--dsw-alias-bg-layer-1); border-color: var(--dsw-alias-border-l2); box-shadow: var(--dsw-shadow-lv1); }
 .readingCatalogItem strong { font-size: 14px; line-height: 1.5; }
-.readingCatalogItem p { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin: 6px 0 10px; color: var(--dsw-alias-label-secondary); line-height: 1.65; }
+.readingCatalogItem p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 6px 0 10px; color: var(--dsw-alias-label-secondary); line-height: 1.65; }
 .readingCatalogItem small { color: var(--dsw-alias-label-secondary); font-size: 11px; }
 .readingNew { min-height: 40px; width: 100%; padding: 10px; border: 1px dashed var(--dsw-alias-border-l2); border-radius: 8px; font: inherit; background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer; }
-.readingPaper { min-width: 0; overflow: auto; padding: 28px 36px; overscroll-behavior: contain; }
+.readingPaper { min-width: 0; overflow: auto; padding: 30px max(28px, 8%); overscroll-behavior: contain; }
 .readingPaper > .readingBack { display: none; }
 .readingEmpty { max-width: 500px; margin: 12% auto; line-height: 1.8; color: var(--dsw-alias-label-secondary); }
 .readingEmpty h2 { color: var(--dsw-alias-label-primary); font-size: 20px; font-weight: 500; }
-.knowledgeReading { max-width: 740px; margin: 0 auto; font-size: 14px; line-height: 1.85; overflow-wrap: anywhere; }
-.knowledgeReading h2 { font-size: 26px; line-height: 1.45; letter-spacing: -.02em; margin: 8px 0 14px; }
+.knowledgeReading { max-width: 760px; margin: 0 auto; font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
+.knowledgeReading h2 { font-size: 25px; line-height: 1.45; letter-spacing: -.02em; margin: 8px 0 14px; }
 .knowledgeReading h3 { font-size: 12px; font-weight: 500; color: var(--dsw-alias-label-secondary); margin: 20px 0 8px; }
 .knowledgeReading section > p { margin: 8px 0 18px; }
 .readingMeta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 28px; font-size: 11px; line-height: 1.5; color: var(--dsw-alias-label-secondary); }
@@ -1871,7 +1990,7 @@
 .readingSourceLink small { color: var(--dsw-alias-label-secondary); font-size: 11px; }
 .topicSourcePanel .knowledgeReading { margin-top: 14px; }
 .topicSourcePanel .knowledgeReading h2 { font-size: 20px; }
-.legendSource, .legendReuse { display: inline-block; width: 18px; height: 0; border-top: 2px dotted var(--dsw-alias-brand-primary); }
+.legendSource, .legendReuse { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--dsw-alias-brand-primary); }
 .legendReuse { border-top: 2px dashed var(--dsw-alias-state-business-primary); }
 .edgeReuse { fill: none; stroke: var(--dsw-alias-state-business-primary); stroke-width: 2.5; stroke-dasharray: 9 4; }
 .edgeSynthesis { fill: none; stroke: var(--dsw-alias-brand-primary); stroke-width: 2.5; stroke-dasharray: 12 4 3 4; }
@@ -2037,10 +2156,30 @@
 .captureDialog .editorActions { bottom: 0; }
 .workbenchActions > button, .workbenchMore > summary { border-color: transparent; background: transparent; }
 .workbenchActions > button:first-child { display: flex; align-items: center; gap: 6px; }
-.workbenchActions > .primaryButton { background: var(--dsw-alias-state-business-tertiary); border-color: var(--dsw-alias-state-business-tertiary); color: var(--dsw-alias-state-business-primary); font-weight: 600; }
-.workbenchViews { background: transparent; border: 0; border-radius: 0; gap: 8px; padding: 0; }
-.workbenchViews button { border-radius: 0; padding-inline: 8px; border-bottom: 2px solid transparent; }
-.workbenchViews button[aria-pressed='true'] { background: transparent; box-shadow: none; border-bottom-color: var(--dsw-alias-state-business-primary); }
+/* Design spec: blue is the primary-action fill, applied to one button only. */
+.workbenchActions > .primaryButton {
+  border-color: var(--dsw-alias-button-info-fill);
+  background: var(--dsw-alias-button-info-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font-weight: 600;
+}
+.workbenchActions > .primaryButton:hover {
+  border-color: var(--dsw-alias-button-info-hover);
+  background: var(--dsw-alias-button-info-hover);
+}
+/* View tabs: soft accent pill for the active view, neutral text otherwise. */
+.workbenchViews { display: flex; align-items: center; gap: 2px; margin-left: 12px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.workbenchViews button {
+  min-height: 34px; padding: 6px 14px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--dsw-alias-label-secondary);
+  font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.workbenchViews button:hover { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover); }
+.workbenchViews button[aria-pressed='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-state-business-tertiary);
+  box-shadow: none; font-weight: 600;
+}
 
 .filterInput { box-shadow: none; }
 .readingPanelBody .knowledgeReading > h2 { margin-top: 0; font-size: 21px; }
@@ -2107,7 +2246,7 @@
 /* Research context and spatial tools share a row above the canvas and reader. */
 .researchContext {
   position: relative; z-index: 20; display: flex; align-items: center; gap: 16px; flex: none; min-width: 0;
-  min-height: 48px; box-sizing: border-box; padding: 6px 16px 6px 20px;
+  min-height: 55px; box-sizing: border-box; padding: 8px 16px 8px 20px;
   color: var(--dsw-alias-label-primary); font-size: 12px;
 }
 .contextScope { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
@@ -2167,7 +2306,7 @@
 .legendCluster { width: 6px; height: 6px; border-radius: 50%; background: var(--dsw-alias-brand-primary); }
 .sessionNode { user-select: none; touch-action: none; }
 .nodeRelation { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; color: var(--dsw-alias-label-secondary); }
-.viewedMarker { flex: none; padding: 0 3px; border: 1px solid var(--dsw-alias-state-business-secondary); border-radius: 3px; font-size: 10px; line-height: 13px; color: var(--dsw-alias-state-business-primary); }
+.viewedMarker { flex: none; padding: 0 3px; border: 1px solid var(--dsw-alias-state-business-primary); border-radius: 3px; font-size: 10px; line-height: 13px; color: var(--dsw-alias-state-business-primary); }
 .inheritedSources, .subagentDetails { margin: 12px 0; font-size: 12px; line-height: 1.6; }
 .inheritedSources summary, .subagentDetails summary { cursor: pointer; font-weight: 600; color: var(--dsw-alias-label-secondary); }
 .inheritedSources summary:focus-visible, .subagentDetails summary:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 2px; }
@@ -2182,7 +2321,6 @@
 .subagentDetails li > span[data-display-status='running'] { color: var(--dsw-alias-state-business-primary); }
 .controls .actionMenuBody { left: auto; right: 0; max-height: min(520px, calc(100dvh - 250px)); overflow-y: auto; overscroll-behavior: contain; }
 .viewport[data-reader-open='true'] .minimap { display: none; }
-.viewport:has([data-reading-expanded='true'], [data-reading-wide='true']) .filterBox { visibility: hidden; }
 .viewport:has([data-reading-expanded='true'], [data-reading-wide='true']) .canvasKey { visibility: hidden; }
 
 @container research (max-width: 1200px) {
@@ -2214,7 +2352,6 @@
   .canvasMenuZoom { display: flex; justify-content: space-between; gap: 6px; padding: 6px; border-bottom: 1px solid var(--dsw-alias-border-l2); }
   .canvasMenuZoom > button { flex: 1; }
   .workbenchTopics > .readingWorkbench { margin-inline: 8px; }
-  .viewport[data-reader-open='true'] .filterBox { visibility: hidden; }
 }
 @container research (max-width: 600px) {
   .researchContext { flex-wrap: wrap; gap: 2px 6px; }

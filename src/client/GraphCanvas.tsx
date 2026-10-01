@@ -1,12 +1,14 @@
 /**
  * The free-viewport canvas: a dot-grid surface with wheel-anchored zoom,
- * background-drag panning, the zoom controls (− / level / + / fit / relayout
- * / reset / locate), a title filter, and the minimap, rendering the laid-out
- * graph inside one transformed content layer. Hovering emphasizes one
- * branch lineage (or one edge's endpoints) while the rest dims; a dwell
- * opens the node detail card; drags snap to sibling edges behind alignment
- * guides; programmatic jumps glide while gestures stay immediate. Every
- * gesture resolves through the pure viewport math module.
+ * background-drag panning, the toolbar row's find-and-locate field with its
+ * match dropdown plus zoom / fit / relayout / reset / locate controls, and
+ * the minimap, rendering the laid-out graph inside one transformed content
+ * layer. Cards lead with a kind line, a two-line title, a two-line summary,
+ * and a status-closing meta line. Hovering emphasizes one branch lineage
+ * (or one edge's endpoints) while the rest dims; a dwell opens the node
+ * detail card; drags snap to sibling edges behind alignment guides;
+ * programmatic jumps glide while gestures stay immediate. Every gesture
+ * resolves through the pure viewport math module.
  */
 import clsx from 'clsx'
 import {
@@ -108,7 +110,7 @@ const SNAP_PX = 6
 /** Hover dwell in ms before the node detail card opens. */
 const PREVIEW_DELAY = 400
 /** Node detail card width in screen px. */
-const PREVIEW_W = 240
+const PREVIEW_W = 280
 /** Conservative detail-card height used for collision-free placement. */
 const PREVIEW_H = 112
 /** Screen inset occupied by the filter and canvas controls. */
@@ -153,6 +155,21 @@ function durationLabel(ms: number): string {
   return `${String(Math.floor(ms / 60_000))}m ${String(Math.round((ms % 60_000) / 1_000))}s`
 }
 
+/** The node's readable kind line: knowledge cards versus canvas sessions. */
+function nodeKindLabel(node: GraphNode, t: Translate): string {
+  return node.kind === 'knowledge' ? t('knowledge.title') : t('node.sessionKind')
+}
+
+/** One excerpt line for the card and the find dropdown: the newest saved
+ * conclusion, or the session's last prompt when no digest exists yet. */
+function nodeSummary(node: GraphNode): string {
+  if (node.kind === 'knowledge') {
+    const latest = node.card.revisions.at(-1)
+    return latest === undefined ? '' : latest.content.conclusion
+  }
+  return node.lastPromptPreview ?? ''
+}
+
 /** Node pointer-gesture callbacks owned by the canvas (drag + click routing). */
 interface NodeGestureHandlers {
   onPointerDown: (event: React.PointerEvent<HTMLElement>) => void
@@ -163,7 +180,7 @@ interface NodeGestureHandlers {
   onDoubleClick: () => void
 }
 
-/** One Canvas Session card: title-first hierarchy, state, metadata, and terminals. */
+/** One Canvas Session card: kind line, title, summary excerpt, status-closing metadata, and terminals. */
 function NodeCard({
   laid, now, t, gestures, clusterColor, selected, onHoverBadge, badgeHovered,
   dimClass, onHoverNode, mergeOrder, ports, identity,
@@ -190,6 +207,8 @@ function NodeCard({
   const badge = session !== undefined && session.subagentCount > 0
     ? `${t('node.subagents', { count: session.subagentCount })}${session.runningSubagents > 0 ? ` (${t('node.running', { count: session.runningSubagents })})` : ''}`
     : ''
+  const summary = nodeSummary(node)
+  const status = displayStatusLabel(session?.displayStatus, t)
   return (
     <>
       <button
@@ -221,6 +240,7 @@ function NodeCard({
         onMouseEnter={() => { onHoverNode(key) }}
         onMouseLeave={() => { onHoverNode(null) }}
       >
+        <span className={styles.nodeKind}>{nodeKindLabel(node, t)}</span>
         <span
           className={clsx(styles.dot, session?.displayStatus === 'running' ? styles.dotPulse : null)}
           style={{ background: `var(${clusterColor})` }}
@@ -230,11 +250,12 @@ function NodeCard({
           <span className={styles.title} title={node.title}>
             {session?.blank ? t('node.newSession') : canvasNodeTitle(node)}
           </span>
+          {summary === '' ? null : <span className={styles.nodeSummary}>{summary}</span>}
           <span className={styles.nodeMeta}>
             {relation === '' && identity === undefined ? null : <span className={styles.nodeRelation}
               title={t('node.identity', { id: node.id })}>{relation}{identity === undefined ? '' : ` #${identity}`}</span>}
             {session?.viewed ? <span className={styles.viewedMarker}>{t('node.viewed')}</span> : null}
-            {node.kind === 'knowledge' ? <span>{t('knowledge.title')} · {t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</span> : null}
+            {node.kind === 'knowledge' ? <span>{t(`knowledge.status.${node.card.revisions.at(-1)!.content.status}`)}</span> : null}
             <span className={clsx(styles.time, source === undefined ? null : styles.topicSourceLabel)}
               title={source?.workspace?.title || source?.cwd}>{source === undefined ? timeLabel(node.updatedAt, now, t)
               : source.workspace?.title || source.cwd || t('topic.noWorkspace')}</span>
@@ -255,6 +276,7 @@ function NodeCard({
             {session !== undefined && session.turns !== undefined && session.turns > 0
               ? <span className={styles.badge}>{t('node.turns', { count: session.turns })}</span>
               : null}
+            {status === '' ? null : <span className={styles.nodeStatus}>{status}</span>}
           </span>
         </span>
         {mergeOrder === undefined
@@ -1101,6 +1123,11 @@ export function GraphCanvas({
     () => matchFilter(shown.nodes.map(entry => entry.node), query),
     [shown, query],
   )
+  const findResultsRef = useRef<HTMLDivElement>(null)
+  // The find dropdown's entries: matching nodes in display order, capped so
+  // the panel stays keyboard-traversable.
+  const findEntries = useMemo(() => filterMatches === null ? [] : shown.nodes
+    .filter(entry => filterMatches.has(entry.key)).slice(0, 8), [filterMatches, shown])
 
   // Branch Lineage emphasis: an active filter wins, followed by transient
   // edge/node hover. Selection remains as the stable fallback when the
@@ -1733,48 +1760,6 @@ export function GraphCanvas({
           />
         ))}
       </div>
-      <div className={styles.filterBox}>
-        <input
-          className={styles.filterInput}
-          value={query}
-          placeholder={t('filter.placeholder')}
-          aria-label={t('filter.placeholder')}
-          aria-describedby={filterMatches === null ? undefined : 'session-graph-filter-status'}
-          onChange={(event) => { setQuery(event.target.value) }}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && filterMatches !== null) {
-              const first = shown.nodes.find(entry => filterMatches.has(entry.key))
-              if (first !== undefined) locateNode(first.key)
-            }
-            if (event.key === 'Escape') {
-              setQuery('')
-              event.currentTarget.blur()
-            }
-          }}
-        />
-        {query !== ''
-          ? (
-            <button type="button" aria-label={t('filter.clear')} onClick={() => { setQuery('') }}>
-              ×
-            </button>
-          )
-          : null}
-        {filterMatches !== null
-          ? (
-            <span
-              id="session-graph-filter-status"
-              className={styles.filterStatus}
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {filterMatches.size === 0
-                ? t('filter.none')
-                : t('filter.matches', { count: filterMatches.size })}
-            </span>
-          )
-          : null}
-      </div>
       <div className={styles.canvasKey} data-canvas-overlay="" role="group" aria-label={t('reading.legend')}>
         <span><i className={styles.legendLineMerge} aria-hidden="true" />{t('legend.merge')}</span>
         <span><i className={styles.legendLineBranch} aria-hidden="true" />{t('legend.branch')}</span>
@@ -1782,6 +1767,88 @@ export function GraphCanvas({
       </div>
       {toolbarTarget === null ? null : createPortal(<div className={styles.controls} data-canvas-overlay="" role="group" aria-label={t('toolbar.label')}
         onPointerDown={event => { event.stopPropagation() }} onKeyDown={event => { event.stopPropagation() }}>
+        <div className={styles.canvasFind}>
+          <input
+            className={styles.filterInput}
+            value={query}
+            placeholder={t('filter.placeholder')}
+            aria-label={t('filter.placeholder')}
+            aria-describedby={filterMatches === null ? undefined : 'session-graph-filter-status'}
+            onChange={(event) => { setQuery(event.target.value) }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && filterMatches !== null) {
+                const first = shown.nodes.find(entry => filterMatches.has(entry.key))
+                if (first !== undefined) locateNode(first.key)
+              }
+              if (event.key === 'ArrowDown' && findEntries.length > 0) {
+                const firstResult = findResultsRef.current?.querySelector('button')
+                if (firstResult instanceof HTMLElement) {
+                  event.preventDefault()
+                  firstResult.focus()
+                }
+              }
+              if (event.key === 'Escape') {
+                setQuery('')
+                event.currentTarget.blur()
+              }
+            }}
+          />
+          {query !== ''
+            ? (
+              <button type="button" aria-label={t('filter.clear')} onClick={() => { setQuery('') }}>
+                ×
+              </button>
+            )
+            : null}
+          {filterMatches !== null
+            ? (
+              <span
+                id="session-graph-filter-status"
+                className={styles.filterStatus}
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {filterMatches.size === 0
+                  ? t('filter.none')
+                  : t('filter.matches', { count: filterMatches.size })}
+              </span>
+            )
+            : null}
+          {filterMatches === null ? null : (
+            <div
+              className={styles.findResults}
+              ref={findResultsRef}
+              role="listbox"
+              aria-label={t('filter.results')}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  setQuery('')
+                  event.currentTarget.parentElement?.querySelector('input')?.focus()
+                }
+              }}
+            >
+              {findEntries.length === 0
+                ? <p className={styles.findEmpty}>{t('filter.none')}</p>
+                : findEntries.map(({ key, node }) => {
+                  const summary = nodeSummary(node)
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="option"
+                      aria-selected={selected === node.id}
+                      onClick={() => { setSelected(node.id); locateNode(key) }}
+                    >
+                      <strong>{canvasNodeTitle(node)}</strong>
+                      <small>{nodeKindLabel(node, t)}{summary === '' ? '' : ` · ${summary}`}</small>
+                    </button>
+                  )
+                })}
+            </div>
+          )}
+        </div>
+        <span className={styles.controlDivider} aria-hidden="true" />
         <div className={styles.canvasZoom}>
           <button type="button" aria-label={t('toolbar.zoomOut')} onClick={() => { zoomFromCenter(1 / CONTROL_STEP) }}>−</button>
           <button type="button" aria-label={t('toolbar.zoomLevel')} onClick={zoomToIdentity}>

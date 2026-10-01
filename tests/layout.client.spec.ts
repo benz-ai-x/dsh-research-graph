@@ -113,13 +113,16 @@ describe('layoutSessionGraph', () => {
       a: session('a', { parentId: id('parent'), updatedAt: 300 }),
       b: session('b', { parentId: id('parent'), updatedAt: 200 }),
     }))
-    // a takes column 0 and b column 1, so the parent centers at x=140
-    // (midpoint); the 64px vertical gap bends each control arm by the 40px
-    // floor (half of it, 32px, is below the floor).
+    // a takes column 0 and b column 1, so the parent centers at half a
+    // column pitch; the DEPTH_PITCH - CARD_H vertical gap bends each control
+    // arm by the 40px floor (half the gap is below the floor).
+    const parentX = COL_PITCH / 2
+    const childY = DEPTH_PITCH
+    const bend = Math.max(40, (childY - CARD_H) / 2)
     const edgeA = laid.edges.find(entry => entry.edge.to === 'a')
-    expect(edgeA?.path).toBe('M 260 56 C 260 96, 120 80, 120 120')
+    expect(edgeA?.path).toBe(`M ${parentX + NODE_W / 2} ${CARD_H} C ${parentX + NODE_W / 2} ${CARD_H + bend}, ${NODE_W / 2} ${childY - bend}, ${NODE_W / 2} ${childY}`)
     const edgeB = laid.edges.find(entry => entry.edge.to === 'b')
-    expect(edgeB?.path).toBe('M 260 56 C 260 96, 400 80, 400 120')
+    expect(edgeB?.path).toBe(`M ${parentX + NODE_W / 2} ${CARD_H} C ${parentX + NODE_W / 2} ${CARD_H + bend}, ${COL_PITCH + NODE_W / 2} ${childY - bend}, ${COL_PITCH + NODE_W / 2} ${childY}`)
   })
 
   it('grows bounds with depth and column count', () => {

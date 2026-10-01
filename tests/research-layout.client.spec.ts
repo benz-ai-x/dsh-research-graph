@@ -3,7 +3,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { GraphEdge, SessionGraph, SessionGraphNode } from '../src/client/graph-model.ts'
 import { layoutResearchGraph } from '../src/client/research-layout.ts'
 import { applyCollapse, clusterFrames } from '../src/client/clusters.ts'
-import { CARD_H } from '../src/client/layout.ts'
+import { CARD_H, DEPTH_PITCH } from '../src/client/layout.ts'
 
 function graph(ids: readonly string[], edges: readonly GraphEdge[]): SessionGraph {
   const nodes = ids.map(key => {
@@ -30,7 +30,8 @@ describe('research relationship layout', () => {
     expect(nodes.get('source-b')!.x).toBe(nodes.get('card-b')!.x)
     expect(laid.nodes).toHaveLength(6)
     expect(laid.edges).toHaveLength(5)
-    expect(laid.height).toBeLessThan(400)
+    // Three content rows stay within three depth pitches of canvas height.
+    expect(laid.height).toBeLessThan(3 * DEPTH_PITCH)
   })
 
   it('keeps cycles and disconnected collections deterministic, finite and wrapped', () => {
