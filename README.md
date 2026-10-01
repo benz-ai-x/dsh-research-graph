@@ -43,7 +43,7 @@ flowchart LR
   </a>
 </p>
 
-Version 0.2.0-rc.2 with demo data. Click the image for the full-resolution screenshot.
+Version 0.2.0-rc.2.1 with demo data. Click the image for the full-resolution screenshot.
 
 <a id="features"></a>
 <a id="what-it-adds"></a>
@@ -66,7 +66,7 @@ Version 0.2.0-rc.2 with demo data. Click the image for the full-resolution scree
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.0-rc.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.0-rc.2), npm `next` |
+| Plugin release | [0.2.0-rc.2.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.0-rc.2.1), npm `next` |
 | Required Host | **DSH 0.2.0-rc.2 · Web**, Node.js `^22.19.0 \|\| >=24.0.0` |
 | Data | Research records live on the DSH Host; working positions stay in the browser and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
@@ -80,7 +80,7 @@ Version 0.2.0-rc.2 with demo data. Click the image for the full-resolution scree
 Requires **DSH 0.2.0-rc.2**, with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2.1
 dsh web
 ```
 
@@ -88,4 +88,4 @@ Open the login URL printed in the terminal, enter a **non-blank Session**, and s
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.0-rc.2.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.0-rc.2.1.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
