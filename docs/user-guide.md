@@ -18,7 +18,7 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 Requires **DeepSeek Harness 0.2.0-rc.2**, Node.js `^22.19.0 || >=24.0.0`, and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2.1
 dsh web
 ```
 
@@ -28,7 +28,7 @@ Open the one-time authenticated URL printed by the command; do not share its tok
 2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
 3. Open the saved card in **Knowledge**, inspect its sources, and choose **Continue discussion** to preview the materials for another question.
 
-Current plugin **0.2.0-rc.2** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
+Current plugin **0.2.0-rc.2.1** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
 
 ## Research workflow
 
@@ -59,9 +59,9 @@ Source discovery and tool execution come from your selected DSH environment. Res
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.2.0-rc.2` | `0.2.0-rc.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
+| `@benz-ai-x/dsh-research-graph@0.2.0-rc.2.1` | `0.2.0-rc.2` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 
-Current prerelease **0.2.0-rc.2** targets **DSH 0.2.0-rc.2**: the first adaptation of this DSH line, a version-pin-only update with no product behavior change. The upstream delta across the 0.1.7-rc.2 → 0.2.0-rc.2 range brings no breaking change to any surface the plugin imports, injects, or pins — every dependency-surface change is additive, and no source, test, or fixture change was required. The one neighboring presentation change is Host-side: workspace rows without a durable title now show a localized “Untitled” instead of the project-basename fallback. `SessionSummary` fields are unchanged, the graph is unaffected, and never-opened Branch discussions still recover their durable titles through the graph's non-activating projection reads (shipped with 0.1.7-rc.2). See the [release acceptance record](reviews/release-0.2.0-rc.2.md) for official-package verification and known limitations.
+Current prerelease **0.2.0-rc.2.1** targets **DSH 0.2.0-rc.2**: a same-line revision per the release policy (the DSH target and every pinned `@deepseek-ai/dsh-*` dependency are unchanged from 0.2.0-rc.2). The release refreshes the workbench to the research-graph design baseline — readable layered node cards (kind line, two-line title and excerpt, status-closing meta), one find-and-tools canvas toolbar with a click-to-locate match dropdown, soft-pill view tabs, a solid primary action, solid source edges versus dashed reuse edges, a narrower default inspector, and lighter reading typography. No research-data model, persistence schema, or Host contract changed. See the [release acceptance record](reviews/release-0.2.0-rc.2.1.md) for official-package verification and known limitations.
 
 In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name.
 
@@ -210,7 +210,7 @@ The [DSH plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/ds
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2.1
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -227,7 +227,7 @@ The product is now **DSH Research Graph · 研图**, and the repository is `benz
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2.1
 dsh web
 ```
 
@@ -245,7 +245,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
 
-Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.2.0-rc.2` for plugin `0.2.0-rc.2`).
+Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.2.0-rc.2` for plugin `0.2.0-rc.2.1`).
 
 ## Use the graph
 
@@ -416,7 +416,7 @@ The output cap leaves room for reasoning and the structured digest; providers ma
 | Digest generation reports no model route | Use a Session with a logged route or configure the `provider` and `model` fallback pair |
 | Digest generation reaches its output limit | Increase `maxOutputTokens` in the `ui-session-graph` override in the active profile’s `cordis.patch.yml`, then retry |
 | An upgrade still shows the old arrangement | Choose **Relayout** to apply automatic placement, then **Fit** if needed. Relayout has an Undo action; a Topic still needs **Save arrangement** to synchronize |
-| After a cold Host restart, a Branch briefly shows a directory title or lacks inherited sources | Open that Session through native DSH, then return to the graph. This restored the retained title and source summary in acceptance; the Host's internal cause remains unlocated. See the [release boundary](reviews/release-0.2.0-rc.2.md#acceptance-boundary) |
+| After a cold Host restart, a Branch briefly shows a directory title or lacks inherited sources | Open that Session through native DSH, then return to the graph. This restored the retained title and source summary in acceptance; the Host's internal cause remains unlocated. See the [release boundary](reviews/release-0.2.0-rc.2.1.md#acceptance-boundary) |
 | A delegated task cannot be opened | Retry from the inspector so it refreshes the direct parent's native task catalog. A task absent from the refreshed catalog cannot be opened from that entry |
 | The Web URL rejects access | Open the complete authenticated URL printed by `dsh web`; do not reuse or share a stripped token |
 
@@ -433,7 +433,7 @@ If the problem persists, include the package version shown in the Research Graph
 - One Merge accepts two or three sources across Workspaces on the same Host; cross-Host merging is not supported.
 - Merge captures immutable source snapshots; later source messages do not automatically refresh an existing Merge Session.
 - Cold Host startup can temporarily omit an unopened Branch's native title or inherited-source summary; see Troubleshooting. This release preserves the observation rather than claiming its Host cause is fixed.
-- Arbitrarily dense graphs or physically overlapping cards may still have crossings or obstructed terminals. The [release acceptance](reviews/release-0.2.0-rc.2.md) describes the verified geometry scenarios.
+- Arbitrarily dense graphs or physically overlapping cards may still have crossings or obstructed terminals. The [release acceptance](reviews/release-0.2.0-rc.2.1.md) describes the verified geometry scenarios.
 - Structured exploration-direction and hypothesis fields remain deferred in [Issue #32, P5](https://github.com/benz-ai-x/dsh-research-graph/issues/32); editable question prompts and frozen-material reuse are available.
 - Touch uses pointer-event fallbacks and has no dedicated controls.
 

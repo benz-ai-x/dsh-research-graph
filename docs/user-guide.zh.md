@@ -18,7 +18,7 @@
 需要已安装 **DeepSeek Harness 0.2.0-rc.2**、Node.js `^22.19.0 || >=24.0.0`，以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2.1
 dsh web
 ```
 
@@ -28,7 +28,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前插件 **0.2.0-rc.2** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+当前插件 **0.2.0-rc.2.1** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
 
 ## 研究流程
 
@@ -59,9 +59,9 @@ flowchart LR
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.2.0-rc.2` | `0.2.0-rc.2` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
+| `@benz-ai-x/dsh-research-graph@0.2.0-rc.2.1` | `0.2.0-rc.2` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 
-当前预发布 **0.2.0-rc.2** 适配 **DSH 0.2.0-rc.2**：这是该 DSH 线的首次适配，仅做版本钉版，产品行为不变。上游 0.1.7-rc.2 → 0.2.0-rc.2 的差异未对插件任何导入、注入或钉版的依赖面造成破坏性变化——全部为增量，无需任何源码、测试或 fixture 改动。唯一相邻的呈现变化在宿主侧：无持久标题的工作区会话行改用本地化「未命名」而非项目目录名回退。`SessionSummary` 字段未变，图谱不受影响，未打开过的分支讨论仍通过图谱免激活投影读取恢复持久标题（该能力已随 0.1.7-rc.2 发布）。正式包验收与已知限制见[发布验收记录](reviews/release-0.2.0-rc.2.md)。
+当前预发布 **0.2.0-rc.2.1** 适配 **DSH 0.2.0-rc.2**：按发布政策属于同线修订（DSH 目标与全部钉版的 `@deepseek-ai/dsh-*` 依赖与 0.2.0-rc.2 保持一致）。本次发布将工作台刷新到研图设计基准——可读的分层节点卡片（类型行、两行标题与摘要、状态收尾的元信息行）、统一的查找与画布工具栏（匹配下拉点击即定位）、软底药丸视图标签、实色主按钮、来源边实线／沿用边虚线、更窄的默认检查器，以及更舒展的阅读排版。研究数据模型、持久化 schema 与宿主契约均无变化。正式包验收与已知限制见[发布验收记录](reviews/release-0.2.0-rc.2.1.md)。
 
 在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。
 
@@ -212,7 +212,7 @@ DSH 持有原始会话；研图将研究主题、卡片修订、保留的来源�
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2.1
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -229,7 +229,7 @@ dsh --profile web --dump-config
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.0-rc.2.1
 dsh web
 ```
 
@@ -247,7 +247,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
 
-Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.0-rc.2` 对应 DSH `0.2.0-rc.2`）。
+Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.0-rc.2.1` 对应 DSH `0.2.0-rc.2`）。
 
 ## 使用图谱
 
@@ -416,7 +416,7 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 | 生成摘要时报告没有模型路由 | 使用日志中带路由的 Session，或配置 `provider` 与 `model` 兜底字段对 |
 | 摘要达到生成上限 | 在当前 profile 的 `cordis.patch.yml` 中为 `ui-session-graph` 调高 `maxOutputTokens`，再重试 |
 | 升级后仍显示旧排列 | 点击**重新布局**应用自动排列，必要时再点**适应**；重新布局可撤销，主题仍需**保存排列**才会同步 |
-| Host 冷重启后，分支暂时显示目录名或缺少继承来源 | 在 DSH 中原生打开该会话，再返回图谱；验收中这会恢复保留的标题和来源摘要。宿主内部根因尚未定位，见[发布验收边界](reviews/release-0.2.0-rc.2.md#acceptance-boundary) |
+| Host 冷重启后，分支暂时显示目录名或缺少继承来源 | 在 DSH 中原生打开该会话，再返回图谱；验收中这会恢复保留的标题和来源摘要。宿主内部根因尚未定位，见[发布验收边界](reviews/release-0.2.0-rc.2.1.md#acceptance-boundary) |
 | 子代理任务无法打开 | 从详情重试以刷新直接父会话的原生任务目录；刷新后目录中仍不存在的任务无法从该条目打开 |
 | Web URL 拒绝访问 | 打开 `dsh web` 打印的完整认证 URL；不要复用或分享被截掉 token 的地址 |
 
@@ -433,7 +433,7 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 - 一次 Merge 只接受两个或三个来源；可跨同一 Host 的工作区，不支持跨 Host 汇聚。
 - Merge 捕获的是不可变来源快照；来源后续新增消息不会自动刷新已有 Merge Session。
 - Host 冷启动时，未打开分支的原生标题或继承来源摘要可能暂缺，处理方式见故障排查；本版没有将尚未定位的宿主原因计为已修复。
-- 任意密集图或手动重叠的卡片仍可能产生交叉或受阻端口；[发布验收](reviews/release-0.2.0-rc.2.md) 列出了实际通过的几何场景。
+- 任意密集图或手动重叠的卡片仍可能产生交叉或受阻端口；[发布验收](reviews/release-0.2.0-rc.2.1.md) 列出了实际通过的几何场景。
 - 结构化探索方向与假设字段仍按 [Issue #32 的 P5](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 暂缓；可编辑问题提示与冻结材料沿用已可使用。
 - 触屏只使用指针事件回退，没有专用控件。
 
