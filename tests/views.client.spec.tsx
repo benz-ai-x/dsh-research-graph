@@ -1871,8 +1871,9 @@ describe('graph tab rendering and interaction', () => {
     fireEvent.mouseEnter(subagentBadge)
     const derivation = document.querySelector('[data-edge-kind="subagent-derivation"]')
     expect(derivation?.getAttribute('stroke-dasharray')).toBe('6 4')
-    // Node dots take the cluster palette color, not a status color.
-    const dot = nodeButton('root').querySelector('span')
+    // Node dots take the cluster palette color, not a status color. The kind
+    // line precedes the dot in the card, so select the styled dot directly.
+    const dot = nodeButton('root').querySelector('span[style]')
     expect(dot?.getAttribute('style')).toContain('var(--dsw-alias-')
     // The graph options explain the two relation kinds without a permanent row.
     fireEvent.click(screen.getByRole('button', { name: '图谱选项' }))
@@ -2096,22 +2097,25 @@ describe('graph tab rendering and interaction', () => {
     expect(screen.queryByRole('dialog', { name: '汇聚会话' })).toBeNull()
   })
 
-  it('presents each Canvas Session title before its secondary metadata', async () => {
+  it('presents the kind line and Canvas Session title before secondary metadata', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
 
-    expect(nodeButton('branchChild').textContent?.startsWith('Session branchChild')).toBe(true)
-    expect(nodeButton('root').textContent?.startsWith('Session root')).toBe(true)
+    for (const key of ['root', 'branchChild']) {
+      const text = nodeButton(key).textContent ?? ''
+      expect(text.startsWith('会话')).toBe(true)
+      expect(text.startsWith(`会话Session ${key}`)).toBe(true)
+    }
   })
 
-  it('connects Branches at the bottom terminal of the 56px Canvas Session card', async () => {
+  it('connects Branches at the bottom terminal of the 120px Canvas Session card', async () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
 
     expect(document.querySelector('[data-edge-kind="branch"]')?.getAttribute('d'))
-      .toMatch(/^M 120 56 /)
+      .toMatch(/^M 140 120 /)
   })
 
   it('selects on single click and opens the target session on double click', async () => {
@@ -2191,7 +2195,7 @@ describe('free viewport controls', () => {
     const transform = (): number[] => nodeButton('root').parentElement!.style.transform.match(/-?\d+(?:\.\d+)?/g)!.map(Number)
     const expectCentered = (x: number): void => {
       const [panX, , scale] = transform()
-      expect(panX! + (parseFloat(nodeButton('root').style.left) + 120) * scale!).toBeCloseTo(x)
+      expect(panX! + (parseFloat(nodeButton('root').style.left) + 140) * scale!).toBeCloseTo(x)
     }
     fireEvent.click(screen.getByRole('button', { name: '适应', exact: true }))
     expectCentered(393.5)
@@ -2470,10 +2474,10 @@ describe('free viewport controls', () => {
     expect(nodeButton('branchChild').style.left).toBe('-1000px')
     expect(nodeButton('branchChild').style.top).toBe('-1000px')
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('45%')
+      expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('43%')
     })
     const edgeLayer = document.querySelector('[data-edge-id="branch:root->branchChild"]')?.closest('svg')
-    expect(edgeLayer?.getAttribute('viewBox')).toBe('-1000 -1000 1240 1056')
+    expect(edgeLayer?.getAttribute('viewBox')).toBe('-1000 -1000 1280 1120')
     expect(edgeLayer?.style.left).toBe('-1000px')
     expect(edgeLayer?.style.top).toBe('-1000px')
     // Fit hides the minimap while all content is visible; one zoom step
@@ -2575,7 +2579,7 @@ describe('node drag and position persistence', () => {
     switchTab('Research Graph')
     // Corrupt storage falls back to the auto layout's depth row.
     expect(nodeButton('branchChild').style.left).toBe('0px')
-    expect(nodeButton('branchChild').style.top).toBe('120px')
+    expect(nodeButton('branchChild').style.top).toBe('176px')
   })
 
   it('keeps sub-threshold pointer movement a click', async () => {
@@ -2694,7 +2698,7 @@ describe('cluster frames', () => {
     const branchChild = nodeButton('branchChild')
     expect(root.style.left).toBe('0px')
     expect(branchChild.style.left).toBe('0px')
-    expect(parseFloat(branchChild.style.top) - parseFloat(root.style.top)).toBe(64)
+    expect(parseFloat(branchChild.style.top) - parseFloat(root.style.top)).toBe(76)
     const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toContain('"collapsed":["root"]')
     // A collapsed member still selects normally.
@@ -2735,7 +2739,7 @@ describe('cluster drag', () => {
     expect(nodeButton('root').style.left).toBe('60px')
     expect(nodeButton('root').style.top).toBe('40px')
     expect(nodeButton('branchChild').style.left).toBe('60px')
-    expect(nodeButton('branchChild').style.top).toBe('160px')
+    expect(nodeButton('branchChild').style.top).toBe('216px')
     // The title-band gesture never falls through to a background pan: in
     // the real browser the surface would steal the pointer capture and the
     // cluster drag would arrive dead (jsdom has no setPointerCapture, so
@@ -2774,7 +2778,7 @@ describe('cluster drag', () => {
     fireEvent.pointerMove(title, { pointerId: 23, clientX: 360, clientY: 140 })
     fireEvent.pointerUp(title, { pointerId: 23 })
     // The cluster sits at +60/+40; dragging the child 10px right stores the
-    // cluster-relative (10, 120), not the shown (70, 160).
+    // cluster-relative (10, 176), not the shown (70, 200).
     const node = nodeButton('branchChild')
     fireEvent.pointerDown(node, { pointerId: 24, clientX: 200, clientY: 200 })
     fireEvent.pointerMove(node, { pointerId: 24, clientX: 210, clientY: 200 })
@@ -2782,7 +2786,7 @@ describe('cluster drag', () => {
     const stored = JSON.parse(localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')!) as {
       positions: Record<string, { x: number; y: number }>
     }
-    expect(stored.positions['branchChild']).toEqual({ x: 10, y: 120 })
+    expect(stored.positions['branchChild']).toEqual({ x: 10, y: 176 })
   })
 
   it('never starts a cluster drag from the collapse toggle', async () => {
@@ -3020,13 +3024,13 @@ describe('reset and minimap', () => {
     chooseCanvasAction('重置布局')
     // Manual position and collapse both cleared; node returns to the auto grid.
     expect(nodeButton('branchChild').style.left).toBe('0px')
-    expect(nodeButton('branchChild').style.top).toBe('120px')
+    expect(nodeButton('branchChild').style.top).toBe('176px')
     const stored = localStorage.getItem('dsh.session-graph.layout.["test-host","/w",null]')
     expect(stored).toContain('"positions":{}')
     expect(stored).toContain('"collapsed":[]')
     // The cleared graph, rather than the previous far-away graph, owns Fit.
     expect(screen.getByRole('button', { name: '缩放至 100%' }).textContent).toBe('100%')
-    expect(nodeButton('root').parentElement?.style.transform).toBe('translate(224px, 228px) scale(1)')
+    expect(nodeButton('root').parentElement?.style.transform).toBe('translate(184px, 168px) scale(1)')
   })
 
   it('renders the minimap with node marks and the live viewport rectangle', async () => {
@@ -4190,8 +4194,8 @@ describe('drag alignment snapping', () => {
     const node = nodeButton('branchChild')
     fireEvent.pointerDown(node, { pointerId: 13, clientX: 200, clientY: 200 })
     // 6px shy of root's top-left corner (0, 0): inside the snap threshold
-    // on both axes.
-    fireEvent.pointerMove(node, { pointerId: 13, clientX: 206, clientY: 86 })
+    // on both axes (branchChild starts on the 176px depth row).
+    fireEvent.pointerMove(node, { pointerId: 13, clientX: 206, clientY: 30 })
     expect(nodeButton('branchChild').style.left).toBe('0px')
     expect(nodeButton('branchChild').style.top).toBe('0px')
     expect(screen.getByTestId('session-graph-guide-x')).toBeTruthy()
@@ -4245,12 +4249,12 @@ describe('locate Viewed Session button', () => {
     fireEvent.click(screen.getByRole('button', { name: '定位' }))
     const transform = content().style.transform
     expect(transform).not.toBe(before)
-    // The root Canvas Session sits at (0, 0); its card center (120, 28)
+    // The root Canvas Session sits at (0, 0); its card center (140, 60)
     // lands on the surface center (500, 300) at 100%.
     const match = transform.match(/translate\((-?\d+(?:\.\d+)?)px, (-?\d+(?:\.\d+)?)px\) scale\((\d+(?:\.\d+)?)\)/)!
     const [, panX, panY, scale] = match.map(Number)
-    expect(panX! + 120 * scale!).toBeCloseTo(500)
-    expect(panY! + 28 * scale!).toBeCloseTo(300)
+    expect(panX! + 140 * scale!).toBeCloseTo(500)
+    expect(panY! + 60 * scale!).toBeCloseTo(300)
   })
 })
 
@@ -4297,9 +4301,9 @@ describe('canvas keyboard shortcuts', () => {
     fireEvent.keyDown(surface(), { key: '-' })
     expect(readout().textContent).toBe('100%')
     fireEvent.keyDown(surface(), { key: '1' })
-    expect(readout().textContent).toBe('81%')
+    expect(readout().textContent).toBe('71%')
     fireEvent.keyDown(surface(), { key: '=' })
-    expect(readout().textContent).toBe('98%')
+    expect(readout().textContent).toBe('85%')
     fireEvent.keyDown(surface(), { key: '0' })
     expect(readout().textContent).toBe('100%')
   })
@@ -4451,6 +4455,28 @@ describe('title filter', () => {
     expect(nodeButton('lone').className).not.toContain('dim')
   })
 
+  it('lists matches in the find dropdown and selects the picked node', async () => {
+    const b = await bench(RELATED)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    const input = screen.getByRole('textbox', { name: '过滤会话标题' })
+    fireEvent.change(input, { target: { value: 'branchChild' } })
+    const results = screen.getByRole('listbox', { name: '匹配的节点' })
+    const options = within(results).getAllByRole('option')
+    expect(options).toHaveLength(2)
+    expect(options[0]!.textContent).toContain('会话')
+    expect(options[0]!.textContent).toContain('Session branchChild')
+    // Picking an option selects that node (locating is covered by the Enter test).
+    fireEvent.click(options[1]!)
+    expect(nodeButton('branchChild2').getAttribute('aria-selected')).toBe('true')
+    expect(options[1]!.getAttribute('aria-selected')).toBe('true')
+    // A no-match query keeps the dropdown open with the empty note, not options.
+    fireEvent.change(input, { target: { value: 'zzz' } })
+    const emptied = screen.getByRole('listbox', { name: '匹配的节点' })
+    expect(within(emptied).queryAllByRole('option')).toHaveLength(0)
+    expect(within(emptied).getByText('无匹配会话')).toBeTruthy()
+  })
+
   it('locates the first match on Enter, centered in the surface', async () => {
     const b = await bench(RELATED)
     mount(b.slots, b.sessionsStore, 'root')
@@ -4464,8 +4490,8 @@ describe('title filter', () => {
     const transform = content().style.transform
     expect(transform).not.toBe(before)
     // Locate centers the actual node, independently of component packing.
-    const centerX = Number.parseFloat(nodeButton('lone').style.left) + 120
-    const centerY = Number.parseFloat(nodeButton('lone').style.top) + 28
+    const centerX = Number.parseFloat(nodeButton('lone').style.left) + 140
+    const centerY = Number.parseFloat(nodeButton('lone').style.top) + 60
     const match = transform.match(/translate\((-?\d+(?:\.\d+)?)px, (-?\d+(?:\.\d+)?)px\) scale\((\d+(?:\.\d+)?)\)/)!
     const [, panX, panY, scale] = match.map(Number)
     expect(panX! + centerX * scale!).toBeCloseTo(500)

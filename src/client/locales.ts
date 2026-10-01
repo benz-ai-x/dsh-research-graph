@@ -93,6 +93,7 @@ export type SessionGraphKey =
   | 'scope.workspaceCount'
   | 'scope.directoryCount'
   | 'node.newSession'
+  | 'node.sessionKind'
   | 'node.running'
   | 'node.subagents'
   | 'node.branchedFrom'
@@ -120,6 +121,7 @@ export type SessionGraphKey =
   | 'filter.clear'
   | 'filter.matches'
   | 'filter.none'
+  | 'filter.results'
   | 'legend.derivation'
   | 'legend.branch'
   | 'legend.merge'
@@ -303,6 +305,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'scope.workspaceCount': '{name} · {count} 个会话',
   'scope.directoryCount': '目录范围 · {count} 个会话',
   'node.newSession': '新会话',
+  'node.sessionKind': '会话',
   'node.running': '{count} 运行中',
   'node.subagents': '{count} 子代理',
   'node.branchedFrom': '分支自：{name}',
@@ -330,6 +333,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'filter.clear': '清除过滤',
   'filter.matches': '{count} 个匹配',
   'filter.none': '无匹配会话',
+  'filter.results': '匹配的节点',
   'legend.derivation': '子代理派生',
   'legend.branch': '分支',
   'legend.merge': '汇聚',
@@ -507,6 +511,7 @@ export const en: Record<SessionGraphKey, string> = {
   'scope.workspaceCount': '{name} · {count} sessions',
   'scope.directoryCount': 'Directory scope · {count} sessions',
   'node.newSession': 'New session',
+  'node.sessionKind': 'Session',
   'node.running': '{count} running',
   'node.subagents': '{count} subagents',
   'node.branchedFrom': 'branched from: {name}',
@@ -534,6 +539,7 @@ export const en: Record<SessionGraphKey, string> = {
   'filter.clear': 'Clear filter',
   'filter.matches': 'Matches: {count}',
   'filter.none': 'No matching sessions',
+  'filter.results': 'Matching nodes',
   'legend.derivation': 'Subagent derivation',
   'legend.branch': 'Branch',
   'legend.merge': 'Merge',

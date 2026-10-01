@@ -10,17 +10,17 @@ import type { GraphEdge, GraphNode, SessionGraph } from './graph-model.ts'
 import { placeDependencyFrames } from './dependency-layout.ts'
 
 /** Node card width in px. */
-export const NODE_W = 240
-/** Node card height in px. */
-export const CARD_H = 56
+export const NODE_W = 280
+/** Node card height in px: kind line, two-line title, two-line summary, meta. */
+export const CARD_H = 120
 /** Horizontal distance between consecutive leaf columns in px. */
-export const COL_PITCH = 280
+export const COL_PITCH = 320
 /** Vertical distance between consecutive depth rows in px. */
-export const DEPTH_PITCH = 120
+export const DEPTH_PITCH = 176
 /** Distance between dependency frames in px. */
 export { CLUSTER_GAP } from './dependency-layout.ts'
 /** Vertical distance between rows of a collapsed cluster in content px. */
-export const COLLAPSED_ROW = 64
+export const COLLAPSED_ROW = 76
 
 /** One positioned node card. */
 export interface LaidOutNode {

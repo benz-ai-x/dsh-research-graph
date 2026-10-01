@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { deriveSessionGraph, resolveGraphScope } from '../src/client/graph-model.ts'
-import { layoutSessionGraph } from '../src/client/layout.ts'
+import {
+  CARD_H, COLLAPSED_ROW, DEPTH_PITCH, NODE_W, layoutSessionGraph,
+} from '../src/client/layout.ts'
 import {
   applyCollapse, applyOffsets, CLUSTER_COLORS, clusterFrames, contentBounds,
+  FRAME_PAD, FRAME_TITLE_H,
 } from '../src/client/clusters.ts'
 
 const id = (value: string): SessionId => value as SessionId
@@ -49,11 +52,11 @@ describe('clusterFrames', () => {
     const frame = frames[0]!
     expect(frame.clusterId).toBe('root')
     expect(frame.label).toBe('Session root')
-    // Node geometry: root (0,0), child (0,120) → frame encloses both plus padding.
-    expect(frame.x).toBe(-16)
-    expect(frame.y).toBe(-16 - 32)
-    expect(frame.width).toBe(240 + 32)
-    expect(frame.height).toBe(176 + 32 + 32)
+    // Node geometry: root (0,0), child (0,DEPTH_PITCH) → frame encloses both plus padding.
+    expect(frame.x).toBe(-FRAME_PAD)
+    expect(frame.y).toBe(-FRAME_PAD - FRAME_TITLE_H)
+    expect(frame.width).toBe(NODE_W + 2 * FRAME_PAD)
+    expect(frame.height).toBe(DEPTH_PITCH + CARD_H + 2 * FRAME_PAD + FRAME_TITLE_H)
     expect(frame.collapsed).toBe(false)
     expect(frames[1]?.clusterId).toBe('lone')
   })
@@ -121,7 +124,8 @@ describe('applyCollapse', () => {
       c: session('c', { parentId: id('root'), updatedAt: 200 }),
     })
     const collapsed = applyCollapse(laid, clusters, new Set(['root']))
-    expect(collapsed).toMatchObject({ x: 0, y: 0, width: 240, height: 248 })
+    // The root cluster's four members stack into one compact column.
+    expect(collapsed).toMatchObject({ x: 0, y: 0, width: NODE_W, height: 3 * COLLAPSED_ROW + CARD_H })
   })
 
   it('stacks collapsed members into one compact column and leaves others in place', () => {
@@ -133,7 +137,7 @@ describe('applyCollapse', () => {
     // Both members share the cluster's previous compact-column x with stacked rows.
     expect(child.x).toBe(previousRoot.x)
     expect(root.x).toBe(previousRoot.x)
-    expect(child.y - root.y).toBe(64)
+    expect(child.y - root.y).toBe(COLLAPSED_ROW)
     const lone = collapsedGraph.nodes.find(node => node.key === 'lone')!
     expect(lone.x).toBe(laid.nodes.find(node => node.key === 'lone')!.x)
   })
@@ -192,14 +196,18 @@ describe('applyOffsets', () => {
     const { laid } = graphFor(TWO)
     const moved = applyOffsets(laid, { root: { dx: 50, dy: 30 } })
     expect(moved.nodes.find(node => node.key === 'root')).toMatchObject({ x: 50, y: 30 })
-    expect(moved.nodes.find(node => node.key === 'child')).toMatchObject({ x: 50, y: 150 })
+    expect(moved.nodes.find(node => node.key === 'child')).toMatchObject({ x: 50, y: 30 + DEPTH_PITCH })
     // The untouched cluster keeps its seat.
     const lone = moved.nodes.find(node => node.key === 'lone')!
     expect(lone).toMatchObject(laid.nodes.find(node => node.key === 'lone')!)
-    // The edge follows the shifted endpoints (64px vertical gap → 40px floor bend).
-    expect(moved.edges[0]?.path).toBe('M 170 86 C 170 126, 170 110, 170 150')
-    expect(moved.width).toBeGreaterThanOrEqual(50 + 240)
-    expect(moved.height).toBeGreaterThanOrEqual(150 + 56)
+    // The edge follows the shifted endpoints (DEPTH_PITCH - CARD_H gap → 40px floor bend).
+    const startX = 50 + NODE_W / 2
+    const startY = 30 + CARD_H
+    const endY = 30 + DEPTH_PITCH
+    const bend = Math.max(40, (endY - startY) / 2)
+    expect(moved.edges[0]?.path).toBe(`M ${startX} ${startY} C ${startX} ${startY + bend}, ${startX} ${endY - bend}, ${startX} ${endY}`)
+    expect(moved.width).toBeGreaterThanOrEqual(50 + NODE_W)
+    expect(moved.height).toBeGreaterThanOrEqual(30 + DEPTH_PITCH + CARD_H)
   })
 
   it('tracks the complete bounds when a cluster moves left and up', () => {
@@ -208,7 +216,7 @@ describe('applyOffsets', () => {
       child: session('child', { parentId: id('root'), updatedAt: 400 }),
     })
     const moved = applyOffsets(laid, { root: { dx: -300, dy: -200 } })
-    expect(moved).toMatchObject({ x: -300, y: -200, width: 240, height: 176 })
+    expect(moved).toMatchObject({ x: -300, y: -200, width: NODE_W, height: DEPTH_PITCH + CARD_H })
   })
 
   it('returns the input graph on empty, zero, and unknown offsets', () => {
@@ -273,10 +281,10 @@ describe('contentBounds', () => {
     })
     const moved = applyOffsets(laid, { root: { dx: -300, dy: -200 } })
     expect(contentBounds(moved, clusterFrames(moved, clusters))).toEqual({
-      x: -316,
-      y: -248,
-      width: 272,
-      height: 240,
+      x: -300 - FRAME_PAD,
+      y: -200 - FRAME_PAD - FRAME_TITLE_H,
+      width: NODE_W + 2 * FRAME_PAD,
+      height: DEPTH_PITCH + CARD_H + 2 * FRAME_PAD + FRAME_TITLE_H,
     })
   })
 })

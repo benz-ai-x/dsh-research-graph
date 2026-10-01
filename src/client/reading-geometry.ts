@@ -14,11 +14,13 @@ export function readingLayout(containerWidth: number): {
   readonly defaultWidth: string
   readonly expandedWidth: string
 } {
+  // Defaults sit near the design spec's 370px inspector column, widened only
+  // as far as the digest/history tabs need to stay readable.
   if (containerWidth <= 760) return { mode: 'overlay', minimum: 0, margin: 16, defaultWidth: 'auto', expandedWidth: 'auto' }
   if (containerWidth <= 1000) return { mode: 'compact', minimum: 380, margin: 24,
-    defaultWidth: 'min(500px, 56%)', expandedWidth: 'calc(100% - 24px)' }
-  return { mode: 'wide', minimum: 440, margin: 32, defaultWidth: 'min(560px, 48%)',
-    expandedWidth: 'min(max(880px, calc(var(--reading-width, 560px) + 320px)), calc(100% - 32px))' }
+    defaultWidth: 'min(440px, 52%)', expandedWidth: 'calc(100% - 24px)' }
+  return { mode: 'wide', minimum: 400, margin: 32, defaultWidth: 'min(460px, 42%)',
+    expandedWidth: 'min(max(880px, calc(var(--reading-width, 460px) + 320px)), calc(100% - 32px))' }
 }
 
 function containerWidth(surface: HTMLElement): number {
@@ -79,7 +81,7 @@ export function useReadingPanelGeometry(workingKey: string | undefined, onClose:
   const handle = useRef<HTMLDivElement>(null)
   const id = useId()
   const [resizing, setResizing] = useState(false)
-  const [room, setRoom] = useState({ ...readingLayout(1400), min: 440, max: 1368, now: width ?? 560 })
+  const [room, setRoom] = useState({ ...readingLayout(1400), min: 400, max: 1368, now: width ?? 460 })
   const drag = useRef<{ pointerId: number; x: number; start: number; width: number | undefined; expanded: boolean; next?: number } | null>(null)
   const measure = (): ReturnType<typeof panelRoom> => panel.current === null ? undefined : panelRoom(panel.current)
   const update = (): void => {
