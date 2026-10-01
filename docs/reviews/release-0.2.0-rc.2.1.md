@@ -18,18 +18,22 @@ This is the first same-line revision of the DSH 0.2.0-rc.2 line: per the release
 - Matching `pnpm check:harness` against `dsh-v0.2.0-rc.2`: all four compiler faces and **348 tests / 23 files** passed (the +1 file / +47 tests delta over 0.2.0-rc.2 is this round's design coverage, including the new find-dropdown view spec; geometry assertions now derive from the exported layout constants instead of hard-coded pixels).
 - The candidate archive (packed locally, **504020 bytes**, SHA-256 `1bb4edb14dbe5bb6345acf64642e43cfa173be996a454c1a418ebf7b887c5093`, Build ID `local-f99a3345`) passed the isolated packed-profile acceptance — install, offline recovery before Host boot, startup, persistent research operations, historical Branch continuation, reviewed mixed synthesis, extraction/reuse, export, read-only insights, shutdown, removal — with **19 deterministic fixture model calls**, first-round green.
 - Real-browser isolated preview on the official `dsh-v0.2.0-rc.2` Host (retained demo profile): the workbench badge reads **Research Graph v0.2.0-rc.2.1 · local-f99a3345**; the Workspace graph renders the new layered cards (kind line, excerpt, status-closing meta, round badges), and the cross-workspace Topic graph renders session and knowledge-card nodes with **solid source edges and dashed reuse edges (both arrow-headed)** — verified by DOM measurement that every node sits inside the canvas after Fit, with the knowledge inspector open and overlapping nothing. A transient horizontal scroll of the Host frame during viewport resizing initially looked like clipped cards; resetting the Host frame scroll restored exact in-canvas geometry, so it is a Host-frame artifact, not a plugin defect. Design-refresh screenshots are retained privately in `.artifacts/design-refresh-0.2.0-rc.2.1/`. The preview was stopped afterwards and the research data retained.
-- The official npm archive verification is recorded below after publication.
+- The official npm archive verification is recorded under **Published artifact** below.
 
 ## Published artifact
 
-_Publication pending; official numbers will be recorded here after the OIDC publish and independent verification._
+Publication completed on **2026-10-01 at 01:52 UTC** (09:52 Asia/Shanghai) through the OIDC publish workflow (run [36803080249](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36803080249)).
 
 | Official npm artifact | Verified value |
 | --- | --- |
 | Archive | `benz-ai-x-dsh-research-graph-0.2.0-rc.2.1.tgz` |
-| Size | pending |
-| Build ID | `local-f99a3345` (expected, equal to the badge) |
-| SHA-256 | pending |
+| Size | 503079 bytes |
+| Build ID | `local-f99a3345` |
+| SHA-256 | `e54d888f256c2b0b9468f26eab8b0373927b94940febe9c5db9f7f66aa3c8d0f` |
+
+The registry SHA-1 (`594325477376ba9437de06998ad3ead62fb5055f`) and SHA-512 integrity (`sha512-hNQQVQC+zrbACPwxOGjusnkgMnEg8jsvgg0EEkq9GyCR/yAC9a9iWz/6y7KQVHF8p/Vg7UzOyG2os3qU1OjQYw==`) match the downloaded official bytes. The SLSA provenance attestation names this repository at `refs/tags/v0.2.0-rc.2.1`, workflow `.github/workflows/publish.yml`, with the archive's SHA-512 as the subject digest (transparency-log index 3028936887; certificate signatures were not separately cryptographically verified). The official archive passed the same isolated packed-profile acceptance with **19 fixed model calls**, and its Build ID `local-f99a3345` equals the candidate's and the badge verified in the browser preview. The local candidate archive (504020 bytes, SHA-256 `1bb4edb14dbe5bb6345acf64642e43cfa173be996a454c1a418ebf7b887c5093`) differed in bytes because it was packed locally rather than by CI — both passed the same acceptance independently. The Release archive and `SHA256SUMS` were uploaded, downloaded again, and matched the official npm bytes exactly; the release body was read back. [PR #58 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36801092712), [PR #59 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36802354694), the merged main CI ([#58](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36801850392), [#59](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/36803042817)), and the OIDC Publish all passed; npm `next` is `0.2.0-rc.2.1` and `latest` remains `0.1.5-rc.1`.
+
+Private release evidence lives in `.artifacts/release-0.2.0-rc.2.1/`; the official archive and checksums are in `official/`.
 
 ## Acceptance boundary
 
