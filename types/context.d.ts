@@ -88,9 +88,6 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphBranch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranch']
       sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']
     }
-    readonly invariants: {
-      register: (packageName: string, installer: unknown) => () => void
-    }
     readonly sessionProjections: {
       register: (definition: unknown) => () => void
       stateOf: (session: unknown, key: string) => unknown

@@ -1493,14 +1493,17 @@ function mount(
     conversation.actions.openView(view, focus)
   }
   const useInput = bindSnapshotSelector(createSnapshotStore<InputState>({
-    draft: '', imageIds: [], draftRev: 0, phase: 'plain', occurrences: [], queue: [],
+    draft: '', attachmentIds: [], draftRev: 0, phase: 'plain', occurrences: [], queue: [],
   }))
   const useInspectCall = bindSnapshotSelector(createSnapshotStore<((callId: string) => void) | undefined>(undefined))
   const inputActions: InputActions = {
+    captureInsertion: vi.fn(() => ({ start: 0, end: 0, draftRev: 0 })),
+    insertText: vi.fn(() => false),
     setDraft: vi.fn(),
-    addImages: vi.fn(() => false),
-    removeImage: vi.fn(),
-    pruneImages: vi.fn(),
+    persistDraft: vi.fn(),
+    addAttachments: vi.fn(() => false),
+    removeAttachment: vi.fn(),
+    pruneAttachments: vi.fn(),
     submit: vi.fn(),
   }
   const siblingViewStandardProps = {
@@ -1575,7 +1578,7 @@ function mount(
         useStore={bindSnapshotSelector(conversation)}
         actions={conversation.actions}
         renderSlot={renderSlot}
-        bindDraftMirror={() => () => {}}
+        bindDraftPersistence={() => () => {}}
         openView={openView}
         useInspectCall={useInspectCall}
         useInput={useInput}

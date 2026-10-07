@@ -6,7 +6,7 @@ Read root `CONTEXT.md` and relevant `docs/adr/` decisions before changing behavi
 
 ## Project Structure & Module Organization
 
-`src/index.ts` and `src/invariant.ts` are the Node-facing package entries. Host services and contracts live in `src/`, including research topics, knowledge/extraction/synthesis/export, material reuse, historical branching, and Session insights. Browser behavior lives in `src/client/`: PascalCase files contain React views and canvas components, while lowercase modules implement graph derivation, layout, snapping, viewport state, persistence, and localization. Styles use `GraphView.module.css`.
+`src/index.ts` is the Node-facing package entry. Host services and contracts live in `src/`, including research topics, knowledge/extraction/synthesis/export, material reuse, historical branching, and Session insights. Browser behavior lives in `src/client/`: PascalCase files contain React views and canvas components, while lowercase modules implement graph derivation, layout, snapping, viewport state, persistence, and localization. Styles use `GraphView.module.css`.
 
 In `src/client/`, `graph-model.ts` derives Session facts and `knowledge-graph.ts` projects saved knowledge; `src/research-relations.ts` supplies research provenance. `dependency-layout.ts`, `layout.ts`, and `clusters.ts` place intact Branch clusters; `canvas-presentation.ts` applies arrangements before `edge-routing.ts` routes final geometry. `node-labels.ts` and `SubagentDetails.tsx` handle readable identities and delegated-task inspection.
 

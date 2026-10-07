@@ -254,8 +254,3 @@ declare module '@deepseek-ai/dsh-client-ui-session/client' {
   export type SessionStatusSnapshot = ReadonlyMap<SessionId, SessionStatus>
 }
 declare module '@deepseek-ai/dsh-client-ui-workspace/client' {}
-
-
-declare module '@deepseek-ai/dsh-invariants' {
-  export type InvariantInstaller = (ctx: import('@deepseek-ai/cordis').Context) => void
-}

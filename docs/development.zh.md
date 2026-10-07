@@ -58,12 +58,11 @@ pnpm preview:dsh --stop
 
 发布流水线会重新构建 tag。发布后应单独下载 npm 正式包，核对清单、版本／Build ID 和 registry 完整性，运行 `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness /absolute/path/official.tgz`。将正式包与校验文件附到 GitHub Release 后重新下载比对；最终提交、运行记录、归档摘要与验收结果写入版本验收和根交接。
 
-本包导出两个 Node 侧入口和一个惰性加载的浏览器模块；实际打包归档中的每个 JavaScript 入口都带有匹配的 TypeScript 声明：
+本包导出一个 Node 侧入口和一个惰性加载的浏览器模块；实际打包归档中的每个 JavaScript 入口都带有匹配的 TypeScript 声明：
 
 | 导出 | 用途 |
 |---|---|
 | `.` | 研究主题、知识、分支／沿用、会话摘要与标题、原文／搜索及持久 Merge 提交的 Cordis Host services |
-| `./invariant` | 运行时注册不变量 |
 | `./client` | 构建后的 dsh 客户端模块 |
 | `./cordis.patch.yml` | profile 组合包补丁 |
 

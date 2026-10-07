@@ -34,7 +34,7 @@ describe('published package metadata', () => {
     const metadata = JSON.parse(
       readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
     ) as PackageMetadata
-    const entries = ['.', './invariant', './client'] as const
+    const entries = ['.', './client'] as const
 
     for (const entry of entries) {
       const exported = metadata.exports[entry]
