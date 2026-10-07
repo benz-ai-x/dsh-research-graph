@@ -83,7 +83,7 @@ Updated: 2026-10-07 (Asia/Shanghai)
 | Issue #32 | 2026-09-14 再次核对仍为 OPEN；P5.1／P5.2 结构化方向与假设两项暂缓、未完成。自由问题和轻量提示已交付，不能据此补勾 P5。 |
 | 未合并原型 | `prototype/research-workbench` 仍是独立原型，不把其能力或旧启动状态视为 main 已发布内容。 |
 | CI 安装年龄门 | 2026-10-07 现状：workflow 级 `pnpm_config_minimum_release_age=0` 已于 2026-10-01（`bed6dc5`）按计划移除。0.2.1-alpha.1 各上游包发布于 2026-10-03 04:35 UTC，本轮适配的本地 frozen install 与 CI 均无需豁免。`pnpm-workspace.yaml` 的精确豁免条目保留作记录。 |
-| 文档与研究资料 | 本轮提交覆盖发布验收记录、双语 README／用户指南与根交接；`docs/research/` 三份研究记录、`docs/reports/` 与 `architecture.svg` 等未跟踪资料继续保留本地，不纳入提交。 |
+| 文档与研究资料 | 本轮提交覆盖发布验收记录、双语 README／用户指南与根交接；发布后另以直接文档提交 `e85159a` 在双语 README 新增「可安装版本」章节（16 个 npm 版本 × 钉版 DSH 目标全表，映射按 registry 逐版本 peer 依赖核对，main CI 四项通过）。`docs/research/` 三份研究记录、`docs/reports/` 与 `architecture.svg` 等未跟踪资料继续保留本地，不纳入提交。 |
 
 当前文档职责见 [分工表](docs/agents/domain.md#documentation-map)。本地的 [DSH Agent 预设与研图 HTML 报告](docs/reports/dsh-agent-presets-research-graph-2026-09-14.html) 是先前任务生成、尚未纳入 Git 的阅读材料，不作为当前版本验收依据。
 
