@@ -85,6 +85,33 @@ dsh web
 
 打开终端给出的登录入口，在一个**非空会话**中选择**研图**：读原文 → 保存知识 → 继续讨论。通过 `npx` 或源码运行 DSH 时，参阅[安装方式](docs/user-guide.zh.md#安装)。
 
+<a id="可安装版本"></a>
+
+## 可安装版本
+
+当前包名在 npm 上的全部发布版本及各自要求的 DSH 宿主版本（取自每个版本钉版的 `@deepseek-ai/dsh-llm` peer 依赖）。安装指定版本：`dsh plugin --profile web add @benz-ai-x/dsh-research-graph@<版本>`：
+
+| 插件版本 | 要求的 DSH | 备注 |
+| --- | --- | --- |
+| `0.2.1-alpha.1` | `0.2.1-alpha.1` | 当前版本，npm `next` |
+| `0.2.0-rc.2.1` | `0.2.0-rc.2` | 同线修订（工作台设计刷新） |
+| `0.2.0-rc.2` | `0.2.0-rc.2` | 该 DSH 线首个版本 |
+| `0.1.7-rc.2` | `0.1.7-rc.2` | |
+| `0.1.7-rc.1` | `0.1.7-rc.1` | |
+| `0.1.6-alpha.2` | `0.1.6-alpha.2` | |
+| `0.1.5-rc.2.8` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.7` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.6` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.5` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.4` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.3` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.2` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.1` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2` | `0.1.5-rc.2` | |
+| `0.1.5-rc.1` | `0.1.5-rc.1` | 当前包名下首个版本；npm `latest` |
+
+至 `0.1.5-rc.1` 为止的版本也曾以旧包名 `@benz-ai-x/dsh-client-ui-session-graph` 发布，其更早的 `0.1.1`–`0.1.6` 线早于 DSH 对齐的发布政策。每个版本只在其钉版的 DSH 宿主上加载（profile 启动时执行精确 peer 校验），请按本机 DSH 版本选择对应行。
+
 ## 文档与支持
 
 [使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.1-alpha.1.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)

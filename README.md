@@ -86,6 +86,33 @@ dsh web
 
 Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
 
+<a id="installable-versions"></a>
+
+## Installable versions
+
+Every npm release of the current package name, with its required DSH Host (taken from each release's pinned `@deepseek-ai/dsh-llm` peer). Install a specific one with `dsh plugin --profile web add @benz-ai-x/dsh-research-graph@<version>`:
+
+| Plugin release | Required DSH | Notes |
+| --- | --- | --- |
+| `0.2.1-alpha.1` | `0.2.1-alpha.1` | Current release, npm `next` |
+| `0.2.0-rc.2.1` | `0.2.0-rc.2` | Same-line revision (workbench design refresh) |
+| `0.2.0-rc.2` | `0.2.0-rc.2` | First release of that DSH line |
+| `0.1.7-rc.2` | `0.1.7-rc.2` | |
+| `0.1.7-rc.1` | `0.1.7-rc.1` | |
+| `0.1.6-alpha.2` | `0.1.6-alpha.2` | |
+| `0.1.5-rc.2.8` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.7` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.6` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.5` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.4` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.3` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.2` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2.1` | `0.1.5-rc.2` | |
+| `0.1.5-rc.2` | `0.1.5-rc.2` | |
+| `0.1.5-rc.1` | `0.1.5-rc.1` | First release under the current package name; npm `latest` |
+
+Releases up to `0.1.5-rc.1` were also published under the previous package name `@benz-ai-x/dsh-client-ui-session-graph`, whose earlier `0.1.1`–`0.1.6` line predates the DSH-aligned release policy. A release loads only on its pinned DSH Host (profile boot enforces the exact peer check), so pick the row matching your DSH installation.
+
 ## Docs and support
 
 [User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.1-alpha.1.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
