@@ -58,12 +58,11 @@ For the first adaptation to a DSH release, set `package.json.version` to the ful
 
 The publishing workflow rebuilds the tag. After publication, download the official npm archive, check its manifest, version/Build ID and registry integrity, then run `DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm smoke:harness /absolute/path/official.tgz`. Attach those official bytes and checksums to the GitHub Release and download them again to compare. Record the final commit, workflow runs, archive hashes, and acceptance in the versioned review and root handoff.
 
-The package exports two Node-facing entries and one lazy browser module. Every JavaScript entry ships a matching TypeScript declaration in the packed archive:
+The package exports one Node-facing entry and one lazy browser module. Every JavaScript entry ships a matching TypeScript declaration in the packed archive:
 
 | Export | Purpose |
 |---|---|
 | `.` | Cordis Host services for research topics, knowledge, branching/reuse, Session insights, history/search, and durable Merge submission |
-| `./invariant` | Runtime registration invariant |
 | `./client` | Built dsh client module |
 | `./cordis.patch.yml` | Profile bundle patch |
 

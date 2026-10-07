@@ -49,9 +49,9 @@ function declarationPath(path, specifier) {
   return file
 }
 for (const [face, entries] of [
-  ['Host', ['src/index.ts', 'src/invariant.ts']],
+  ['Host', ['src/index.ts']],
   ['Client', ['src/client/index.ts', 'src/css-modules.d.ts', 'tests/harness-client-types.ts']],
-  ['Published Host', ['lib/types/index.d.ts', 'lib/types/invariant.d.ts']],
+  ['Published Host', ['lib/types/index.d.ts']],
   ['Published Client', ['tests/harness-package-client-types.ts']],
 ]) {
   const program = ts.createProgram(entries.map(path => resolve(path)), {

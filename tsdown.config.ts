@@ -146,7 +146,6 @@ const nodeEntry = (entry: string) => ({
 
 export default defineConfig([
   { ...nodeEntry('src/index.ts'), clean: true },
-  nodeEntry('src/invariant.ts'),
   {
     name: `${PACKAGE_NAME}/history-recovery`,
     entry: ['scripts/migrate-merge-history.mjs'],
@@ -196,8 +195,7 @@ export default defineConfig([
     name: `${PACKAGE_NAME}/types`,
     entry: {
       index: 'src/index.ts',
-      invariant: 'src/invariant.ts',
-      client: 'src/client/index.ts',
+      client: 'src/client/index.ts'
     },
     outDir: 'lib/types',
     format: 'esm',

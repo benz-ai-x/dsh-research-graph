@@ -7,7 +7,6 @@ describe('Host bundle', () => {
     execFileSync(process.execPath, ['--input-type=module', '-e', [
       'const host = await import("./lib/index.js")',
       'if (typeof host.apply !== "function") throw new Error("Missing Host entry")',
-      'await import("./lib/invariant.js")',
     ].join('\n')], { stdio: 'pipe' })
   })
 
