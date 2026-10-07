@@ -27,7 +27,18 @@ Everything else on the surface is additive or internal: `startSession` gained an
 
 ## Published artifact
 
-Publication is recorded here after the OIDC publish completes.
+Publication completed on **2026-10-07 at 03:34 UTC** (11:34 Asia/Shanghai) through the OIDC publish workflow (run [37567337167](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/37567337167)); the GitHub prerelease was created at 03:33:56 UTC and the version became visible on `registry.npmjs.org` within ~90 seconds.
+
+| Official npm artifact | Verified value |
+| --- | --- |
+| Archive | `benz-ai-x-dsh-research-graph-0.2.1-alpha.1.tgz` |
+| Size | 507526 bytes |
+| Build ID | `local-85e7f70d` |
+| SHA-256 | `a3b91870a34ca3c711523969eca264dba4b2a1daee407fef24837e38bbb63cab` |
+
+The registry SHA-1 (`f5df942b0e92f711d301355d6e34d5b5390dd078`) and SHA-512 integrity (`sha512-MWxx8dZT/1xvxLK3zjqjVsHfaSkghCH++paSj2VKmS8NC/u1Z222RmiihXkRfg+F8wXUaQLewGQwVkd3+MSRzw==`) match the downloaded official bytes, and the packed `package.json` reads `0.2.1-alpha.1` with client Build ID `local-85e7f70d` — equal to the candidate's and to the badge verified in the browser preview. The publish ran with `--provenance`; the workflow log records a signed provenance statement published to the sigstore transparency log at index **3122729635**, and the Rekor entry at that index is present (DSSE kind with envelope and payload hashes). The registry's attestations endpoint returned `ResourceNotFound` for this version **and for the prior 0.2.0-rc.2.1** when re-checked today, so the attestation envelope payload was not decoded locally this round; certificate signatures were not separately cryptographically verified. The official archive passed the same isolated packed-profile acceptance with **19 fixed model calls**, first-round green. The local candidate archive (508106 bytes, Build ID `local-85e7f70d`) differed in bytes because it was packed locally rather than by CI — both passed the same acceptance independently. The Release archive and `SHA256SUMS` were uploaded, downloaded again, and matched the official npm bytes exactly; the release body was read back. [PR #60 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/37564813973), [PR #61 CI](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/37566956564), the merged main CI runs ([4a6230a](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/37565802540), [bebe71b](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/37567297180)), and the OIDC Publish all passed; npm `next` is `0.2.1-alpha.1` and `latest` remains `0.1.5-rc.1`.
+
+Private release evidence lives in `.artifacts/release-0.2.1-alpha.1/`; the official archive, checksums, and readback are in `official/`.
 
 ## Acceptance boundary
 
