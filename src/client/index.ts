@@ -276,7 +276,8 @@ async function registerUi(ctx: Context): Promise<void> {
         signal.throwIfAborted()
         const projection = ctx.sessions.list.getSnapshot().projectionsBySession[parentId]
         const entry = projection?.values.subagentCatalog?.find(entry => entry.id === childId)
-        if (projection?.state !== 'ready' || entry === undefined) {
+        // External executions have no local child Session; the Host address union excludes them.
+        if (projection?.state !== 'ready' || entry === undefined || entry.mode === 'external') {
           throw new Error('Subagent catalog address is unavailable')
         }
         ctx.uiWorkspace.openSession({ parentSessionId: parentId, childSessionId: childId, mode: entry.mode })

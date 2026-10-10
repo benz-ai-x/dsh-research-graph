@@ -10,6 +10,8 @@ permissions:
 
 env:
   DSH_REPOSITORY: deepseek-ai/deepseek-harness
+  # 0.2.1-alpha.2 published 2026-10-09 07:57-08:05 UTC; remove after the 24h window closes (2026-10-10 08:05 UTC).
+  pnpm_config_minimum_release_age: '0'
 
 jobs:
   check:

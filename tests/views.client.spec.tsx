@@ -2843,7 +2843,7 @@ describe('cluster drag', () => {
 })
 
 describe('relayout button', () => {
-  it.each(['stale', 'missing'] as const)('does not open a subagent with a %s catalog entry', async mode => {
+  it.each(['stale', 'missing', 'external'] as const)('does not open a subagent with a %s catalog entry', async mode => {
     const b = await bench({ root: session('root'), delegate: session('delegate', { origin: 'subagent', parentId: id('root') }) })
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
@@ -2857,7 +2857,11 @@ describe('relayout button', () => {
       const current = b.sessionsStore.getSnapshot()
       b.sessionsStore.set({ ...current, projectionsBySession: { ...current.projectionsBySession, root: {
         state: mode === 'stale' ? 'error' : 'ready', error: null,
-        values: { subagentCatalog: mode === 'stale' ? [{ id: id('delegate'), createdAt: 1, mode: 'one-shot' }] : [] },
+        values: { subagentCatalog: mode === 'stale'
+          ? [{ id: id('delegate'), createdAt: 1, mode: 'one-shot' }]
+          : mode === 'external'
+            ? [{ id: id('delegate'), createdAt: 1, mode: 'external' }]
+            : [] },
       } } } as SessionListState)
     })
     fireEvent.click(nodeButton('root'))
