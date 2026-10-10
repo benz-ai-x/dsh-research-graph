@@ -25,6 +25,8 @@ jobs:
     environment: npm-publish
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      # 0.2.1-alpha.2 published 2026-10-09 07:57-08:05 UTC; remove after the 24h window closes (2026-10-10 08:05 UTC).
+      pnpm_config_minimum_release_age: '0'
     steps:
       - uses: actions/checkout@v7
         with:

@@ -116,6 +116,7 @@ declare module '@deepseek-ai/dsh-subagent/projection-types' {
     }
     & (
       | { readonly mode: 'one-shot'; readonly label?: string }
+      | { readonly mode: 'external'; readonly label?: string }
       | { readonly mode: 'continuable'; readonly label: string }
       | { readonly mode: 'unknown'; readonly label?: string }
     )
@@ -178,7 +179,7 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
     readonly values: Readonly<
       Partial<import('@deepseek-ai/dsh-session-projection/types').SessionProjectionMap>
     >
-    readonly state: 'idle' | 'loading' | 'ready' | 'error'
+    readonly state: 'idle' | 'loading' | 'ready' | 'migration-required' | 'error'
     readonly error: unknown
   }
 
