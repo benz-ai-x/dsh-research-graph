@@ -124,7 +124,7 @@ describe('tsdown client artifact', () => {
     const { handoff, plugin } = await loadArtifact()
     expect(handoff.id).toBe(PLUGIN_ID)
     expect(plugin.apply).toBeTypeOf('function')
-    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote'])
+    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote', 'remote.session'])
   })
 
   it('registers and disposes the Graph view through the dsh Client services', async () => {
@@ -175,6 +175,12 @@ describe('tsdown client artifact', () => {
           },
           remote: {
             $mount: mountRemote,
+            session: {
+              rename: async (request: { readonly sessionId: string; readonly title: string }) => {
+                renamed.push(request.title)
+                return { ok: true, value: { title: request.title, seq: 0 } }
+              },
+            },
             sessionGraphDigest: digestRemote,
             sessionGraphMerge: mergeRemote,
             sessionGraphKnowledge: { hostIdentity: async () => ({ ok: true, value: { hostId: 'host-one' } }) },
@@ -262,6 +268,9 @@ describe('tsdown client artifact', () => {
       },
       remote: {
         $mount: mountRemote,
+        get session() {
+          throw new Error('cannot get property "remote.session" without inject')
+        },
         get sessionGraphDigest() {
           throw new Error('cannot get property "remote.sessionGraphDigest" without inject')
         },
@@ -278,6 +287,7 @@ describe('tsdown client artifact', () => {
     expect(mountRemote).toHaveBeenCalledOnce()
     expect(injectedServices).toEqual([[
       'slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale',
+      'remote.session',
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
       'remote.sessionGraphSearch', 'remote.sessionGraphTopics',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',

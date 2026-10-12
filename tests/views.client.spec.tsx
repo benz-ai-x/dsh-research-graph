@@ -1399,6 +1399,19 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
       })),
     },
   }))
+  const selectModel = vi.fn(async (request: {
+    readonly sessionId: SessionId
+    readonly provider: string
+    readonly model: string
+  }) => ({ ok: true as const, value: { selected: { provider: request.provider, model: request.model } } }))
+  const renameSession = vi.fn(async (request: {
+    readonly sessionId: SessionId
+    readonly title: string
+  }) => ({ ok: true as const, value: { title: request.title, seq: 1 } }))
+  const modelCatalog = vi.fn(async () => ({ ok: true as const, value: {
+    default: { provider: 'host', model: 'everyday' },
+    groups: [{ id: 'research', name: '研究供应商', models: [{ id: 'synthesizer', name: '综合者' }] }],
+  } }))
   ctx.provide('sessions', {
     list: sessionsStore,
     refreshProjections,
@@ -1431,6 +1444,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   // mounted namespace; mirror that boundary instead of hanging it off the
   // root Remote stub.
   ctx.provide('remote.sessionGraphDigest', { generate: generateDigest } as never)
+  ctx.provide('remote.session', { selectModel, modelCatalog, rename: renameSession } as never)
   ctx.provide('remote.sessionGraphTitle', { generate: generateTitle } as never)
   ctx.provide('remote.sessionGraphMerge', { submit: submitMerge } as never)
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
@@ -1447,7 +1461,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber
   return {
-    ctx, slots, fiber, sessionsStore, open, openSubagent, refreshProjections, fork, create, rename, generateDigest, generateTitle, submitMerge, readHistory, searchDiscussion,
+    ctx, slots, fiber, sessionsStore, open, openSubagent, refreshProjections, fork, create, rename, renameSession, generateDigest, generateTitle, submitMerge, selectModel, modelCatalog, readHistory, searchDiscussion,
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge, prepareExport,
     prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse, prepareBranch, submitBranch, readBranch,
@@ -2064,7 +2078,10 @@ describe('graph tab rendering and interaction', () => {
 
     await waitFor(() => { expect(b.open).toHaveBeenCalledWith(id('merged')) })
     expect(b.create).toHaveBeenCalledWith({ cwd: '/w' })
-    expect(b.rename).toHaveBeenCalledWith('Merge: Session sourceA + Session sourceB')
+    expect(b.renameSession).toHaveBeenCalledWith({
+      sessionId: id('merged'),
+      title: 'Merge: Session sourceA + Session sourceB',
+    })
     expect(screen.queryByRole('dialog', { name: '汇聚会话' })).toBeNull()
   })
 
@@ -2098,6 +2115,34 @@ describe('graph tab rendering and interaction', () => {
     await waitFor(() => { expect(b.open).toHaveBeenCalledWith(id('merged')) })
     expect(b.create).toHaveBeenCalledTimes(1)
     expect(screen.queryByRole('dialog', { name: '汇聚会话' })).toBeNull()
+  })
+
+  it('installs the model chosen in the canvas Merge panel on the target before submission', async () => {
+    const b = await bench({
+      sourceA: session('sourceA', { updatedAt: 500 }),
+      sourceB: session('sourceB', { updatedAt: 400 }),
+    })
+    mount(b.slots, b.sessionsStore, 'sourceA')
+    switchTab('Research Graph')
+
+    chooseCanvasAction('汇聚所选会话')
+    fireEvent.click(nodeButton('sourceA'))
+    fireEvent.click(nodeButton('sourceB'))
+    const model = await screen.findByRole('combobox', { name: '本次汇聚使用的模型' })
+    expect((model as HTMLSelectElement).value).toBe('')
+    expect((model as HTMLSelectElement).options[0]!.text).toBe('跟随 Host 默认模型（host/everyday）')
+    expect(b.selectModel).not.toHaveBeenCalled()
+    fireEvent.change(model, { target: { value: JSON.stringify(['research', 'synthesizer']) } })
+    fireEvent.click(screen.getByRole('button', { name: '创建汇聚会话' }))
+
+    await waitFor(() => { expect(b.submitMerge).toHaveBeenCalledTimes(1) })
+    expect(b.selectModel).toHaveBeenCalledTimes(1)
+    expect(b.selectModel.mock.calls[0]![0]).toEqual({
+      sessionId: id('merged'),
+      provider: 'research',
+      model: 'synthesizer',
+    })
+    expect(b.open).toHaveBeenCalledWith(id('merged'))
   })
 
   it('presents the kind line and Canvas Session title before secondary metadata', async () => {

@@ -8,10 +8,12 @@ export type SessionMergeErrorCode =
   | 'invalid-source-count'
   | 'duplicate-source'
   | 'invalid-instruction'
+  | 'invalid-model-selection'
   | 'invalid-source'
   | 'invalid-target-workspace'
   | 'cross-workspace-source'
   | 'target-create-failed'
+  | 'target-model-failed'
   | 'target-name-failed'
   | 'snapshot-submit-failed'
   | 'target-open-failed'
@@ -55,10 +57,18 @@ export interface SessionMergeTargetLocation {
   readonly workspaceId?: string
 }
 
+/** Model route installed on the target before its Merge instruction is queued. */
+export interface SessionMergeModelSelection {
+  readonly provider: string
+  readonly model: string
+}
+
 /** Explicit destination and navigation policy for a research-level Merge. */
 export interface SessionMergeOptions {
   readonly target?: SessionMergeTargetLocation
   readonly openTarget?: boolean
+  /** Session-local model for the Merge turn; omitted follows the Host default route. */
+  readonly model?: SessionMergeModelSelection
 }
 
 /** Request submitted to the Host after the target is created and named. */
@@ -80,6 +90,11 @@ export interface SessionMergeDependencies {
     location: SessionMergeTargetLocation,
     signal: AbortSignal,
   ) => Promise<string>
+  readonly selectModel: (
+    targetSessionId: string,
+    selection: SessionMergeModelSelection,
+    signal: AbortSignal,
+  ) => Promise<void>
   readonly renameTarget: (
     targetSessionId: string,
     title: string,
@@ -158,6 +173,14 @@ export function createSessionMergeModule(
         'validating',
       )
     }
+    if (options.model !== undefined
+      && (!options.model.provider.trim() || !options.model.model.trim())) {
+      throw new SessionMergeError(
+        'invalid-model-selection',
+        'Session Merge model selection must name a provider and a model',
+        'validating',
+      )
+    }
     const sources = await Promise.all(sourceIds.map(async sourceId =>
       await dependencies.inspectSource(sourceId, signal)))
     signal.throwIfAborted()
@@ -202,6 +225,22 @@ export function createSessionMergeModule(
     request: ValidatedMergeRequest,
     signal: AbortSignal,
   ): Promise<string> {
+    // Re-applied on every attempt: a durable model/selection event is
+    // idempotent on the Host, and a retry after a model failure must not
+    // silently fall back to the default route.
+    if (request.options.model !== undefined) {
+      try {
+        await dependencies.selectModel(targetSessionId, request.options.model, signal)
+      } catch (error) {
+        if (signal.aborted) throw error
+        throw new SessionMergeError(
+          'target-model-failed',
+          failureMessage(error, 'Failed to select the Merge Session model'),
+          'creating',
+          targetSessionId,
+        )
+      }
+    }
     const title = `Merge: ${request.sources.map(source => source.title).join(' + ')}`
     try {
       await dependencies.renameTarget(targetSessionId, title, signal)

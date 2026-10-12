@@ -132,6 +132,11 @@ export type SessionGraphKey =
   | 'merge.instruction'
   | 'merge.referenceInstruction'
   | 'merge.defaultInstruction'
+  | 'merge.model'
+  | 'merge.modelFollowPlain'
+  | 'merge.modelFollow'
+  | 'merge.modelLoading'
+  | 'merge.modelFailed'
   | 'merge.remove'
   | 'merge.cancel'
   | 'merge.submit'
@@ -344,6 +349,11 @@ export const zh: Record<SessionGraphKey, string> = {
   'merge.instruction': '汇聚指令',
   'merge.referenceInstruction': '请通过会话卡片选择来源，不要在指令中输入 dsh-session 引用。',
   'merge.defaultInstruction': '综合所选会话的上下文，提炼共识、分歧和待办，并继续完成任务。',
+  'merge.model': '本次汇聚使用的模型',
+  'merge.modelFollowPlain': '跟随 Host 默认模型',
+  'merge.modelFollow': '跟随 Host 默认模型（{model}）',
+  'merge.modelLoading': '正在读取可用模型…',
+  'merge.modelFailed': '模型目录不可用，暂只能跟随默认模型',
   'merge.remove': '移除 {name}',
   'merge.cancel': '取消',
   'merge.submit': '创建汇聚会话',
@@ -550,6 +560,11 @@ export const en: Record<SessionGraphKey, string> = {
   'merge.instruction': 'Merge instruction',
   'merge.referenceInstruction': 'Select sources on the session cards instead of entering dsh-session references in the instruction.',
   'merge.defaultInstruction': 'Synthesize the selected session contexts, extract agreements, disagreements, and open work, then continue the task.',
+  'merge.model': 'Model for this merge',
+  'merge.modelFollowPlain': 'Follow the Host default model',
+  'merge.modelFollow': 'Follow the Host default model ({model})',
+  'merge.modelLoading': 'Loading available models…',
+  'merge.modelFailed': 'Model catalog unavailable; only the default is offered',
   'merge.remove': 'Remove {name}',
   'merge.cancel': 'Cancel',
   'merge.submit': 'Create Merge session',
