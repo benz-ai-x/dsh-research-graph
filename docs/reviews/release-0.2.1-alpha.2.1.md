@@ -26,7 +26,10 @@ Upstream merge `submit` eligibility checks only `turn/start` events and the plug
 
 ## Published artifact
 
-Publication is recorded here after the OIDC publish completes.
+- [Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-alpha.2.1) on the merged tag (main `3a82431`, tree identical to the accepted head `440db0d`); the merge-commit main CI passed and the OIDC [Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/38201719726) succeeded (2026-10-12 11:56 Asia/Shanghai).
+- npm dist-tags after publish: `next` = `0.2.1-alpha.2.1`, `latest` stays `0.1.5-rc.1`. Registry integrity `sha512-lh9/SGworSOFIzEGbWYptgZcoLtuUT6GAcfZ0PU22isbdo6d7wJX5MJkZ6tV5Y3JPtXYxzg79nljpr5gt+3vMA==`.
+- The official archive (**514819 bytes**, SHA-256 `bddd8a4a…`, packed by CI so its bytes differ from the local candidate as in every previous release) passed the same isolated packed-profile acceptance independently — all durable/research checks with **19 fixture model calls**, version `0.2.1-alpha.2.1` on DSH `0.2.1-alpha.2`.
+- Release attachments (official archive + `SHA256SUMS`) were uploaded and read back; archived locally under `.artifacts/release-0.2.1-alpha.2.1/official/`.
 
 ## Acceptance boundary
 
