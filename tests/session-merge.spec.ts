@@ -15,6 +15,7 @@ function dependencies(): SessionMergeDependencies {
       canvas: true,
     }),
     createTarget: async () => 'target-session',
+    selectModel: async () => {},
     renameTarget: async () => {},
     submitMerge: async () => {},
     openTarget: () => {},
@@ -296,6 +297,147 @@ describe('Session Merge application interface', () => {
         'open:target-session',
       ],
     })
+  })
+
+  it('installs the chosen model on the target before naming and submission', async () => {
+    const calls: string[] = []
+    const merges = createSessionMergeModule({
+      ...dependencies(),
+      createTarget: async () => {
+        calls.push('create')
+        return 'target-session'
+      },
+      selectModel: async (targetSessionId, selection) => {
+        calls.push(`select:${targetSessionId}:${selection.provider}/${selection.model}`)
+      },
+      renameTarget: async targetSessionId => {
+        calls.push(`rename:${targetSessionId}`)
+      },
+      submitMerge: async () => {
+        calls.push('submit')
+      },
+    })
+
+    await merges.mergeSessions(
+      ['source-a', 'source-b'],
+      'Synthesize the conclusions and open items.',
+      new AbortController().signal,
+      { model: { provider: 'research', model: 'synthesizer' } },
+    )
+
+    expect(calls).toEqual([
+      'create',
+      'select:target-session:research/synthesizer',
+      'rename:target-session',
+      'submit',
+    ])
+  })
+
+  it('skips model selection entirely when no model is chosen', async () => {
+    let selected = 0
+    const merges = createSessionMergeModule({
+      ...dependencies(),
+      selectModel: async () => {
+        selected += 1
+      },
+    })
+
+    await merges.mergeSessions(
+      ['source-a', 'source-b'],
+      'Synthesize the conclusions and open items.',
+      new AbortController().signal,
+    )
+
+    expect(selected).toBe(0)
+  })
+
+  it('re-applies the chosen model on retry without creating a duplicate Session', async () => {
+    const selections: { readonly targetSessionId: string; readonly provider: string; readonly model: string }[] = []
+    let submits = 0
+    const merges = createSessionMergeModule({
+      ...dependencies(),
+      selectModel: async (targetSessionId, selection) => {
+        selections.push({ targetSessionId, provider: selection.provider, model: selection.model })
+      },
+      submitMerge: async () => {
+        submits += 1
+        if (submits === 1) throw new Error('temporary capture failure')
+      },
+    })
+    const model = { provider: 'research', model: 'synthesizer' }
+
+    await expect(merges.mergeSessions(
+      ['source-a', 'source-b'],
+      'Synthesize the conclusions and open items.',
+      new AbortController().signal,
+      { model },
+    )).rejects.toMatchObject({ targetSessionId: 'target-session' })
+    await merges.retryMerge(
+      'target-session',
+      ['source-a', 'source-b'],
+      'Synthesize the conclusions and open items.',
+      new AbortController().signal,
+      { model },
+    )
+
+    expect(selections).toEqual([
+      { targetSessionId: 'target-session', provider: 'research', model: 'synthesizer' },
+      { targetSessionId: 'target-session', provider: 'research', model: 'synthesizer' },
+    ])
+    expect(submits).toBe(2)
+  })
+
+  it('preserves the created target when model selection fails', async () => {
+    let renamed = false
+    const merges = createSessionMergeModule({
+      ...dependencies(),
+      selectModel: async () => {
+        throw new Error('session/model-unavailable: no adapter')
+      },
+      renameTarget: async () => {
+        renamed = true
+      },
+    })
+
+    const result = merges.mergeSessions(
+      ['source-a', 'source-b'],
+      'Synthesize the conclusions and open items.',
+      new AbortController().signal,
+      { model: { provider: 'research', model: 'synthesizer' } },
+    )
+
+    await expect(result).rejects.toMatchObject({
+      code: 'target-model-failed',
+      stage: 'creating',
+      targetSessionId: 'target-session',
+      message: 'session/model-unavailable: no adapter',
+    })
+    expect(renamed).toBe(false)
+  })
+
+  it('rejects a model selection without a provider or model before creating a target', async () => {
+    let targetCreated = false
+    const merges = createSessionMergeModule({
+      ...dependencies(),
+      createTarget: async () => {
+        targetCreated = true
+        return 'target-session'
+      },
+    })
+
+    const result = merges.mergeSessions(
+      ['source-a', 'source-b'],
+      'Synthesize the conclusions and open items.',
+      new AbortController().signal,
+      { model: { provider: '  ', model: 'synthesizer' } },
+    )
+
+    await expect(result).rejects.toEqual(new SessionMergeError(
+      'invalid-model-selection',
+      'Session Merge model selection must name a provider and a model',
+      'validating',
+    ))
+    expect(targetCreated).toBe(false)
   })
 
   it('preserves the created target when naming fails', async () => {

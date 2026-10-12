@@ -119,6 +119,66 @@ describe('Research Workbench user actions', () => {
     expect(client.topics.write.mock.calls[1]![0]).toEqual({ kind: 'add', topicId: 'topic', sessionIds: ['a', 'b', 'target'] })
   })
 
+  it('offers the Host model catalog for a merge and carries the choice into the request', async () => {
+    const client = knowledgeClient()
+    const merge = vi.fn<NonNullable<GraphViewProps['mergeResearchSessions']>>().mockResolvedValue('target' as SessionId)
+    const byId = Object.fromEntries(['a', 'b'].map(id => [id, { id, displayTitle: `${id} 的讨论`, cwd: `/${id}`, blank: false }]))
+    const props = { t, mergeResearchSessions: merge, topics: client.topics,
+      models: { catalog: async () => ({
+        default: { provider: 'host', model: 'everyday' },
+        groups: [{ id: 'research', name: '研究供应商', models: [{ id: 'synthesizer', name: '综合者' }] }],
+      }) },
+      useSessions: (select: (value: unknown) => unknown) => select({ ids: ['a', 'b'], byId }),
+      useWorkspaces: (select: (value: unknown) => unknown) => select({ archivedSessionIds: [], items: ['research'].map(id => ({ workspaceId: id, title: `${id} 工作区`, path: `/${id}`, sessionIds: [] })) }),
+    } as unknown as GraphViewProps
+    const complete = vi.fn()
+    render(<KnowledgeProvider {...client} t={t}>
+      <ResearchMerge props={props} visible close={() => {}} completed={complete} />
+    </KnowledgeProvider>)
+    fireEvent.click(screen.getByRole('checkbox', { name: /a 的讨论/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /b 的讨论/ }))
+    fireEvent.change(screen.getByRole('combobox', { name: '3 · 新会话放在哪里' }), { target: { value: 'research' } })
+    const model = await screen.findByRole('combobox', { name: '本次汇聚使用的模型' })
+    expect((model as HTMLSelectElement).value).toBe('')
+    expect((model as HTMLSelectElement).options[0]!.text).toBe('跟随 Host 默认模型（host/everyday）')
+    fireEvent.change(model, { target: { value: JSON.stringify(['research', 'synthesizer']) } })
+    fireEvent.click(screen.getByRole('button', { name: '预览汇聚' }))
+    await screen.findByRole('button', { name: '确认汇聚并创建会话' })
+    expect(screen.getByText('本次汇聚使用 research/synthesizer。')).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: '确认汇聚并创建会话' }))
+    await waitFor(() => { expect(complete).toHaveBeenCalledWith('target', undefined) })
+    expect(merge).toHaveBeenCalledTimes(1)
+    expect(merge.mock.calls[0]![0]).toMatchObject({
+      sourceIds: ['a', 'b'],
+      workspaceId: 'research',
+      model: { provider: 'research', model: 'synthesizer' },
+    })
+  })
+
+  it('follows the Host default model without a picker when the catalog face is unavailable', async () => {
+    const client = knowledgeClient()
+    const merge = vi.fn<NonNullable<GraphViewProps['mergeResearchSessions']>>().mockResolvedValue('target' as SessionId)
+    const byId = Object.fromEntries(['a', 'b'].map(id => [id, { id, displayTitle: `${id} 的讨论`, cwd: `/${id}`, blank: false }]))
+    const props = { t, mergeResearchSessions: merge, topics: client.topics,
+      useSessions: (select: (value: unknown) => unknown) => select({ ids: ['a', 'b'], byId }),
+      useWorkspaces: (select: (value: unknown) => unknown) => select({ archivedSessionIds: [], items: ['research'].map(id => ({ workspaceId: id, title: `${id} 工作区`, path: `/${id}`, sessionIds: [] })) }),
+    } as unknown as GraphViewProps
+    const complete = vi.fn()
+    render(<KnowledgeProvider {...client} t={t}>
+      <ResearchMerge props={props} visible close={() => {}} completed={complete} />
+    </KnowledgeProvider>)
+    expect(screen.queryByRole('combobox', { name: '本次汇聚使用的模型' })).toBeNull()
+    fireEvent.click(screen.getByRole('checkbox', { name: /a 的讨论/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /b 的讨论/ }))
+    fireEvent.change(screen.getByRole('combobox', { name: '3 · 新会话放在哪里' }), { target: { value: 'research' } })
+    fireEvent.click(screen.getByRole('button', { name: '预览汇聚' }))
+    await screen.findByRole('button', { name: '确认汇聚并创建会话' })
+    expect(screen.getByText('本次汇聚跟随 Host 默认模型路由。')).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: '确认汇聚并创建会话' }))
+    await waitFor(() => { expect(complete).toHaveBeenCalledWith('target', undefined) })
+    expect(merge.mock.calls[0]![0]).not.toHaveProperty('model')
+  })
+
   it('continues from the displayed old revision and keeps the workbench open after confirmation', async () => {
     const client = knowledgeClient()
     const card: KnowledgeCard = { cardId: randomUUID(), topicIds: [], revisions: [1, 2].map(number => ({ revisionId: randomUUID(), requestHash: 'a'.repeat(64), number,

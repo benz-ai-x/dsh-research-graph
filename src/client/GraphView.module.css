@@ -1117,6 +1117,33 @@
   box-shadow: 0 0 0 1px var(--dsw-alias-state-business-primary);
 }
 
+.mergeModelLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.mergeModelLabel select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  outline: none;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  font: inherit;
+  font-weight: 400;
+}
+
+.mergeModelLabel select:focus {
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: 0 0 0 1px var(--dsw-alias-state-business-primary);
+}
+
 .mergeInstructionError {
   font-size: 11px;
   font-weight: 400;

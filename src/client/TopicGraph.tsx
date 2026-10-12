@@ -128,6 +128,7 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         onOpen={open} onOpenSubagent={context.actions.openSubagent} onBranch={context.actions.branchSession} onGenerateDigest={context.actions.generateSessionDigest}
         onGenerateTitle={context.actions.generateSessionTitle} onRenameTitle={context.actions.renameSessionTitle}
         onReadHistory={context.actions.readSessionHistory} onMerge={context.actions.mergeSessions} onRetryMerge={context.actions.retrySessionMerge}
+        models={context.actions.models}
         topic={{ arrangement, onArrange, openCard: knowledge.open,
           actions: <>
             {knowledge.synthesize === undefined ? null : <button type="button" disabled={phase !== 'ready'} onClick={() => { knowledge.synthesize?.(topic.topicId) }}>{t('synthesis.title')}</button>}

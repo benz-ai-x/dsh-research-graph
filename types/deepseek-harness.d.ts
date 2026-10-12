@@ -13,6 +13,42 @@ declare module '@deepseek-ai/dsh-api-session-controller' {
   const requestIdBrand: unique symbol
   export type SessionRequestId = string & { readonly [requestIdBrand]: true }
 }
+
+// Standalone adapter for the Host `session` Remote namespace faces used by the
+// Merge model selection; the Harness compiler face checks the same calls
+// against the generated declarations in the matching checkout.
+declare module '@deepseek-ai/dsh-api-session-controller/remote' {
+  type ModelSelection = import('@deepseek-ai/dsh-api-session-controller/client').ModelSelection
+  type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
+
+  export interface SessionSelectModelRequest extends ModelSelection {
+    readonly sessionId: SessionId
+  }
+  export interface SessionSelectModelValue {
+    readonly selected: ModelSelection
+  }
+  export interface SessionRenameRequest {
+    readonly sessionId: SessionId
+    readonly title: string
+  }
+  export interface SessionRenameValue {
+    readonly title: string
+    readonly seq: number
+  }
+  export interface ModelCatalogModel {
+    readonly id: string
+    readonly name: string
+  }
+  export interface ModelProviderGroup {
+    readonly id: string
+    readonly name: string
+    readonly models: readonly ModelCatalogModel[]
+  }
+  export interface ModelCatalog {
+    readonly default: ModelSelection
+    readonly groups: readonly ModelProviderGroup[]
+  }
+}
 declare module '@deepseek-ai/dsh-session-query' {}
 declare module '@deepseek-ai/dsh-session-persistence' {}
 declare module '@deepseek-ai/dsh-session-reference' {}

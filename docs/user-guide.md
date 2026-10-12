@@ -197,7 +197,7 @@ Confirming creates an independent Session and sends the frozen preview through n
 | Reuse research materials | Records frozen materials, target Session, and provenance after Host acknowledgment | The target processes the submitted question on its normal route |
 | Export Markdown | Downloads the preview's frozen saved revisions and sources; original records remain unchanged | None |
 | Compare and synthesize | Freezes 2–3 materials; only explicit Save creates a new card with reviewed citations | One auxiliary request per Generate, up to 8,192 output tokens |
-| Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | The target processes the queued instruction on its normal route |
+| Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | A model can be chosen explicitly; without a choice the target processes the queued instruction on its normal route |
 
 ## Install
 
@@ -344,17 +344,17 @@ Paging limits browser content, but the Host currently inspects one complete Sess
 
 ## Merge Sessions
 
-Choose **Merge sessions** in the workbench header, filter by source Workspace or title, and select 2–3 sessions in order. Changing filters or closing the dialog retains the selection. Enter a question, explicitly choose a destination Workspace, then preview and confirm. Discussions from A and B can be merged into A, B, or a separate research space.
+Choose **Merge sessions** in the workbench header, filter by source Workspace or title, and select 2–3 sessions in order. Changing filters or closing the dialog retains the selection. Enter a question, explicitly choose a destination Workspace, then preview and confirm. Discussions from A and B can be merged into A, B, or a separate research space. **Model for this merge** offers the Host model catalog; the default option follows the Host default model, and the preview names the route this merge will use.
 
 The preview identifies sources, Workspaces, question, and destination. Discussion snapshots are read on confirmation and remain subject to Harness's context budget. Source files, tool results, and runtime environments are not combined. If a topic is selected, successful capture adds sources and the target to it. A failed association retries only that step, without resubmitting the merge.
 
-The canvas retains **Merge selected sessions**, using the numbered selection order and its existing same-Workspace/directory rule.
+The canvas retains **Merge selected sessions**, using the numbered selection order and its existing same-Workspace/directory rule; it offers the same model choice.
 
 - Sources must be distinct, non-blank, non-archived, non-Subagent sessions on the same Host. Cross-workspace merges require an explicitly selected, available destination Workspace.
 - Merge instructions cannot contain `dsh-session:` references, because Harness reserves them for the exact source snapshot set.
 - Harness creates one independent target Session, gives it a source-derived title, and captures each source at an immutable event boundary. The sources and their existing Branch lineages remain unchanged.
 - At submission time the Host re-inspects the target and every source instead of trusting browser metadata. It validates canonical destination Workspace membership, directory, and source eligibility, accepting only an unparented blank target or an exact same-source retry target. Calls without an explicit destination keep the same-directory requirement.
-- The target's normal agent loop receives the edited instruction plus canonical Harness Session references. This feature does not choose a separate summary model; the target uses its normal configured model route when it processes the queued request.
+- The target's normal agent loop receives the edited instruction plus canonical Harness Session references. This feature does not choose a separate summary model; without an explicit choice the target processes the queued request on its normal configured route, and a chosen model is installed on that session before the merge instruction is processed (it can still be switched later in the session).
 - A Merge Session remains its own Session Cluster. Branded Merge Relations show provenance from each source cluster without turning those sources into parents.
 - The Session Inspector lists the source titles and capture boundaries for a selected Merge Session. Merge provenance is projected from the target log and checkpointed in Harness's durable Projection Cache, so it survives restart and cold log replay.
 - If target creation succeeds but naming, snapshot submission, persistence, or opening fails, the target is preserved. **Try again** reuses that target instead of creating a duplicate; a late capture from the prior attempt is accepted only when its ordered source set matches exactly. Once the Host starts committing a matched capture to durable projection storage, closing the view no longer cancels that commit. **Open target session** remains available for recovery.

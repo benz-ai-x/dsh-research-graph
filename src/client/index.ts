@@ -37,7 +37,7 @@ import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
 /** Required services: the conversation view slot, the sessions list, the Workspace navigation, and the locale service. */
-export const inject = ['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote']
+export const inject = ['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote', 'remote.session']
 
 const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
   package: SESSION_DIGEST_REMOTE.package,
@@ -93,13 +93,24 @@ async function registerUi(ctx: Context): Promise<void> {
       signal.throwIfAborted()
       return target
     },
+    selectModel: async (targetSessionId, selection, signal) => {
+      signal.throwIfAborted()
+      const result = await ctx.remote.session.selectModel({
+        sessionId: targetSessionId as SessionId,
+        provider: selection.provider,
+        model: selection.model,
+      })
+      if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
+      signal.throwIfAborted()
+    },
     renameTarget: async (targetSessionId, title, signal) => {
       signal.throwIfAborted()
-      const binding = ctx.sessions.binding(targetSessionId as SessionId)
-      if (binding === undefined) {
-        throw new Error(`Merge Session ${JSON.stringify(targetSessionId)} has no Client binding`)
-      }
-      const result = await binding.session.rename(title)
+      // A freshly created Session has no retained Client binding on current
+      // Hosts, so the rename goes through the session Remote directly.
+      const result = await ctx.remote.session.rename({
+        sessionId: targetSessionId as SessionId,
+        title,
+      })
       if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
       signal.throwIfAborted()
     },
@@ -297,21 +308,47 @@ async function registerUi(ctx: Context): Promise<void> {
         }
         return result.value
       },
-      mergeSessions: async (sourceIds, instruction, signal) => await merges.mergeSessions(
+      mergeSessions: async (sourceIds, instruction, signal, model) => await merges.mergeSessions(
         sourceIds,
         instruction,
         signal,
+        model === undefined ? {} : { model },
       ) as SessionId,
       mergeResearchSessions: async (request, signal) => {
         const workspace = ctx.workspaces.list.getSnapshot().items.find(item => item.workspaceId === request.workspaceId)
         if (!workspace) throw new Error('Choose an available target Workspace')
-        const options = { target: { cwd: workspace.path, workspaceId: workspace.workspaceId }, openTarget: false }
+        const options = {
+          target: { cwd: workspace.path, workspaceId: workspace.workspaceId },
+          openTarget: false,
+          ...(request.model === undefined ? {} : { model: request.model }),
+        }
         return (request.targetSessionId
           ? await merges.retryMerge(request.targetSessionId, request.sourceIds, request.instruction, signal, options)
           : await merges.mergeSessions(request.sourceIds, request.instruction, signal, options)) as SessionId
       },
-      retrySessionMerge: async (targetSessionId, sourceIds, instruction, signal) =>
-        await merges.retryMerge(targetSessionId, sourceIds, instruction, signal) as SessionId,
+      retrySessionMerge: async (targetSessionId, sourceIds, instruction, signal, model) =>
+        await merges.retryMerge(
+          targetSessionId,
+          sourceIds,
+          instruction,
+          signal,
+          model === undefined ? {} : { model },
+        ) as SessionId,
+      models: {
+        catalog: async () => {
+          const result = await ctx.remote.session.modelCatalog()
+          if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
+          const value = result.value
+          return {
+            default: { provider: value.default.provider, model: value.default.model },
+            groups: value.groups.map(group => ({
+              id: group.id,
+              name: group.name,
+              models: group.models.map(model => ({ id: model.id, name: model.name })),
+            })),
+          }
+        },
+      },
     }),
   }, GraphView))
 }
@@ -331,6 +368,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'workspaces',
       'uiWorkspace',
       'locale',
+      'remote.session',
       'remote.sessionGraphDigest',
       'remote.sessionGraphTitle',
       'remote.sessionGraphMerge',

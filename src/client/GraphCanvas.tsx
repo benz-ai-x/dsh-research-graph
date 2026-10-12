@@ -26,7 +26,8 @@ import { canvasNodeTitle, duplicateTitleIds, shortSessionId } from './node-label
 import { clusterHeaderWidth } from './clusters.ts'
 import { useCanvasGeometry } from './reading-geometry.ts'
 import { ActionMenu } from './ActionMenu.tsx'
-import { containsSessionReferenceUri } from '../session-merge.ts'
+import { containsSessionReferenceUri, type SessionMergeModelSelection } from '../session-merge.ts'
+import { MergeModelSelect } from './MergeModelSelect.tsx'
 import { CLUSTER_COLORS } from './clusters.ts'
 import type { ClusterInfo, DisplayStatus, GraphNode, SessionGraphNode } from './graph-model.ts'
 import { branchLineage, matchFilter } from './graph-model.ts'
@@ -864,7 +865,7 @@ const CARD_H_MAP = 4
  */
 export function GraphCanvas({
   laid, clusters, arrangement, now, t, onOpen, onOpenSubagent, onBranch, onGenerateDigest, onGenerateTitle, onRenameTitle, onReadHistory,
-  onMerge, onRetryMerge, topic, onAddToTopic, workingKey, toolbarTarget,
+  onMerge, onRetryMerge, models, topic, onAddToTopic, workingKey, toolbarTarget,
 }: {
   laid: LaidOutGraph
   clusters: readonly ClusterInfo[]
@@ -880,6 +881,7 @@ export function GraphCanvas({
   onReadHistory: GraphViewInjected['readSessionHistory']
   onMerge: GraphViewInjected['mergeSessions']
   onRetryMerge: GraphViewInjected['retrySessionMerge']
+  models: GraphViewInjected['models']
   onAddToTopic?: (id: SessionId) => void
   topic?: {
     readonly actions?: ReactElement
@@ -949,6 +951,7 @@ export function GraphCanvas({
   const [mergeMode, setMergeMode] = useState(false)
   const [mergeSources, setMergeSources] = useState<readonly SessionId[]>([])
   const [mergeInstruction, setMergeInstruction] = useState('')
+  const [mergeModel, setMergeModel] = useState<SessionMergeModelSelection>()
   const [mergeRun, setMergeRun] = useState<MergeRunState>({ phase: 'idle' })
   const mergeRequestRef = useRef<AbortController | null>(null)
   useEffect(() => () => { mergeRequestRef.current?.abort() }, [])
@@ -1469,8 +1472,8 @@ export function GraphCanvas({
       : undefined
     setMergeRun({ phase: 'submitting' })
     const request = failedTarget === undefined
-      ? onMerge(mergeSources, mergeInstruction, controller.signal)
-      : onRetryMerge(failedTarget, mergeSources, mergeInstruction, controller.signal)
+      ? onMerge(mergeSources, mergeInstruction, controller.signal, mergeModel)
+      : onRetryMerge(failedTarget, mergeSources, mergeInstruction, controller.signal, mergeModel)
     void request
       .then(() => {
         if (mergeRequestRef.current !== controller || controller.signal.aborted) return
@@ -1905,6 +1908,7 @@ export function GraphCanvas({
               setSelected(null)
               setMergeSources([])
               setMergeInstruction(t('merge.defaultInstruction'))
+              setMergeModel(undefined)
               setMergeRun({ phase: 'idle' })
               setMergeMode(true)
             }}
@@ -2016,6 +2020,25 @@ export function GraphCanvas({
                 )
                 : null}
             </label>
+            <MergeModelSelect
+              catalog={models?.catalog}
+              disabled={mergeRun.phase === 'submitting'
+                || (mergeRun.phase === 'error'
+                  && mergeRun.failure.targetSessionId !== undefined)}
+              value={mergeModel}
+              onChange={next => {
+                setMergeModel(next)
+                if (mergeRun.phase === 'error') setMergeRun({ phase: 'idle' })
+              }}
+              texts={{
+                label: t('merge.model'),
+                followDefault: route => route === undefined
+                  ? t('merge.modelFollowPlain')
+                  : t('merge.modelFollow', { model: route }),
+                loading: t('merge.modelLoading'),
+                failed: t('merge.modelFailed'),
+              }}
+            />
             {mergeRun.phase === 'error' && mergeRun.failure.targetSessionId !== undefined
               ? (
                 <button

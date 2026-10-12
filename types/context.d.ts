@@ -78,6 +78,7 @@ declare module '@deepseek-ai/cordis' {
       $mount: (
         contribution: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteContribution,
       ) => Promise<() => Promise<void>>
+      session: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['session']
       sessionGraphDigest: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphDigest']
       sessionGraphTitle: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTitle']
       sessionGraphMerge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphMerge']

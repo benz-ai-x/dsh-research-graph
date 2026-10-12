@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionMergeModelSelection } from '../session-merge.ts'
 import type { GraphViewProps } from './GraphView.tsx'
 import { useKnowledge } from './Knowledge.tsx'
+import { MergeModelSelect } from './MergeModelSelect.tsx'
 import { retainDialogFocus } from './dialog-focus.ts'
 import styles from './GraphView.module.css'
 
@@ -11,6 +13,7 @@ interface MergePreview {
   readonly workspaceId: string
   readonly workspaceTitle: string
   readonly cwd: string
+  readonly model?: SessionMergeModelSelection
   readonly topicId?: string
   readonly topicTitle?: string
 }
@@ -31,6 +34,7 @@ export function ResearchMerge({ props, visible, close, completed }: {
   const [query, setQuery] = useState('')
   const [workspaceId, setWorkspaceId] = useState('')
   const [instruction, setInstruction] = useState(() => t('workbench.mergeDefault'))
+  const [model, setModel] = useState<SessionMergeModelSelection>()
   const [preview, setPreview] = useState<MergePreview>()
   const [targetId, setTargetId] = useState<SessionId>()
   const [captured, setCaptured] = useState(false)
@@ -74,7 +78,9 @@ export function ResearchMerge({ props, visible, close, completed }: {
     const merge = props.mergeResearchSessions
     void perform(async signal => {
       const target = captured && targetId ? targetId : await merge({ sourceIds: preview.sources.map(source => source.id),
-        instruction: preview.instruction, workspaceId: preview.workspaceId, ...(targetId ? { targetSessionId: targetId } : {}) }, signal)
+        instruction: preview.instruction, workspaceId: preview.workspaceId,
+        ...(preview.model === undefined ? {} : { model: preview.model }),
+        ...(targetId ? { targetSessionId: targetId } : {}) }, signal)
       signal.throwIfAborted()
       setTargetId(target)
       setCaptured(true)
@@ -104,6 +110,9 @@ export function ResearchMerge({ props, visible, close, completed }: {
           <strong>{source.title}</strong><small>{source.workspace}</small></div>)}
         <section><h3>{t('workbench.mergeQuestion')}</h3><p className={styles.historyText}>{preview.instruction}</p></section>
         <section><h3>{t('workbench.mergeTarget')}</h3><strong>{preview.workspaceTitle}</strong><p className={styles.searchMeta}>{preview.cwd}</p>
+          <p>{preview.model === undefined
+            ? t('workbench.mergeModelDefault')
+            : t('workbench.mergeModelChosen', { model: `${preview.model.provider}/${preview.model.model}` })}</p>
           {preview.topicTitle ? <p>{t('workbench.mergeTopic', { title: preview.topicTitle })}</p> : null}</section>
         <p>{t('workbench.mergeBoundary')}</p>
         <details><summary>{t('workbench.mergeSnapshot')}</summary><p>{t('workbench.mergeSnapshotHint')}</p></details>
@@ -121,6 +130,14 @@ export function ResearchMerge({ props, visible, close, completed }: {
         <label>{t('workbench.mergeQuestion')}<textarea value={instruction} rows={3} maxLength={4000} disabled={busy} onChange={event => { setInstruction(event.target.value) }} /></label>
         <label>{t('workbench.mergeTarget')}<select value={workspaceId} disabled={busy} onChange={event => { setWorkspaceId(event.target.value) }}>
           <option value="">{t('workbench.chooseWorkspace')}</option>{workspaces.items.map(item => <option key={item.workspaceId} value={item.workspaceId}>{item.title || item.path}</option>)}</select></label>
+        <MergeModelSelect catalog={props.models?.catalog} disabled={busy} value={model} onChange={setModel} texts={{
+          label: t('workbench.mergeModel'),
+          followDefault: route => route === undefined
+            ? t('workbench.mergeModelFollowPlain')
+            : t('workbench.mergeModelFollow', { model: route }),
+          loading: t('workbench.mergeModelLoading'),
+          failed: t('workbench.mergeModelFailed'),
+        }} />
         <p>{t('workbench.mergeLocation')}</p>
       </>}
       <footer className={styles.editorActions}>{preview ? <>
@@ -133,6 +150,7 @@ export function ResearchMerge({ props, visible, close, completed }: {
           signal.throwIfAborted()
           if (topicId && !topic) throw new Error(t('position.topicUnavailable'))
           setPreview({ sources: selected, instruction: instruction.trim(), workspaceId: destination.workspaceId, workspaceTitle: destination.title || destination.path, cwd: destination.path,
+            ...(model === undefined ? {} : { model }),
             ...(topic ? { topicId: topic.topicId, topicTitle: topic.title } : {}) })
         }) }}>{t('workbench.mergePreview')}</button>}</footer>
     </div>

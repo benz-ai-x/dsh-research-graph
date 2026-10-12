@@ -12,6 +12,7 @@ import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionDigestResult } from '../session-digest.ts'
 import type { SessionTitleResult } from '../session-title.ts'
 import type { SessionHistoryRequest, SessionHistoryResult } from '../session-history.ts'
+import type { SessionMergeModelSelection } from '../session-merge.ts'
 import type { DiscussionSearchRequest, DiscussionSearchResult } from '../session-search.ts'
 import type { ResearchTopic, ResearchTopicSnapshot, ResearchTopicWrite } from '../research-topic.ts'
 import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-info.ts'
@@ -36,6 +37,17 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 /** Projection refresh concurrency per scope pass, bounding cold-start disk reads. */
 const PROJECTION_REFRESH_BATCH = 6
 
+/** Host model-catalog projection consumed by Merge model pickers. */
+export interface MergeModelCatalog {
+  /** Route unconfigured Sessions use; null when the Host reports none. */
+  readonly default: { readonly provider: string; readonly model: string } | null
+  readonly groups: readonly {
+    readonly id: string
+    readonly name: string
+    readonly models: readonly { readonly id: string; readonly name: string }[]
+  }[]
+}
+
 /** Business face the browser entry injects into the view (navigation verbs). */
 export interface GraphViewInjected {
   readonly historyBranch?: HistoryBranchApi
@@ -46,6 +58,8 @@ export interface GraphViewInjected {
     readonly instruction: string
     readonly workspaceId: string
     readonly targetSessionId?: SessionId
+    /** Session-local model route for the Merge turn; omitted follows the Host default. */
+    readonly model?: SessionMergeModelSelection
   }, signal: AbortSignal) => Promise<SessionId>
   readonly hostId: string
   readonly reuse: ResearchReuseApi
@@ -81,6 +95,7 @@ export interface GraphViewInjected {
     sourceIds: readonly SessionId[],
     instruction: string,
     signal: AbortSignal,
+    model?: SessionMergeModelSelection,
   ) => Promise<SessionId>
   /** Retry a failed Merge using its already-created target Session. */
   retrySessionMerge: (
@@ -88,7 +103,12 @@ export interface GraphViewInjected {
     sourceIds: readonly SessionId[],
     instruction: string,
     signal: AbortSignal,
+    model?: SessionMergeModelSelection,
   ) => Promise<SessionId>
+  /** List the Host model catalog backing Merge model selection. */
+  readonly models?: {
+    readonly catalog: () => Promise<MergeModelCatalog>
+  }
 }
 
 /** The graph view tab's composed props: runtime share + inject face + locale. */
@@ -260,6 +280,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
           onReadHistory={readSessionHistory}
           onMerge={mergeSessions}
           onRetryMerge={retrySessionMerge}
+          models={props.models}
           onAddToTopic={addToTopic}
         />}
       </div>
