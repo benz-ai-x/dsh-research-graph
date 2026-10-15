@@ -76,3 +76,8 @@ disable-model-invocation: true
 - 上游自有 kind 一律用 `declare module '@deepseek-ai/dsh-llm' { interface MessageSourceMap }` 合并声明， provenance 字符串沿用 `dsh-session-graph`（0.1.7 起）。
 - 客户端读取子代理/标题等派生数据走 `refreshProjections` + `list.getSnapshot().projectionsBySession[id].values.<key>`，不读已删除的专用列表字段（0.1.7 起）。
 - 测试 bench 里上游注入服务改名（如 `settingsScope`→`configForms`）会让 locale 插件静默不加载、视图不注册——症状是"插件 tab 不出现"，先查 inject 链。
+- Gateway 自 0.2.1-alpha.3 起要求每次 `typertGateway.invoke` 显式带 `peer`：建 per-root owner Peer（`new Peer(ctx.root, { principal: { kind: 'owner' } })`，来自 `@deepseek-ai/dsh-client-connection`，WeakMap 缓存）传入；最小手搭 Host 还需装 `remote-access` 服务（Gateway `inject ['typert','remoteAccess']`）。
+- `session.create` 自 0.2.1-alpha.3 不再按命名 id 收养已持久化的带种子 Session（复用语义会另铸新 id）：预持久化种子改走 `agents.resume({ resumeSessionId, agentOptions: ctx.agentDefaultModel.currentSelection() })` 再自行 `workspace.attachSession`；漏传 agentOptions 时子会话首个 turn 以错误静默结束（turn/end 计数不含 reason，验收要断言 reason.kind === 'completed'）。
+- 上游包删除默认导出（如 `dsh-session-persistence-jsonl` 0.2.1-alpha.3）时，`ctx.plugin(X)` 报 invalid plugin 的堆栈行即缺省导入处，改 `import * as X` 命名空间形态。
+- 编译面修复三板斧：包 index 未再导出的声明合并（slot factory/locale namespace）在 `check-harness-types.mjs` 加显式 paths 映射或补 `import type {}`；发布面要带上 `src/css-modules.d.ts` 入口；独立面缺的 Host 服务用 `types/*.d.ts` 桩 + tsconfig paths 承接（桩文件必须 `import '@deepseek-ai/cordis'` 使 declare module 成为增强而非遮蔽）。
+- 上游包发布未满 24h 时 pnpm 11.7 的运行前校验连 `pnpm run typecheck` 都会拦：**一切** pnpm 命令（含脚本内嵌 install）都要带 `pnpm_config_minimum_release_age=0`；窗口判定用最新一个包的 npm publish 时间，过了就按 PR #52 先例从 ci.yml/publish.yml 移除（注意别把同 env 块里的 DSH_REPOSITORY 一并删掉，空 env 会让 CI 0 秒失败）。
