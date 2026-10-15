@@ -9,6 +9,7 @@ permissions:
   contents: read
 
 env:
+  DSH_REPOSITORY: deepseek-ai/deepseek-harness
 
 jobs:
   check:
