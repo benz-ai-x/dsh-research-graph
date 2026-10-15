@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
@@ -116,10 +117,10 @@ describe('Research material reuse public Host workflow', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-reuse-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     let host = await topicHost(root, cleanups)
-    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({
+    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
       namespace: 'sessionGraphReuse', method, args: { request }, signal: new AbortController().signal,
     })
-    const knowledge = (request: unknown) => host.ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method: 'save',
+    const knowledge = (request: unknown) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx), namespace: 'sessionGraphKnowledge', method: 'save',
       args: { request }, signal: new AbortController().signal })
     const card = { cardId: randomUUID(), revisionId: randomUUID(), content: { title: '方法 V1', question: '', conclusion: '原版本条件',
       rationale: '', openQuestions: '', kind: 'method', status: 'confirmed' }, sources: [] }

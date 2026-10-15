@@ -1,6 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { type Session } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -91,7 +92,7 @@ describe('Discussion Search public Host interface', () => {
       eventFilters: [{ kind: 'type', values: ['user/message', 'assistant/message'] }],
     }, { signal: new AbortController().signal })
     expect(indexed.items).toHaveLength(1)
-    const result = await ctx.typertGateway.invoke({
+    const result = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphSearch', method: 'search',
       args: { request: { ...request, query } }, signal: new AbortController().signal,
     })
@@ -109,7 +110,7 @@ describe('Discussion Search public Host interface', () => {
     addTurn(source, 1, 'An indexed needle.')
     source.append('session/title', { title: '', messageSeqs: [], source: { kind: 'user' } })
     ctx.effect(() => ctx.sessions.enter(source))
-    const result = await ctx.typertGateway.invoke({
+    const result = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphSearch', method: 'search', args: { request }, signal: new AbortController().signal,
     })
     expect(result.hits[0]).toMatchObject({ title: source.id, workspace: { id: 'a', title: '/a' } })
@@ -142,7 +143,7 @@ describe('Discussion Search public Host interface', () => {
     }), { surfaceOp: 'append' })
     ctx.effect(() => ctx.sessions.enter(source))
     const before = await ctx.sessionController.inspect(source.id)
-    const search = (query: string) => ctx.typertGateway.invoke({
+    const search = (query: string) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphSearch', method: 'search',
       args: { request: { ...request, query } }, signal: new AbortController().signal,
     })
@@ -345,7 +346,7 @@ describe('Discussion Search public Host interface', () => {
     workspaces[0]!.sessionIds.push(source.id)
     const before = await ctx.sessionController.inspect(source.id)
 
-    const result = await ctx.typertGateway.invoke({
+    const result = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphSearch', method: 'search', args: { request },
       signal: new AbortController().signal,
     })

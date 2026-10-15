@@ -52,7 +52,7 @@ for (const [face, entries] of [
   ['Host', ['src/index.ts']],
   ['Client', ['src/client/index.ts', 'src/css-modules.d.ts', 'tests/harness-client-types.ts']],
   ['Published Host', ['lib/types/index.d.ts']],
-  ['Published Client', ['tests/harness-package-client-types.ts']],
+  ['Published Client', ['tests/harness-package-client-types.ts', 'src/css-modules.d.ts']],
 ]) {
   const program = ts.createProgram(entries.map(path => resolve(path)), {
     ...upstream.options,
@@ -62,6 +62,17 @@ for (const [face, entries] of [
     paths: {
       ...Object.fromEntries(Object.entries(upstream.options.paths).map(([key, paths]) =>
         [key, paths.map(path => declarationPath(path, key))])),
+      // The workspace toast SlotFactory declaration is not re-exported by the
+      // package index, and a paths-matched package prefix never falls back to
+      // node_modules, so the slots contract needs this explicit subpath map.
+      '@deepseek-ai/dsh-client-ui-workspace/client/contract/toast': [
+        resolve(root, 'packages/client/ui-workspace/lib/types/client/contract/toast.d.ts'),
+      ],
+      // The branch Host reads the default model selection for resumed Agents;
+      // the package is not a plugin dependency, so map it to the Harness build.
+      '@deepseek-ai/dsh-agent-default-model': [
+        resolve(root, 'packages/core/agent-default-model/lib/types/index.d.ts'),
+      ],
       react: [harnessRequire.resolve('@types/react/package.json').replace('package.json', 'index.d.ts')],
       'react/*': [harnessRequire.resolve('@types/react/package.json').replace('package.json', '*')],
       'react-dom': [harnessRequire.resolve('@types/react-dom/package.json').replace('package.json', 'index.d.ts')],

@@ -4,7 +4,8 @@ import type { Domain } from '@deepseek-ai/dsh-storage-domain'
 import type { SessionHeader, SessionEvent, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-session-persistence'
 import type {} from '@deepseek-ai/dsh-agent'
-import { Remote, remoteErrorOf, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import type {} from '@deepseek-ai/dsh-agent-default-model'
+import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import { discussionTurns } from './session-discussion.ts'
 import { ServiceRequests } from './service-requests.ts'
@@ -157,17 +158,26 @@ export class HistoryBranchService extends TypertRemoteService {
         const workspaces = this.ctx.workspaceRegistry.list()
         const workspace = workspaces.find(item => item.path === cwd && item.sessionIds.includes(record.sessionId as SessionId))
           ?? workspaces.find(item => item.path === seed!.header.cwd)
-        try {
-          await this.ctx.sessionController.create({ sessionId: record.targetSessionId as SessionId,
-            ...(workspace === undefined ? { cwd } : { workspaceId: workspace.id }) })
-        } catch (error) {
-          const failure = remoteErrorOf(error)
-          // This native failure confirms adoption even though Workspace attachment failed.
-          if (failure?.code === 'session/workspace-attach-failed' && workspace !== undefined
-            && failure.details?.sessionId === record.targetSessionId && failure.details.workspaceId === workspace.id) {
-            stored = { ...stored, record: { ...stored.record, stage: 'created' } }
+        // The released session.create no longer adopts a persisted seeded Session under its
+        // named id; resume the persisted seed as its live Agent and attach membership directly.
+        if (this.ctx.agents.get(record.targetSessionId as SessionId) === undefined) {
+          const { provider, model } = this.ctx.agentDefaultModel.currentSelection()
+          await this.ctx.agents.resume({
+            resumeSessionId: record.targetSessionId as SessionId,
+            agentOptions: { provider, model },
+          })
+        }
+        if (workspace !== undefined && !workspace.sessionIds.includes(record.targetSessionId as SessionId)) {
+          try {
+            await workspace.attachSession(record.targetSessionId as SessionId)
+          } catch (error) {
+            // The live Agent confirms adoption even though Workspace attachment failed.
+            if (stored.record.stage === 'prepared') {
+              stored = { ...stored, record: { ...stored.record, stage: 'created' } }
+              await table.put(operationId, stored)
+            }
+            throw error
           }
-          throw error
         }
         if (stored.record.stage === 'prepared') {
           stored = { ...stored, record: { ...stored.record, stage: 'created' } }

@@ -241,7 +241,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       throw error
     }
   })
-  await ctx.inject(['storageDomain', 'sessions', 'sessionPersistence', 'sessionGraphTopics', 'workspaceRegistry', 'sessionQuery'], async branchCtx => {
+  await ctx.inject(['storageDomain', 'sessions', 'sessionPersistence', 'sessionGraphTopics', 'workspaceRegistry', 'sessionQuery', 'agents', 'agentDefaultModel'], async branchCtx => {
     const domain = await branchCtx.storageDomain.open(HISTORY_BRANCH_DOMAIN)
     try {
       await provideQuiescentRemoteService(branchCtx, serviceCtx => new HistoryBranchService(serviceCtx, domain), 'session-graph.branch-service')

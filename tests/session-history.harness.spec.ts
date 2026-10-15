@@ -1,6 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { type Session } from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -74,7 +75,7 @@ describe('Session History public Host interface', () => {
     for (let turn = 1; turn <= 13; turn++) addTurn(session, turn, `Question ${turn}`, `Answer ${turn}`)
     ctx.effect(() => ctx.sessions.enter(session))
     const before = await ctx.sessionController.inspect(session.id)
-    const invoke = (request: unknown) => ctx.typertGateway.invoke({ namespace: 'sessionGraphHistory', method: 'read',
+    const invoke = (request: unknown) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphHistory', method: 'read',
       args: { request }, signal: new AbortController().signal })
     const request = { sessionId: session.id, range: { startSeq: 0, endSeq: 71 } }
     const result = await invoke(request)
@@ -100,7 +101,7 @@ describe('Session History public Host interface', () => {
     ctx.effect(() => ctx.sessions.enter(session))
     const before = await ctx.sessionController.inspect(session.id)
 
-    await expect(ctx.typertGateway.invoke({
+    await expect(ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphHistory', method: 'read',
       args: { request: { sessionId: session.id } },
       signal: new AbortController().signal,

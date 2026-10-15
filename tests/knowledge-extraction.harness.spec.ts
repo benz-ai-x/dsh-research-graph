@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
@@ -24,7 +25,7 @@ describe('Knowledge extraction public Host workflow', () => {
     const before = await host.ctx.sessionController.inspect(session.id)
     const starts = before.events.filter(event => event.type === 'turn/start').map(event => event.seq)
     const ends = before.events.filter(event => event.type === 'turn/end').map(event => event.seq)
-    const invoke = (method: string, request: unknown, signal = new AbortController().signal) => host.ctx.typertGateway.invoke({
+    const invoke = (method: string, request: unknown, signal = new AbortController().signal) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
       namespace: 'sessionGraphKnowledge', method, args: { request }, signal,
     })
     const preview = await invoke('prepareExtraction', {

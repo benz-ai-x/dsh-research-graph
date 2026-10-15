@@ -148,6 +148,13 @@ declare module '@deepseek-ai/cordis' {
     readonly sessionProjectionCache: {
       write: (session: unknown) => Promise<void>
     }
+    readonly agents: {
+      get: (id: import('@deepseek-ai/dsh-session/types').SessionId) => import('@deepseek-ai/dsh-agent').Agent | undefined
+      resume: (options: {
+        readonly resumeSessionId: import('@deepseek-ai/dsh-session/types').SessionId
+        readonly agentOptions?: { readonly provider: string; readonly model: string }
+      }) => Promise<unknown>
+    }
     readonly workspaceRegistry: {
       readonly archivedSessionIds: readonly import('@deepseek-ai/dsh-session/types').SessionId[]
       list: () => readonly {
@@ -155,6 +162,7 @@ declare module '@deepseek-ai/cordis' {
         readonly title: string
         readonly path: string
         readonly sessionIds: readonly import('@deepseek-ai/dsh-session/types').SessionId[]
+        attachSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
       }[]
     }
     readonly sessionQuery: {
