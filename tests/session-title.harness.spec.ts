@@ -1,10 +1,12 @@
 import { Context } from '@deepseek-ai/cordis'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
+import RemoteAccessService from '@deepseek-ai/dsh-api-remote-access'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply } from '../src/index.ts'
 import { SESSION_TITLE_REMOTE } from '../src/client/session-title-remote.ts'
 import { sessionTitleResultSchema } from '../src/session-title.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 const contexts: Context[] = []
 afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.dispose() })
@@ -27,9 +29,10 @@ async function fixture(outputs: readonly string[], source = events) {
     yield { type: 'finish', reason: { kind: 'stop' } }
   } })
   await ctx.plugin(TypertRegistry)
+  await ctx.plugin(RemoteAccessService)
   await ctx.plugin(TypertGatewayService)
   await apply(ctx)
-  return { ctx, calls, inspect, title: async () => await ctx.typertGateway.invoke({ namespace: 'sessionGraphTitle', method: 'generate',
+  return { ctx, calls, inspect, title: async () => await ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphTitle', method: 'generate',
     args: { request: { sessionId: 'selected' } }, signal: new AbortController().signal }) }
 }
 

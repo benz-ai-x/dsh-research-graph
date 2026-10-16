@@ -12,7 +12,10 @@
     "skipLibCheck": false,
     "strict": true,
     "target": "ES2024",
-    "types": ["node"]
+    "types": ["node"],
+    "paths": {
+      "@deepseek-ai/dsh-agent-default-model": ["./types/agent-default-model.d.ts"]
+    }
   },
   "include": ["src", "types"]
 }

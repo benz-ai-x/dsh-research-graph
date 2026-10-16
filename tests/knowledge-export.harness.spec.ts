@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
@@ -20,7 +21,7 @@ describe('Knowledge export through the public Host Gateway', () => {
     let detach = (): void => {}
     host.ctx.effect(() => { detach = host.ctx.sessions.enter(source); return detach })
     const events = (await host.ctx.sessionController.inspect(source.id)).events
-    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({
+    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
       namespace: 'sessionGraphKnowledge', method, args: { request }, signal: new AbortController().signal,
     })
     const first = { cardId: '1bb797e8-16ad-4d78-8f41-c0a5efaf8451', revisionId: '2bb797e8-16ad-4d78-8f41-c0a5efaf8451',
@@ -64,7 +65,7 @@ describe('Knowledge export through the public Host Gateway', () => {
     expect(incomplete.markdown).toContain('const 答案 = 42')
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(root, cleanups)
-    const retained = await restarted.ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method: 'prepareExport',
+    const retained = await restarted.ctx.typertGateway.invoke({ peer: ownerPeer(restarted.ctx), namespace: 'sessionGraphKnowledge', method: 'prepareExport',
       args: { request: { cardIds: [first.cardId] } }, signal: new AbortController().signal })
     expect(retained.markdown).toContain('Original unavailable / 原文缺失或无法读取')
     expect(retained.markdown).toContain('Retained excerpt / 保存的来源摘录')

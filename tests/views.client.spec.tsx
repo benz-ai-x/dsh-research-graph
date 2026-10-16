@@ -43,6 +43,7 @@ import packageMetadata from '../package.json'
 import { zh, type SessionGraphKey } from '../src/client/locales.ts'
 import { researchTopicFixture } from './fixtures/research-topics.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 import { knowledgeContent, knowledgeSource } from './fixtures/knowledge-client.ts'
 import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from '../src/client/working-position.ts'
 import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
@@ -463,7 +464,7 @@ describe('Working position in the registered Graph', () => {
       b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [] } })
       b.searchKnowledge.mockResolvedValue({ ok: true, value: [card] })
       b.readHistory.mockImplementation(async (request, signal) => ({ ok: true, value: await host.ctx.typertGateway.invoke({
-        namespace: 'sessionGraphHistory', method: 'read', args: { request }, signal: signal ?? new AbortController().signal,
+        namespace: 'sessionGraphHistory', method: 'read', args: { request }, peer: ownerPeer(host.ctx), signal: signal ?? new AbortController().signal,
       }) }))
       const key = workingPositionKey('test-host', workingPositionKey('test-host', '/w'), topic.topicId)
       mount(b.slots, b.sessionsStore, discussion.id)

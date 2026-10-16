@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import SessionStore from '@deepseek-ai/dsh-session'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
+import RemoteAccessService from '@deepseek-ai/dsh-api-remote-access'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionProjectionCache from '@deepseek-ai/dsh-session-projection-cache'
@@ -25,6 +26,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply } from '../src/index.ts'
 import { sessionMergeDependenciesFromHarness } from '../src/session-merge-harness.ts'
 import { sessionMergeMarkerOfEvent } from '../src/session-merge-projection.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
@@ -474,13 +476,14 @@ describe('Session Graph Host integration', () => {
     ctx.provide('sessionProjectionCache', { write })
     ctx.provide('workspaceRegistry', { archivedSessionIds: [], list: () => [{ id: 'research', path: '/workspace', sessionIds: [id('target-session')] }] })
     await ctx.plugin(TypertRegistry)
+    await ctx.plugin(RemoteAccessService)
     await ctx.plugin(TypertGatewayService)
 
     await apply(ctx)
     await new Promise(resolve => setImmediate(resolve))
     // Source-mode discovery recognizes the final parameter named signal.
     // A direct service call would conceal a missing cancellation wire argument.
-    const result = await ctx.typertGateway.invoke({ namespace: 'sessionGraphMerge', method: 'submit', args: { request: {
+    const result = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphMerge', method: 'submit', args: { request: {
       targetSessionId: 'target-session', targetWorkspaceId: 'research',
       sourceIds: ['source-a', 'source-b'], instruction: 'Compare conclusions.', operationId: 'operation-1',
     } }, signal: new AbortController().signal })

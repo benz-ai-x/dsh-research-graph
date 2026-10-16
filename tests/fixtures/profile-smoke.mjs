@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import { verifyExploration } from './exploration-smoke.mjs'
+import { ownerPeer } from './owner-peer.mjs'
 
 export const name = 'session-graph-profile-smoke'
 export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
@@ -74,14 +75,14 @@ export function apply(ctx) {
     const sourceIds = [await create('First fixture.'), await create(secondPrompt)]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
     const callsBeforeHistory = calls
-    const history = await ctx.typertGateway.invoke({
+    const history = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphHistory', method: 'read',
       args: { request: { sessionId: sourceIds[1] } }, signal,
     })
     assert.equal(history.kind, 'original')
     assert.equal(history.sessionId, sourceIds[1])
     assert.equal(history.turns.length, 1)
-    const restoredRange = await ctx.typertGateway.invoke({
+    const restoredRange = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphHistory', method: 'read',
       args: { request: { sessionId: sourceIds[1], range: {
         startSeq: history.turns[0].startSeq, endSeq: history.turns[0].endSeq,
@@ -92,7 +93,7 @@ export function apply(ctx) {
       ['user', secondPrompt], ['assistant', 'Fixture response.'],
     ])
     for (const query of ['知识卡片', 'cafe', 'foo bar', '修复 foo bar']) {
-      const search = await ctx.typertGateway.invoke({
+      const search = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
         namespace: 'sessionGraphSearch', method: 'search',
         args: { request: { query, scope: { kind: 'directory', cwd: process.cwd() }, includeArchived: false } }, signal,
       })
@@ -104,7 +105,7 @@ export function apply(ctx) {
     }
     assert.equal(calls, callsBeforeHistory)
     const topicId = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
-    const topics = (method, request) => ctx.typertGateway.invoke({
+    const topics = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphTopics', method, args: request === undefined ? {} : { request }, signal,
     })
     await topics('write', { kind: 'create', topicId, title: 'Packed Research Topic' })
@@ -131,8 +132,8 @@ export function apply(ctx) {
     assert.equal(digest.kind, 'ready')
     assert.equal(digest.digest.overview, 'Fixture digest.')
     sourceIds.forEach((id, index) => assert.deepEqual(ctx.agents.get(id).session.snapshotEvents(), before[index]))
-    const knowledge = (method, request) => ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method, args: { request }, signal })
-    const reuse = (method, request) => ctx.typertGateway.invoke({ namespace: 'sessionGraphReuse', method, args: { request }, signal })
+    const knowledge = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphKnowledge', method, args: { request }, signal })
+    const reuse = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphReuse', method, args: { request }, signal })
     const cardRequest = { cardId: randomUUID(), revisionId: randomUUID(), topicId,
       content: { title: 'Packed card', question: '', conclusion: 'Fixed original card revision.', rationale: '', openQuestions: '', kind: 'method', status: 'confirmed' },
       sources: [{ kind: 'discussion', sessionId: sourceIds[1], startSeq: history.turns[0].startSeq, endSeq: history.turns[0].endSeq }] }
@@ -186,7 +187,7 @@ export function apply(ctx) {
     } finally {
       await reader.close()
     }
-    const title = await ctx.typertGateway.invoke({ namespace: 'sessionGraphTitle', method: 'generate', args: { request: { sessionId: sourceIds[0] } }, signal })
+    const title = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphTitle', method: 'generate', args: { request: { sessionId: sourceIds[0] } }, signal })
     assert.equal(title.kind, 'ready')
     assert.equal(title.title, 'Fixture cache research')
     sourceIds.forEach((id, index) => assert.deepEqual(ctx.agents.get(id).session.snapshotEvents(), before[index]))

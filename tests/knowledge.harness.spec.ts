@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { ownerPeer } from './fixtures/owner-peer.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => {
@@ -33,7 +34,7 @@ describe('Knowledge Cards public Host workflow', () => {
     const roots = await Promise.all([mkdtemp(join(tmpdir(), 'session-graph-identity-')), mkdtemp(join(tmpdir(), 'session-graph-identity-'))])
     for (const root of roots) cleanups.push(() => rm(root, { recursive: true, force: true }))
     const first = await topicHost(roots[0]!, cleanups)
-    const identity = (host: typeof first) => host.ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method: 'hostIdentity',
+    const identity = (host: typeof first) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx), namespace: 'sessionGraphKnowledge', method: 'hostIdentity',
       args: {}, signal: new AbortController().signal })
     const saved = await identity(first)
     await first.ctx.fiber.dispose()
@@ -44,7 +45,7 @@ describe('Knowledge Cards public Host workflow', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-knowledge-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
-    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({
+    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
       namespace: 'sessionGraphKnowledge', method, args: { request }, signal: new AbortController().signal,
     })
     const topicId = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
@@ -66,7 +67,7 @@ describe('Knowledge Cards public Host workflow', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-knowledge-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
-    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({
+    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
       namespace: 'sessionGraphKnowledge', method, args: { request }, signal: new AbortController().signal,
     })
     const first = {
@@ -84,7 +85,7 @@ describe('Knowledge Cards public Host workflow', () => {
     await expect(invoke('save', { ...second, content: first.content })).rejects.toThrow()
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(root, cleanups)
-    expect(await restarted.ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method: 'read',
+    expect(await restarted.ctx.typertGateway.invoke({ peer: ownerPeer(restarted.ctx), namespace: 'sessionGraphKnowledge', method: 'read',
       args: { request: { cardId: first.cardId } }, signal: new AbortController().signal })).toEqual(updated)
   })
 
@@ -115,7 +116,7 @@ describe('Knowledge Cards public Host workflow', () => {
         startSeq: events.find(event => event.type === 'turn/start')!.seq,
         endSeq: events.find(event => event.type === 'turn/end')!.seq }],
     }
-    const saved = await host.ctx.typertGateway.invoke({
+    const saved = await host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
       namespace: 'sessionGraphKnowledge', method: 'save', args: { request }, signal: new AbortController().signal,
     })
     expect(saved).toMatchObject({ cardId: request.cardId, topicIds: [topicId], revisions: [{
@@ -126,7 +127,7 @@ describe('Knowledge Cards public Host workflow', () => {
     expect(await host.ctx.sessionController.inspect(session.id)).toEqual(before)
     expect(host.ctx.llm.stream).not.toHaveBeenCalled()
     const unavailable = vi.spyOn(host.ctx.sessionController, 'inspect').mockRejectedValue(new Error('Source is unavailable'))
-    const edited = await host.ctx.typertGateway.invoke({ namespace: 'sessionGraphKnowledge', method: 'save',
+    const edited = await host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx), namespace: 'sessionGraphKnowledge', method: 'save',
       args: { request: { ...request, revisionId: '4bb797e8-16ad-4d78-8f41-c0a5efaf8451',
         content: { ...request.content, title: '保留来源的新修订' },
         sources: [{ kind: 'revision', cardId: saved.cardId, revisionId: saved.revisions[0].revisionId, sourceIndex: 0 }],
@@ -136,7 +137,7 @@ describe('Knowledge Cards public Host workflow', () => {
     unavailable.mockRestore()
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(root, cleanups)
-    expect(await restarted.ctx.typertGateway.invoke({
+    expect(await restarted.ctx.typertGateway.invoke({ peer: ownerPeer(restarted.ctx),
       namespace: 'sessionGraphKnowledge', method: 'read', args: { request: { cardId: request.cardId } }, signal: new AbortController().signal,
     })).toEqual(edited)
   })

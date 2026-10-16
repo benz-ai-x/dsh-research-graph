@@ -5,8 +5,6 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { Session } from '@deepseek-ai/dsh-session'
-import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import { SessionCommandController } from '@deepseek-ai/dsh-api-session-controller/src/commands.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { discussionTurns } from '../src/session-discussion.ts'
@@ -43,13 +41,9 @@ function nativeCreation(host: Awaited<ReturnType<typeof topicHost>>, unavailable
     }),
   })
   Object.assign(host.ctx.workspaceRegistry, { get: () => workspace })
-  // Keep the released native creation/attachment command; stub only Agent composition.
-  const ensureSession = vi.fn(async (sessionId: SessionId) => ({ session: { id: sessionId } }))
-  const native = new SessionCommandController(host.ctx, {
-    ensureSession, presetForSession: () => undefined,
-  } as unknown as ConstructorParameters<typeof SessionCommandController>[1], '/a')
-  const create = vi.spyOn(host.ctx.sessionController, 'create').mockImplementation(request => native.create(request))
-  return { workspace, ensureSession, create }
+  // Keep the released native adoption seam; the seed is already persisted, so resume is a no-op.
+  const resume = vi.spyOn(host.ctx.agents, 'resume').mockResolvedValue(undefined)
+  return { workspace, resume }
 }
 
 describe('Historical branch public Host workflow', () => {
@@ -60,11 +54,11 @@ describe('Historical branch public Host workflow', () => {
     const rename = vi.spyOn(host.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
     const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
     const failed = await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())
-    expect(native.ensureSession).toHaveBeenCalledExactlyOnceWith(preview.targetSessionId, '/a', true, undefined)
+    expect(native.resume).toHaveBeenCalledExactlyOnceWith({ resumeSessionId: preview.targetSessionId, agentOptions: { provider: 'test', model: 'test' } })
     expect(native.workspace.attachSession).toHaveBeenCalledExactlyOnceWith(preview.targetSessionId)
     expect(rename).not.toHaveBeenCalled()
     expect(failed).toMatchObject({ stage: 'created', targetSessionId: preview.targetSessionId,
-      error: expect.stringContaining('was created but could not attach to workspace') })
+      error: 'Workspace storage offline' })
     expect(await host.ctx.sessionGraphBranch.prepare(host.request, signal())).toEqual(failed)
     // A user can continue the retained child before its Workspace association recovers.
     const inherited = await host.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
@@ -88,7 +82,7 @@ describe('Historical branch public Host workflow', () => {
     expect(ready).toMatchObject({ stage: 'ready', targetSessionId: preview.targetSessionId })
     expect(ready.error).toBeUndefined()
     expect(await restarted.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).toEqual(ready)
-    expect(recovery.create).toHaveBeenCalledOnce()
+    expect(recovery.resume).toHaveBeenCalledOnce()
     expect(recovery.workspace.sessionIds).toContain(preview.targetSessionId)
     const child = await restarted.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
     expect(child.events).toEqual(continued.events)
@@ -99,27 +93,14 @@ describe('Historical branch public Host workflow', () => {
     expect((await restarted.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
   })
 
-  it.each(['session', 'workspace'] as const)('does not treat another %s identity in an attachment failure as confirmation of this child', async mismatch => {
-    const host = await fixture()
-    const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
-    vi.spyOn(host.ctx.sessionController, 'create').mockRejectedValue(new RemoteError('session/workspace-attach-failed', 'Unrelated attachment failure', {
-      sessionId: (mismatch === 'session' ? 'session-another' : preview.targetSessionId) as SessionId,
-      workspaceId: mismatch === 'workspace' ? 'b' : 'a',
-    }))
-    const rename = vi.spyOn(host.ctx.sessionController, 'rename')
-    expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal()))
-      .toMatchObject({ stage: 'prepared', error: 'Unrelated attachment failure' })
-    expect(rename).not.toHaveBeenCalled()
-  })
-
   it('previews without creating, inherits exactly two of five turns, and retries topic failure on the same child after restart', async () => {
     const host = await fixture()
     const before = host.source.snapshotEvents()
-    const create = vi.spyOn(host.ctx.sessionController, 'create').mockImplementation(async request => ({ sessionId: request.sessionId! }))
+    const resume = vi.spyOn(host.ctx.agents, 'resume').mockResolvedValue(undefined)
     const rename = vi.spyOn(host.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
     const record = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
     expect(record).toMatchObject({ firstTurn: 1, lastTurn: 2, inheritedEventCount: 6, stage: 'prepared' })
-    expect(create).not.toHaveBeenCalled()
+    expect(resume).not.toHaveBeenCalled()
     expect(rename).not.toHaveBeenCalled()
     expect(await host.ctx.sessionPersistence.stat(record.targetSessionId as SessionId)).toBeUndefined()
     const membership = vi.spyOn(host.ctx.sessionGraphTopics, 'write').mockRejectedValueOnce(new Error('Topic storage offline'))
@@ -133,7 +114,7 @@ describe('Historical branch public Host workflow', () => {
     expect(membership).toHaveBeenCalledOnce()
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(host.root, cleanups)
-    vi.spyOn(restarted.ctx.sessionController, 'create').mockImplementation(async request => ({ sessionId: request.sessionId! }))
+    vi.spyOn(restarted.ctx.agents, 'resume').mockResolvedValue(undefined)
     vi.spyOn(restarted.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
     expect(await restarted.ctx.sessionGraphBranch.read({ operationId: record.operationId }, signal())).toEqual(failed)
     const ready = await restarted.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())
@@ -147,21 +128,21 @@ describe('Historical branch public Host workflow', () => {
 
   it('refuses invalid, past-end and stale boundaries before creating a target', async () => {
     const host = await fixture()
-    const create = vi.spyOn(host.ctx.sessionController, 'create')
+    const resume = vi.spyOn(host.ctx.agents, 'resume').mockResolvedValue(undefined)
     await expect(host.ctx.sessionGraphBranch.prepare({ ...host.request, endSeq: 999 }, signal())).rejects.toThrow('unavailable')
     await expect(host.ctx.sessionGraphBranch.prepare({ ...host.request, startSeq: 4 }, signal())).rejects.toThrow('unavailable')
     const record = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
     vi.spyOn(host.ctx.sessionController, 'inspect').mockImplementation(async () => { throw new Error('Source unavailable') })
     expect(await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())).toMatchObject({ stage: 'prepared', error: 'Source unavailable' })
-    expect(create).not.toHaveBeenCalled()
+    expect(resume).not.toHaveBeenCalled()
     await expect(host.ctx.sessionGraphBranch.prepare({ ...host.request, endSeq: 8 }, signal())).rejects.toThrow('another source')
   })
 
   it('retries failed naming without creating a second identity', async () => {
     const host = await fixture()
     const record = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
-    vi.spyOn(host.ctx.sessionController, 'create').mockImplementation(async request => ({ sessionId: request.sessionId! }))
-    vi.spyOn(host.ctx.sessionController, 'rename').mockRejectedValueOnce(new Error('Rename failed')).mockResolvedValue({ title: 'branch', seq: 7 })
+    vi.spyOn(host.ctx.agents, 'resume').mockResolvedValue(undefined)
+    vi.spyOn(host.ctx.sessionController, 'rename').mockRejectedValueOnce(new Error('Rename failed')).mockResolvedValue({ title: 'branch', seq: 7 }).mockResolvedValue({ title: 'branch', seq: 7 })
     expect(await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())).toMatchObject({ stage: 'created', error: 'Rename failed' })
     const ready = await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())
     expect(ready.stage).toBe('ready')
@@ -171,14 +152,13 @@ describe('Historical branch public Host workflow', () => {
   it('keeps a persisted seed prepared until native creation acknowledges the same child', async () => {
     const host = await fixture()
     const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
-    const create = vi.spyOn(host.ctx.sessionController, 'create').mockRejectedValueOnce(new Error('Native adoption unavailable'))
-      .mockImplementation(async request => ({ sessionId: request.sessionId! }))
+    const resume = vi.spyOn(host.ctx.agents, 'resume').mockRejectedValueOnce(new Error('Native adoption unavailable')).mockResolvedValue(undefined)
     vi.spyOn(host.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
     expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal()))
       .toMatchObject({ stage: 'prepared', error: 'Native adoption unavailable' })
     expect(await host.ctx.sessionPersistence.stat(preview.targetSessionId as SessionId)).toBeDefined()
     expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).toMatchObject({ stage: 'ready' })
-    expect(create.mock.calls.map(([request]) => request.sessionId)).toEqual([preview.targetSessionId, preview.targetSessionId])
+    expect(resume.mock.calls.map(([request]) => request.resumeSessionId)).toEqual([preview.targetSessionId, preview.targetSessionId])
     expect((await host.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
   })
 
@@ -205,7 +185,7 @@ describe('Historical branch public Host workflow', () => {
     }
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(host.root, cleanups)
-    vi.spyOn(restarted.ctx.sessionController, 'create').mockImplementation(async request => ({ sessionId: request.sessionId! }))
+    vi.spyOn(restarted.ctx.agents, 'resume').mockResolvedValue(undefined)
     vi.spyOn(restarted.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 7 })
     const persistedChild = await restarted.ctx.sessionPersistence.open(preview.targetSessionId as SessionId, 'read')
     try { expect(persistedChild.header).toEqual({ ...created.mock.calls[0]![0], delegationDepth: 0 }) } finally { await persistedChild.close() }

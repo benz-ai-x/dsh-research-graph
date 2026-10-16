@@ -1,6 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore from '@deepseek-ai/dsh-session'
-import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
@@ -11,6 +11,7 @@ import * as StorageDomain from '@deepseek-ai/dsh-storage-domain'
 import { join } from 'node:path'
 import { expect, vi } from 'vitest'
 import { apply, inject } from '../../src/index.ts'
+import { ownerPeer } from './owner-peer.ts'
 
 export async function topicHost(root: string, cleanups: (() => Promise<void>)[]) {
   const ctx = new Context()
@@ -28,10 +29,17 @@ export async function topicHost(root: string, cleanups: (() => Promise<void>)[])
   const workspaces = [
     { id: 'a', title: 'Research A', path: '/a', sessionIds: [] as string[] },
     { id: 'b', title: 'Research B', path: '/b', sessionIds: [] as string[] },
-  ]
+  ].map(row => Object.assign(row, {
+    attachSession: async (sessionId: string) => {
+      if (!row.sessionIds.includes(sessionId)) row.sessionIds.push(sessionId)
+    },
+  }))
   const archivedSessionIds: string[] = []
   ctx.provide('workspaceRegistry', { list: () => workspaces, archivedSessionIds })
   ctx.provide('llm', { stream: vi.fn(() => { throw new Error('Topics must not call a model') }) })
+  // The released branch flow adopts its persisted seed through agents.resume.
+  ctx.provide('agents', { get: () => undefined, resume: vi.fn(async () => {}) })
+  ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'test', model: 'test' }) })
   await ctx.plugin({
     inject: ['sessions', 'sessionPersistence', 'sessionQuery', 'llm', 'typert'],
     apply(controllerCtx) {
@@ -45,7 +53,7 @@ export async function topicHost(root: string, cleanups: (() => Promise<void>)[])
   await ctx.plugin(TypertGatewayService)
   const invoke = (method: string, request?: unknown, signal = new AbortController().signal) => ctx.typertGateway.invoke({
     namespace: 'sessionGraphTopics', method, args: request === undefined ? {} : { request },
-    signal,
+    peer: ownerPeer(ctx), signal,
   })
   return { ctx, workspaces, archivedSessionIds, invoke }
 }

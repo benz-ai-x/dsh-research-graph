@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
 import { setTimeout } from 'node:timers/promises'
+import { ownerPeer } from './owner-peer.mjs'
 
 /** Exercise the packed plugin with native Agents, persistence, workspace and topic services. */
 export async function verifyExploration(ctx, signal, workspaceId) {
-  const call = (namespace, method, request) => ctx.typertGateway.invoke({ namespace, method, args: { request }, signal })
+  const call = (namespace, method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace, method, args: { request }, signal })
   const knowledge = (method, request) => call('sessionGraphKnowledge', method, request)
   const { sessionId } = await ctx.sessionController.create({ workspaceId })
   const completed = async (id, expected) => {
@@ -12,7 +13,11 @@ export async function verifyExploration(ctx, signal, workspaceId) {
     for (;;) {
       signal.throwIfAborted()
       const agent = ctx.agents.get(id)
-      if (agent?.status === 'idle' && agent.session.snapshotEvents().filter(event => event.type === 'turn/end').length === expected) return
+      const ends = agent?.status === 'idle' ? agent.session.snapshotEvents().filter(event => event.type === 'turn/end') : []
+      if (ends.length === expected) {
+        assert.ok(ends.every(event => event.data.reason?.kind === 'completed'), `turn ended without a completed reason: ${JSON.stringify(ends.map(event => event.data.reason))}`)
+        return
+      }
       if (Date.now() > deadline) throw new Error(`Exploration turn stalled: expected ${expected}, source ${id === sessionId}, status ${agent?.status}, ends ${agent?.session.snapshotEvents().filter(event => event.type === 'turn/end').length}, tail ${JSON.stringify(agent?.session.snapshotEvents().slice(-3))}`)
       await setTimeout(20, undefined, { signal })
     }
