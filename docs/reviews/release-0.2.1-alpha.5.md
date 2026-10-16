@@ -28,10 +28,11 @@ For alpha.3→alpha.5 itself no source adaptation was needed: ui-conversation's 
 
 ## Published artifact
 
-- [Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-alpha.5) on the merged tag; the merge-commit main CI passed and the OIDC Publish succeeded.
-- npm dist-tags after publish: `next` = `0.2.1-alpha.5`, `latest` stays `0.1.5-rc.1`.
-- The official archive (packed by CI so its bytes differ from the local candidate as in every previous release) passed the same isolated packed-profile acceptance independently; registry integrity and SLSA provenance were verified against `registry.npmjs.org`.
-- Release attachments (official archive + `SHA256SUMS`) were uploaded and read back; archived locally under `.artifacts/release-0.2.1-alpha.5/official/`.
+- [Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-alpha.5) on the merged tag (main `5150bc0`, tree identical to the accepted head `6171da9`); the merge-commit main CI passed and the OIDC [Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/38923191416) succeeded (2026-10-16 23:21 Asia/Shanghai).
+- npm dist-tags after publish: `next` = `0.2.1-alpha.5`, `latest` stays `0.1.5-rc.1`. Registry (queried against `registry.npmjs.org`) shasum `5cc2af36f2ee6d0383e6825852ed03f6121deab1`, integrity `sha512-8v1WfWxq+0o7z1RTIz9+l1rvgbahc6WjIRsPsjFeZC9cENwDtA8I3rElyC+zw8yx2DbQ4aOrQ+zor7Na2kZ+DA==`.
+- The official archive (**515284 bytes**, SHA-256 `ba1bf49e…`, packed by CI so its bytes differ from the local candidate as in every previous release) passed the same isolated packed-profile acceptance independently — all durable/research checks with **19 fixture model calls**, version `0.2.1-alpha.5` on DSH `0.2.1-alpha.5`.
+- SLSA provenance verified from the registry attestations: repository `benz-ai-x/dsh-research-graph`, workflow `.github/workflows/publish.yml`, ref `refs/tags/v0.2.1-alpha.5`, invocation run `38923191416`, subject digest matching the official archive's SHA-512.
+- Release attachments (official archive + `SHA256SUMS`) were uploaded, re-downloaded, checksum-verified, and byte-compared against the registry archive; archived locally under `.artifacts/release-0.2.1-alpha.5/official/`.
 
 ## Acceptance boundary
 
