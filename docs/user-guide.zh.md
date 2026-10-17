@@ -15,10 +15,10 @@
 
 ## 快速开始
 
-需要已安装 **DeepSeek Harness 0.2.1-alpha.5**、Node.js `^22.19.0 || >=24.0.0`，以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
+需要已安装 **DeepSeek Harness 0.2.1-rc.1**、Node.js `^22.19.0 || >=24.0.0`，以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-alpha.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.1
 dsh web
 ```
 
@@ -28,7 +28,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前插件 **0.2.1-alpha.5** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+当前插件 **0.2.1-rc.1** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
 
 ## 研究流程
 
@@ -59,9 +59,9 @@ flowchart LR
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.2.1-alpha.5` | `0.2.1-alpha.5` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
+| `@benz-ai-x/dsh-research-graph@0.2.1-rc.1` | `0.2.1-rc.1` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 
-当前预发布 **0.2.1-alpha.5** 适配 **DSH 0.2.1-alpha.5**：属该 DSH 线的首次适配，插件取完整目标版本，全部钉版的 `@deepseek-ai/dsh-*` 依赖随之更新。这是一次无用户可见功能变化的兼容性发布：承载宿主契约适配（历史分支经 `agents.resume` 收养、Gateway 调用显式携带 owner Peer），并吸收上游 alpha.2 至 alpha.5 之间的全部增量变化；研究数据模型、持久化 schema、画布几何与宿主服务行为均无变化。正式包验收与已知限制见[发布验收记录](reviews/release-0.2.1-alpha.5.md)。
+当前预发布 **0.2.1-rc.1** 适配 **DSH 0.2.1-rc.1**：属该 DSH 线的首次适配，插件取完整目标版本，全部钉版的 `@deepseek-ai/dsh-*` 依赖随之更新（`@deepseek-ai/schemastery` 转正为上游现声明的 stable 范围 `~3.18.5`）。这是一次无用户可见变化的兼容性发布：上游 alpha.5→rc.1 仅为发布提交与 vendor 线转正，零源码变化；此前的宿主契约适配（历史分支经 `agents.resume` 收养、Gateway 调用显式携带 owner Peer）原样承载；研究数据模型、持久化 schema、画布几何与宿主服务行为均无变化。正式包验收与已知限制见[发布验收记录](reviews/release-0.2.1-rc.1.md)。
 
 在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。
 
@@ -203,16 +203,16 @@ DSH 持有原始会话；研图将研究主题、卡片修订、保留的来源�
 
 ## 安装
 
-[DSH 插件管理器](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-alpha.5/apps/cli/reference/README.zh.md#插件管理) 会调用 `pnpm`，因此它必须在 `PATH` 中可用。下方所有命令请统一使用与目标 DSH 版本匹配的启动方式：
+[DSH 插件管理器](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.1/apps/cli/reference/README.zh.md#插件管理) 会调用 `pnpm`，因此它必须在 `PATH` 中可用。下方所有命令请统一使用与目标 DSH 版本匹配的启动方式：
 
 - 已安装 CLI：使用 `dsh`。
-- npm 启动：将 `dsh` 替换为 `npx @deepseek-ai/dsh@0.2.1-alpha.5`。
-- 源码启动：按[上游说明](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-alpha.5/README.zh.md#从源码运行) 构建 `dsh-v0.2.1-alpha.5` checkout，在该目录中将 `dsh` 替换为 `pnpm dsh`。
+- npm 启动：将 `dsh` 替换为 `npx @deepseek-ai/dsh@0.2.1-rc.1`。
+- 源码启动：按[上游说明](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.1/README.zh.md#从源码运行) 构建 `dsh-v0.2.1-rc.1` checkout，在该目录中将 `dsh` 替换为 `pnpm dsh`。
 
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-alpha.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.1
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -229,7 +229,7 @@ dsh --profile web --dump-config
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-alpha.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.1
 dsh web
 ```
 
@@ -247,7 +247,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
 
-Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.1-alpha.5` 对应 DSH `0.2.1-alpha.5`）。
+Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.1-rc.1` 对应 DSH `0.2.1-rc.1`）。
 
 ## 使用图谱
 
@@ -317,7 +317,7 @@ Viewed Session 的图范围身份变化时（例如目录变为具名工作区�
 <a id="enable-discussion-search"></a>
 ### 启用讨论搜索
 
-DSH `0.2.1-alpha.5` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
+DSH `0.2.1-rc.1` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
 
 ```yaml
 - id: session-query-sqlite
