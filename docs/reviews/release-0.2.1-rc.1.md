@@ -22,10 +22,11 @@ Version pins: `@deepseek-ai/schemastery` follows the published range to the stab
 
 ## Published artifact
 
-- [Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.1) on the merged tag; the merge-commit main CI passed and the OIDC Publish succeeded.
-- npm dist-tags after publish: `next` = `0.2.1-rc.1`, `latest` stays `0.1.5-rc.1`.
-- The official archive (packed by CI so its bytes differ from the local candidate as in every previous release) passed the same isolated packed-profile acceptance independently; registry integrity and SLSA provenance were verified against `registry.npmjs.org`.
-- Release attachments (official archive + `SHA256SUMS`) were uploaded and read back; archived locally under `.artifacts/release-0.2.1-rc.1/official/`.
+- [Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.1) on the merged tag (main `207f68f`, tree identical to the accepted head `60dd9ea`); the merge-commit main CI passed and the OIDC [Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/39013261799) succeeded (2026-10-17 15:21 Asia/Shanghai).
+- npm dist-tags after publish: `next` = `0.2.1-rc.1`, `latest` stays `0.1.5-rc.1`. Registry (queried against `registry.npmjs.org`) shasum `115b9200f8175d7e627b4f1ec676ef18b7c19a04`, integrity `sha512-6E42dlJU1XymQKsyb/zh2Tyl0gTayGQ5TaGsbuBXaLj3j7J9q3iALV/xqU+tSN4AbhjdwjLUVpO0xYHBi5FqYw==`.
+- The official archive (**515288 bytes**, SHA-256 `f22e7c8f…`, packed by CI so its bytes differ from the local candidate as in every previous release) passed the same isolated packed-profile acceptance independently — all durable/research checks with **19 fixture model calls**, version `0.2.1-rc.1` on DSH `0.2.1-rc.1`.
+- SLSA provenance verified from the registry attestations: repository `benz-ai-x/dsh-research-graph`, workflow `.github/workflows/publish.yml`, ref `refs/tags/v0.2.1-rc.1`, invocation run `39013261799`, subject digest matching the official archive's SHA-512.
+- Release attachments (official archive + `SHA256SUMS`) were uploaded, re-downloaded, checksum-verified, and byte-compared against the registry archive; archived locally under `.artifacts/release-0.2.1-rc.1/official/`.
 
 ## Acceptance boundary
 
