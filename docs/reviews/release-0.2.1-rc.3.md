@@ -22,7 +22,11 @@ Against this plugin's dependency surface the delta is additive except for one co
 
 ## Published artifact
 
-(to be filled after publication)
+- [Release](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.3) on the merged tag (main `0a7812e`, tree identical to the accepted head `f3f810e`); both post-merge main CI runs passed and the OIDC [Publish](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/40077130753) succeeded (2026-10-24 16:12 Asia/Shanghai).
+- npm dist-tags after publish: `next` = `0.2.1-rc.3`, `latest` stays `0.1.5-rc.1`. Registry (queried against `registry.npmjs.org`) shasum `5170bf5c11f15444b4b6f1938072e3e98f38bb27`, integrity `sha512-VowzB93rQQikCuleEtX/Ujtegc47DQicy2GHqF3Cpf0jU10RUuOn+W/nlp/0owQCfBnKa800HG69XKCEasI7lA==`.
+- The official archive (**515292 bytes**, SHA-256 `6b5c75c8…`, packed by CI so its bytes differ from the local candidate as in every previous release) passed the same isolated packed-profile acceptance independently — all durable/research checks with **19 fixture model calls**, version `0.2.1-rc.3` on DSH `0.2.1-rc.3`.
+- SLSA provenance verified from the registry attestations: repository `benz-ai-x/dsh-research-graph`, workflow `.github/workflows/publish.yml`, ref `refs/tags/v0.2.1-rc.3`, invocation run `40077130753`, subject `pkg:npm/@benz-ai-x/dsh-research-graph@0.2.1-rc.3` with the SHA-512 digest matching the downloaded official archive byte-for-byte; transparency-log entries `3438227643` (SLSA) and `3438255615` (npm publish attestation).
+- Release attachments (official archive + `SHA256SUMS`) were uploaded, re-downloaded, checksum-verified, and byte-compared against the registry archive; archived locally under `.artifacts/release-0.2.1-rc.3/official/`.
 
 ## Acceptance boundary
 
