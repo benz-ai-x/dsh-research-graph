@@ -1496,6 +1496,11 @@ function mount(
   const useSession = bindSnapshotSelector(createSnapshotStore({ blank: false } as never))
   const useConversation = bindSnapshotSelector(createSnapshotStore(EMPTY_CONVERSATION_SNAPSHOT))
   const useConversationViews = bindSnapshotSelector(createSnapshotStore(tabsOf(slots)))
+  // Harness 0.2.1-rc.3 adds View-tab pin state to the header inject face: the
+  // bench pins nothing and registers no views.actions rows, so the More-menu
+  // width budget stays inert (useEntryActions false skips its observer).
+  const useEntryPins = bindSnapshotSelector(createSnapshotStore<readonly string[]>([]))
+  const useEntryActions = bindSnapshotSelector(createSnapshotStore(false))
   const conversation = createConversationStore().create()
   // Harness 0.1.2-alpha.3 routes tab selection and view-focus requests
   // through injected callbacks (selectView/openView) that also activate the
@@ -1577,6 +1582,9 @@ function mount(
         inputActions={inputActions}
         open={vi.fn()}
         selectView={selectView}
+        setPinned={vi.fn()}
+        useEntryPins={useEntryPins}
+        useEntryActions={useEntryActions}
         t={tConversation}
       />
       <ConversationSession
