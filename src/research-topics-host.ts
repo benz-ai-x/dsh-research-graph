@@ -72,9 +72,17 @@ export class ResearchTopicsService extends TypertRemoteService {
           const topic: ResearchTopic = {
             topicId: command.topicId, title: command.title, references: [],
             arrangement: { positions: {}, collapsed: [], offsets: {} },
+            ...(command.workspaceId === undefined ? {} : { workspaceId: command.workspaceId }),
           }
           await table.put(command.topicId, topic)
           return topic
+        }
+        if (command.kind === 'delete') {
+          // The result contract returns the topic; report the pre-delete record.
+          const current = table.get(command.topicId)
+          if (current === undefined) throw new Error('Research Topic is unavailable')
+          await table.delete(command.topicId)
+          return current
         }
         const current = table.get(command.topicId)
         if (current === undefined) throw new Error('Research Topic is unavailable')

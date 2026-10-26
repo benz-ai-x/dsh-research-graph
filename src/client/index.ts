@@ -17,11 +17,18 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: the 'conversation.view' SlotMap row (declared by the slot's
 // owning package) must be in the program for the register calls to type.
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+// Type-only: the 'sidebar.workspaces' and 'sidebar.footer.action' SlotMap rows
+// (declared by the sidebar shell) must be in the program for the register
+// calls to type.
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the slot service and global Session/Workspace standard props.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { createSessionMergeModule } from '../session-merge.ts'
+import { CategoryBrowser, type CategoryBrowserInjected } from './CategoryBrowser.tsx'
+import { CategoryFootToggle } from './CategoryFootToggle.tsx'
+import { categoryViewPreference } from './category-toggle.ts'
 import { GraphView, type GraphViewInjected } from './GraphView.tsx'
 import { NS, en, zh } from './locales.ts'
 import { SESSION_DIGEST_REMOTE } from './session-digest-remote.ts'
@@ -351,6 +358,65 @@ async function registerUi(ctx: Context): Promise<void> {
       },
     }),
   }, GraphView))
+
+  // Sidebar category browsing: the additive foot toggle always registers; the
+  // browsing region itself registers at a lower priority to shadow the native
+  // Workspace browser only while the browser-local preference enables it.
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action',
+    id: 'session-graph-categories',
+    order: 100,
+    locale: NS,
+  }, CategoryFootToggle))
+
+  const categoryInjected = (): CategoryBrowserInjected => ({
+    sources: {
+      sessions: ctx.sessions.list,
+      workspaces: ctx.workspaces.list,
+    },
+    topics: {
+      list: async signal => {
+        const result = await ctx.remote.sessionGraphTopics.list(signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value
+      },
+      write: async (request, signal) => {
+        const result = await ctx.remote.sessionGraphTopics.write(request, signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value
+      },
+    },
+    openSession: id => { ctx.uiWorkspace.openSession(id as SessionId) },
+    startSession: workspaceId => {
+      ctx.uiWorkspace.startSession(workspaceId === undefined ? undefined : workspaceId as WorkspaceId)
+    },
+  })
+
+  let disposeBrowser: (() => void) | undefined
+  const syncCategoryBrowser = (): void => {
+    const enabled = categoryViewPreference.getSnapshot()
+    if (enabled && disposeBrowser === undefined) {
+      disposeBrowser = ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
+        name: 'sidebar.workspaces',
+        priority: -1,
+        locale: NS,
+        registrant: '@benz-ai-x/dsh-research-graph',
+        inject: categoryInjected,
+      }, CategoryBrowser))
+    } else if (!enabled && disposeBrowser !== undefined) {
+      disposeBrowser()
+      disposeBrowser = undefined
+    }
+  }
+  syncCategoryBrowser()
+  ctx.effect(() => {
+    const unsubscribe = categoryViewPreference.subscribe(syncCategoryBrowser)
+    return () => {
+      unsubscribe()
+      disposeBrowser?.()
+      disposeBrowser = undefined
+    }
+  }, 'ui-session-graph: category browser registration')
 }
 
 /**

@@ -8,7 +8,7 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 
 | What you want to do | Read next |
 | --- | --- |
-| Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) |
+| Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) · [Sidebar categories](#browse-sessions-by-sidebar-categories) |
 | Read and verify evidence | [Original discussion](#read-original-discussion) · [Body search](#search-discussion-history) · [Session Digests](#generate-a-session-digest) |
 | Capture and reuse knowledge | [Knowledge Cards](#knowledge-cards) · [AI extraction](#reviewed-ai-extraction) · [Synthesis](#compare-and-synthesize) · [Follow-up discussions](#start-a-discussion-from-selected-materials) |
 | Install, recover, or troubleshoot | [Install](#install) · [History recovery](#recover-historical-merge-sessions) · [Working position](#return-to-your-working-position) · [Troubleshooting](#troubleshooting) |
@@ -299,6 +299,14 @@ Topic switching reads Session headers and existing metadata, not all original di
 See the [Research Topics acceptance record and screenshots](reviews/issue-5-ui-acceptance.md) for cross-Workspace collection, independent arrangements, source recovery, restart persistence, and the 1,000-reference baseline.
 
 The topic toolbar keeps selection and layout sync status together; creation and rename fields open on demand. Workspace arrangements are kept on this device, while **Save arrangement** syncs a topic arrangement to the Host. Singleton clusters show just their node, and long node titles use up to two lines.
+
+## Browse sessions by sidebar categories
+
+The plugin can replace the sidebar's session list with a **Workspace → category → Session** tree. Each Workspace section holds your named categories plus one **Uncategorized** bucket for its unreferenced Sessions; topics without a Workspace attribution trail in **General categories**, and Sessions no Workspace accounts appear under **Sessions without a workspace**. The tree reuses the same Host-stored Research Topics, so a category is also a topic on the graph.
+
+In a Workspace header, **＋** creates a category in it and **✚** starts a new Session there. Each category supports rename (**✎**) and a two-step delete (**×** then confirm); deleting a category removes only the collection, never its Sessions. In the Uncategorized bucket, a row's **＋** files that Session into one of the Workspace's categories, and a category row's **×** removes it again. Clicking a Session row opens it; archived or no-longer-listed members stay visible as unopenable rows so membership remains inspectable.
+
+The foot action beside Settings toggles between the category tree and the native session list at any time; the choice is remembered per browser and survives reloads. While the category tree is active, the native list's own features (content search, pin and archive management, workspace dialogs) are available again after switching back. Category membership and names are Host-persisted and shared across clients, exactly like Research Topics.
 
 ## Search discussion history
 

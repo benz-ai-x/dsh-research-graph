@@ -279,8 +279,7 @@ declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
 }
 
 declare module '@deepseek-ai/dsh-client-locale/client' {}
-declare module '@deepseek-ai/dsh-client-ui-renderer/client' {}
-declare module '@deepseek-ai/dsh-client-ui-session/client' {
+declare module '@deepseek-ai/dsh-client-ui-renderer/client' {}declare module '@deepseek-ai/dsh-client-ui-session/client' {
   type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
 
   export interface SessionStatus {
@@ -291,3 +290,18 @@ declare module '@deepseek-ai/dsh-client-ui-session/client' {
   export type SessionStatusSnapshot = ReadonlyMap<SessionId, SessionStatus>
 }
 declare module '@deepseek-ai/dsh-client-ui-workspace/client' {}
+
+// Standalone adapter for the sidebar shell's owner-share contracts; the
+// Harness compiler face checks the same registrations against the sidebar
+// package's public declarations instead.
+declare module '@deepseek-ai/dsh-client-ui-sidebar/client' {
+  /** Owner share of the sidebar browsing region (the shell's fold state). */
+  export interface SidebarSectionOwnerProps {
+    readonly wide: boolean
+    readonly expandSidebar: () => void
+  }
+  /** Owner share of one sidebar-foot action row. */
+  export interface SidebarFooterActionOwnerProps {
+    readonly wide: boolean
+  }
+}

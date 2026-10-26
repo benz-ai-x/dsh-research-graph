@@ -151,4 +151,26 @@ describe('Research Topics public Host interface', () => {
     expect(topics.find(topic => topic.topicId === b).references.map(reference => reference.sessionId)).toEqual([sources[0]!.id])
     expect(restarted.ctx.llm.stream).not.toHaveBeenCalled()
   })
+
+  it('stores workspace attribution on create and deletes topics durably', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const host = await topicHost(root, cleanups)
+    const a = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
+    const b = '2bb797e8-16ad-4d78-8f41-c0a5efaf8451'
+    const attributed = await host.invoke('write', { kind: 'create', topicId: a, title: '归属分类', workspaceId: 'ws-a' })
+    expect(attributed).toMatchObject({ topicId: a, workspaceId: 'ws-a' })
+    const plain = await host.invoke('write', { kind: 'create', topicId: b, title: '通用分类' })
+    expect(plain.workspaceId).toBeUndefined()
+    await host.ctx.fiber.dispose()
+    const restarted = await topicHost(root, cleanups)
+    const persisted = await restarted.invoke('list')
+    expect(persisted.find(topic => topic.topicId === a)).toMatchObject({ workspaceId: 'ws-a' })
+    expect(persisted.find(topic => topic.topicId === b).workspaceId).toBeUndefined()
+    expect(await restarted.invoke('write', { kind: 'delete', topicId: a })).toMatchObject({ topicId: a, title: '归属分类' })
+    expect((await restarted.invoke('list')).map(topic => topic.topicId)).toEqual([b])
+    await expect(restarted.invoke('write', { kind: 'delete', topicId: a })).rejects.toThrow('Research Topic is unavailable')
+    const afterRestart = await topicHost(root, cleanups)
+    expect((await afterRestart.invoke('list')).map(topic => topic.topicId)).toEqual([b])
+  })
 })

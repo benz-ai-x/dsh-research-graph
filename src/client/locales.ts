@@ -30,6 +30,13 @@ export type SessionGraphKey =
   | 'topic.add' | 'topic.addSelected' | 'topic.close'
   | 'topic.saveArrangement' | 'topic.arrangementHint' | 'topic.unsaved'
   | 'topic.refresh' | 'topic.cancel' | 'topic.canceled' | 'topic.archivedReading'
+  | 'category.browserTitle' | 'category.newCategory' | 'category.newSession' | 'category.namePlaceholder'
+  | 'category.create' | 'category.cancel' | 'category.rename' | 'category.save'
+  | 'category.delete' | 'category.deleteConfirm'
+  | 'category.uncategorized' | 'category.unassigned' | 'category.noWorkspace'
+  | 'category.unavailable' | 'category.addSession' | 'category.removeSession'
+  | 'category.empty' | 'category.loadError' | 'category.retry' | 'category.expand'
+  | 'category.count' | 'category.toggle.enable' | 'category.toggle.disable'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -415,6 +422,29 @@ export const zh: Record<SessionGraphKey, string> = {
   'canvas.description': '会话关系图谱',
   'empty.outside': '无法确定当前查看会话的工作区或工作目录',
   'empty.none': '此范围暂无画布会话',
+  'category.browserTitle': '分类',
+  'category.newCategory': '新建分类',
+  'category.newSession': '新建会话',
+  'category.namePlaceholder': '分类名称',
+  'category.create': '创建',
+  'category.cancel': '取消',
+  'category.rename': '重命名',
+  'category.save': '保存',
+  'category.delete': '删除',
+  'category.deleteConfirm': '确认删除',
+  'category.uncategorized': '未分类',
+  'category.unassigned': '通用分类',
+  'category.noWorkspace': '未归工作区会话',
+  'category.unavailable': '已不可用',
+  'category.addSession': '加入分类',
+  'category.removeSession': '移出',
+  'category.empty': '暂无分类',
+  'category.loadError': '分类加载失败',
+  'category.retry': '重试',
+  'category.expand': '展开侧栏',
+  'category.count': '{n} 个会话',
+  'category.toggle.enable': '切换为分类视图',
+  'category.toggle.disable': '切换回原生列表',
 }
 
 /** English dictionary. */
@@ -626,4 +656,27 @@ export const en: Record<SessionGraphKey, string> = {
   'canvas.description': 'Session relationship graph',
   'empty.outside': 'The viewed session has no resolvable workspace or working directory',
   'empty.none': 'No canvas sessions in this scope yet',
+  'category.browserTitle': 'Categories',
+  'category.newCategory': 'New category',
+  'category.newSession': 'New session',
+  'category.namePlaceholder': 'Category name',
+  'category.create': 'Create',
+  'category.cancel': 'Cancel',
+  'category.rename': 'Rename',
+  'category.save': 'Save',
+  'category.delete': 'Delete',
+  'category.deleteConfirm': 'Confirm delete',
+  'category.uncategorized': 'Uncategorized',
+  'category.unassigned': 'General categories',
+  'category.noWorkspace': 'Sessions without a workspace',
+  'category.unavailable': 'Unavailable',
+  'category.addSession': 'Add to category',
+  'category.removeSession': 'Remove',
+  'category.empty': 'No categories yet',
+  'category.loadError': 'Failed to load categories',
+  'category.retry': 'Retry',
+  'category.expand': 'Expand sidebar',
+  'category.count': '{n} sessions',
+  'category.toggle.enable': 'Switch to category view',
+  'category.toggle.disable': 'Switch back to the native list',
 }
