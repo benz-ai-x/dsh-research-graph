@@ -37,6 +37,12 @@ export type SessionGraphKey =
   | 'category.unavailable' | 'category.addSession' | 'category.removeSession'
   | 'category.empty' | 'category.loadError' | 'category.retry' | 'category.expand'
   | 'category.count' | 'category.toggle.enable' | 'category.toggle.disable'
+  | 'category.search' | 'category.searchEmpty' | 'category.more'
+  | 'category.assign' | 'category.assignNew' | 'category.removeCurrent'
+  | 'category.archive' | 'category.pin' | 'category.unpin'
+  | 'category.deleteCategory' | 'category.deleteHint' | 'category.deleteConfirmTitle'
+  | 'category.emptyTeach' | 'category.emptyNew' | 'category.noWorkspaces'
+  | 'category.showArchived' | 'category.hideArchived' | 'category.writeError'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -445,6 +451,24 @@ export const zh: Record<SessionGraphKey, string> = {
   'category.count': '{n} 个会话',
   'category.toggle.enable': '切换为分类视图',
   'category.toggle.disable': '切换回原生列表',
+  'category.search': '搜索会话',
+  'category.searchEmpty': '无匹配会话',
+  'category.more': '更多操作',
+  'category.assign': '加入分类',
+  'category.assignNew': '新建分类并加入…',
+  'category.removeCurrent': '移出分类',
+  'category.archive': '归档会话',
+  'category.pin': '置顶',
+  'category.unpin': '取消置顶',
+  'category.deleteCategory': '删除分类',
+  'category.deleteHint': '只删除分类，不删除其中的会话',
+  'category.deleteConfirmTitle': '删除该分类？',
+  'category.emptyTeach': '把相关会话归到一起',
+  'category.emptyNew': '新建分类',
+  'category.noWorkspaces': '暂无工作区；请切回原生列表添加工作区后再使用分类',
+  'category.showArchived': '显示已归档',
+  'category.hideArchived': '隐藏已归档',
+  'category.writeError': '操作失败，已保留你的输入，请重试',
 }
 
 /** English dictionary. */
@@ -679,4 +703,22 @@ export const en: Record<SessionGraphKey, string> = {
   'category.count': '{n} sessions',
   'category.toggle.enable': 'Switch to category view',
   'category.toggle.disable': 'Switch back to the native list',
+  'category.search': 'Search sessions',
+  'category.searchEmpty': 'No matching sessions',
+  'category.more': 'More actions',
+  'category.assign': 'Add to category',
+  'category.assignNew': 'New category and add…',
+  'category.removeCurrent': 'Remove from category',
+  'category.archive': 'Archive session',
+  'category.pin': 'Pin',
+  'category.unpin': 'Unpin',
+  'category.deleteCategory': 'Delete category',
+  'category.deleteHint': 'Deletes the category only, never its sessions',
+  'category.deleteConfirmTitle': 'Delete this category?',
+  'category.emptyTeach': 'Group related sessions together',
+  'category.emptyNew': 'New category',
+  'category.noWorkspaces': 'No workspaces yet; switch back to the native list to add one before categorizing',
+  'category.showArchived': 'Show archived',
+  'category.hideArchived': 'Hide archived',
+  'category.writeError': 'The action failed; your input is kept — please retry',
 }

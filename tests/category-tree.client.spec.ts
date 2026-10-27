@@ -4,7 +4,7 @@ import type { WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/cl
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ResearchTopic } from '../src/research-topic.ts'
 import {
-  deriveCategoryTree, NO_WORKSPACE_KEY, UNASSIGNED_KEY,
+  currentAncestryKeys, deriveCategoryTree, NO_WORKSPACE_KEY, searchCategoryTree, UNASSIGNED_KEY,
 } from '../src/client/category-tree.ts'
 
 const id = (value: string): SessionId => value as SessionId
@@ -99,16 +99,17 @@ describe('deriveCategoryTree', () => {
     expect(tree.sections).toHaveLength(0)
   })
 
-  it('hides archived sessions from buckets but keeps category membership', () => {
-    const tree = deriveCategoryTree(
-      [topic('t1', '含归档', ['s1'], 'ws-a')],
-      [workspace('ws-a', ['s1', 's2'])],
-      listState({ s1: session('s1'), s2: session('s2') }),
-      { archivedSessionIds: [id('s1'), id('s2')] },
-    )
-    const category = tree.sections[0].categories[0]
-    expect(category.sessions[0]).toMatchObject({ sessionId: 's1', archived: true })
-    expect(tree.sections[0].uncategorized).toHaveLength(0)
+  it('folds all-archived categories away by default but keeps them on request', () => {
+    const topics = [topic('t1', '含归档', ['s1'], 'ws-a')]
+    const workspacesList = [workspace('ws-a', ['s1', 's2'])]
+    const list = listState({ s1: session('s1'), s2: session('s2') })
+    const hidden = deriveCategoryTree(topics, workspacesList, list, { archivedSessionIds: [id('s1'), id('s2')] })
+    expect(hidden.sections[0].categories).toHaveLength(0)
+    expect(hidden.sections[0].uncategorized).toHaveLength(0)
+    const shown = deriveCategoryTree(topics, workspacesList, list, {
+      archivedSessionIds: [id('s1'), id('s2')], showArchived: true,
+    })
+    expect(shown.sections[0].categories[0].sessions[0]).toMatchObject({ sessionId: 's1', archived: true })
   })
 
   it('trails unassigned and stale-attribution topics in one section', () => {
@@ -142,5 +143,60 @@ describe('deriveCategoryTree', () => {
       { archivedSessionIds: [] },
     )
     expect(tree.sections).toHaveLength(0)
+  })
+
+  it('hides archived category members and folds all-archived categories by default', () => {
+    const tree = deriveCategoryTree(
+      [topic('t1', '全部归档', ['s1'], 'ws-a'), topic('t2', '部分归档', ['s2', 's3'], 'ws-a')],
+      [workspace('ws-a', ['s1', 's2', 's3'])],
+      listState({ s1: session('s1'), s2: session('s2'), s3: session('s3') }),
+      { archivedSessionIds: [id('s1'), id('s2')] },
+    )
+    const titles = tree.sections[0].categories.map(category => category.title)
+    expect(titles).toEqual(['部分归档'])
+    const mixed = tree.sections[0].categories[0]
+    expect(mixed.sessions.map(row => row.sessionId)).toEqual(['s3'])
+  })
+
+  it('keeps archived members inspectable when the view opts in', () => {
+    const tree = deriveCategoryTree(
+      [topic('t1', '含归档', ['s1'], 'ws-a')],
+      [workspace('ws-a', ['s1'])],
+      listState({ s1: session('s1') }),
+      { archivedSessionIds: [id('s1')], showArchived: true },
+    )
+    expect(tree.sections[0].categories[0].sessions[0]).toMatchObject({ sessionId: 's1', archived: true })
+  })
+
+  it('searches live titles across categories and buckets, newest first', () => {
+    const tree = deriveCategoryTree(
+      [topic('t1', '缓存', ['s1'], 'ws-a')],
+      [workspace('ws-a', ['s2'])],
+      listState({
+        s1: session('s1', { displayTitle: '缓存策略', updatedAt: 5 }),
+        s2: session('s2', { displayTitle: '缓存复盘', updatedAt: 9 }),
+        s3: session('s3', { displayTitle: '权限', updatedAt: 7 }),
+      }),
+      { archivedSessionIds: [] },
+    )
+    const hits = searchCategoryTree(tree, '缓存')
+    expect(hits.map(hit => hit.row.sessionId)).toEqual(['s2', 's1'])
+    expect(hits[0].category).toBeUndefined()
+    expect(hits[1].category).toBe('缓存')
+    expect(searchCategoryTree(tree, '  ')).toEqual([])
+  })
+
+  it('reports the sections and categories containing the current session', () => {
+    const tree = deriveCategoryTree(
+      [topic('t1', '当前所在', ['s2'], 'ws-a'), topic('t2', '别处', ['s3'], 'ws-a')],
+      [workspace('ws-a', ['s1', 's2', 's3'])],
+      listState({
+        s1: session('s1'),
+        s2: session('s2', { retainedBy: { mainView: 1 } }),
+        s3: session('s3'),
+      }),
+      { archivedSessionIds: [] },
+    )
+    expect([...currentAncestryKeys(tree)].sort()).toEqual(['t1', 'ws-a'])
   })
 })

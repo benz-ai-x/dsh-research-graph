@@ -63,6 +63,9 @@ declare module '@deepseek-ai/cordis' {
         getSnapshot: () => import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
         subscribe: (listener: () => void) => () => void
       }
+      pinSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
+      unpinSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
+      archiveSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
     }
     readonly uiWorkspace: {
       openSession: (target: import('@deepseek-ai/dsh-session/types').SessionId | {

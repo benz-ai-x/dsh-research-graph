@@ -390,6 +390,9 @@ async function registerUi(ctx: Context): Promise<void> {
     startSession: workspaceId => {
       ctx.uiWorkspace.startSession(workspaceId === undefined ? undefined : workspaceId as WorkspaceId)
     },
+    pinSession: id => ctx.workspaces.pinSession(id as SessionId),
+    unpinSession: id => ctx.workspaces.unpinSession(id as SessionId),
+    archiveSession: id => ctx.workspaces.archiveSession(id as SessionId),
   })
 
   let disposeBrowser: (() => void) | undefined

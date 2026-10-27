@@ -1,14 +1,21 @@
 /**
  * The sidebar category browsing region: Workspaces hold user-named category
  * Topics, each listing its member Sessions, plus one Uncategorized bucket per
- * Workspace account. Registration shadows the native Workspace browser in the
- * `sidebar.workspaces` hole (see client/index.ts); the sidebar-foot toggle
- * restores the native browser by disposing that registration.
+ * Workspace account. Reading stays chrome-free — actions reveal on row hover
+ * and live in host Menu popovers (assign submenu, pin, archive) — and the
+ * rows reuse the native grammar: StateDot, relative time, tree roles, and a
+ * brand bar marking the groups containing the current Session. Registration
+ * shadows the native Workspace browser in the `sidebar.workspaces` hole; the
+ * sidebar-foot toggle restores it (see client/index.ts).
  */
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react'
 import {
-  IconCloseOutlineRegular, IconEditOutlineRegular, IconFlatListOutlineRegular,
-  IconNewChatOutlineRegular, IconPlusOutlineRegular, IconTriangleRightFillRegular, StateDot,
+  useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement,
+} from 'react'
+import {
+  IconArchiveOutlineRegular, IconCloseOutlineRegular, IconEditOutlineRegular, IconEllipsisOutlineRegular,
+  IconFlatListOutlineRegular, IconNewChatOutlineRegular, IconPinOutlineRegular, IconPlusOutlineRegular,
+  IconSearchOutlineRegular, IconTriangleRightFillRegular, Menu, type MenuEntry,
+  relativeTime, StateDot, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -16,7 +23,8 @@ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controlle
 import type { SidebarSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { ResearchTopic, ResearchTopicWrite } from '../research-topic.ts'
 import {
-  deriveCategoryTree, NO_WORKSPACE_KEY, UNASSIGNED_KEY,
+  currentAncestryKeys, deriveCategoryTree, searchCategoryTree,
+  NO_WORKSPACE_KEY, UNASSIGNED_KEY,
   type CategoryNode, type CategorySection, type CategorySessionRow,
 } from './category-tree.ts'
 import { setCategoryView } from './category-toggle.ts'
@@ -40,6 +48,9 @@ export interface CategoryBrowserInjected {
   }
   readonly openSession: (sessionId: string) => void
   readonly startSession: (workspaceId?: string) => void
+  readonly pinSession: (sessionId: string) => Promise<void>
+  readonly unpinSession: (sessionId: string) => Promise<void>
+  readonly archiveSession: (sessionId: string) => Promise<void>
 }
 
 /** Composed props of the category browsing region. */
@@ -48,7 +59,10 @@ export type CategoryBrowserProps =
   & InjectFace<CategoryBrowserInjected>
   & PropsLocale<'sessionGraph'>
 
+type Translate = CategoryBrowserProps['t']
+
 const COLLAPSED_KEY = 'sessionGraph.categoryView.collapsed'
+const ARCHIVED_KEY = 'sessionGraph.categoryView.showArchived'
 
 function readCollapsed(): Set<string> {
   try {
@@ -65,6 +79,27 @@ function writeCollapsed(keys: ReadonlySet<string>): void {
   } catch {
     // A blocked localStorage keeps the collapse state for this mount only.
   }
+}
+
+function readShowArchived(): boolean {
+  try {
+    return window.localStorage.getItem(ARCHIVED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+/** Localized compact trailing time, bucketed exactly like the native rows. */
+function TimeLabel(props: { readonly updatedAt: number; readonly now: number; readonly t: Translate }): ReactElement {
+  const time = relativeTime(props.updatedAt, props.now)
+  return <span className={styles.rowTime}>{props.t(`time.${time.unit}`, { n: time.n })}</span>
+}
+
+/** The chevron of one foldable row; rotates with the CSS transition. */
+function Disclosure(props: { readonly collapsed: boolean }): ReactElement {
+  return <span className={styles.disclosure} data-collapsed={props.collapsed ? 'true' : 'false'} aria-hidden="true">
+    <IconTriangleRightFillRegular size={12} />
+  </span>
 }
 
 /** One click-to-create rename-safe title input row. */
@@ -98,147 +133,244 @@ function TitleInput(props: {
         if (event.key === 'Escape') props.onCancel()
       }}
     />
-    <button type="button" className={styles.rowButton} disabled={props.busy || value.trim() === ''} onClick={commit}>
+    <button type="button" className={styles.ghostButton} disabled={props.busy || value.trim() === ''} onClick={commit}>
       {props.submitLabel}
     </button>
-    <button type="button" className={styles.rowButton} disabled={props.busy} onClick={props.onCancel}>
+    <button type="button" className={styles.ghostButton} disabled={props.busy} onClick={props.onCancel}>
       {props.cancelLabel}
     </button>
   </div>
 }
 
-/** The inline add-to-category picker opened from an uncategorized row. */
-function AddPicker(props: {
-  readonly categories: readonly CategoryNode[]
-  readonly emptyLabel: string
-  readonly closeLabel: string
+/** Editing intents the row components raise to the region owner. */
+interface RowContext {
+  readonly t: Translate
+  readonly now: number
   readonly busy: boolean
-  readonly onPick: (topicId: string) => void
-  readonly onClose: () => void
+  readonly pinned: ReadonlySet<string>
+  readonly openSession: (sessionId: string) => void
+  readonly removeMember: (topicId: string, sessionId: string) => void
+  readonly archive: (sessionId: string) => void
+  readonly pin: (sessionId: string, pinned: boolean) => void
+  readonly assign: (topicId: string, sessionId: string) => void
+  readonly beginAssignNew: (sessionId: string, sectionKey: string) => void
+  readonly beginRename: (topicId: string) => void
+  readonly submitRename: (topicId: string, title: string) => void
+  readonly cancelEditing: () => void
+  readonly beginDelete: (topicId: string) => void
+  readonly confirmDelete: (topicId: string) => void
+}
+
+/** Assignable categories for one row: its own section's plus the unassigned. */
+function assignableCategories(sections: readonly CategorySection[], sectionKey: string): readonly CategoryNode[] {
+  const own = sections.find(section => section.key === sectionKey)?.categories ?? []
+  const general = sections.find(section => section.key === UNASSIGNED_KEY)?.categories ?? []
+  return [...own, ...general]
+}
+
+/** The ⋯ menu trigger button shared by every row kind. */
+function MoreTrigger(props: {
+  readonly label: string
+  readonly open: boolean
+  readonly onToggle: () => void
 }): ReactElement {
-  return <div className={styles.addPicker} role="menu">
-    {props.categories.length === 0 ? <span className={styles.addPickerEmpty}>{props.emptyLabel}</span>
-      : props.categories.map(category => <button
-        key={category.topicId}
-        type="button"
-        role="menuitem"
-        className={styles.addPickerItem}
-        disabled={props.busy}
-        onClick={() => props.onPick(category.topicId)}
-      >
-        {category.title}
-      </button>)}
-    <button
-      type="button"
-      role="menuitem"
-      className={styles.addPickerItem}
-      aria-label={props.closeLabel}
-      onClick={props.onClose}
-    >
-      <IconCloseOutlineRegular size={14} />
-    </button>
-  </div>
+  return <button
+    type="button"
+    className={styles.actionButton}
+    aria-label={props.label}
+    aria-haspopup="menu"
+    aria-expanded={props.open}
+    onClick={props.onToggle}
+  ><IconEllipsisOutlineRegular size={14} /></button>
 }
 
 function SessionRow(props: {
   readonly row: CategorySessionRow
-  readonly removeLabel: string
-  readonly unavailableLabel: string
-  readonly busy: boolean
-  readonly onOpen: (sessionId: string) => void
-  readonly onRemove?: (sessionId: string) => void
-  readonly actions?: ReactElement
+  readonly context: RowContext
+  readonly sectionKey: string
+  readonly memberOf?: CategoryNode
+  readonly sections: readonly CategorySection[]
 }): ReactElement {
-  const openable = props.row.listed && !props.row.archived
-  return <li className={styles.sessionRow}>
+  const { row, context } = props
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const openable = row.listed && !row.archived
+  const candidates = useMemo(
+    () => assignableCategories(props.sections, props.sectionKey)
+      .filter(category => category.topicId !== props.memberOf?.topicId),
+    [props.sections, props.sectionKey, props.memberOf],
+  )
+  const assignTargets: readonly MenuEntry[] = [
+    ...candidates.map(category => ({ id: `topic:${category.topicId}`, label: category.title })),
+    { type: 'separator', id: 'assign-new-separator' },
+    { id: 'assign-new', label: context.t('category.assignNew'), icon: <IconPlusOutlineRegular size={14} /> },
+  ]
+  return <li className={styles.treeRow + (row.current ? ` ${styles.rowCurrent}` : '')} role="treeitem">
     <button
       type="button"
-      className={[
-        styles.sessionButton,
-        props.row.current ? styles.sessionCurrent : '',
-        props.row.listed ? '' : styles.sessionGhost,
-      ].join(' ')}
+      className={styles.sessionButton + (row.listed ? '' : ` ${styles.sessionGhost}`)}
       disabled={!openable}
-      title={props.row.listed ? undefined : props.unavailableLabel}
-      onClick={() => { if (openable) props.onOpen(props.row.sessionId) }}
+      title={row.listed ? undefined : context.t('category.unavailable')}
+      onClick={() => { if (openable) context.openSession(row.sessionId) }}
     >
-      {props.row.listed
-        ? <StateDot state={props.row.running ? 'ongoing' : 'idle'} />
-        : null}
-      <span className={styles.sessionTitle}>{props.row.title}</span>
+      {row.listed ? <StateDot state={row.running ? 'ongoing' : 'idle'} /> : null}
+      <span className={styles.sessionTitle}>{row.title}</span>
+      {row.listed ? <TimeLabel updatedAt={row.updatedAt} now={context.now} t={context.t} /> : null}
     </button>
-    {props.onRemove !== undefined
-      ? <button
-        type="button"
-        className={styles.rowButton}
-        disabled={props.busy}
-        aria-label={props.removeLabel}
-        title={props.removeLabel}
-        onClick={() => props.onRemove?.(props.row.sessionId)}
-      ><IconCloseOutlineRegular size={14} /></button>
-      : null}
-    {props.actions ?? null}
+    <span className={styles.rowActions}>
+      {props.memberOf !== undefined ? <Tooltip label={context.t('category.removeCurrent')} side="bottom" delayMs={400}>
+        <button
+          type="button"
+          className={styles.actionButton}
+          aria-label={context.t('category.removeCurrent')}
+          onClick={() => { context.removeMember(props.memberOf!.topicId, row.sessionId) }}
+        ><IconCloseOutlineRegular size={14} /></button>
+      </Tooltip> : <Menu
+        open={assignOpen}
+        onClose={() => { setAssignOpen(false) }}
+        anchor={<Tooltip label={context.t('category.assign')} side="bottom" delayMs={400}>
+          <button
+            type="button"
+            className={styles.actionButton}
+            aria-label={context.t('category.assign')}
+            aria-haspopup="menu"
+            aria-expanded={assignOpen}
+            onClick={() => { setAssignOpen(value => !value) }}
+          ><IconPlusOutlineRegular size={14} /></button>
+        </Tooltip>}
+        items={assignTargets}
+        onSelect={id => {
+          setAssignOpen(false)
+          if (id === 'assign-new') context.beginAssignNew(row.sessionId, props.sectionKey)
+          else if (id.startsWith('topic:')) context.assign(id.slice('topic:'.length), row.sessionId)
+        }}
+      />}
+      <Menu
+        open={menuOpen}
+        onClose={() => { setMenuOpen(false) }}
+        anchor={<MoreTrigger label={context.t('category.more')} open={menuOpen} onToggle={() => { setMenuOpen(value => !value) }} />}
+        items={[
+          ...(props.memberOf !== undefined
+            ? [{ id: 'remove-current', label: context.t('category.removeCurrent') } as MenuEntry]
+            : []),
+          {
+            id: 'assign',
+            label: context.t('category.assign'),
+            icon: <IconPlusOutlineRegular size={14} />,
+            disabled: candidates.length === 0,
+            submenu: candidates.map(category => ({ id: `topic:${category.topicId}`, label: category.title })),
+          },
+          { type: 'separator', id: 'pin-separator' },
+          {
+            id: 'pin',
+            label: context.pinned.has(row.sessionId) ? context.t('category.unpin') : context.t('category.pin'),
+            icon: <IconPinOutlineRegular size={14} />,
+          },
+          {
+            id: 'archive',
+            label: context.t('category.archive'),
+            icon: <IconArchiveOutlineRegular size={14} />,
+          },
+        ]}
+        onSelect={id => {
+          setMenuOpen(false)
+          if (id === 'remove-current' && props.memberOf !== undefined) {
+            context.removeMember(props.memberOf.topicId, row.sessionId)
+          } else if (id === 'pin') {
+            context.pin(row.sessionId, context.pinned.has(row.sessionId))
+          } else if (id === 'archive') {
+            context.archive(row.sessionId)
+          } else if (id.startsWith('topic:')) {
+            context.assign(id.slice('topic:'.length), row.sessionId)
+          }
+        }}
+      />
+    </span>
   </li>
 }
 
 function CategoryGroup(props: {
   readonly category: CategoryNode
-  readonly t: CategoryBrowserProps['t']
-  readonly busy: boolean
+  readonly context: RowContext
   readonly collapsed: boolean
+  readonly containsCurrent: boolean
   readonly renaming: boolean
   readonly confirmingDelete: boolean
+  readonly sections: readonly CategorySection[]
+  readonly sectionKey: string
   readonly onToggle: () => void
-  readonly onOpen: (sessionId: string) => void
-  readonly onRemoveSession: (sessionId: string) => void
-  readonly onRenameSubmit: (title: string) => void
-  readonly onRenameCancel: () => void
-  readonly onRenameOpen: () => void
-  readonly onDelete: () => void
 }): ReactElement {
-  return <li className={styles.category}>
-    {props.renaming ? <TitleInput
+  const { context } = props
+  const [menuOpen, setMenuOpen] = useState(false)
+  return <li className={styles.category + (props.containsCurrent ? ` ${styles.containsCurrent}` : '')}>
+    {props.confirmingDelete ? <div className={styles.confirmStrip}>
+      <span className={styles.confirmText}>{context.t('category.deleteConfirmTitle')}</span>
+      <button
+        type="button"
+        className={styles.dangerButton}
+        disabled={context.busy}
+        onClick={() => { context.confirmDelete(props.category.topicId) }}
+      >{context.t('category.delete')}</button>
+      <button type="button" className={styles.ghostButton} onClick={() => { context.cancelEditing() }}>
+        {context.t('category.cancel')}
+      </button>
+    </div> : props.renaming ? <TitleInput
       initial={props.category.title}
       placeholder={props.category.title}
-      submitLabel={props.t('category.save')}
-      cancelLabel={props.t('category.cancel')}
-      busy={props.busy}
-      onSubmit={props.onRenameSubmit}
-      onCancel={props.onRenameCancel}
-    /> : <div className={styles.categoryHeader}>
+      submitLabel={context.t('category.save')}
+      cancelLabel={context.t('category.cancel')}
+      busy={context.busy}
+      onSubmit={title => { context.submitRename(props.category.topicId, title) }}
+      onCancel={() => { context.cancelEditing() }}
+    /> : <div className={styles.treeRow + ' ' + styles.categoryHeader} role="treeitem" aria-expanded={!props.collapsed}>
       <button
         type="button"
-        className={styles.categoryToggle}
+        className={styles.foldButton}
         aria-expanded={!props.collapsed}
+        onDoubleClick={() => { context.beginRename(props.category.topicId) }}
         onClick={props.onToggle}
       >
-        <span className={styles.disclosure} data-collapsed={props.collapsed ? 'true' : 'false'} aria-hidden="true">
-          <IconTriangleRightFillRegular size={12} />
-        </span>
+        <Disclosure collapsed={props.collapsed} />
         <span className={styles.categoryTitle}>{props.category.title}</span>
-        <span className={styles.categoryCount}>{props.category.sessions.length}</span>
+        <span className={styles.rowCount}>{props.category.sessions.length}</span>
       </button>
-      <button type="button" className={styles.rowButton} disabled={props.busy} title={props.t('category.rename')} aria-label={props.t('category.rename')} onClick={props.onRenameOpen}><IconEditOutlineRegular size={14} /></button>
-      <button
-        type="button"
-        className={props.confirmingDelete ? styles.rowButtonDanger : styles.rowButton}
-        disabled={props.busy}
-        title={props.confirmingDelete ? props.t('category.deleteConfirm') : props.t('category.delete')}
-        aria-label={props.confirmingDelete ? props.t('category.deleteConfirm') : props.t('category.delete')}
-        onClick={props.onDelete}
-      ><IconCloseOutlineRegular size={14} /></button>
+      <span className={styles.rowActions}>
+        <Menu
+          open={menuOpen}
+          onClose={() => { setMenuOpen(false) }}
+          anchor={<MoreTrigger label={context.t('category.more')} open={menuOpen} onToggle={() => { setMenuOpen(value => !value) }} />}
+          items={[
+            { id: 'rename', label: context.t('category.rename'), icon: <IconEditOutlineRegular size={14} /> },
+            {
+              id: 'delete',
+              label: context.t('category.deleteCategory'),
+              icon: <IconCloseOutlineRegular size={14} />,
+              danger: true,
+            },
+          ]}
+          onSelect={id => {
+            setMenuOpen(false)
+            if (id === 'rename') context.beginRename(props.category.topicId)
+            else if (id === 'delete') context.beginDelete(props.category.topicId)
+          }}
+        />
+      </span>
     </div>}
-    {!props.collapsed && props.category.sessions.length > 0 ? <ul className={styles.sessionList}>
-      {props.category.sessions.map(row => <SessionRow
-        key={row.sessionId}
-        row={row}
-        removeLabel={props.t('category.removeSession')}
-        unavailableLabel={props.t('category.unavailable')}
-        busy={props.busy}
-        onOpen={props.onOpen}
-        onRemove={props.onRemoveSession}
-      />)}
-    </ul> : null}
+    {!props.collapsed || props.category.sessions.length > 0 ? <div
+      className={styles.reveal}
+      data-closed={props.collapsed || props.category.sessions.length === 0}
+    >
+      <ul className={styles.groupList} role="group">
+        {props.category.sessions.map(row => <SessionRow
+          key={row.sessionId}
+          row={row}
+          context={context}
+          sectionKey={props.sectionKey}
+          memberOf={props.category}
+          sections={props.sections}
+        />)}
+      </ul>
+    </div> : null}
   </li>
 }
 
@@ -263,13 +395,19 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
   const [topics, setTopics] = useState<readonly ResearchTopic[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => readCollapsed())
+  const [showArchived, setShowArchived] = useState<boolean>(() => readShowArchived())
+  const [search, setSearch] = useState('')
   const [creatingIn, setCreatingIn] = useState<string | undefined>(undefined)
   const [renaming, setRenaming] = useState<string | undefined>(undefined)
   const [deleting, setDeleting] = useState<string | undefined>(undefined)
-  const [pickerFor, setPickerFor] = useState<string | undefined>(undefined)
-
+  const [pendingAssign, setPendingAssign] = useState<{ sessionId: string; sectionKey: string } | undefined>(undefined)
+  const [now, setNow] = useState(() => Date.now())
+  const [optionsOpen, setOptionsOpen] = useState(false)
+  const autoExpanded = useRef(false)
   const lifecycle = useRef(new AbortController())
+
   useEffect(() => {
     const controller = lifecycle.current
     const load = async (): Promise<void> => {
@@ -284,17 +422,24 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
     // never changes from outside this region.
   }, [])
 
-  const run = useCallback(async (request: ResearchTopicWrite): Promise<void> => {
+  useEffect(() => {
+    const timer = window.setInterval(() => { setNow(Date.now()) }, 60_000)
+    return () => { window.clearInterval(timer) }
+  }, [])
+
+  const run = useCallback(async (request: ResearchTopicWrite): Promise<boolean> => {
     setBusy(true)
+    setError(null)
     try {
       await props.topics.write(request, lifecycle.current.signal)
       setTopics(await props.topics.list(lifecycle.current.signal))
-      setRenaming(undefined)
-      setDeleting(undefined)
-      setPickerFor(undefined)
-      setCreatingIn(undefined)
-    } catch (error) {
-      if (!lifecycle.current.signal.aborted) console.warn('category write failed:', error)
+      return true
+    } catch (cause) {
+      if (!lifecycle.current.signal.aborted) {
+        console.warn('category write failed:', cause)
+        setError(props.t('category.writeError'))
+      }
+      return false
     } finally {
       setBusy(false)
     }
@@ -304,8 +449,27 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
     topics,
     workspaces.items,
     sessions,
-    { archivedSessionIds: workspaces.archivedSessionIds },
-  ), [topics, workspaces, sessions])
+    { archivedSessionIds: workspaces.archivedSessionIds, showArchived },
+  ), [topics, workspaces, sessions, showArchived])
+
+  const ancestry = useMemo(() => currentAncestryKeys(tree), [tree])
+  const pinned = useMemo(() => new Set<string>(workspaces.pinnedSessionIds), [workspaces.pinnedSessionIds])
+  const hits = useMemo(() => searchCategoryTree(tree, search), [tree, search])
+
+  // First paint with sections: unfold the path to the current Session once.
+  useEffect(() => {
+    if (autoExpanded.current || tree.sections.length === 0) return
+    autoExpanded.current = true
+    if (ancestry.size === 0) return
+    setCollapsed(previous => {
+      const next = new Set(previous)
+      let changed = false
+      for (const key of ancestry) changed = next.delete(key) || changed
+      if (!changed) return previous
+      writeCollapsed(next)
+      return next
+    })
+  }, [tree.sections, ancestry])
 
   const toggle = useCallback((key: string): void => {
     setCollapsed(previous => {
@@ -317,9 +481,70 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
     })
   }, [])
 
-  const openSession = useCallback((sessionId: string): void => {
-    props.openSession(sessionId)
-  }, [props])
+  const flipShowArchived = useCallback((next: boolean): void => {
+    setShowArchived(next)
+    try {
+      window.localStorage.setItem(ARCHIVED_KEY, next ? '1' : '0')
+    } catch {
+      // A blocked localStorage keeps the choice for this mount only.
+    }
+  }, [])
+
+  // Successful edits settle their own intent state inside these flows; run()
+  // deliberately leaves every editor open on failure so input is never lost.
+  const settleRename = useCallback((topicId: string, title: string): void => {
+    void run({ kind: 'rename', topicId, title }).then(ok => { if (ok) setRenaming(undefined) })
+  }, [run])
+  const settleCreate = useCallback((section: CategorySection, title: string, sessionId?: string): void => {
+    const topicId = crypto.randomUUID()
+    void run({
+      kind: 'create',
+      topicId,
+      title,
+      ...(section.workspaceId === undefined ? {} : { workspaceId: section.workspaceId }),
+    }).then(ok => {
+      if (!ok) return
+      setCreatingIn(undefined)
+      setPendingAssign(undefined)
+      if (sessionId !== undefined) void run({ kind: 'add', topicId, sessionIds: [sessionId] })
+    })
+  }, [run])
+  const settleDelete = useCallback((topicId: string): void => {
+    void run({ kind: 'delete', topicId }).then(ok => { if (ok) setDeleting(undefined) })
+  }, [run])
+
+  const context: RowContext = useMemo(() => ({
+    t: props.t,
+    now,
+    busy,
+    pinned,
+    openSession: props.openSession,
+    removeMember: (topicId, sessionId) => { void run({ kind: 'remove', topicId, sessionId }) },
+    archive: sessionId => {
+      props.archiveSession(sessionId).catch(cause => {
+        console.warn('archive failed:', cause)
+        setError(props.t('category.writeError'))
+      })
+    },
+    pin: (sessionId, isPinned) => {
+      (isPinned ? props.unpinSession(sessionId) : props.pinSession(sessionId)).catch(cause => {
+        console.warn('pin failed:', cause)
+        setError(props.t('category.writeError'))
+      })
+    },
+    assign: (topicId, sessionId) => { void run({ kind: 'add', topicId, sessionIds: [sessionId] }) },
+    beginAssignNew: (sessionId, sectionKey) => { setPendingAssign({ sessionId, sectionKey }) },
+    beginRename: topicId => { setRenaming(topicId); setCreatingIn(undefined); setDeleting(undefined) },
+    submitRename: settleRename,
+    cancelEditing: () => {
+      setRenaming(undefined)
+      setDeleting(undefined)
+      setCreatingIn(undefined)
+      setPendingAssign(undefined)
+    },
+    beginDelete: topicId => { setDeleting(topicId); setRenaming(undefined) },
+    confirmDelete: settleDelete,
+  }), [props, now, busy, pinned, run, settleRename, settleDelete])
 
   const sectionLabel = (section: CategorySection): string => {
     if (section.key === UNASSIGNED_KEY) return props.t('category.unassigned')
@@ -344,148 +569,182 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
   return <section className={styles.browser} aria-label={props.t('category.browserTitle')}>
     <header className={styles.header}>
       <h2 className={styles.headerTitle}>{props.t('category.browserTitle')}</h2>
+      <Menu
+        open={optionsOpen}
+        onClose={() => { setOptionsOpen(false) }}
+        anchor={<MoreTrigger label={props.t('category.more')} open={optionsOpen} onToggle={() => { setOptionsOpen(value => !value) }} />}
+        items={[
+          { id: 'archived', label: showArchived ? props.t('category.hideArchived') : props.t('category.showArchived') },
+          { type: 'separator', id: 'native-separator' },
+          { id: 'native', label: props.t('category.toggle.disable'), icon: <IconFlatListOutlineRegular size={14} /> },
+        ]}
+        onSelect={id => {
+          setOptionsOpen(false)
+          if (id === 'archived') flipShowArchived(!showArchived)
+          else if (id === 'native') setCategoryView(false)
+        }}
+      />
+    </header>
+    <div className={styles.searchRow}>
+      <span className={styles.searchIcon} aria-hidden="true"><IconSearchOutlineRegular size={14} /></span>
+      <input
+        className={styles.searchInput}
+        value={search}
+        placeholder={props.t('category.search')}
+        aria-label={props.t('category.search')}
+        onChange={event => { setSearch(event.target.value) }}
+        onKeyDown={event => { if (event.key === 'Escape') setSearch('') }}
+      />
+      {search !== '' ? <button
+        type="button"
+        className={styles.actionButton}
+        aria-label={props.t('category.cancel')}
+        onClick={() => { setSearch('') }}
+      ><IconCloseOutlineRegular size={14} /></button> : null}
+    </div>
+    {error !== null ? <div className={styles.errorBanner} role="alert">
+      <span className={styles.errorText}>{error}</span>
       <button
         type="button"
-        className={styles.nativeToggle}
-        title={props.t('category.toggle.disable')}
-        aria-label={props.t('category.toggle.disable')}
-        onClick={() => { setCategoryView(false) }}
-      ><IconFlatListOutlineRegular size={15} /></button>
-    </header>
+        className={styles.actionButton}
+        aria-label={props.t('category.cancel')}
+        onClick={() => { setError(null) }}
+      ><IconCloseOutlineRegular size={14} /></button>
+    </div> : null}
     <div className={styles.body}>
       {loadState === 'error' ? <div className={styles.notice}>
         <span>{props.t('category.loadError')}</span>
         <button
           type="button"
-          className={styles.rowButton}
+          className={styles.ghostButton}
           onClick={() => { void props.topics.list(lifecycle.current.signal)
             .then(result => { setTopics(result); setLoadState('ready') })
             .catch(() => { setLoadState('error') }) }}
         >{props.t('category.retry')}</button>
       </div> : null}
-      {loadState !== 'error' && tree.sections.length === 0 && loadState === 'ready' ? <p className={styles.notice}>
-        {props.t('category.empty')}
+      {loadState === 'ready' && tree.sections.length === 0 ? <p className={styles.notice}>
+        {props.t('category.noWorkspaces')}
       </p> : null}
-      <ul className={styles.sectionList}>
+      {search.trim() !== '' ? <ul className={styles.resultList} role="list">
+        {hits.length === 0 ? <li className={styles.notice}>{props.t('category.searchEmpty')}</li> : null}
+        {hits.map(hit => <li key={hit.row.sessionId} className={styles.treeRow + (hit.row.current ? ` ${styles.rowCurrent}` : '')}>
+          <button
+            type="button"
+            className={styles.sessionButton}
+            onClick={() => { props.openSession(hit.row.sessionId) }}
+          >
+            {hit.row.listed ? <StateDot state={hit.row.running ? 'ongoing' : 'idle'} /> : null}
+            <span className={styles.sessionTitle}>{hit.row.title}</span>
+            <TimeLabel updatedAt={hit.row.updatedAt} now={now} t={props.t} />
+          </button>
+          <span className={styles.breadcrumb}>
+            {sectionLabel(hit.section)}{hit.category === undefined ? '' : ` · ${hit.category}`}
+          </span>
+        </li>)}
+      </ul> : <ul className={styles.sectionList} role="tree" aria-label={props.t('category.browserTitle')}>
         {tree.sections.map(section => {
           const sectionCollapsed = collapsed.has(section.key)
-          const categories = section.categories
-          const uncategorized = section.uncategorized
-          return <li key={section.key} className={styles.section}>
-            <div className={styles.sectionHeader}>
+          const { categories, uncategorized } = section
+          return <li
+            key={section.key}
+            className={styles.section + (ancestry.has(section.key) ? ` ${styles.containsCurrent}` : '')}
+            role="treeitem"
+            aria-expanded={!sectionCollapsed}
+          >
+            <div className={styles.treeRow + ' ' + styles.sectionHeader}>
               <button
                 type="button"
-                className={styles.sectionToggle}
+                className={styles.foldButton}
                 aria-expanded={!sectionCollapsed}
                 onClick={() => toggle(section.key)}
               >
-                <span className={styles.disclosure} data-collapsed={sectionCollapsed ? 'true' : 'false'} aria-hidden="true">
-                  <IconTriangleRightFillRegular size={12} />
-                </span>
+                <Disclosure collapsed={sectionCollapsed} />
                 <span className={styles.sectionTitle}>{sectionLabel(section)}</span>
-                <span className={styles.sectionCount}>
-                  {props.t('category.count', { n: categories.length + uncategorized.length })}
+                <span className={styles.rowCount}>
+                  {props.t('category.count', { n: section.sessionCount })}
                 </span>
               </button>
-              {section.workspaceId !== undefined ? <>
-                <button
-                  type="button"
-                  className={styles.rowButton}
-                  disabled={busy}
-                  title={props.t('category.newCategory')}
-                  aria-label={props.t('category.newCategory')}
-                  onClick={() => { setCreatingIn(section.key); setRenaming(undefined) }}
-                ><IconPlusOutlineRegular size={14} /></button>
-                <button
-                  type="button"
-                  className={styles.rowButton}
-                  disabled={busy}
-                  title={props.t('category.newSession')}
-                  aria-label={props.t('category.newSession')}
-                  onClick={() => { props.startSession(section.workspaceId) }}
-                ><IconNewChatOutlineRegular size={14} /></button>
-              </> : null}
+              {section.workspaceId !== undefined ? <span className={styles.rowActions}>
+                <Tooltip label={props.t('category.newCategory')} side="bottom" delayMs={400}>
+                  <button
+                    type="button"
+                    className={styles.actionButton}
+                    aria-label={props.t('category.newCategory')}
+                    onClick={() => { setCreatingIn(section.key); setRenaming(undefined) }}
+                  ><IconPlusOutlineRegular size={14} /></button>
+                </Tooltip>
+                <Tooltip label={props.t('category.newSession')} side="bottom" delayMs={400}>
+                  <button
+                    type="button"
+                    className={styles.actionButton}
+                    aria-label={props.t('category.newSession')}
+                    onClick={() => { props.startSession(section.workspaceId) }}
+                  ><IconNewChatOutlineRegular size={14} /></button>
+                </Tooltip>
+              </span> : null}
             </div>
-            {!sectionCollapsed ? <>
-              {creatingIn === section.key ? <TitleInput
+            <div className={styles.reveal} data-closed={sectionCollapsed}>
+              <div>
+                {creatingIn === section.key ? <TitleInput
                 initial=""
                 placeholder={props.t('category.namePlaceholder')}
                 submitLabel={props.t('category.create')}
                 cancelLabel={props.t('category.cancel')}
                 busy={busy}
-                onSubmit={title => {
-                  void run({
-                    kind: 'create',
-                    topicId: crypto.randomUUID(),
-                    title,
-                    ...(section.workspaceId === undefined ? {} : { workspaceId: section.workspaceId }),
-                  })
-                }}
+                onSubmit={title => { settleCreate(section, title) }}
                 onCancel={() => { setCreatingIn(undefined) }}
               /> : null}
-              {categories.length === 0 && creatingIn !== section.key && uncategorized.length === 0
-                ? <p className={styles.sectionEmpty}>{props.t('category.empty')}</p>
-                : null}
-              <ul className={styles.categoryList}>
+              {categories.length === 0 && creatingIn !== section.key && uncategorized.length > 0 ? <div className={styles.teachStrip}>
+                <span className={styles.teachText}>{props.t('category.emptyTeach')}</span>
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() => { setCreatingIn(section.key) }}
+                >{props.t('category.emptyNew')}</button>
+              </div> : null}
+              {categories.length > 0 ? <ul className={styles.groupList} role="group">
                 {categories.map(category => <CategoryGroup
                   key={category.topicId}
                   category={category}
-                  t={props.t}
-                  busy={busy}
+                  context={context}
                   collapsed={collapsed.has(category.topicId)}
+                  containsCurrent={ancestry.has(category.topicId)}
                   renaming={renaming === category.topicId}
                   confirmingDelete={deleting === category.topicId}
+                  sections={tree.sections}
+                  sectionKey={section.key}
                   onToggle={() => toggle(category.topicId)}
-                  onOpen={openSession}
-                  onRemoveSession={sessionId => {
-                    void run({ kind: 'remove', topicId: category.topicId, sessionId })
-                  }}
-                  onRenameSubmit={title => { void run({ kind: 'rename', topicId: category.topicId, title }) }}
-                  onRenameCancel={() => { setRenaming(undefined) }}
-                  onRenameOpen={() => { setRenaming(category.topicId); setCreatingIn(undefined) }}
-                  onDelete={() => {
-                    if (deleting === category.topicId) void run({ kind: 'delete', topicId: category.topicId })
-                    else setDeleting(category.topicId)
-                  }}
                 />)}
-              </ul>
+              </ul> : null}
               {uncategorized.length > 0 ? <div className={styles.uncategorized}>
-                <div className={styles.uncategorizedTitle}>{props.t('category.uncategorized')}</div>
-                <ul className={styles.sessionList}>
-                  {uncategorized.map(row => {
-                    const open = pickerFor === row.sessionId
-                    return <SessionRow
+                <div className={styles.uncategorizedTitle}>{props.t('category.uncategorized')} · {uncategorized.length}</div>
+                <ul className={styles.groupList} role="group">
+                  {uncategorized.map(row => pendingAssign !== undefined && pendingAssign.sessionId === row.sessionId
+                    ? <li key={row.sessionId}>
+                      <TitleInput
+                        initial=""
+                        placeholder={props.t('category.namePlaceholder')}
+                        submitLabel={props.t('category.create')}
+                        cancelLabel={props.t('category.cancel')}
+                        busy={busy}
+                        onSubmit={title => { settleCreate(section, title, row.sessionId) }}
+                        onCancel={() => { setPendingAssign(undefined) }}
+                      />
+                    </li>
+                    : <SessionRow
                       key={row.sessionId}
                       row={row}
-                      removeLabel={props.t('category.removeSession')}
-                      unavailableLabel={props.t('category.unavailable')}
-                      busy={busy}
-                      onOpen={openSession}
-                      actions={open ? <AddPicker
-                        categories={categories}
-                        emptyLabel={props.t('category.empty')}
-                        closeLabel={props.t('category.cancel')}
-                        busy={busy}
-                        onPick={topicId => {
-                          void run({ kind: 'add', topicId, sessionIds: [row.sessionId] })
-                        }}
-                        onClose={() => { setPickerFor(undefined) }}
-                      /> : <button
-                        type="button"
-                        className={styles.rowButton}
-                        disabled={busy}
-                        aria-label={props.t('category.addSession')}
-                        title={props.t('category.addSession')}
-                        onClick={() => { setPickerFor(row.sessionId) }}
-                      ><IconPlusOutlineRegular size={14} /></button>}
-                    />
-                  })}
+                      context={context}
+                      sectionKey={section.key}
+                      sections={tree.sections}
+                    />)}
                 </ul>
               </div> : null}
-            </> : null}
+              </div>
+            </div>
           </li>
         })}
-      </ul>
+      </ul>}
     </div>
   </section>
 }
