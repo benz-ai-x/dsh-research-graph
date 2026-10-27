@@ -5,6 +5,7 @@
  * native browser always remains reachable.
  */
 import { useSyncExternalStore, type ReactElement } from 'react'
+import { IconFlatListOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SidebarFooterActionOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import { categoryViewPreference, setCategoryView } from './category-toggle.ts'
@@ -30,5 +31,5 @@ export function CategoryFootToggle(props: CategoryFootToggleProps): ReactElement
     aria-label={label}
     aria-pressed={enabled}
     onClick={() => { setCategoryView(!enabled) }}
-  >{props.wide ? label : '▦'}</button>
+  >{props.wide ? label : <IconFlatListOutlineRegular size={16} />}</button>
 }

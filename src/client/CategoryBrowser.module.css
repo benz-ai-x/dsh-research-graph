@@ -26,10 +26,12 @@
 }
 
 .nativeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: none;
-  padding: 2px 6px;
-  font-size: 13px;
+  padding: 3px;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   border-radius: 4px;
@@ -92,9 +94,10 @@
 
 .disclosure {
   flex: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 12px;
-  font-size: 10px;
   color: var(--dsw-alias-label-tertiary);
   transition: transform 120ms ease;
 }
@@ -103,11 +106,12 @@
 
 .rowButton {
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: none;
-  padding: 2px 6px;
-  font-size: 12px;
-  line-height: 1.4;
+  padding: 3px;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   border-radius: 4px;
@@ -160,21 +164,6 @@
 .sessionCurrent .sessionTitle { color: var(--dsw-alias-brand-primary); font-weight: 600; }
 
 .sessionGhost .sessionTitle { color: var(--dsw-alias-label-tertiary); font-style: italic; }
-
-.sessionDot {
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--dsw-alias-label-tertiary);
-}
-
-.sessionDot[data-running='true'] { background: var(--dsw-alias-status-success, #16a34a); animation: categoryPulse 1.6s ease-in-out infinite; }
-
-@keyframes categoryPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
 
 .sessionTitle { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -246,10 +235,12 @@
 }
 
 .railButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: none;
   padding: 6px;
-  font-size: 14px;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   border-radius: 6px;
@@ -258,6 +249,8 @@
 .railButton:hover { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-bg-layer-2); }
 
 .footToggleWide {
+  display: inline-flex;
+  align-items: center;
   border: none;
   background: none;
   padding: 4px 8px;
@@ -272,10 +265,12 @@
 .footToggleWide[aria-pressed='true'] { color: var(--dsw-alias-brand-primary); }
 
 .footToggleRail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   background: none;
-  padding: 4px 6px;
-  font-size: 14px;
+  padding: 4px;
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   border-radius: 6px;

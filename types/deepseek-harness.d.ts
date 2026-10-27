@@ -262,6 +262,19 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
     readonly text: string
     readonly labels: { readonly code: { readonly copyLabel: string; readonly copiedLabel: string }; readonly footnotes: string }
   }): import('react').ReactElement
+
+  /** Structural stand-ins for the shipped icon set (size in px, color currentColor). */
+  interface SidebarIconProps {
+    readonly size?: number | undefined
+    readonly className?: string | undefined
+  }
+  export function IconTriangleRightFillRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconPlusOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconNewChatOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconEditOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconCloseOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconFlatListOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function StateDot(props: { readonly state: 'done' | 'warning' | 'ongoing' | 'error' | 'idle' }): import('react').ReactElement
 }
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {

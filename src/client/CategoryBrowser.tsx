@@ -6,6 +6,10 @@
  * restores the native browser by disposing that registration.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react'
+import {
+  IconCloseOutlineRegular, IconEditOutlineRegular, IconFlatListOutlineRegular,
+  IconNewChatOutlineRegular, IconPlusOutlineRegular, IconTriangleRightFillRegular, StateDot,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -107,6 +111,7 @@ function TitleInput(props: {
 function AddPicker(props: {
   readonly categories: readonly CategoryNode[]
   readonly emptyLabel: string
+  readonly closeLabel: string
   readonly busy: boolean
   readonly onPick: (topicId: string) => void
   readonly onClose: () => void
@@ -123,8 +128,14 @@ function AddPicker(props: {
       >
         {category.title}
       </button>)}
-    <button type="button" role="menuitem" className={styles.addPickerItem} onClick={props.onClose}>
-      ×
+    <button
+      type="button"
+      role="menuitem"
+      className={styles.addPickerItem}
+      aria-label={props.closeLabel}
+      onClick={props.onClose}
+    >
+      <IconCloseOutlineRegular size={14} />
     </button>
   </div>
 }
@@ -151,7 +162,9 @@ function SessionRow(props: {
       title={props.row.listed ? undefined : props.unavailableLabel}
       onClick={() => { if (openable) props.onOpen(props.row.sessionId) }}
     >
-      <span className={styles.sessionDot} data-running={props.row.running ? 'true' : 'false'} aria-hidden="true" />
+      {props.row.listed
+        ? <StateDot state={props.row.running ? 'ongoing' : 'idle'} />
+        : null}
       <span className={styles.sessionTitle}>{props.row.title}</span>
     </button>
     {props.onRemove !== undefined
@@ -160,8 +173,9 @@ function SessionRow(props: {
         className={styles.rowButton}
         disabled={props.busy}
         aria-label={props.removeLabel}
+        title={props.removeLabel}
         onClick={() => props.onRemove?.(props.row.sessionId)}
-      >×</button>
+      ><IconCloseOutlineRegular size={14} /></button>
       : null}
     {props.actions ?? null}
   </li>
@@ -198,18 +212,21 @@ function CategoryGroup(props: {
         aria-expanded={!props.collapsed}
         onClick={props.onToggle}
       >
-        <span className={styles.disclosure} data-collapsed={props.collapsed ? 'true' : 'false'} aria-hidden="true">▸</span>
+        <span className={styles.disclosure} data-collapsed={props.collapsed ? 'true' : 'false'} aria-hidden="true">
+          <IconTriangleRightFillRegular size={12} />
+        </span>
         <span className={styles.categoryTitle}>{props.category.title}</span>
         <span className={styles.categoryCount}>{props.category.sessions.length}</span>
       </button>
-      <button type="button" className={styles.rowButton} disabled={props.busy} title={props.t('category.rename')} onClick={props.onRenameOpen}>✎</button>
+      <button type="button" className={styles.rowButton} disabled={props.busy} title={props.t('category.rename')} aria-label={props.t('category.rename')} onClick={props.onRenameOpen}><IconEditOutlineRegular size={14} /></button>
       <button
         type="button"
         className={props.confirmingDelete ? styles.rowButtonDanger : styles.rowButton}
         disabled={props.busy}
         title={props.confirmingDelete ? props.t('category.deleteConfirm') : props.t('category.delete')}
+        aria-label={props.confirmingDelete ? props.t('category.deleteConfirm') : props.t('category.delete')}
         onClick={props.onDelete}
-      >×</button>
+      ><IconCloseOutlineRegular size={14} /></button>
     </div>}
     {!props.collapsed && props.category.sessions.length > 0 ? <ul className={styles.sessionList}>
       {props.category.sessions.map(row => <SessionRow
@@ -319,7 +336,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
         aria-label={props.t('category.expand')}
         onClick={props.expandSidebar}
       >
-        <span className={styles.disclosure} aria-hidden="true">▦</span>
+        <IconFlatListOutlineRegular size={16} />
       </button>
     </div>
   }
@@ -333,7 +350,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
         title={props.t('category.toggle.disable')}
         aria-label={props.t('category.toggle.disable')}
         onClick={() => { setCategoryView(false) }}
-      >↩</button>
+      ><IconFlatListOutlineRegular size={15} /></button>
     </header>
     <div className={styles.body}>
       {loadState === 'error' ? <div className={styles.notice}>
@@ -362,7 +379,9 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
                 aria-expanded={!sectionCollapsed}
                 onClick={() => toggle(section.key)}
               >
-                <span className={styles.disclosure} data-collapsed={sectionCollapsed ? 'true' : 'false'} aria-hidden="true">▸</span>
+                <span className={styles.disclosure} data-collapsed={sectionCollapsed ? 'true' : 'false'} aria-hidden="true">
+                  <IconTriangleRightFillRegular size={12} />
+                </span>
                 <span className={styles.sectionTitle}>{sectionLabel(section)}</span>
                 <span className={styles.sectionCount}>
                   {props.t('category.count', { n: categories.length + uncategorized.length })}
@@ -374,15 +393,17 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
                   className={styles.rowButton}
                   disabled={busy}
                   title={props.t('category.newCategory')}
+                  aria-label={props.t('category.newCategory')}
                   onClick={() => { setCreatingIn(section.key); setRenaming(undefined) }}
-                >＋</button>
+                ><IconPlusOutlineRegular size={14} /></button>
                 <button
                   type="button"
                   className={styles.rowButton}
                   disabled={busy}
                   title={props.t('category.newSession')}
+                  aria-label={props.t('category.newSession')}
                   onClick={() => { props.startSession(section.workspaceId) }}
-                >✚</button>
+                ><IconNewChatOutlineRegular size={14} /></button>
               </> : null}
             </div>
             {!sectionCollapsed ? <>
@@ -443,6 +464,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
                       actions={open ? <AddPicker
                         categories={categories}
                         emptyLabel={props.t('category.empty')}
+                        closeLabel={props.t('category.cancel')}
                         busy={busy}
                         onPick={topicId => {
                           void run({ kind: 'add', topicId, sessionIds: [row.sessionId] })
@@ -455,7 +477,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
                         aria-label={props.t('category.addSession')}
                         title={props.t('category.addSession')}
                         onClick={() => { setPickerFor(row.sessionId) }}
-                      >＋</button>}
+                      ><IconPlusOutlineRegular size={14} /></button>}
                     />
                   })}
                 </ul>
