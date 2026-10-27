@@ -104,11 +104,11 @@ describe('deriveCategoryTree', () => {
     const workspacesList = [workspace('ws-a', ['s1', 's2'])]
     const list = listState({ s1: session('s1'), s2: session('s2') })
     const hidden = deriveCategoryTree(topics, workspacesList, list, { archivedSessionIds: [id('s1'), id('s2')] })
-    expect(hidden.sections[0].categories).toHaveLength(0)
-    expect(hidden.sections[0].uncategorized).toHaveLength(0)
+    expect(hidden.sections).toHaveLength(0)
     const shown = deriveCategoryTree(topics, workspacesList, list, {
       archivedSessionIds: [id('s1'), id('s2')], showArchived: true,
     })
+    expect(shown.sections[0].sessionCount).toBe(2)
     expect(shown.sections[0].categories[0].sessions[0]).toMatchObject({ sessionId: 's1', archived: true })
   })
 
@@ -198,5 +198,39 @@ describe('deriveCategoryTree', () => {
       { archivedSessionIds: [] },
     )
     expect([...currentAncestryKeys(tree)].sort()).toEqual(['t1', 'ws-a'])
+  })
+
+  it('labels blank rows empty and counts them exactly like the native browser', () => {
+    const tree = deriveCategoryTree(
+      [],
+      [workspace('ws-a', ['blank-current', 'blank-other', 'untitled', 'named'])],
+      listState({
+        'blank-current': session('blank-current', { blank: true, retainedBy: { mainView: 1 }, displayTitle: 'ws-a' }),
+        'blank-other': session('blank-other', { blank: true, displayTitle: 'ws-a' }),
+        untitled: session('untitled', { displayTitle: '' }),
+        named: session('named'),
+      }),
+      { archivedSessionIds: [] },
+    )
+    const section = tree.sections[0]
+    expect(section.sessionCount).toBe(3)
+    const rows = section.uncategorized
+    expect(rows.find(row => row.sessionId === 'blank-current')).toMatchObject({ title: '', blank: true, current: true })
+    expect(rows.find(row => row.sessionId === 'untitled')).toMatchObject({ title: '', blank: false })
+    expect(rows.find(row => row.sessionId === 'named')?.title).toBe('Session named')
+    expect(rows.some(row => row.sessionId === 'blank-other')).toBe(false)
+  })
+
+  it('counts archived sessions only while the view shows them, like the native filter', () => {
+    const topics: readonly ResearchTopic[] = []
+    const workspacesList = [workspace('ws-a', ['live', 'archived-one'])]
+    const list = listState({ live: session('live'), 'archived-one': session('archived-one') })
+    const archived = [id('archived-one')]
+    const hidden = deriveCategoryTree(topics, workspacesList, list, { archivedSessionIds: archived })
+    expect(hidden.sections[0].sessionCount).toBe(1)
+    expect(hidden.sections[0].uncategorized.map(row => row.sessionId)).toEqual(['live'])
+    const shown = deriveCategoryTree(topics, workspacesList, list, { archivedSessionIds: archived, showArchived: true })
+    expect(shown.sections[0].sessionCount).toBe(2)
+    expect(shown.sections[0].uncategorized).toHaveLength(2)
   })
 })

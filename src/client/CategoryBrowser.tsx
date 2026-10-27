@@ -95,6 +95,12 @@ function TimeLabel(props: { readonly updatedAt: number; readonly now: number; re
   return <span className={styles.rowTime}>{props.t(`time.${time.unit}`, { n: time.n })}</span>
 }
 
+/** Blank and unnamed Sessions localize exactly like the native browser rows. */
+function sessionLabel(row: CategorySessionRow, t: Translate): string {
+  if (row.title !== '') return row.title
+  return row.blank ? t('category.sessionNew') : t('category.sessionUntitled')
+}
+
 /** The chevron of one foldable row; rotates with the CSS transition. */
 function Disclosure(props: { readonly collapsed: boolean }): ReactElement {
   return <span className={styles.disclosure} data-collapsed={props.collapsed ? 'true' : 'false'} aria-hidden="true">
@@ -214,7 +220,7 @@ function SessionRow(props: {
       onClick={() => { if (openable) context.openSession(row.sessionId) }}
     >
       {row.listed ? <StateDot state={row.running ? 'ongoing' : 'idle'} /> : null}
-      <span className={styles.sessionTitle}>{row.title}</span>
+      <span className={styles.sessionTitle}>{sessionLabel(row, context.t)}</span>
       {row.listed ? <TimeLabel updatedAt={row.updatedAt} now={context.now} t={context.t} /> : null}
     </button>
     <span className={styles.rowActions}>
@@ -634,7 +640,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
             onClick={() => { props.openSession(hit.row.sessionId) }}
           >
             {hit.row.listed ? <StateDot state={hit.row.running ? 'ongoing' : 'idle'} /> : null}
-            <span className={styles.sessionTitle}>{hit.row.title}</span>
+            <span className={styles.sessionTitle}>{sessionLabel(hit.row, props.t)}</span>
             <TimeLabel updatedAt={hit.row.updatedAt} now={now} t={props.t} />
           </button>
           <span className={styles.breadcrumb}>

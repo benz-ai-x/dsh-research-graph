@@ -21,7 +21,10 @@ export const NO_WORKSPACE_KEY = '__category_no_workspace__'
 /** One Session row inside a category or an uncategorized bucket. */
 export interface CategorySessionRow {
   readonly sessionId: string
+  /** Live display title; '' for blank and unnamed Sessions (the renderer localizes). */
   readonly title: string
+  /** The provisional blank Session; the renderer shows the localized New Session title. */
+  readonly blank: boolean
   /** Live list membership; false rows are stale references kept for identity. */
   readonly listed: boolean
   readonly running: boolean
@@ -86,7 +89,8 @@ function liveRow(
 ): CategorySessionRow {
   return {
     sessionId: session.id,
-    title: session.displayTitle,
+    title: session.blank ? '' : (session.displayTitle ?? ''),
+    blank: session.blank,
     listed: true,
     running: session.running,
     current: session.id === current,
@@ -99,6 +103,7 @@ function ghostRow(reference: ResearchTopicReference): CategorySessionRow {
   return {
     sessionId: reference.sessionId,
     title: reference.title,
+    blank: false,
     listed: false,
     running: false,
     current: false,
@@ -171,7 +176,9 @@ export function deriveCategoryTree(
 
   const accountRows = (members: readonly SessionId[]): CategorySessionRow[] => members.flatMap(id => {
     const session = list.byId[id]
-    return session !== undefined && accountVisible(session, current) ? [liveRow(session, current, archived)] : []
+    if (session === undefined || !accountVisible(session, current)) return []
+    if (archived.has(session.id) && !showArchived) return []
+    return [liveRow(session, current, archived)]
   })
 
   const sections: CategorySection[] = workspaces.flatMap(workspace => {
@@ -189,8 +196,8 @@ export function deriveCategoryTree(
       label: workspace.title,
       cwd: workspace.path,
       categories,
-      sessionCount: rows.filter(row => !row.archived).length,
-      uncategorized: rows.filter(row => !referenced.has(row.sessionId) && !row.archived),
+      sessionCount: rows.length,
+      uncategorized: rows.filter(row => !referenced.has(row.sessionId)),
     }]
   })
 
@@ -215,7 +222,7 @@ export function deriveCategoryTree(
     .map(id => list.byId[id])
     .filter((session): session is SessionSummary =>
       session !== undefined && !accounted.has(session.id) && accountVisible(session, current)
-      && !archived.has(session.id))
+      && (showArchived || !archived.has(session.id)))
     .map(session => liveRow(session, current, archived))
   if (loose.length > 0) {
     sections.push({

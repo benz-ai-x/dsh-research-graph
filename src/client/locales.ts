@@ -43,6 +43,7 @@ export type SessionGraphKey =
   | 'category.deleteCategory' | 'category.deleteHint' | 'category.deleteConfirmTitle'
   | 'category.emptyTeach' | 'category.emptyNew' | 'category.noWorkspaces'
   | 'category.showArchived' | 'category.hideArchived' | 'category.writeError'
+  | 'category.sessionNew' | 'category.sessionUntitled'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -469,6 +470,8 @@ export const zh: Record<SessionGraphKey, string> = {
   'category.showArchived': '显示已归档',
   'category.hideArchived': '隐藏已归档',
   'category.writeError': '操作失败，已保留你的输入，请重试',
+  'category.sessionNew': '新会话',
+  'category.sessionUntitled': '未命名',
 }
 
 /** English dictionary. */
@@ -721,4 +724,6 @@ export const en: Record<SessionGraphKey, string> = {
   'category.showArchived': 'Show archived',
   'category.hideArchived': 'Hide archived',
   'category.writeError': 'The action failed; your input is kept — please retry',
+  'category.sessionNew': 'New Session',
+  'category.sessionUntitled': 'Untitled',
 }
