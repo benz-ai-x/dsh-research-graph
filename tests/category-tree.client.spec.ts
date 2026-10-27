@@ -4,7 +4,7 @@ import type { WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/cl
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ResearchTopic } from '../src/research-topic.ts'
 import {
-  currentAncestryKeys, deriveCategoryTree, NO_WORKSPACE_KEY, searchCategoryTree, UNASSIGNED_KEY,
+  currentAncestryKeys, deriveCategoryTree, UNGROUPED_KEY, searchCategoryTree,
 } from '../src/client/category-tree.ts'
 
 const id = (value: string): SessionId => value as SessionId
@@ -66,27 +66,34 @@ describe('deriveCategoryTree', () => {
     expect(section.uncategorized.map(row => row.sessionId)).toEqual(['s3'])
   })
 
-  it('keeps referenced sessions out of every uncategorized bucket', () => {
+  it('never categorizes a Session through another Workspace\'s category', () => {
     const tree = deriveCategoryTree(
-      [topic('t1', '跨区', ['s2'], 'ws-a')],
+      [topic('t1', '工作区A的分类', ['s2'], 'ws-a')],
       [workspace('ws-a', ['s1']), workspace('ws-b', ['s2'])],
       listState({ s1: session('s1'), s2: session('s2') }),
       { archivedSessionIds: [] },
     )
+    const sectionA = tree.sections.find(section => section.key === 'ws-a')
     const sectionB = tree.sections.find(section => section.key === 'ws-b')
-    expect(sectionB?.uncategorized).toHaveLength(0)
-    expect(sectionB?.categories).toHaveLength(0)
+    // The cross-Workspace reference is invisible to the partition: ws-b's
+    // Session stays uncategorized at home, and ws-a's category holds nothing.
+    expect(sectionA?.categories).toHaveLength(0)
+    expect(sectionA?.uncategorized.map(row => row.sessionId)).toEqual(['s1'])
+    expect(sectionB?.uncategorized.map(row => row.sessionId)).toEqual(['s2'])
   })
 
-  it('renders stale references as ghost rows with stored titles', () => {
+  it('partitions every Workspace: categories plus uncategorized always sum to the account', () => {
     const tree = deriveCategoryTree(
-      [topic('t1', '旧资料', ['gone'])],
-      [],
-      listState({}),
+      [topic('t1', '分类一', ['s1'], 'ws-a'), topic('t2', '分类二', ['s3'], 'ws-a')],
+      [workspace('ws-a', ['s1', 's2', 's3', 's4'])],
+      listState({ s1: session('s1'), s2: session('s2'), s3: session('s3'), s4: session('s4') }),
       { archivedSessionIds: [] },
     )
-    const category = tree.sections[0].categories[0]
-    expect(category.sessions[0]).toMatchObject({ sessionId: 'gone', title: 'Stored gone', listed: false })
+    const section = tree.sections[0]
+    expect(section.sessionCount).toBe(4)
+    const categorized = section.categories.reduce((count, category) => count + category.sessions.length, 0)
+    expect(categorized + section.uncategorized.length).toBe(section.sessionCount)
+    expect(section.uncategorized.map(row => row.sessionId)).toEqual(['s2', 's4'])
   })
 
   it('hides subagent and unselected blank sessions from accounts', () => {
@@ -112,26 +119,27 @@ describe('deriveCategoryTree', () => {
     expect(shown.sections[0].categories[0].sessions[0]).toMatchObject({ sessionId: 's1', archived: true })
   })
 
-  it('trails unassigned and stale-attribution topics in one section', () => {
+  it('hides topics without a Workspace attribution and reports stale ones', () => {
     const tree = deriveCategoryTree(
-      [topic('t1', '无归属', []), topic('t2', '失效归属', [], 'ws-gone')],
+      [topic('t1', '无归属', []), topic('t2', '失效归属', ['s1'], 'ws-gone')],
       [workspace('ws-a', ['s1'])],
       listState({ s1: session('s1') }),
       { archivedSessionIds: [] },
     )
     expect(tree.staleWorkspaceIds).toEqual(['ws-gone'])
-    const unassigned = tree.sections.find(section => section.key === UNASSIGNED_KEY)
-    expect(unassigned?.categories.map(category => category.title)).toEqual(['无归属', '失效归属'])
+    expect(tree.sections).toHaveLength(1)
+    expect(tree.sections[0].key).toBe('ws-a')
+    expect(tree.sections[0].uncategorized.map(row => row.sessionId)).toEqual(['s1'])
   })
 
-  it('lists loose sessions in the trailing no-workspace section', () => {
+  it('lists loose sessions in the trailing ungrouped section', () => {
     const tree = deriveCategoryTree(
       [],
       [workspace('ws-a', ['s1'])],
       listState({ s1: session('s1'), loose: session('loose') }),
       { archivedSessionIds: [] },
     )
-    const loose = tree.sections.find(section => section.key === NO_WORKSPACE_KEY)
+    const loose = tree.sections.find(section => section.key === UNGROUPED_KEY)
     expect(loose?.uncategorized.map(row => row.sessionId)).toEqual(['loose'])
   })
 
@@ -171,7 +179,7 @@ describe('deriveCategoryTree', () => {
   it('searches live titles across categories and buckets, newest first', () => {
     const tree = deriveCategoryTree(
       [topic('t1', '缓存', ['s1'], 'ws-a')],
-      [workspace('ws-a', ['s2'])],
+      [workspace('ws-a', ['s1', 's2'])],
       listState({
         s1: session('s1', { displayTitle: '缓存策略', updatedAt: 5 }),
         s2: session('s2', { displayTitle: '缓存复盘', updatedAt: 9 }),

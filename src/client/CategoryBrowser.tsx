@@ -23,8 +23,7 @@ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controlle
 import type { SidebarSectionOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { ResearchTopic, ResearchTopicWrite } from '../research-topic.ts'
 import {
-  currentAncestryKeys, deriveCategoryTree, searchCategoryTree,
-  NO_WORKSPACE_KEY, UNASSIGNED_KEY,
+  currentAncestryKeys, deriveCategoryTree, searchCategoryTree, UNGROUPED_KEY,
   type CategoryNode, type CategorySection, type CategorySessionRow,
 } from './category-tree.ts'
 import { setCategoryView } from './category-toggle.ts'
@@ -167,11 +166,9 @@ interface RowContext {
   readonly confirmDelete: (topicId: string) => void
 }
 
-/** Assignable categories for one row: its own section's plus the unassigned. */
+/** Assignable categories for one row: the categories of its own Workspace. */
 function assignableCategories(sections: readonly CategorySection[], sectionKey: string): readonly CategoryNode[] {
-  const own = sections.find(section => section.key === sectionKey)?.categories ?? []
-  const general = sections.find(section => section.key === UNASSIGNED_KEY)?.categories ?? []
-  return [...own, ...general]
+  return sections.find(section => section.key === sectionKey)?.categories ?? []
 }
 
 /** The ⋯ menu trigger button shared by every row kind. */
@@ -200,7 +197,7 @@ function SessionRow(props: {
   const { row, context } = props
   const [menuOpen, setMenuOpen] = useState(false)
   const [assignOpen, setAssignOpen] = useState(false)
-  const openable = row.listed && !row.archived
+  const openable = !row.archived
   const candidates = useMemo(
     () => assignableCategories(props.sections, props.sectionKey)
       .filter(category => category.topicId !== props.memberOf?.topicId),
@@ -214,14 +211,13 @@ function SessionRow(props: {
   return <li className={styles.treeRow + (row.current ? ` ${styles.rowCurrent}` : '')} role="treeitem">
     <button
       type="button"
-      className={styles.sessionButton + (row.listed ? '' : ` ${styles.sessionGhost}`)}
+      className={styles.sessionButton}
       disabled={!openable}
-      title={row.listed ? undefined : context.t('category.unavailable')}
       onClick={() => { if (openable) context.openSession(row.sessionId) }}
     >
-      {row.listed ? <StateDot state={row.running ? 'ongoing' : 'idle'} /> : null}
+      <StateDot state={row.running ? 'ongoing' : 'idle'} />
       <span className={styles.sessionTitle}>{sessionLabel(row, context.t)}</span>
-      {row.listed ? <TimeLabel updatedAt={row.updatedAt} now={context.now} t={context.t} /> : null}
+      <TimeLabel updatedAt={row.updatedAt} now={context.now} t={context.t} />
     </button>
     <span className={styles.rowActions}>
       {props.memberOf !== undefined ? <Tooltip label={context.t('category.removeCurrent')} side="bottom" delayMs={400}>
@@ -553,8 +549,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
   }), [props, now, busy, pinned, run, settleRename, settleDelete])
 
   const sectionLabel = (section: CategorySection): string => {
-    if (section.key === UNASSIGNED_KEY) return props.t('category.unassigned')
-    if (section.key === NO_WORKSPACE_KEY) return props.t('category.noWorkspace')
+    if (section.key === UNGROUPED_KEY) return props.t('category.ungrouped')
     return section.label !== '' ? section.label : (section.cwd ?? section.key)
   }
 
@@ -639,7 +634,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
             className={styles.sessionButton}
             onClick={() => { props.openSession(hit.row.sessionId) }}
           >
-            {hit.row.listed ? <StateDot state={hit.row.running ? 'ongoing' : 'idle'} /> : null}
+            <StateDot state={hit.row.running ? 'ongoing' : 'idle'} />
             <span className={styles.sessionTitle}>{sessionLabel(hit.row, props.t)}</span>
             <TimeLabel updatedAt={hit.row.updatedAt} now={now} t={props.t} />
           </button>

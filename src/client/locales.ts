@@ -33,8 +33,8 @@ export type SessionGraphKey =
   | 'category.browserTitle' | 'category.newCategory' | 'category.newSession' | 'category.namePlaceholder'
   | 'category.create' | 'category.cancel' | 'category.rename' | 'category.save'
   | 'category.delete' | 'category.deleteConfirm'
-  | 'category.uncategorized' | 'category.unassigned' | 'category.noWorkspace'
-  | 'category.unavailable' | 'category.addSession' | 'category.removeSession'
+  | 'category.uncategorized' | 'category.ungrouped'
+  | 'category.addSession' | 'category.removeSession'
   | 'category.empty' | 'category.loadError' | 'category.retry' | 'category.expand'
   | 'category.count' | 'category.toggle.enable' | 'category.toggle.disable'
   | 'category.search' | 'category.searchEmpty' | 'category.more'
@@ -440,9 +440,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'category.delete': '删除',
   'category.deleteConfirm': '确认删除',
   'category.uncategorized': '未分类',
-  'category.unassigned': '通用分类',
-  'category.noWorkspace': '未归工作区会话',
-  'category.unavailable': '已不可用',
+  'category.ungrouped': '未分组',
   'category.addSession': '加入分类',
   'category.removeSession': '移出',
   'category.empty': '暂无分类',
@@ -694,9 +692,7 @@ export const en: Record<SessionGraphKey, string> = {
   'category.delete': 'Delete',
   'category.deleteConfirm': 'Confirm delete',
   'category.uncategorized': 'Uncategorized',
-  'category.unassigned': 'General categories',
-  'category.noWorkspace': 'Sessions without a workspace',
-  'category.unavailable': 'Unavailable',
+  'category.ungrouped': 'Ungrouped',
   'category.addSession': 'Add to category',
   'category.removeSession': 'Remove',
   'category.empty': 'No categories yet',

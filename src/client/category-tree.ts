@@ -1,22 +1,22 @@
 /**
- * Derive the sidebar category tree: Workspace sections hold category Topics
- * (by stored workspace attribution) and every unreferenced Session of the
- * account; topics without a live Workspace attribution trail in the
- * unassigned section. Visibility follows the native browser's defaults:
- * Subagent Sessions never list, blank Sessions list only while selected, and
- * archived Sessions stay hidden unless the view opts in — a category then
- * keeps its archived members as unopenable rows so membership stays
- * inspectable, and an all-archived category folds away entirely.
+ * Derive the sidebar category tree: one section per Workspace, whose Sessions
+ * partition into that Workspace's categories (stored Research Topics scoped
+ * to it) plus one Uncategorized bucket. Categorizing is strictly
+ * Workspace-internal — a category lists only members from its own
+ * Workspace's account, so the per-Workspace count always equals the native
+ * browser's group and the parts always sum to it. Visibility follows the
+ * native browser's defaults: Subagent Sessions never list, blank Sessions
+ * list only while selected, and archived Sessions stay hidden unless the view
+ * opts in (an all-archived account then hides entirely, like the native
+ * filter). Topics without a live Workspace attribution never render here.
  */
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { ResearchTopic, ResearchTopicReference } from '../research-topic.ts'
+import type { ResearchTopic } from '../research-topic.ts'
 
-/** Section key for Topics without a live Workspace attribution. */
-export const UNASSIGNED_KEY = '__category_unassigned__'
-/** Section key for Sessions no registered Workspace accounts. */
-export const NO_WORKSPACE_KEY = '__category_no_workspace__'
+/** Section key for Sessions no registered Workspace accounts (native 未分组). */
+export const UNGROUPED_KEY = '__category_ungrouped__'
 
 /** One Session row inside a category or an uncategorized bucket. */
 export interface CategorySessionRow {
@@ -25,24 +25,22 @@ export interface CategorySessionRow {
   readonly title: string
   /** The provisional blank Session; the renderer shows the localized New Session title. */
   readonly blank: boolean
-  /** Live list membership; false rows are stale references kept for identity. */
-  readonly listed: boolean
   readonly running: boolean
   readonly current: boolean
   readonly archived: boolean
   readonly updatedAt: number
 }
 
-/** One category (Research Topic) with its projected Session rows. */
+/** One category (Research Topic) with its Workspace-account member rows. */
 export interface CategoryNode {
   readonly topicId: string
   readonly title: string
   readonly sessions: readonly CategorySessionRow[]
 }
 
-/** One tree section: a Workspace account, or a synthetic trailing account. */
+/** One tree section: a Workspace account, or the trailing ungrouped account. */
 export interface CategorySection {
-  /** Workspace id, or a synthetic {@link UNASSIGNED_KEY}/{@link NO_WORKSPACE_KEY} key. */
+  /** Workspace id, or {@link UNGROUPED_KEY}. */
   readonly key: string
   readonly workspaceId: string | undefined
   readonly label: string
@@ -51,7 +49,7 @@ export interface CategorySection {
   /** Visible Sessions in the account (hidden archives excluded), categorized or not. */
   readonly sessionCount: number
   readonly categories: readonly CategoryNode[]
-  /** Account Sessions no category references, in Workspace account order. */
+  /** Account Sessions no category of this Workspace references. */
   readonly uncategorized: readonly CategorySessionRow[]
 }
 
@@ -91,45 +89,10 @@ function liveRow(
     sessionId: session.id,
     title: session.blank ? '' : (session.displayTitle ?? ''),
     blank: session.blank,
-    listed: true,
     running: session.running,
     current: session.id === current,
     archived: archived.has(session.id),
     updatedAt: session.updatedAt,
-  }
-}
-
-function ghostRow(reference: ResearchTopicReference): CategorySessionRow {
-  return {
-    sessionId: reference.sessionId,
-    title: reference.title,
-    blank: false,
-    listed: false,
-    running: false,
-    current: false,
-    archived: false,
-    updatedAt: 0,
-  }
-}
-
-function categoryNode(
-  topic: ResearchTopic,
-  list: SessionListState,
-  current: SessionId | undefined,
-  archived: ReadonlySet<string>,
-  showArchived: boolean,
-): CategoryNode {
-  return {
-    topicId: topic.topicId,
-    title: topic.title,
-    sessions: topic.references.flatMap(reference => {
-      const session = list.byId[reference.sessionId as SessionId]
-      if (session === undefined || session.origin === 'subagent' || (session.blank && session.id !== current)) {
-        return [ghostRow(reference)]
-      }
-      const row = liveRow(session, current, archived)
-      return row.archived && !showArchived ? [] : [row]
-    }),
   }
 }
 
@@ -139,8 +102,9 @@ function categoryNode(
  * @param workspaces - registered Workspaces in Host order.
  * @param list - Session list snapshot.
  * @param view - archived set plus the selected Session.
- * @returns sections in render order (Workspaces, then unassigned topics, then
- * loose Sessions) and the stale attribution report.
+ * @returns Workspace sections in Host order (a trailing section collects
+ * Sessions no Workspace accounts, mirroring the native ungrouped bucket) and
+ * the stale attribution report.
  */
 export function deriveCategoryTree(
   topics: readonly ResearchTopic[],
@@ -151,26 +115,18 @@ export function deriveCategoryTree(
   const archived = new Set<string>(view.archivedSessionIds)
   const current = view.current ?? mainSessionId(list)
   const showArchived = view.showArchived === true
-  const referenced = new Set<string>()
-  for (const topic of topics) {
-    for (const reference of topic.references) referenced.add(reference.sessionId)
-  }
 
   const stale = new Set<string>()
-  const assignedByWorkspace = new Map<string, ResearchTopic[]>()
-  const unassigned: ResearchTopic[] = []
+  const workspaceIds = new Set<string>(workspaces.map(workspace => workspace.workspaceId as string))
+  const categoriesByWorkspace = new Map<string, ResearchTopic[]>()
   for (const topic of topics) {
-    if (topic.workspaceId === undefined) {
-      unassigned.push(topic)
-      continue
-    }
-    if (!workspaces.some(workspace => workspace.workspaceId === topic.workspaceId)) {
+    if (topic.workspaceId === undefined) continue
+    if (!workspaceIds.has(topic.workspaceId)) {
       stale.add(topic.workspaceId)
-      unassigned.push(topic)
       continue
     }
-    const bucket = assignedByWorkspace.get(topic.workspaceId)
-    if (bucket === undefined) assignedByWorkspace.set(topic.workspaceId, [topic])
+    const bucket = categoriesByWorkspace.get(topic.workspaceId)
+    if (bucket === undefined) categoriesByWorkspace.set(topic.workspaceId, [topic])
     else bucket.push(topic)
   }
 
@@ -183,39 +139,36 @@ export function deriveCategoryTree(
 
   const sections: CategorySection[] = workspaces.flatMap(workspace => {
     const rows = accountRows(workspace.sessionIds)
-    const categories = (assignedByWorkspace.get(workspace.workspaceId) ?? [])
-      .map(topic => ({ topic, node: categoryNode(topic, list, current, archived, showArchived) }))
-      // Hidden archives leave an all-archived category visually empty; a
-      // genuinely empty category (created, nothing filed yet) always shows.
-      .filter(({ topic, node }) => showArchived || node.sessions.length > 0 || topic.references.length === 0)
+    const rowsById = new Map(rows.map(row => [row.sessionId, row]))
+    const categories = (categoriesByWorkspace.get(workspace.workspaceId) ?? [])
+      .map(topic => ({
+        topic,
+        node: {
+          topicId: topic.topicId,
+          title: topic.title,
+          sessions: topic.references.flatMap(reference => {
+            const row = rowsById.get(reference.sessionId)
+            return row === undefined ? [] : [row]
+          }),
+        },
+      }))
+      // A category shows while it holds this Workspace's Sessions or holds
+      // nothing at all (freshly created); one drained by hidden archives or
+      // foreign-only membership folds away.
+      .filter(({ topic, node }) => node.sessions.length > 0 || topic.references.length === 0)
       .map(({ node }) => node)
     if (categories.length === 0 && rows.length === 0) return []
+    const categorized = new Set(categories.flatMap(category => category.sessions.map(row => row.sessionId)))
     return [{
       key: workspace.workspaceId,
       workspaceId: workspace.workspaceId,
       label: workspace.title,
       cwd: workspace.path,
-      categories,
       sessionCount: rows.length,
-      uncategorized: rows.filter(row => !referenced.has(row.sessionId)),
+      categories,
+      uncategorized: rows.filter(row => !categorized.has(row.sessionId)),
     }]
   })
-
-  if (unassigned.length > 0) {
-    const unassignedCategories = unassigned
-      .map(topic => ({ topic, node: categoryNode(topic, list, current, archived, showArchived) }))
-      .filter(({ topic, node }) => showArchived || node.sessions.length > 0 || topic.references.length === 0)
-      .map(({ node }) => node)
-    sections.push({
-      key: UNASSIGNED_KEY,
-      workspaceId: undefined,
-      label: '',
-      cwd: undefined,
-      sessionCount: unassignedCategories.reduce((count, category) => count + category.sessions.length, 0),
-      categories: unassignedCategories,
-      uncategorized: [],
-    })
-  }
 
   const accounted = new Set<string>(workspaces.flatMap(workspace => workspace.sessionIds as readonly string[]))
   const loose = list.ids
@@ -226,12 +179,12 @@ export function deriveCategoryTree(
     .map(session => liveRow(session, current, archived))
   if (loose.length > 0) {
     sections.push({
-      key: NO_WORKSPACE_KEY,
+      key: UNGROUPED_KEY,
       workspaceId: undefined,
       label: '',
       cwd: undefined,
-      categories: [],
       sessionCount: loose.length,
+      categories: [],
       uncategorized: loose,
     })
   }
@@ -255,6 +208,13 @@ export interface CategorySearchHit {
  * @param query - caller text; surrounding whitespace is ignored.
  * @returns bounded flat hits with their breadcrumb.
  */
+/**
+ * Flat title-substring search across the whole tree, newest first. Blank and
+ * unnamed rows never match (their localized labels are not stored titles).
+ * @param tree - derived tree respecting the archived-visibility choice.
+ * @param query - caller text; surrounding whitespace is ignored.
+ * @returns bounded flat hits with their breadcrumb.
+ */
 export function searchCategoryTree(tree: CategoryTree, query: string): readonly CategorySearchHit[] {
   const needle = query.trim().toLowerCase()
   if (needle === '') return []
@@ -262,13 +222,13 @@ export function searchCategoryTree(tree: CategoryTree, query: string): readonly 
   for (const section of tree.sections) {
     for (const category of section.categories) {
       for (const row of category.sessions) {
-        if (row.listed && row.title.toLowerCase().includes(needle) && !bySession.has(row.sessionId)) {
+        if (row.title !== '' && row.title.toLowerCase().includes(needle) && !bySession.has(row.sessionId)) {
           bySession.set(row.sessionId, { row, section, category: category.title })
         }
       }
     }
     for (const row of section.uncategorized) {
-      if (row.listed && row.title.toLowerCase().includes(needle)) {
+      if (row.title !== '' && row.title.toLowerCase().includes(needle)) {
         // A categorized hit carries more context; keep it over the bucket one.
         if (!bySession.has(row.sessionId)) bySession.set(row.sessionId, { row, section, category: undefined })
       }
