@@ -231,8 +231,18 @@ function CategoryGroup(props: {
  * @returns the region element for the sidebar's browsing hole.
  */
 export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
-  const sessions = useSyncExternalStore(props.sources.sessions.subscribe, props.sources.sessions.getSnapshot)
-  const workspaces = useSyncExternalStore(props.sources.workspaces.subscribe, props.sources.workspaces.getSnapshot)
+  // The service stores' methods read `this`; bound wrappers keep the identity
+  // stable while useSyncExternalStore calls them detached.
+  const sessionsSource = props.sources.sessions
+  const workspacesSource = props.sources.workspaces
+  const sessions = useSyncExternalStore(
+    listener => sessionsSource.subscribe(listener),
+    () => sessionsSource.getSnapshot(),
+  )
+  const workspaces = useSyncExternalStore(
+    listener => workspacesSource.subscribe(listener),
+    () => workspacesSource.getSnapshot(),
+  )
   const [topics, setTopics] = useState<readonly ResearchTopic[]>([])
   const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [busy, setBusy] = useState(false)
