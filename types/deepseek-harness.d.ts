@@ -301,6 +301,8 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
     readonly onClose: () => void
     readonly align?: 'start' | 'end'
     readonly side?: 'bottom' | 'top' | 'right'
+    readonly portal?: boolean
+    readonly closeOnPointerLeave?: boolean
     readonly dense?: boolean
     readonly minWidthFromAnchor?: boolean
   }): import('react').ReactElement

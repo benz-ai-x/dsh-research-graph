@@ -229,6 +229,8 @@ function SessionRow(props: {
         ><IconCloseOutlineRegular size={14} /></button>
       </Tooltip> : <Menu
         open={assignOpen}
+        portal
+        closeOnPointerLeave
         onClose={() => { setAssignOpen(false) }}
         anchor={<Tooltip label={context.t('category.assign')} side="bottom" delayMs={400}>
           <button
@@ -249,6 +251,8 @@ function SessionRow(props: {
       />}
       <Menu
         open={menuOpen}
+        portal
+        closeOnPointerLeave
         onClose={() => { setMenuOpen(false) }}
         anchor={<MoreTrigger label={context.t('category.more')} open={menuOpen} onToggle={() => { setMenuOpen(value => !value) }} />}
         items={[
@@ -339,6 +343,8 @@ function CategoryGroup(props: {
       <span className={styles.rowActions}>
         <Menu
           open={menuOpen}
+          portal
+          closeOnPointerLeave
           onClose={() => { setMenuOpen(false) }}
           anchor={<MoreTrigger label={context.t('category.more')} open={menuOpen} onToggle={() => { setMenuOpen(value => !value) }} />}
           items={[
@@ -572,6 +578,7 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
       <h2 className={styles.headerTitle}>{props.t('category.browserTitle')}</h2>
       <Menu
         open={optionsOpen}
+        portal
         onClose={() => { setOptionsOpen(false) }}
         anchor={<MoreTrigger label={props.t('category.more')} open={optionsOpen} onToggle={() => { setOptionsOpen(value => !value) }} />}
         items={[
