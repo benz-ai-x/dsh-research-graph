@@ -66,9 +66,9 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.2.1-rc.3](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.3)，npm `next` |
+| 当前插件 | [0.2.1-rc.3.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.3.1)，npm `next` |
 | 适配宿主 | **DSH 0.2.1-rc.3 · Web**，Node.js `^22.19.0 \|\| >=24.0.0` |
-| 数据保存 | 研究数据保存在 DSH Host；工作位置保存在浏览器，主题排列需显式保存 |
+| 数据保存 | 研究数据与侧栏分类保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出不调用模型；AI 生成与新讨论按需调用 |
 | Agent 能力 | 模型、工具、预设与 Agent 执行由 DSH 提供；插件不内置预设或 Agent Team 启动器。[详细说明](docs/user-guide.zh.md#dsh-与-agent-预设) |
 | 技术与许可 | TypeScript · React · [MIT](LICENSE) |
@@ -80,7 +80,7 @@ flowchart LR
 需要 **DSH 0.2.1-rc.3**，并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.3
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.3.1
 dsh web
 ```
 
@@ -94,7 +94,8 @@ dsh web
 
 | 插件版本 | 要求的 DSH | 备注 |
 | --- | --- | --- |
-| `0.2.1-rc.3` | `0.2.1-rc.3` | 当前版本（兼容性适配），npm `next` |
+| `0.2.1-rc.3.1` | `0.2.1-rc.3` | 当前版本（工作区侧栏分类），npm `next` |
+| `0.2.1-rc.3` | `0.2.1-rc.3` | 该 DSH 线首个版本 |
 | `0.2.1-rc.1` | `0.2.1-rc.1` | |
 | `0.2.1-alpha.5` | `0.2.1-alpha.5` | |
 | `0.2.1-alpha.2.1` | `0.2.1-alpha.2` | 汇聚模型选择与改名修复 |
