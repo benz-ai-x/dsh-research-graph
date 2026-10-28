@@ -74,19 +74,12 @@ export const researchTopicWriteSchema = { parse(value: unknown): ResearchTopicWr
   const item = object(value)
   const id = topicId(item.topicId)
   if (item.kind === 'create') {
-    object(item, ['kind', 'topicId', 'title', 'workspaceId'])
-    return {
-      kind: item.kind, topicId: id, title: title(item.title),
-      ...(item.workspaceId === undefined ? {} : { workspaceId: string(item.workspaceId) }),
-    }
+    object(item, ['kind', 'topicId', 'title'])
+    return { kind: item.kind, topicId: id, title: title(item.title) }
   }
   if (item.kind === 'rename') {
     object(item, ['kind', 'topicId', 'title'])
     return { kind: item.kind, topicId: id, title: title(item.title) }
-  }
-  if (item.kind === 'delete') {
-    object(item, ['kind', 'topicId'])
-    return { kind: item.kind, topicId: id }
   }
   if (item.kind === 'add') {
     object(item, ['kind', 'topicId', 'sessionIds'])

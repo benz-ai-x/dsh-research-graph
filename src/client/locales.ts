@@ -32,18 +32,19 @@ export type SessionGraphKey =
   | 'topic.refresh' | 'topic.cancel' | 'topic.canceled' | 'topic.archivedReading'
   | 'category.browserTitle' | 'category.newCategory' | 'category.newSession' | 'category.namePlaceholder'
   | 'category.create' | 'category.cancel' | 'category.rename' | 'category.save'
-  | 'category.delete' | 'category.deleteConfirm'
   | 'category.uncategorized' | 'category.ungrouped'
-  | 'category.addSession' | 'category.removeSession'
-  | 'category.empty' | 'category.loadError' | 'category.retry' | 'category.expand'
-  | 'category.count' | 'category.toggle.enable' | 'category.toggle.disable'
+  | 'category.loadError' | 'category.retry' | 'category.expand'
+  | 'category.count' | 'category.toggle.enable'
   | 'category.search' | 'category.searchEmpty' | 'category.more'
   | 'category.assign' | 'category.assignNew' | 'category.removeCurrent'
   | 'category.archive' | 'category.pin' | 'category.unpin'
-  | 'category.deleteCategory' | 'category.deleteHint' | 'category.deleteConfirmTitle'
-  | 'category.emptyTeach' | 'category.emptyNew' | 'category.noWorkspaces'
+  | 'category.deleteCategory' | 'category.deleteHint'
+  | 'category.emptyNew' | 'category.noWorkspaces'
   | 'category.showArchived' | 'category.hideArchived' | 'category.writeError'
-  | 'category.sessionNew' | 'category.sessionUntitled'
+  | 'category.sessionNew' | 'category.sessionUntitled' | 'category.loading' | 'category.nameExists'
+  | 'category.deleteConfirmNamed' | 'category.moveSuccess' | 'category.undo'
+  | 'category.viewSwitch' | 'category.toggle.list' | 'category.toggle.categories' | 'category.locateCurrent'
+  | 'category.resultCategory' | 'category.archived'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -437,39 +438,42 @@ export const zh: Record<SessionGraphKey, string> = {
   'category.cancel': '取消',
   'category.rename': '重命名',
   'category.save': '保存',
-  'category.delete': '删除',
-  'category.deleteConfirm': '确认删除',
   'category.uncategorized': '未分类',
   'category.ungrouped': '未分组',
-  'category.addSession': '加入分类',
-  'category.removeSession': '移出',
-  'category.empty': '暂无分类',
   'category.loadError': '分类加载失败',
   'category.retry': '重试',
   'category.expand': '展开侧栏',
   'category.count': '{n} 个会话',
   'category.toggle.enable': '切换为分类视图',
-  'category.toggle.disable': '切换回原生列表',
-  'category.search': '搜索会话',
-  'category.searchEmpty': '无匹配会话',
+  'category.search': '搜索会话或分类',
+  'category.searchEmpty': '无匹配会话或分类',
   'category.more': '更多操作',
-  'category.assign': '加入分类',
-  'category.assignNew': '新建分类并加入…',
-  'category.removeCurrent': '移出分类',
+  'category.assign': '移动到分类',
+  'category.assignNew': '新建分类并移动…',
+  'category.removeCurrent': '移至未分类',
   'category.archive': '归档会话',
   'category.pin': '置顶',
   'category.unpin': '取消置顶',
   'category.deleteCategory': '删除分类',
-  'category.deleteHint': '只删除分类，不删除其中的会话',
-  'category.deleteConfirmTitle': '删除该分类？',
-  'category.emptyTeach': '把相关会话归到一起',
-  'category.emptyNew': '新建分类',
+  'category.deleteHint': '{n} 个会话将移回未分类，不会删除会话',
+  'category.emptyNew': '新建分类，整理当前工作区',
   'category.noWorkspaces': '暂无工作区；请切回原生列表添加工作区后再使用分类',
   'category.showArchived': '显示已归档',
   'category.hideArchived': '隐藏已归档',
   'category.writeError': '操作失败，已保留你的输入，请重试',
   'category.sessionNew': '新会话',
   'category.sessionUntitled': '未命名',
+  'category.loading': '正在加载分类…',
+  'category.nameExists': '此工作区已有同名分类',
+  'category.deleteConfirmNamed': '删除“{title}”？',
+  'category.moveSuccess': '已移动到“{title}”',
+  'category.undo': '撤销',
+  'category.viewSwitch': '会话列表视图',
+  'category.toggle.list': '列表',
+  'category.toggle.categories': '分类',
+  'category.locateCurrent': '定位当前会话',
+  'category.resultCategory': '分类',
+  'category.archived': '已归档',
 }
 
 /** English dictionary. */
@@ -689,37 +693,40 @@ export const en: Record<SessionGraphKey, string> = {
   'category.cancel': 'Cancel',
   'category.rename': 'Rename',
   'category.save': 'Save',
-  'category.delete': 'Delete',
-  'category.deleteConfirm': 'Confirm delete',
   'category.uncategorized': 'Uncategorized',
   'category.ungrouped': 'Ungrouped',
-  'category.addSession': 'Add to category',
-  'category.removeSession': 'Remove',
-  'category.empty': 'No categories yet',
   'category.loadError': 'Failed to load categories',
   'category.retry': 'Retry',
   'category.expand': 'Expand sidebar',
   'category.count': '{n} sessions',
   'category.toggle.enable': 'Switch to category view',
-  'category.toggle.disable': 'Switch back to the native list',
-  'category.search': 'Search sessions',
-  'category.searchEmpty': 'No matching sessions',
+  'category.search': 'Search sessions or categories',
+  'category.searchEmpty': 'No matching sessions or categories',
   'category.more': 'More actions',
-  'category.assign': 'Add to category',
-  'category.assignNew': 'New category and add…',
-  'category.removeCurrent': 'Remove from category',
+  'category.assign': 'Move to category',
+  'category.assignNew': 'New category and move…',
+  'category.removeCurrent': 'Move to Uncategorized',
   'category.archive': 'Archive session',
   'category.pin': 'Pin',
   'category.unpin': 'Unpin',
   'category.deleteCategory': 'Delete category',
-  'category.deleteHint': 'Deletes the category only, never its sessions',
-  'category.deleteConfirmTitle': 'Delete this category?',
-  'category.emptyTeach': 'Group related sessions together',
-  'category.emptyNew': 'New category',
+  'category.deleteHint': '{n} sessions will move to Uncategorized; no Sessions will be deleted',
+  'category.emptyNew': 'New category to organize this workspace',
   'category.noWorkspaces': 'No workspaces yet; switch back to the native list to add one before categorizing',
   'category.showArchived': 'Show archived',
   'category.hideArchived': 'Hide archived',
   'category.writeError': 'The action failed; your input is kept — please retry',
   'category.sessionNew': 'New Session',
   'category.sessionUntitled': 'Untitled',
+  'category.loading': 'Loading categories…',
+  'category.nameExists': 'A category with this name already exists in this workspace',
+  'category.deleteConfirmNamed': 'Delete “{title}”?',
+  'category.moveSuccess': 'Moved to “{title}”',
+  'category.undo': 'Undo',
+  'category.viewSwitch': 'Session list view',
+  'category.toggle.list': 'List',
+  'category.toggle.categories': 'Categories',
+  'category.locateCurrent': 'Reveal current Session',
+  'category.resultCategory': 'Category',
+  'category.archived': 'Archived',
 }

@@ -91,6 +91,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphHistory: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphHistory']
       sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
       sessionGraphTopics: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTopics']
+      sessionGraphCategories: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphCategories']
       sessionGraphKnowledge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphKnowledge']
       sessionGraphBranch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranch']
       sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']

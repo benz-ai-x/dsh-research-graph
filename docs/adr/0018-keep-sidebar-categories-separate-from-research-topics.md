@@ -1,0 +1,5 @@
+# Keep Sidebar Categories separate from Research Topics
+
+Sidebar Categories are Workspace-internal, single-assignment folders, while Research Topics are cross-Workspace collections that allow multiple memberships. Reusing Topic membership for the sidebar made “move” and per-Workspace counts contradictory, so the sidebar owns independent Host records with one record per Workspace. A single serialized record write removes the old assignment and admits the new one, including create-and-move, rather than leaving two independently written Topic records.
+
+A one-time migration imports existing Workspace-attributed Topics into the sidebar store without modifying or deleting those Topics; later sidebar changes do not flow back. Moves reject foreign or unavailable Sessions, deleting a category returns its members to Uncategorized without deleting any Session, and Research Topic membership and Topic Graph behavior remain unchanged. Multi-membership organization belongs to Research Topics, not to the sidebar's folder model.

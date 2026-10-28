@@ -37,6 +37,7 @@ import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
 import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
 import { RESEARCH_TOPICS_REMOTE } from './research-topics-remote.ts'
+import { SIDEBAR_CATEGORIES_REMOTE } from './sidebar-categories-remote.ts'
 import { HISTORY_BRANCH_REMOTE } from './history-branch-remote.ts'
 import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
 import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
@@ -55,6 +56,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...SESSION_HISTORY_REMOTE.descriptors,
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
     ...RESEARCH_TOPICS_REMOTE.descriptors,
+    ...SIDEBAR_CATEGORIES_REMOTE.descriptors,
     ...KNOWLEDGE_REMOTE.descriptors,
     ...RESEARCH_REUSE_REMOTE.descriptors,
     ...HISTORY_BRANCH_REMOTE.descriptors,
@@ -359,9 +361,9 @@ async function registerUi(ctx: Context): Promise<void> {
     }),
   }, GraphView))
 
-  // Sidebar category browsing: the additive foot toggle always registers; the
-  // browsing region itself registers at a lower priority to shadow the native
-  // Workspace browser only while the browser-local preference enables it.
+  // The native list exposes a footer entry into category browsing; the category
+  // header switches back. The browsing region shadows the native Workspace
+  // browser only while the browser-local preference enables it.
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'session-graph-categories',
@@ -374,14 +376,14 @@ async function registerUi(ctx: Context): Promise<void> {
       sessions: ctx.sessions.list,
       workspaces: ctx.workspaces.list,
     },
-    topics: {
+    categories: {
       list: async signal => {
-        const result = await ctx.remote.sessionGraphTopics.list(signal)
+        const result = await ctx.remote.sessionGraphCategories.list(signal)
         if (!result.ok) throw new Error(result.error.message)
         return result.value
       },
       write: async (request, signal) => {
-        const result = await ctx.remote.sessionGraphTopics.write(request, signal)
+        const result = await ctx.remote.sessionGraphCategories.write(request, signal)
         if (!result.ok) throw new Error(result.error.message)
         return result.value
       },
@@ -444,6 +446,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphHistory',
       'remote.sessionGraphSearch',
       'remote.sessionGraphTopics',
+      'remote.sessionGraphCategories',
       'remote.sessionGraphKnowledge',
       'remote.sessionGraphReuse',
       'remote.sessionGraphBranch',

@@ -83,6 +83,31 @@ try {
   const stopped = await app.done.finally(() => clearTimeout(timeout))
   assert.equal(stopped.code, 130, `Profile did not complete its SIGINT shutdown: ${redact(app.output())}`)
   app = undefined
+  const sidebarPath = join(root, 'sidebar-category.json')
+  await writeFile(sidebarPath, JSON.stringify(report.sidebar))
+  await rm(reportPath)
+  env.SESSION_GRAPH_SMOKE_RESTART = sidebarPath
+  app = launch(['--profile', 'web', '--patch', patch, '--port', '0', '--no-open'])
+  const restartSignal = AbortSignal.timeout(90_000)
+  let restartReport
+  for (;;) {
+    restartSignal.throwIfAborted()
+    assert.equal(app.child.exitCode, null, `Restarted profile exited: ${redact(app.output())}`)
+    try {
+      restartReport = JSON.parse(await readFile(reportPath, 'utf8'))
+      break
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    await setTimeout(100, undefined, { signal: restartSignal })
+  }
+  assert.equal(restartReport.durableSidebarRestart, true, restartReport.error)
+  app.child.kill('SIGINT')
+  const restartTimeout = globalThis.setTimeout(() => app?.child.kill('SIGKILL'), 20_000)
+  const restarted = await app.done.finally(() => clearTimeout(restartTimeout))
+  assert.equal(restarted.code, 130, `Restarted profile did not complete its SIGINT shutdown: ${redact(app.output())}`)
+  app = undefined
+  report.durableSidebarRestart = true
   await command(['plugin', '--profile', 'web', 'remove', manifest.name])
   assert.ok(!(await command(['--profile', 'web', '--dump-config'])).includes(manifest.name))
   const profile = JSON.parse(await readFile(join(env.DSH_HOME, 'profiles/web/package.json'), 'utf8'))

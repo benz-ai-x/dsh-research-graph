@@ -27,18 +27,16 @@ describe('research topic records with workspace attribution', () => {
     expect(() => researchTopicSchema.parse({ ...legacyRecord(), workspaceId: ' ' })).toThrow()
   })
 
-  it('parses create writes with and without attribution', () => {
-    expect(researchTopicWriteSchema.parse({ kind: 'create', topicId: TOPIC_ID, title: '新分类' }))
-      .toEqual({ kind: 'create', topicId: TOPIC_ID, title: '新分类' })
-    expect(researchTopicWriteSchema.parse({ kind: 'create', topicId: TOPIC_ID, title: '新分类', workspaceId: 'ws-1' }))
-      .toEqual({ kind: 'create', topicId: TOPIC_ID, title: '新分类', workspaceId: 'ws-1' })
-  })
-
-  it('parses delete writes and keeps legacy kinds intact', () => {
-    expect(researchTopicWriteSchema.parse({ kind: 'delete', topicId: TOPIC_ID }))
-      .toEqual({ kind: 'delete', topicId: TOPIC_ID })
-    expect(() => researchTopicWriteSchema.parse({ kind: 'delete', topicId: 'not-a-uuid' })).toThrow()
+  it('keeps ordinary create and rename writes unchanged', () => {
+    expect(researchTopicWriteSchema.parse({ kind: 'create', topicId: TOPIC_ID, title: '新主题' }))
+      .toEqual({ kind: 'create', topicId: TOPIC_ID, title: '新主题' })
     expect(researchTopicWriteSchema.parse({ kind: 'rename', topicId: TOPIC_ID, title: '改名' }))
       .toEqual({ kind: 'rename', topicId: TOPIC_ID, title: '改名' })
+  })
+
+  it('rejects retired sidebar-only write commands without dropping legacy records', () => {
+    expect(() => researchTopicWriteSchema.parse({ kind: 'create', topicId: TOPIC_ID, title: '新分类', workspaceId: 'ws-1' })).toThrow()
+    expect(() => researchTopicWriteSchema.parse({ kind: 'delete', topicId: TOPIC_ID })).toThrow()
+    expect(researchTopicSchema.parse({ ...legacyRecord(), workspaceId: 'ws-1' }).workspaceId).toBe('ws-1')
   })
 })

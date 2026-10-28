@@ -2,7 +2,7 @@
 export interface ResearchTopic {
   readonly topicId: string
   readonly title: string
-  /** Owning Workspace for sidebar category grouping; absent topics stay unassigned. */
+  /** Legacy Workspace attribution read by the one-time sidebar-category migration. */
   readonly workspaceId?: string
   readonly references: readonly ResearchTopicReference[]
   readonly arrangement: ResearchTopicArrangement
@@ -36,9 +36,8 @@ export interface ResearchTopicSnapshot {
 }
 
 export type ResearchTopicWrite =
-  | { readonly kind: 'create'; readonly topicId: string; readonly title: string; readonly workspaceId?: string }
+  | { readonly kind: 'create'; readonly topicId: string; readonly title: string }
   | { readonly kind: 'rename'; readonly topicId: string; readonly title: string }
   | { readonly kind: 'add'; readonly topicId: string; readonly sessionIds: readonly string[] }
   | { readonly kind: 'remove'; readonly topicId: string; readonly sessionId: string }
   | { readonly kind: 'arrange'; readonly topicId: string; readonly arrangement: ResearchTopicArrangement }
-  | { readonly kind: 'delete'; readonly topicId: string }

@@ -291,7 +291,7 @@ describe('tsdown client artifact', () => {
       'slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale',
       'remote.session',
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
-      'remote.sessionGraphSearch', 'remote.sessionGraphTopics',
+      'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphCategories',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',
     ]])
     expect(new Set(slotNames)).toEqual(new Set(['conversation.view', 'sidebar.footer.action', 'sidebar.workspaces']))
