@@ -30,6 +30,21 @@ export type SessionGraphKey =
   | 'topic.add' | 'topic.addSelected' | 'topic.close'
   | 'topic.saveArrangement' | 'topic.arrangementHint' | 'topic.unsaved'
   | 'topic.refresh' | 'topic.cancel' | 'topic.canceled' | 'topic.archivedReading'
+  | 'category.browserTitle' | 'category.newCategory' | 'category.newSession' | 'category.namePlaceholder'
+  | 'category.create' | 'category.cancel' | 'category.rename' | 'category.save'
+  | 'category.uncategorized' | 'category.ungrouped'
+  | 'category.loadError' | 'category.retry' | 'category.expand'
+  | 'category.count' | 'category.toggle.enable'
+  | 'category.search' | 'category.searchEmpty' | 'category.more'
+  | 'category.assign' | 'category.assignNew' | 'category.removeCurrent'
+  | 'category.archive' | 'category.pin' | 'category.unpin'
+  | 'category.deleteCategory' | 'category.deleteHint'
+  | 'category.emptyNew' | 'category.noWorkspaces'
+  | 'category.showArchived' | 'category.hideArchived' | 'category.writeError'
+  | 'category.sessionNew' | 'category.sessionUntitled' | 'category.loading' | 'category.nameExists'
+  | 'category.deleteConfirmNamed' | 'category.moveSuccess' | 'category.undo'
+  | 'category.viewSwitch' | 'category.toggle.list' | 'category.toggle.categories' | 'category.locateCurrent'
+  | 'category.resultCategory' | 'category.archived'
   | 'search.disabled'
   | 'search.setup'
   | 'search.setupUrl'
@@ -415,6 +430,50 @@ export const zh: Record<SessionGraphKey, string> = {
   'canvas.description': '会话关系图谱',
   'empty.outside': '无法确定当前查看会话的工作区或工作目录',
   'empty.none': '此范围暂无画布会话',
+  'category.browserTitle': '分类',
+  'category.newCategory': '新建分类',
+  'category.newSession': '新建会话',
+  'category.namePlaceholder': '分类名称',
+  'category.create': '创建',
+  'category.cancel': '取消',
+  'category.rename': '重命名',
+  'category.save': '保存',
+  'category.uncategorized': '未分类',
+  'category.ungrouped': '未分组',
+  'category.loadError': '分类加载失败',
+  'category.retry': '重试',
+  'category.expand': '展开侧栏',
+  'category.count': '{n} 个会话',
+  'category.toggle.enable': '切换为分类视图',
+  'category.search': '搜索会话或分类',
+  'category.searchEmpty': '无匹配会话或分类',
+  'category.more': '更多操作',
+  'category.assign': '移动到分类',
+  'category.assignNew': '新建分类并移动…',
+  'category.removeCurrent': '移至未分类',
+  'category.archive': '归档会话',
+  'category.pin': '置顶',
+  'category.unpin': '取消置顶',
+  'category.deleteCategory': '删除分类',
+  'category.deleteHint': '{n} 个会话将移回未分类，不会删除会话',
+  'category.emptyNew': '新建分类，整理当前工作区',
+  'category.noWorkspaces': '暂无工作区；请切回原生列表添加工作区后再使用分类',
+  'category.showArchived': '显示已归档',
+  'category.hideArchived': '隐藏已归档',
+  'category.writeError': '操作失败，已保留你的输入，请重试',
+  'category.sessionNew': '新会话',
+  'category.sessionUntitled': '未命名',
+  'category.loading': '正在加载分类…',
+  'category.nameExists': '此工作区已有同名分类',
+  'category.deleteConfirmNamed': '删除“{title}”？',
+  'category.moveSuccess': '已移动到“{title}”',
+  'category.undo': '撤销',
+  'category.viewSwitch': '会话列表视图',
+  'category.toggle.list': '列表',
+  'category.toggle.categories': '分类',
+  'category.locateCurrent': '定位当前会话',
+  'category.resultCategory': '分类',
+  'category.archived': '已归档',
 }
 
 /** English dictionary. */
@@ -626,4 +685,48 @@ export const en: Record<SessionGraphKey, string> = {
   'canvas.description': 'Session relationship graph',
   'empty.outside': 'The viewed session has no resolvable workspace or working directory',
   'empty.none': 'No canvas sessions in this scope yet',
+  'category.browserTitle': 'Categories',
+  'category.newCategory': 'New category',
+  'category.newSession': 'New session',
+  'category.namePlaceholder': 'Category name',
+  'category.create': 'Create',
+  'category.cancel': 'Cancel',
+  'category.rename': 'Rename',
+  'category.save': 'Save',
+  'category.uncategorized': 'Uncategorized',
+  'category.ungrouped': 'Ungrouped',
+  'category.loadError': 'Failed to load categories',
+  'category.retry': 'Retry',
+  'category.expand': 'Expand sidebar',
+  'category.count': '{n} sessions',
+  'category.toggle.enable': 'Switch to category view',
+  'category.search': 'Search sessions or categories',
+  'category.searchEmpty': 'No matching sessions or categories',
+  'category.more': 'More actions',
+  'category.assign': 'Move to category',
+  'category.assignNew': 'New category and move…',
+  'category.removeCurrent': 'Move to Uncategorized',
+  'category.archive': 'Archive session',
+  'category.pin': 'Pin',
+  'category.unpin': 'Unpin',
+  'category.deleteCategory': 'Delete category',
+  'category.deleteHint': '{n} sessions will move to Uncategorized; no Sessions will be deleted',
+  'category.emptyNew': 'New category to organize this workspace',
+  'category.noWorkspaces': 'No workspaces yet; switch back to the native list to add one before categorizing',
+  'category.showArchived': 'Show archived',
+  'category.hideArchived': 'Hide archived',
+  'category.writeError': 'The action failed; your input is kept — please retry',
+  'category.sessionNew': 'New Session',
+  'category.sessionUntitled': 'Untitled',
+  'category.loading': 'Loading categories…',
+  'category.nameExists': 'A category with this name already exists in this workspace',
+  'category.deleteConfirmNamed': 'Delete “{title}”?',
+  'category.moveSuccess': 'Moved to “{title}”',
+  'category.undo': 'Undo',
+  'category.viewSwitch': 'Session list view',
+  'category.toggle.list': 'List',
+  'category.toggle.categories': 'Categories',
+  'category.locateCurrent': 'Reveal current Session',
+  'category.resultCategory': 'Category',
+  'category.archived': 'Archived',
 }

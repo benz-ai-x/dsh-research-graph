@@ -20,7 +20,7 @@ declare module '@deepseek-ai/cordis' {
       bind: (namespace: string) => (key: string, params?: Record<string, unknown>) => string
     }
     readonly slots: {
-      inject: (name: string, install: () => unknown) => void
+      inject: (name: string, install: () => unknown) => () => void
       register: (
         definition: Readonly<Record<string, unknown>>,
         component: unknown,
@@ -39,6 +39,7 @@ declare module '@deepseek-ai/cordis' {
       }
       readonly list: {
         getSnapshot: () => import('@deepseek-ai/dsh-api-session-controller/client').SessionListState
+        subscribe: (listener: () => void) => () => void
       }
       create: (options: { readonly workspaceId?: string; readonly cwd?: string }) => Promise<
         import('@deepseek-ai/dsh-session/types').SessionId
@@ -60,7 +61,11 @@ declare module '@deepseek-ai/cordis' {
     readonly workspaces: {
       readonly list: {
         getSnapshot: () => import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
+        subscribe: (listener: () => void) => () => void
       }
+      pinSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
+      unpinSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
+      archiveSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
     }
     readonly uiWorkspace: {
       openSession: (target: import('@deepseek-ai/dsh-session/types').SessionId | {
@@ -68,6 +73,7 @@ declare module '@deepseek-ai/cordis' {
         readonly childSessionId: import('@deepseek-ai/dsh-session/types').SessionId
         readonly mode: 'one-shot' | 'continuable' | 'unknown'
       }) => void
+      startSession: (workspaceId?: import('@deepseek-ai/dsh-workspace/types').WorkspaceId) => void
     }
     readonly sessionPersistence: {
       stat: (id: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<unknown | undefined>
@@ -85,6 +91,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphHistory: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphHistory']
       sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
       sessionGraphTopics: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTopics']
+      sessionGraphCategories: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphCategories']
       sessionGraphKnowledge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphKnowledge']
       sessionGraphBranch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranch']
       sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']

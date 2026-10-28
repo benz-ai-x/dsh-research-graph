@@ -2,6 +2,8 @@
 export interface ResearchTopic {
   readonly topicId: string
   readonly title: string
+  /** Legacy Workspace attribution read by the one-time sidebar-category migration. */
+  readonly workspaceId?: string
   readonly references: readonly ResearchTopicReference[]
   readonly arrangement: ResearchTopicArrangement
 }

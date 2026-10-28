@@ -13,7 +13,19 @@ import { expect, vi } from 'vitest'
 import { apply, inject } from '../../src/index.ts'
 import { ownerPeer } from './owner-peer.ts'
 
-export async function topicHost(root: string, cleanups: (() => Promise<void>)[]) {
+interface TopicHostWorkspace {
+  id: string
+  title: string
+  path: string
+  sessionIds: string[]
+  attachSession(sessionId: string): Promise<void>
+}
+
+export async function topicHost(
+  root: string,
+  cleanups: (() => Promise<void>)[],
+  beforeApply?: (ctx: Context, workspaces: TopicHostWorkspace[]) => Promise<void>,
+) {
   const ctx = new Context()
   cleanups.push(async () => {
     await ctx.fiber.dispose()
@@ -48,12 +60,18 @@ export async function topicHost(root: string, cleanups: (() => Promise<void>)[])
       })
     },
   })
+  await beforeApply?.(ctx, workspaces)
   await ctx.plugin({ apply, inject })
   expect(ctx.get('sessionGraphTopics'), 'topic service is ready when plugin startup completes').toBeDefined()
+  expect(ctx.get('sessionGraphCategories'), 'sidebar category service is ready when plugin startup completes').toBeDefined()
   await ctx.plugin(TypertGatewayService)
   const invoke = (method: string, request?: unknown, signal = new AbortController().signal) => ctx.typertGateway.invoke({
     namespace: 'sessionGraphTopics', method, args: request === undefined ? {} : { request },
     peer: ownerPeer(ctx), signal,
   })
-  return { ctx, workspaces, archivedSessionIds, invoke }
+  const invokeCategory = (method: string, request?: unknown, signal = new AbortController().signal) => ctx.typertGateway.invoke({
+    namespace: 'sessionGraphCategories', method, args: request === undefined ? {} : { request },
+    peer: ownerPeer(ctx), signal,
+  })
+  return { ctx, workspaces, archivedSessionIds, invoke, invokeCategory }
 }

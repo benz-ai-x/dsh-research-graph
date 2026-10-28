@@ -151,4 +151,19 @@ describe('Research Topics public Host interface', () => {
     expect(topics.find(topic => topic.topicId === b).references.map(reference => reference.sessionId)).toEqual([sources[0]!.id])
     expect(restarted.ctx.llm.stream).not.toHaveBeenCalled()
   })
+
+  it('rejects retired sidebar commands without changing ordinary Topic persistence', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const host = await topicHost(root, cleanups)
+    const a = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
+    const created = await host.invoke('write', { kind: 'create', topicId: a, title: '通用研究主题' })
+    await expect(host.invoke('write', { kind: 'create', topicId: a, title: '侧栏分类', workspaceId: 'ws-a' })).rejects.toThrow()
+    await expect(host.invoke('write', { kind: 'delete', topicId: a })).rejects.toThrow()
+    await host.ctx.fiber.dispose()
+    const restarted = await topicHost(root, cleanups)
+    expect(await restarted.invoke('list')).toEqual([created])
+    await expect(restarted.invoke('write', { kind: 'delete', topicId: a })).rejects.toThrow()
+    expect(await restarted.invoke('list')).toEqual([created])
+  })
 })

@@ -62,7 +62,7 @@ pnpm preview:dsh --stop
 
 | 导出 | 用途 |
 |---|---|
-| `.` | 研究主题、知识、分支／沿用、会话摘要与标题、原文／搜索及持久 Merge 提交的 Cordis Host services |
+| `.` | 研究主题、侧栏分类、知识、分支／沿用、会话摘要与标题、原文／搜索及持久 Merge 提交的 Cordis Host services |
 | `./client` | 构建后的 dsh 客户端模块 |
 | `./cordis.patch.yml` | profile 组合包补丁 |
 

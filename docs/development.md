@@ -62,7 +62,7 @@ The package exports one Node-facing entry and one lazy browser module. Every Jav
 
 | Export | Purpose |
 |---|---|
-| `.` | Cordis Host services for research topics, knowledge, branching/reuse, Session insights, history/search, and durable Merge submission |
+| `.` | Cordis Host services for research topics, sidebar categories, knowledge, branching/reuse, Session insights, history/search, and durable Merge submission |
 | `./client` | Built dsh client module |
 | `./cordis.patch.yml` | Profile bundle patch |
 

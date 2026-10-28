@@ -8,7 +8,7 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 
 | What you want to do | Read next |
 | --- | --- |
-| Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) |
+| Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) · [Sidebar categories](#browse-sessions-by-sidebar-categories) |
 | Read and verify evidence | [Original discussion](#read-original-discussion) · [Body search](#search-discussion-history) · [Session Digests](#generate-a-session-digest) |
 | Capture and reuse knowledge | [Knowledge Cards](#knowledge-cards) · [AI extraction](#reviewed-ai-extraction) · [Synthesis](#compare-and-synthesize) · [Follow-up discussions](#start-a-discussion-from-selected-materials) |
 | Install, recover, or troubleshoot | [Install](#install) · [History recovery](#recover-historical-merge-sessions) · [Working position](#return-to-your-working-position) · [Troubleshooting](#troubleshooting) |
@@ -96,7 +96,7 @@ A professional research preset can supply methods, tools, and skills while Resea
 
 ### Where are research knowledge and original discussions stored?
 
-DSH owns original Sessions. Research Graph stores topics, card revisions, retained sources, and acknowledged material-reuse records on the Host. The browser retains working positions and unsaved arrangements; Topic arrangements synchronize only after **Save arrangement**.
+DSH owns original Sessions. Research Graph stores topics, Sidebar Categories, card revisions, retained sources, and acknowledged material-reuse records on the Host. The browser retains the List/Categories preference, collapse choices, working positions, and unsaved arrangements; Topic arrangements synchronize only after **Save arrangement**.
 
 ### Does organizing the graph call a model?
 
@@ -299,6 +299,16 @@ Topic switching reads Session headers and existing metadata, not all original di
 See the [Research Topics acceptance record and screenshots](reviews/issue-5-ui-acceptance.md) for cross-Workspace collection, independent arrangements, source recovery, restart persistence, and the 1,000-reference baseline.
 
 The topic toolbar keeps selection and layout sync status together; creation and rename fields open on demand. Workspace arrangements are kept on this device, while **Save arrangement** syncs a topic arrangement to the Host. Singleton clusters show just their node, and long node titles use up to two lines.
+
+## Browse sessions by sidebar categories
+
+The plugin can replace the sidebar's session list with a **Workspace → category → Session** tree. A category is a **single-assignment folder** inside one Workspace: a Session belongs to at most one category and otherwise appears under **Uncategorized**, so every Workspace's count always matches the native list. Sessions no Workspace accounts trail under **Ungrouped**. Categories use independent Host records and **are not Research Topics**: moving, renaming, or deleting a category never changes Research Topic membership, original discussions, or Session ownership.
+
+Use **List / Categories** at the top to switch views; the native list's footer provides the way back into categories. A Workspace menu creates categories and new Sessions. Workspaces without categories list their Sessions directly; once categories exist, Uncategorized appears as a collapsible system group. On first use, only the current Workspace and category expand, then manual collapse choices are retained. Rename from the category menu or double-click. Delete confirmation explains that members only return to Uncategorized and no Session is deleted. Sessions sort by pin and recent activity, while current, running, archived, and relative-time facts stay visible.
+
+Each Session's **⋯** menu offers **Move to category**, **Move to Uncategorized**, **New category and move**, pin, and archive. You can also drag directly onto a category or Uncategorized within the same Workspace. Dragging provides target highlighting, hover expansion, edge auto-scroll, and Escape cancellation, with Undo after a successful move. Moves and create-and-move are atomic writes: failures retain the original assignment and input. Search matches both category and Session titles, with highlighting, Up/Down selection, and Enter to open. Arrow keys navigate, expand, and collapse tree rows. The view **⋯** menu reveals the current Session and toggles archived visibility; the currently viewed archived Session retains its row and current marker. Category membership and names are Host-persisted and shared by clients, while Research Topics retain their cross-Workspace, multi-membership semantics.
+
+On upgrade, existing Workspace-attributed Research Topics are imported once into independent Sidebar Category records. The original Topics are not renamed, deleted, or changed, and later sidebar edits do not flow back into them. The List/Categories preference and collapse choices are browser-local; category membership and names survive Host restart.
 
 ## Search discussion history
 

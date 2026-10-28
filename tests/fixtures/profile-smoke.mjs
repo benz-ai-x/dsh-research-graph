@@ -1,6 +1,6 @@
 /** Real profile acceptance: replace only model transport, retain the complete Host. */
 import assert from 'node:assert/strict'
-import { writeFile, rename, mkdir } from 'node:fs/promises'
+import { writeFile, readFile, rename, mkdir } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
@@ -9,7 +9,7 @@ import { verifyExploration } from './exploration-smoke.mjs'
 import { ownerPeer } from './owner-peer.mjs'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphCategories', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
 
 export function apply(ctx) {
   let calls = 0
@@ -71,6 +71,18 @@ export function apply(ctx) {
     return sessionId
   }
   async function verify() {
+    const categories = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
+      namespace: 'sessionGraphCategories', method, args: request === undefined ? {} : { request }, signal,
+    })
+    if (process.env.SESSION_GRAPH_SMOKE_RESTART) {
+      const expected = JSON.parse(await readFile(process.env.SESSION_GRAPH_SMOKE_RESTART, 'utf8'))
+      const workspace = (await categories('list')).find(record => record.workspaceId === expected.workspaceId)
+      assert.deepEqual(workspace.categories, [{ categoryId: expected.categoryId, title: 'Packed Sidebar Category Renamed', sessionIds: [expected.sessionId] }])
+      const topic = (await ctx.sessionGraphTopics.list(signal)).find(topic => topic.topicId === expected.topicId)
+      assert.deepEqual(topic.references.map(reference => reference.sessionId), expected.topicReferenceSessionIds)
+      assert.equal(calls, 0)
+      return { ok: true, durableSidebarRestart: true }
+    }
     const secondPrompt = '通过知识卡片整理研究资料。 Café uses foo-bar. 修复 foo-bar 设置。'
     const sourceIds = [await create('First fixture.'), await create(secondPrompt)]
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
@@ -152,6 +164,24 @@ export function apply(ctx) {
     const targetPath = join(process.cwd(), 'research-target')
     await mkdir(targetPath, { recursive: true })
     const targetWorkspace = await ctx.workspaceRegistry.create(targetPath, 'Reuse target')
+    const callsBeforeCategories = calls
+    const workspaceId = String(targetWorkspace.id)
+    const categoryId = randomUUID()
+    const otherCategoryId = randomUUID()
+    const { sessionId: categorySessionId } = await ctx.sessionController.create({ workspaceId: targetWorkspace.id })
+    await categories('write', { kind: 'create', workspaceId, categoryId, title: 'Packed Sidebar Category', sessionId: categorySessionId })
+    await categories('write', { kind: 'create', workspaceId, categoryId: otherCategoryId, title: 'Temporary Sidebar Category' })
+    await categories('write', { kind: 'move', workspaceId, sessionId: categorySessionId, categoryId: otherCategoryId })
+    await categories('write', { kind: 'move', workspaceId, sessionId: categorySessionId, categoryId })
+    await categories('write', { kind: 'rename', workspaceId, categoryId, title: 'Packed Sidebar Category Renamed' })
+    await categories('write', { kind: 'delete', workspaceId, categoryId: otherCategoryId })
+    await assert.rejects(categories('write', { kind: 'move', workspaceId, sessionId: sourceIds[0], categoryId }))
+    assert.deepEqual((await categories('list')).find(record => record.workspaceId === workspaceId).categories, [
+      { categoryId, title: 'Packed Sidebar Category Renamed', sessionIds: [categorySessionId] },
+    ])
+    assert.deepEqual((await topics('list')).find(topic => topic.topicId === topicId).references.map(source => source.sessionId), [sourceIds[1]])
+    assert.equal(calls, callsBeforeCategories)
+    const sidebar = { workspaceId, categoryId, sessionId: categorySessionId, topicId, topicReferenceSessionIds: [sourceIds[1]] }
     await ctx.agentDefaultModel.saveSelection({ provider: 'graph-fixture', model: 'fixture' })
     const firstHistory = await ctx.sessionGraphHistory.read({ sessionId: sourceIds[0] }, signal)
     const preview = await reuse('prepare', { operationId: randomUUID(), workspaceId: targetWorkspace.id, question: 'Continue using these explicit materials.', materials: [
@@ -200,7 +230,7 @@ export function apply(ctx) {
     assert.equal(afterRename.at(-1).data.source.kind, 'user')
     const exploration = await verifyExploration(ctx, signal, targetWorkspace.id)
     assert.ok(calls >= 4)
-    return { ok: true, ...exploration, sources: sourceIds.length, durableTopics: true, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
+    return { ok: true, ...exploration, sources: sourceIds.length, durableTopics: true, durableSidebar: true, sidebar, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
       acceptedReuse: true, frozenMarkdown: true, readonlyTitleSuggestion: true, nativeTitleRename: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {

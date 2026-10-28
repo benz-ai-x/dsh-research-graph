@@ -53,6 +53,7 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 | Capability | What you can do |
 | --- | --- |
 | **Research graph** | Organize discussions, inspect branches and merges; drag, collapse, and relayout; cards show turn counts and the inspector reports Session stats |
+| **Sidebar categories** | Organize Sessions into single-assignment categories within each Workspace; drag to move, undo, and search categories or Sessions; counts match the native list and Research Topics stay unchanged |
 | **Source tracing** | Search discussion text and return to the exact original turns |
 | **Knowledge capture** | Save conclusions, conditions, and open questions; edit through new revisions |
 | **AI analysis** | Extract selected discussion and compare 2–3 materials; review before saving |

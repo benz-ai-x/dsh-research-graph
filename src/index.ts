@@ -38,6 +38,7 @@ import type { SessionMergeProjection } from './session-merge-projection.ts'
 import { SessionGraphHistoryService } from './session-history-host.ts'
 import { SessionGraphSearchService } from './session-search-host.ts'
 import { ResearchTopicsService, RESEARCH_TOPIC_DOMAIN } from './research-topics-host.ts'
+import { SidebarCategoriesService, SIDEBAR_CATEGORY_DOMAIN } from './sidebar-categories-host.ts'
 import { KnowledgeService, KNOWLEDGE_DOMAIN } from './knowledge-host.ts'
 import { HistoryBranchService, HISTORY_BRANCH_DOMAIN } from './history-branch-host.ts'
 import { ResearchReuseService, RESEARCH_REUSE_DOMAIN } from './research-reuse-host.ts'
@@ -50,6 +51,7 @@ declare module '@deepseek-ai/cordis' {
     sessionGraphHistory: SessionGraphHistoryService
     sessionGraphSearch: SessionGraphSearchService
     sessionGraphTopics: ResearchTopicsService
+    sessionGraphCategories: SidebarCategoriesService
     sessionGraphKnowledge: KnowledgeService
     sessionGraphReuse: ResearchReuseService
     sessionGraphBranch: HistoryBranchService
@@ -217,6 +219,21 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
         topicsCtx,
         serviceCtx => new ResearchTopicsService(serviceCtx, domain),
         'session-graph.topics-service',
+      )
+    } catch (error) {
+      await domain.close()
+      throw error
+    }
+  })
+  await ctx.inject(['storageDomain', 'sessionQuery', 'workspaceRegistry', 'sessionGraphTopics'], async categoriesCtx => {
+    const domain = await categoriesCtx.storageDomain.open(SIDEBAR_CATEGORY_DOMAIN)
+    try {
+      const service = new SidebarCategoriesService(categoriesCtx, domain)
+      await service.migrateLegacyCategories()
+      await provideQuiescentRemoteService(
+        categoriesCtx,
+        () => service,
+        'session-graph.sidebar-categories-service',
       )
     } catch (error) {
       await domain.close()

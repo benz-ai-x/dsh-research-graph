@@ -57,10 +57,13 @@ function referenceFields(item: Record<string, unknown>): ResearchTopicReference 
 }
 
 export const researchTopicSchema = { parse(value: unknown): ResearchTopic {
-  const item = object(value, ['topicId', 'title', 'references', 'arrangement'])
+  const item = object(value, ['topicId', 'title', 'references', 'arrangement', 'workspaceId'])
   const references = array(item.references).map(value => referenceFields(object(value, REFERENCE_KEYS)))
   if (new Set(references.map(reference => reference.sessionId)).size !== references.length) return invalid()
-  return { topicId: topicId(item.topicId), title: title(item.title), references, arrangement: arrangement(item.arrangement) }
+  return {
+    topicId: topicId(item.topicId), title: title(item.title), references, arrangement: arrangement(item.arrangement),
+    ...(item.workspaceId === undefined ? {} : { workspaceId: string(item.workspaceId) }),
+  }
 } }
 
 export const researchTopicReadSchema = { parse(value: unknown): { readonly topicId: string } {
@@ -70,7 +73,11 @@ export const researchTopicReadSchema = { parse(value: unknown): { readonly topic
 export const researchTopicWriteSchema = { parse(value: unknown): ResearchTopicWrite {
   const item = object(value)
   const id = topicId(item.topicId)
-  if (item.kind === 'create' || item.kind === 'rename') {
+  if (item.kind === 'create') {
+    object(item, ['kind', 'topicId', 'title'])
+    return { kind: item.kind, topicId: id, title: title(item.title) }
+  }
+  if (item.kind === 'rename') {
     object(item, ['kind', 'topicId', 'title'])
     return { kind: item.kind, topicId: id, title: title(item.title) }
   }

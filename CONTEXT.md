@@ -169,6 +169,10 @@ _Avoid_: Session Snapshot, copied discussion, knowledge card
 The projection of a Research Topic's Session references and Knowledge Cards, together with addressed discussion sources and follow-ups, including archived or unavailable references. It distinguishes Host-supported Branch and Merge Relations from saved Source, Synthesis, and acknowledged Reuse Relations; visibility does not imply topic membership or eligibility as a Canvas Session in a Workspace Scope.
 _Avoid_: Global graph, Workspace Scope, Session Cluster
 
+**Sidebar Category**:
+A named, Workspace-owned folder for organizing Sessions in the sidebar. Within one Workspace, a Session belongs to at most one Sidebar Category and is otherwise Uncategorized. Moving, renaming, or deleting a Sidebar Category changes only sidebar organization, never Session ownership, original history, or Research Topic membership. Sidebar Categories are Host-persisted but do not create Topic Graph collections or model context.
+_Avoid_: Research Topic, Workspace, Tag
+
 **Research Export**:
 A standalone Markdown artifact from an explicit set of saved Knowledge Card revisions. Preview freezes the latest selected revisions and their retained source ranges; download uses exactly those bytes. Original availability is checked and annotated without replacing saved excerpts. An export never creates knowledge, sends model context, or changes Session history.
 

@@ -17,11 +17,18 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: the 'conversation.view' SlotMap row (declared by the slot's
 // owning package) must be in the program for the register calls to type.
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+// Type-only: the 'sidebar.workspaces' and 'sidebar.footer.action' SlotMap rows
+// (declared by the sidebar shell) must be in the program for the register
+// calls to type.
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the slot service and global Session/Workspace standard props.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { createSessionMergeModule } from '../session-merge.ts'
+import { CategoryBrowser, type CategoryBrowserInjected } from './CategoryBrowser.tsx'
+import { CategoryFootToggle } from './CategoryFootToggle.tsx'
+import { categoryViewPreference } from './category-toggle.ts'
 import { GraphView, type GraphViewInjected } from './GraphView.tsx'
 import { NS, en, zh } from './locales.ts'
 import { SESSION_DIGEST_REMOTE } from './session-digest-remote.ts'
@@ -30,6 +37,7 @@ import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
 import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
 import { RESEARCH_TOPICS_REMOTE } from './research-topics-remote.ts'
+import { SIDEBAR_CATEGORIES_REMOTE } from './sidebar-categories-remote.ts'
 import { HISTORY_BRANCH_REMOTE } from './history-branch-remote.ts'
 import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
 import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
@@ -48,6 +56,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...SESSION_HISTORY_REMOTE.descriptors,
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
     ...RESEARCH_TOPICS_REMOTE.descriptors,
+    ...SIDEBAR_CATEGORIES_REMOTE.descriptors,
     ...KNOWLEDGE_REMOTE.descriptors,
     ...RESEARCH_REUSE_REMOTE.descriptors,
     ...HISTORY_BRANCH_REMOTE.descriptors,
@@ -351,6 +360,68 @@ async function registerUi(ctx: Context): Promise<void> {
       },
     }),
   }, GraphView))
+
+  // The native list exposes a footer entry into category browsing; the category
+  // header switches back. The browsing region shadows the native Workspace
+  // browser only while the browser-local preference enables it.
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action',
+    id: 'session-graph-categories',
+    order: 100,
+    locale: NS,
+  }, CategoryFootToggle))
+
+  const categoryInjected = (): CategoryBrowserInjected => ({
+    sources: {
+      sessions: ctx.sessions.list,
+      workspaces: ctx.workspaces.list,
+    },
+    categories: {
+      list: async signal => {
+        const result = await ctx.remote.sessionGraphCategories.list(signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value
+      },
+      write: async (request, signal) => {
+        const result = await ctx.remote.sessionGraphCategories.write(request, signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value
+      },
+    },
+    openSession: id => { ctx.uiWorkspace.openSession(id as SessionId) },
+    startSession: workspaceId => {
+      ctx.uiWorkspace.startSession(workspaceId === undefined ? undefined : workspaceId as WorkspaceId)
+    },
+    pinSession: id => ctx.workspaces.pinSession(id as SessionId),
+    unpinSession: id => ctx.workspaces.unpinSession(id as SessionId),
+    archiveSession: id => ctx.workspaces.archiveSession(id as SessionId),
+  })
+
+  let disposeBrowser: (() => void) | undefined
+  const syncCategoryBrowser = (): void => {
+    const enabled = categoryViewPreference.getSnapshot()
+    if (enabled && disposeBrowser === undefined) {
+      disposeBrowser = ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
+        name: 'sidebar.workspaces',
+        priority: -1,
+        locale: NS,
+        registrant: '@benz-ai-x/dsh-research-graph',
+        inject: categoryInjected,
+      }, CategoryBrowser))
+    } else if (!enabled && disposeBrowser !== undefined) {
+      disposeBrowser()
+      disposeBrowser = undefined
+    }
+  }
+  syncCategoryBrowser()
+  ctx.effect(() => {
+    const unsubscribe = categoryViewPreference.subscribe(syncCategoryBrowser)
+    return () => {
+      unsubscribe()
+      disposeBrowser?.()
+      disposeBrowser = undefined
+    }
+  }, 'ui-session-graph: category browser registration')
 }
 
 /**
@@ -375,6 +446,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphHistory',
       'remote.sessionGraphSearch',
       'remote.sessionGraphTopics',
+      'remote.sessionGraphCategories',
       'remote.sessionGraphKnowledge',
       'remote.sessionGraphReuse',
       'remote.sessionGraphBranch',

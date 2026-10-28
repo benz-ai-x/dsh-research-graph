@@ -130,6 +130,7 @@ describe('tsdown client artifact', () => {
   it('registers and disposes the Graph view through the dsh Client services', async () => {
     const { plugin } = await loadArtifact()
     const views: ViewDefinition[] = []
+    const slotNames: string[] = []
     const rootDisposers: Array<() => void | Promise<void>> = []
     const uiDisposers: Array<() => void | Promise<void>> = []
     const injectedServices: readonly string[][] = []
@@ -202,7 +203,8 @@ describe('tsdown client artifact', () => {
       },
       slots: {
         inject: (name, install) => {
-          expect(name).toBe('conversation.view')
+          slotNames.push(name)
+          expect(['conversation.view', 'sidebar.footer.action', 'sidebar.workspaces']).toContain(name)
           const disposer = install()
           if (typeof disposer === 'function') uiDisposers.push(disposer as () => void | Promise<void>)
         },
@@ -289,24 +291,26 @@ describe('tsdown client artifact', () => {
       'slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale',
       'remote.session',
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
-      'remote.sessionGraphSearch', 'remote.sessionGraphTopics',
+      'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphCategories',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',
     ]])
-    expect(views).toHaveLength(1)
-    expect(views[0]).toMatchObject({ name: 'conversation.view', id: 'graph' })
-    expect(views[0]?.label()).toBe('Research Graph')
-    expect(views[0]?.inject().hostId).toBe('host-one')
-    await views[0]?.inject().branchSession('source')
+    expect(new Set(slotNames)).toEqual(new Set(['conversation.view', 'sidebar.footer.action', 'sidebar.workspaces']))
+    expect(views).toHaveLength(3)
+    const graph = views.find(view => view.name === 'conversation.view')
+    expect(graph).toMatchObject({ name: 'conversation.view', id: 'graph' })
+    expect(graph?.label()).toBe('Research Graph')
+    expect(graph?.inject().hostId).toBe('host-one')
+    await graph?.inject().branchSession('source')
     expect(forkRequests).toEqual([{ sessionId: 'source', increaseTitle: true }])
     const controller = new AbortController()
-    await expect(views[0]?.inject().generateSessionDigest(
+    await expect(graph?.inject().generateSessionDigest(
       'source', { refresh: true }, controller.signal,
     )).resolves.toEqual({ kind: 'empty' })
     expect(digestRequests).toEqual([{
       request: { sessionId: 'source', refresh: true },
       signal: controller.signal,
     }])
-    await expect(views[0]?.inject().mergeSessions(
+    await expect(graph?.inject().mergeSessions(
       ['source-a', 'source-b'],
       'Compare conclusions.',
       controller.signal,
@@ -333,7 +337,8 @@ describe('tsdown client artifact', () => {
 
   it('injects package-tagged CSS when the factory materializes', async () => {
     await loadArtifact()
+    // One style tag per CSS module: the Graph view and the category browser.
     expect(document.querySelectorAll(`style[data-plugin=${JSON.stringify(PLUGIN_ID)}]`))
-      .toHaveLength(1)
+      .toHaveLength(2)
   })
 })
