@@ -24,6 +24,16 @@ Candidate archive: `.artifacts/benz-ai-x-dsh-research-graph-0.2.1-rc.5.tgz`, **5
 
 ## Release boundary
 
-The candidate gates above established local compatibility and release readiness. Compatibility [PR #78](https://github.com/benz-ai-x/dsh-research-graph/pull/78) passed all four CI jobs in [run 41171402067](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/41171402067) and merged as `78046085f4b721496469ba1deb010b4a0db8557d`; its merge tree is identical to accepted head `af327dff6ff47fd1ad82122d9e165d8c4a2d8187`. The remaining release-preparation, publication, and official-registry verification steps are not claimed here.
+The candidate gates above established local compatibility and release readiness. Compatibility [PR #78](https://github.com/benz-ai-x/dsh-research-graph/pull/78) passed all four CI jobs in [run 41171402067](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/41171402067) and merged as `78046085f4b721496469ba1deb010b4a0db8557d`; its merge tree is identical to accepted head `af327dff6ff47fd1ad82122d9e165d8c4a2d8187`. Post-merge [main CI 41171945278](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/41171945278) passed.
 
 The canvas/layout/routing code is unchanged, so this release adds no new arbitrary-dense-graph non-overlap guarantee. Previous deferred research features and real-provider quality evaluations remain outside this compatibility revision. No 8010 upgrade is claimed for rc5 in this record.
+
+## Publication
+
+Release-preparation [PR #79](https://github.com/benz-ai-x/dsh-research-graph/pull/79) passed all four CI jobs in [run 41172144736](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/41172144736) and merged as **`e3a68a8776de44764e7242bfe7532c2d82412f60`**; its merge tree is identical to accepted head `8e83ce0ed9375c0c8c07e46672c0f05a9a631a95`. Post-merge [main CI 41172681099](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/41172681099) passed. Annotated tag `v0.2.1-rc.5` points to the release merge commit, and the [GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5) triggered successful OIDC [Publish run 41172741593](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/41172741593).
+
+- Official registry archive: **557772 bytes**, SHA-256 `146d83c3d7dc3df38560d19c7a1811fe52d48d4781ec2b394876150af61d7447`, registry SHA-1 `533dbdf20f785c8a46534e591de8eedbb63d24a5`, integrity `sha512-oC6SKPLmW4GU5i7GeEU2wqqEVFVX2FplPAz9S3EPdApRACJNPnWCX2+i7rY/bWTvK+YbdmpXy/nKz5/3DVYhdA==`. These values are distinct from the local candidate above.
+- SLSA provenance matches repository `benz-ai-x/dsh-research-graph`, `.github/workflows/publish.yml`, `refs/tags/v0.2.1-rc.5`, commit `e3a68a8776de44764e7242bfe7532c2d82412f60`, and the downloaded archive's SHA-512 (`a02e9228…62174`, byte-identical). Transparency-log entries: `3610593687` and `3610582714`.
+- The official archive independently passed the same isolated packed-profile acceptance with **19 fixture model calls** (`version`/`dshVersion` both `0.2.1-rc.5`, `durableSidebarRestart: true`, installed and removed cleanly). npm `next` is `0.2.1-rc.5`; `latest` remains `0.1.5-rc.1`.
+- Release attachments (official archive + `SHA256SUMS`) were uploaded, downloaded again, checksum-verified, and byte-compared with the registry archive (`cmp` clean). Private evidence is under `.artifacts/release-0.2.1-rc.5/official/`.
+
