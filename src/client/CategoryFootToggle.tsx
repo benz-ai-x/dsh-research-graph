@@ -9,16 +9,15 @@ export type CategoryFootToggleProps =
   SidebarFooterActionOwnerProps
   & PropsLocale<'sessionGraph'>
 
-export function CategoryFootToggle(props: CategoryFootToggleProps): ReactElement | null {
+export function CategoryFootToggle(props: CategoryFootToggleProps): ReactElement {
   const enabled = useSyncExternalStore(categoryViewPreference.subscribe, categoryViewPreference.getSnapshot)
-  if (enabled) return null
-  const label = props.t('category.toggle.enable')
+  const label = props.t(enabled ? 'category.toggle.disable' : 'category.toggle.enable')
   return <button
     type="button"
     className={props.wide ? styles.footToggleWide : styles.footToggleRail}
     title={label}
     aria-label={label}
-    aria-pressed="false"
-    onClick={() => { setCategoryView(true) }}
+    aria-pressed={enabled}
+    onClick={() => { setCategoryView(!enabled) }}
   >{props.wide ? label : <IconFlatListOutlineRegular size={16} />}</button>
 }

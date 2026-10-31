@@ -30,16 +30,16 @@ export type SessionGraphKey =
   | 'topic.add' | 'topic.addSelected' | 'topic.close'
   | 'topic.saveArrangement' | 'topic.arrangementHint' | 'topic.unsaved'
   | 'topic.refresh' | 'topic.cancel' | 'topic.canceled' | 'topic.archivedReading'
-  | 'category.browserTitle' | 'category.newCategory' | 'category.newSession' | 'category.namePlaceholder'
+  | 'category.browserTitle' | 'category.workspaces' | 'category.newCategory' | 'category.newSession' | 'category.namePlaceholder'
   | 'category.create' | 'category.cancel' | 'category.rename' | 'category.save'
   | 'category.uncategorized' | 'category.ungrouped'
   | 'category.loadError' | 'category.retry' | 'category.expand'
-  | 'category.count' | 'category.toggle.enable'
+  | 'category.count' | 'category.toggle.enable' | 'category.toggle.disable'
   | 'category.search' | 'category.searchEmpty' | 'category.more'
   | 'category.assign' | 'category.assignNew' | 'category.removeCurrent'
   | 'category.archive' | 'category.pin' | 'category.unpin'
   | 'category.deleteCategory' | 'category.deleteHint'
-  | 'category.emptyNew' | 'category.noWorkspaces'
+  | 'category.noWorkspaces'
   | 'category.showArchived' | 'category.hideArchived' | 'category.writeError'
   | 'category.sessionNew' | 'category.sessionUntitled' | 'category.loading' | 'category.nameExists'
   | 'category.deleteConfirmNamed' | 'category.moveSuccess' | 'category.undo'
@@ -431,6 +431,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'empty.outside': '无法确定当前查看会话的工作区或工作目录',
   'empty.none': '此范围暂无画布会话',
   'category.browserTitle': '分类',
+  'category.workspaces': '工作区',
   'category.newCategory': '新建分类',
   'category.newSession': '新建会话',
   'category.namePlaceholder': '分类名称',
@@ -445,6 +446,7 @@ export const zh: Record<SessionGraphKey, string> = {
   'category.expand': '展开侧栏',
   'category.count': '{n} 个会话',
   'category.toggle.enable': '切换为分类视图',
+  'category.toggle.disable': '切换为列表视图',
   'category.search': '搜索会话或分类',
   'category.searchEmpty': '无匹配会话或分类',
   'category.more': '更多操作',
@@ -456,7 +458,6 @@ export const zh: Record<SessionGraphKey, string> = {
   'category.unpin': '取消置顶',
   'category.deleteCategory': '删除分类',
   'category.deleteHint': '{n} 个会话将移回未分类，不会删除会话',
-  'category.emptyNew': '新建分类，整理当前工作区',
   'category.noWorkspaces': '暂无工作区；请切回原生列表添加工作区后再使用分类',
   'category.showArchived': '显示已归档',
   'category.hideArchived': '隐藏已归档',
@@ -686,6 +687,7 @@ export const en: Record<SessionGraphKey, string> = {
   'empty.outside': 'The viewed session has no resolvable workspace or working directory',
   'empty.none': 'No canvas sessions in this scope yet',
   'category.browserTitle': 'Categories',
+  'category.workspaces': 'Workspaces',
   'category.newCategory': 'New category',
   'category.newSession': 'New session',
   'category.namePlaceholder': 'Category name',
@@ -700,6 +702,7 @@ export const en: Record<SessionGraphKey, string> = {
   'category.expand': 'Expand sidebar',
   'category.count': '{n} sessions',
   'category.toggle.enable': 'Switch to category view',
+  'category.toggle.disable': 'Switch to list view',
   'category.search': 'Search sessions or categories',
   'category.searchEmpty': 'No matching sessions or categories',
   'category.more': 'More actions',
@@ -711,7 +714,6 @@ export const en: Record<SessionGraphKey, string> = {
   'category.unpin': 'Unpin',
   'category.deleteCategory': 'Delete category',
   'category.deleteHint': '{n} sessions will move to Uncategorized; no Sessions will be deleted',
-  'category.emptyNew': 'New category to organize this workspace',
   'category.noWorkspaces': 'No workspaces yet; switch back to the native list to add one before categorizing',
   'category.showArchived': 'Show archived',
   'category.hideArchived': 'Hide archived',

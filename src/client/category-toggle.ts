@@ -1,8 +1,8 @@
 /**
  * Browser-local preference for the category browsing region: enabled shadows
  * the native Workspace browser in the sidebar's `sidebar.workspaces` hole;
- * disabled restores it. The category header and native-mode foot entry write;
- * the registration effect follows the store so reloads and live flips agree.
+ * disabled restores it. The shared footer entry writes in both modes; the
+ * registration effect follows the store so reloads and live flips agree.
  */
 const STORAGE_KEY = 'sessionGraph.categoryView'
 

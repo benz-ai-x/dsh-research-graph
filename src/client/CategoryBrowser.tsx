@@ -4,9 +4,10 @@ import {
 } from 'react'
 import {
   IconArchiveOutlineRegular, IconCloseOutlineRegular, IconEditOutlineRegular,
-  IconEllipsisOutlineRegular, IconFlatListOutlineRegular, IconNewChatOutlineRegular, IconPinOutlineRegular,
-  IconPlusOutlineRegular, IconSearchOutlineRegular, IconTriangleRightFillRegular, Menu, type MenuEntry,
-  relativeTime, StateDot, Tooltip,
+  IconEllipsisOutlineRegular, IconFlatListOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
+  IconNewChatOutlineRegular, IconPinOutlineRegular,
+  IconPlusOutlineRegular, IconSearchOutlineRegular, IconSlidersTwoOutlineRegular, IconTriangleRightFillRegular,
+  Menu, type MenuEntry, relativeTime, StateDot, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -17,7 +18,6 @@ import {
   currentAncestryKeys, deriveCategoryTree, searchCategoryNodes, searchCategoryTree, UNGROUPED_KEY,
   type CategoryNode, type CategorySection, type CategorySessionRow,
 } from './category-tree.ts'
-import { setCategoryView } from './category-toggle.ts'
 import styles from './CategoryBrowser.module.css'
 
 export interface CategoryBrowserSource<T> {
@@ -377,6 +377,9 @@ function CategoryGroup(props: {
       >
         {hasMembers ? <Disclosure collapsed={props.collapsed} /> : <span className={styles.disclosure} />}
         <span className={styles.categoryTitle} title={category.title}>{category.title}</span>
+        {props.collapsed && category.sessions.some(row => row.current)
+          ? <span className={styles.currentDescendant} data-current-descendant="true" aria-hidden="true" />
+          : null}
       </button>
       <span className={styles.trailing}>
         <span className={styles.rowCount} aria-label={context.t('category.count', { n: category.sessions.length })}>
@@ -431,6 +434,9 @@ function UncategorizedGroup(props: {
       <button type="button" className={styles.foldButton} data-nav="true" aria-expanded={!props.collapsed} onClick={props.onToggle}>
         <Disclosure collapsed={props.collapsed} />
         <span className={styles.categoryTitle}>{context.t('category.uncategorized')}</span>
+        {props.collapsed && rows.some(row => row.current)
+          ? <span className={styles.currentDescendant} data-current-descendant="true" aria-hidden="true" />
+          : null}
       </button>
       <span className={styles.rowCount} aria-label={context.t('category.count', { n: rows.length })}>{rows.length}</span>
     </div>
@@ -872,17 +878,19 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
 
   return <section className={styles.browser} aria-label={props.t('category.browserTitle')}>
     <header className={styles.header}>
-      <div className={styles.viewSwitch} role="group" aria-label={props.t('category.viewSwitch')}>
-        <button type="button" aria-pressed="false" onClick={() => { setCategoryView(false) }}>
-          {props.t('category.toggle.list')}
-        </button>
-        <button type="button" aria-pressed="true">{props.t('category.toggle.categories')}</button>
-      </div>
+      <span className={styles.headerTitle}>{props.t('category.workspaces')}</span>
       <Menu
         open={optionsOpen}
         portal
         onClose={() => { setOptionsOpen(false) }}
-        anchor={<MoreTrigger label={props.t('category.more')} open={optionsOpen} onToggle={() => { setOptionsOpen(value => !value) }} />}
+        anchor={<button
+          type="button"
+          className={styles.actionButton}
+          aria-label={props.t('category.more')}
+          aria-haspopup="menu"
+          aria-expanded={optionsOpen}
+          onClick={() => { setOptionsOpen(value => !value) }}
+        ><IconSlidersTwoOutlineRegular size={16} /></button>}
         items={[
           { id: 'locate', label: props.t('category.locateCurrent'), disabled: currentRow === undefined },
           { id: 'archived', label: showArchived ? props.t('category.hideArchived') : props.t('category.showArchived') },
@@ -1022,21 +1030,26 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
           return <li key={section.key} className={styles.section} data-section-key={section.key}>
             <div className={styles.treeRow + ' ' + styles.sectionHeader}>
               <button type="button" className={styles.foldButton} data-nav="true" aria-expanded={!sectionCollapsed} onClick={() => { toggle(section.key) }}>
-                <Disclosure collapsed={sectionCollapsed} />
+                <span
+                  className={styles.workspaceMark + (ancestry.has(section.key) ? ` ${styles.workspaceMarkCurrent}` : '')}
+                  aria-hidden="true"
+                >
+                  <span className={styles.workspaceFolder}>
+                    {sectionCollapsed ? <IconFolderCloseRegular size={16} /> : <IconFolderOpenRegular size={16} />}
+                  </span>
+                  <span className={styles.workspaceDisclosure}><Disclosure collapsed={sectionCollapsed} /></span>
+                </span>
                 <span className={styles.sectionTitle} title={sectionLabel(section, props.t)}>{sectionLabel(section, props.t)}</span>
               </button>
-              <span className={styles.trailing}>
-                <span className={styles.rowCount} aria-label={props.t('category.count', { n: section.sessionCount })}>
-                  {section.sessionCount}
-                </span>
-                {section.workspaceId !== undefined ? <span className={styles.rowActions}>
+              {section.workspaceId !== undefined ? <span className={styles.trailing}>
+                <span className={styles.rowActions}>
                   <WorkspaceMenu
                     t={props.t}
                     onCreate={() => { beginCreate(section) }}
                     onNewSession={() => { props.startSession(section.workspaceId) }}
                   />
-                </span> : null}
-              </span>
+                </span>
+              </span> : null}
             </div>
             <div className={styles.reveal} data-closed={sectionCollapsed}>
               <div>
@@ -1054,11 +1067,6 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
                   <ul className={styles.sessionList + ' ' + styles.directSessions}>
                     {section.uncategorized.map(row => <SessionRow key={row.sessionId} row={row} context={context} section={section} />)}
                   </ul>
-                  {section.key === preferredSectionKey && !creating && section.uncategorized.length > 0 ? <button
-                    type="button"
-                    className={styles.createHint}
-                    onClick={() => { beginCreate(section) }}
-                  ><IconPlusOutlineRegular size={13} />{props.t('category.emptyNew')}</button> : null}
                 </> : <ul className={styles.categoryList}>
                   {section.categories.map(category => <CategoryGroup
                     key={category.categoryId}
@@ -1086,12 +1094,14 @@ export function CategoryBrowser(props: CategoryBrowserProps): ReactElement {
                     }}
                     onCancelEditing={() => { finishEditing({ kind: 'category', key: category.categoryId }) }}
                   />)}
-                  <UncategorizedGroup
-                    section={section}
-                    context={context}
-                    collapsed={collapsed.has(`${section.key}:uncategorized`)}
-                    onToggle={() => { toggle(`${section.key}:uncategorized`) }}
-                  />
+                  {section.uncategorized.length > 0 || dragging?.workspaceId === section.workspaceId
+                    ? <UncategorizedGroup
+                      section={section}
+                      context={context}
+                      collapsed={collapsed.has(`${section.key}:uncategorized`)}
+                      onToggle={() => { toggle(`${section.key}:uncategorized`) }}
+                    />
+                    : null}
                 </ul>}
               </div>
             </div>

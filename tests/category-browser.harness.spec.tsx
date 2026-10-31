@@ -3,6 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { SidebarCategoryWorkspace, SidebarCategoryWrite } from '../src/sidebar-category.ts'
 import { CategoryBrowser } from '../src/client/CategoryBrowser.tsx'
+import { CategoryFootToggle } from '../src/client/CategoryFootToggle.tsx'
+import { setCategoryView } from '../src/client/category-toggle.ts'
 import { zh } from '../src/client/locales.ts'
 
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
@@ -20,10 +22,13 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
     IconEditOutlineRegular: icon,
     IconEllipsisOutlineRegular: icon,
     IconFlatListOutlineRegular: icon,
+    IconFolderCloseRegular: icon,
+    IconFolderOpenRegular: icon,
     IconNewChatOutlineRegular: icon,
     IconPinOutlineRegular: icon,
     IconPlusOutlineRegular: icon,
     IconSearchOutlineRegular: icon,
+    IconSlidersTwoOutlineRegular: icon,
     IconTriangleRightFillRegular: icon,
     Menu: ({ open, anchor, items, onSelect }) => <div>{anchor}{open ? <div role="menu">{entries(items, onSelect)}</div> : null}</div>,
     relativeTime: () => ({ unit: 'day', n: 1 }),
@@ -153,16 +158,35 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  setCategoryView(true)
   vi.restoreAllMocks()
 })
 
 describe('CategoryBrowser interactions', () => {
+  it('uses the native Workspace heading instead of a top view switch', async () => {
+    const { props } = fixture()
+    render(<CategoryBrowser {...props} />)
+    await screen.findByRole('button', { name: '缓存' })
+    expect(screen.getByText('工作区', { exact: true })).toBeDefined()
+    expect(screen.queryByRole('group', { name: '会话列表视图' })).toBeNull()
+  })
+
+  it('switches between list and category views from the same footer action', async () => {
+    setCategoryView(false)
+    render(<CategoryFootToggle wide={true} t={translate} />)
+    fireEvent.click(screen.getByRole('button', { name: '切换为分类视图' }))
+    const disable = await screen.findByRole('button', { name: '切换为列表视图' })
+    expect(disable.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.click(disable)
+    expect(await screen.findByRole('button', { name: '切换为分类视图' })).toBeDefined()
+  })
+
   it('shows direct Sessions without repeated Uncategorized or teaching rows when a Workspace has no categories', async () => {
     const { props } = fixture(false)
     render(<CategoryBrowser {...props} />)
     expect(await screen.findByRole('button', { name: '方案 A：让响应更快' })).toBeDefined()
     expect(screen.queryByText('未分类')).toBeNull()
-    expect(screen.getAllByRole('button', { name: '新建分类，整理当前工作区' })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: '新建分类，整理当前工作区' })).toBeNull()
     expect(screen.getByRole('button', { name: '工作区 B' })).toBeDefined()
   })
 
@@ -178,6 +202,34 @@ describe('CategoryBrowser interactions', () => {
       expect(button.firstElementChild?.className).toContain('sessionStatus')
       expect(button.firstElementChild?.childElementCount).toBe(sessionId === 's1' ? 0 : 1)
     }
+  })
+
+  it('omits Workspace totals and reveals an empty Uncategorized target only during dragging', async () => {
+    const { props } = fixture()
+    render(<CategoryBrowser {...props} />)
+    await screen.findByRole('button', { name: '缓存' })
+    const section = document.querySelector<HTMLElement>('[data-section-key="ws-a"]')!
+    expect(within(section).queryByLabelText('2 个会话')).toBeNull()
+    expect(screen.queryByText('未分类')).toBeNull()
+    const source = document.querySelector<HTMLElement>('[data-session-id="s1"]')!
+    fireEvent.dragStart(source, { dataTransfer: dataTransfer() })
+    expect(await screen.findByText('未分类')).toBeDefined()
+    fireEvent.dragEnd(source)
+    await waitFor(() => expect(screen.queryByText('未分类')).toBeNull())
+  })
+
+  it('marks the category containing the current Session only while collapsed', async () => {
+    const { props } = fixture()
+    props.sources.sessions.getSnapshot().byId.s1.retainedBy = { mainView: 1 }
+    render(<CategoryBrowser {...props} />)
+    const trigger = await screen.findByRole('button', { name: '缓存' })
+    await waitFor(() => expect(trigger.getAttribute('aria-expanded')).toBe('true'))
+    const category = document.querySelector<HTMLElement>(`[data-category-id="${A}"]`)!
+    expect(category.querySelector('[data-current-descendant="true"]')).toBeNull()
+    fireEvent.click(trigger)
+    await waitFor(() => expect(category.querySelector('[data-current-descendant="true"]')).not.toBeNull())
+    fireEvent.click(trigger)
+    await waitFor(() => expect(category.querySelector('[data-current-descendant="true"]')).toBeNull())
   })
 
   it('expands a collapsed Workspace before showing its new-category editor', async () => {
