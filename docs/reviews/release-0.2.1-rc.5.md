@@ -36,4 +36,3 @@ Release-preparation [PR #79](https://github.com/benz-ai-x/dsh-research-graph/pul
 - SLSA provenance matches repository `benz-ai-x/dsh-research-graph`, `.github/workflows/publish.yml`, `refs/tags/v0.2.1-rc.5`, commit `e3a68a8776de44764e7242bfe7532c2d82412f60`, and the downloaded archive's SHA-512 (`a02e9228…62174`, byte-identical). Transparency-log entries: `3610593687` and `3610582714`.
 - The official archive independently passed the same isolated packed-profile acceptance with **19 fixture model calls** (`version`/`dshVersion` both `0.2.1-rc.5`, `durableSidebarRestart: true`, installed and removed cleanly). npm `next` is `0.2.1-rc.5`; `latest` remains `0.1.5-rc.1`.
 - Release attachments (official archive + `SHA256SUMS`) were uploaded, downloaded again, checksum-verified, and byte-compared with the registry archive (`cmp` clean). Private evidence is under `.artifacts/release-0.2.1-rc.5/official/`.
-
