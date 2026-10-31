@@ -67,7 +67,7 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.1-rc.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5), npm `next` |
+| Plugin release | [0.2.1-rc.5.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5.1), npm `next` |
 | Required Host | **DSH 0.2.1-rc.5 · Web**, Node.js `^22.19.0 \|\| >=24.0.0` |
 | Data | Research records and Sidebar Categories live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
@@ -81,7 +81,7 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 Requires **DSH 0.2.1-rc.5**, with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
 dsh web
 ```
 
@@ -95,7 +95,8 @@ Every npm release of the current package name, with its required DSH Host (taken
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.1-rc.5` | `0.2.1-rc.5` | Current release (first adaptation of this DSH line), npm `next` |
+| `0.2.1-rc.5.1` | `0.2.1-rc.5` | Current release (native-style sidebar categories and footer view switching), npm `next` |
+| `0.2.1-rc.5` | `0.2.1-rc.5` | First adaptation of this DSH line |
 | `0.2.1-rc.4` | `0.2.1-rc.4` | First adaptation of this DSH line |
 | `0.2.1-rc.3.1` | `0.2.1-rc.3` | Workspace-owned sidebar categories |
 | `0.2.1-rc.3` | `0.2.1-rc.3` | First release of this DSH line |
