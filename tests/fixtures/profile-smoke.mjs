@@ -9,7 +9,7 @@ import { verifyExploration } from './exploration-smoke.mjs'
 import { ownerPeer } from './owner-peer.mjs'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphCategories', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
+export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphFolders', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
 
 export function apply(ctx) {
   let calls = 0
@@ -72,12 +72,12 @@ export function apply(ctx) {
   }
   async function verify() {
     const categories = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
-      namespace: 'sessionGraphCategories', method, args: request === undefined ? {} : { request }, signal,
+      namespace: 'sessionGraphFolders', method, args: request === undefined ? {} : { request }, signal,
     })
     if (process.env.SESSION_GRAPH_SMOKE_RESTART) {
       const expected = JSON.parse(await readFile(process.env.SESSION_GRAPH_SMOKE_RESTART, 'utf8'))
       const workspace = (await categories('list')).find(record => record.workspaceId === expected.workspaceId)
-      assert.deepEqual(workspace.categories, [{ categoryId: expected.categoryId, title: 'Packed Sidebar Category Renamed', sessionIds: [expected.sessionId] }])
+      assert.deepEqual(workspace.folders, [{ folderId: expected.folderId, title: 'Packed Workspace Folder Renamed', sessionIds: [expected.sessionId] }])
       const topic = (await ctx.sessionGraphTopics.list(signal)).find(topic => topic.topicId === expected.topicId)
       assert.deepEqual(topic.references.map(reference => reference.sessionId), expected.topicReferenceSessionIds)
       assert.equal(calls, 0)
@@ -164,24 +164,24 @@ export function apply(ctx) {
     const targetPath = join(process.cwd(), 'research-target')
     await mkdir(targetPath, { recursive: true })
     const targetWorkspace = await ctx.workspaceRegistry.create(targetPath, 'Reuse target')
-    const callsBeforeCategories = calls
+    const callsBeforeFolders = calls
     const workspaceId = String(targetWorkspace.id)
-    const categoryId = randomUUID()
-    const otherCategoryId = randomUUID()
-    const { sessionId: categorySessionId } = await ctx.sessionController.create({ workspaceId: targetWorkspace.id })
-    await categories('write', { kind: 'create', workspaceId, categoryId, title: 'Packed Sidebar Category', sessionId: categorySessionId })
-    await categories('write', { kind: 'create', workspaceId, categoryId: otherCategoryId, title: 'Temporary Sidebar Category' })
-    await categories('write', { kind: 'move', workspaceId, sessionId: categorySessionId, categoryId: otherCategoryId })
-    await categories('write', { kind: 'move', workspaceId, sessionId: categorySessionId, categoryId })
-    await categories('write', { kind: 'rename', workspaceId, categoryId, title: 'Packed Sidebar Category Renamed' })
-    await categories('write', { kind: 'delete', workspaceId, categoryId: otherCategoryId })
-    await assert.rejects(categories('write', { kind: 'move', workspaceId, sessionId: sourceIds[0], categoryId }))
-    assert.deepEqual((await categories('list')).find(record => record.workspaceId === workspaceId).categories, [
-      { categoryId, title: 'Packed Sidebar Category Renamed', sessionIds: [categorySessionId] },
+    const folderId = randomUUID()
+    const otherFolderId = randomUUID()
+    const { sessionId: folderSessionId } = await ctx.sessionController.create({ workspaceId: targetWorkspace.id })
+    await categories('write', { kind: 'create', workspaceId, folderId, title: 'Packed Workspace Folder', sessionId: folderSessionId })
+    await categories('write', { kind: 'create', workspaceId, folderId: otherFolderId, title: 'Temporary Workspace Folder' })
+    await categories('write', { kind: 'move', workspaceId, sessionId: folderSessionId, folderId: otherFolderId })
+    await categories('write', { kind: 'move', workspaceId, sessionId: folderSessionId, folderId })
+    await categories('write', { kind: 'rename', workspaceId, folderId, title: 'Packed Workspace Folder Renamed' })
+    await categories('write', { kind: 'delete', workspaceId, folderId: otherFolderId })
+    await assert.rejects(categories('write', { kind: 'move', workspaceId, sessionId: sourceIds[0], folderId }))
+    assert.deepEqual((await categories('list')).find(record => record.workspaceId === workspaceId).folders, [
+      { folderId, title: 'Packed Workspace Folder Renamed', sessionIds: [folderSessionId] },
     ])
     assert.deepEqual((await topics('list')).find(topic => topic.topicId === topicId).references.map(source => source.sessionId), [sourceIds[1]])
-    assert.equal(calls, callsBeforeCategories)
-    const sidebar = { workspaceId, categoryId, sessionId: categorySessionId, topicId, topicReferenceSessionIds: [sourceIds[1]] }
+    assert.equal(calls, callsBeforeFolders)
+    const sidebar = { workspaceId, folderId, sessionId: folderSessionId, topicId, topicReferenceSessionIds: [sourceIds[1]] }
     await ctx.agentDefaultModel.saveSelection({ provider: 'graph-fixture', model: 'fixture' })
     const firstHistory = await ctx.sessionGraphHistory.read({ sessionId: sourceIds[0] }, signal)
     const preview = await reuse('prepare', { operationId: randomUUID(), workspaceId: targetWorkspace.id, question: 'Continue using these explicit materials.', materials: [

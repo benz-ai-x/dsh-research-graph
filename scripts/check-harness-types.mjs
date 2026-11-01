@@ -62,12 +62,6 @@ for (const [face, entries] of [
     paths: {
       ...Object.fromEntries(Object.entries(upstream.options.paths).map(([key, paths]) =>
         [key, paths.map(path => declarationPath(path, key))])),
-      // The workspace toast SlotFactory declaration is not re-exported by the
-      // package index, and a paths-matched package prefix never falls back to
-      // node_modules, so the slots contract needs this explicit subpath map.
-      '@deepseek-ai/dsh-client-ui-workspace/client/contract/toast': [
-        resolve(root, 'packages/client/ui-workspace/lib/types/client/contract/toast.d.ts'),
-      ],
       // The branch Host reads the default model selection for resumed Agents;
       // the package is not a plugin dependency, so map it to the Harness build.
       '@deepseek-ai/dsh-agent-default-model': [

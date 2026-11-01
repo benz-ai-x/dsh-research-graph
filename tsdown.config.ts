@@ -52,16 +52,48 @@ const BUILD_ID = buildIdOverride === undefined || buildIdOverride === ''
   ? localBuildId()
   : buildIdOverride
 
-const SHARED_MODULES = new Set([
+/**
+ * Packages the DSH browser module table serves at runtime. The browser bundle
+ * must `require` these as-is: the loader answers them from its table (the
+ * baseline platform modules plus one row per `dsh.client.inject` target),
+ * where a bare specifier and its `/client` subpath normalize to the same row.
+ * Every other subpath (e.g. `…/default-workspace`) is not served and must be
+ * inlined, so subpaths other than `/client` stay bundleable.
+ */
+const MODULE_TABLE_ROOTS = new Set([
   'react',
-  'react/jsx-runtime',
   'react-dom',
-  'react-dom/client',
+  '@tanstack/react-virtual',
+  'zod',
   '@deepseek-ai/cordis',
   '@deepseek-ai/dsh-client-store',
   '@deepseek-ai/dsh-client-ui-slots',
   '@deepseek-ai/dsh-client-ui-primitives',
+  '@deepseek-ai/dsh-client-ui-dockkit',
+  // dsh.client.inject targets consumed by the vendored sidebar/workspace halves.
+  '@deepseek-ai/dsh-api-remote-access',
+  '@deepseek-ai/dsh-api-remotes',
+  '@deepseek-ai/dsh-api-session-controller',
+  '@deepseek-ai/dsh-api-workspace-controller',
+  '@deepseek-ai/dsh-client-connection',
+  '@deepseek-ai/dsh-client-locale',
+  '@deepseek-ai/dsh-client-shortcuts',
+  '@deepseek-ai/dsh-client-ui-conversation',
+  '@deepseek-ai/dsh-client-ui-layout',
+  '@deepseek-ai/dsh-client-ui-renderer',
+  '@deepseek-ai/dsh-client-ui-session',
 ])
+
+/** Whether one import specifier resolves through the browser module table. */
+const moduleTableImport = (specifier: string): boolean => {
+  if (specifier.startsWith('@')) {
+    const root = specifier.split('/').slice(0, 2).join('/')
+    if (!MODULE_TABLE_ROOTS.has(root)) return false
+    const sub = specifier.slice(root.length)
+    return sub === '' || sub === '/client'
+  }
+  return MODULE_TABLE_ROOTS.has(specifier.split('/', 1)[0])
+}
 
 /** Emit a lazy module body that installs one package-owned stylesheet on materialization. */
 function styleModule(file: string, css: string, classMap: Readonly<Record<string, string>>): string {
@@ -170,9 +202,15 @@ export default defineConfig([
     sourcemap: true,
     clean: false,
     deps: {
-      neverBundle: (specifier: string) => SHARED_MODULES.has(specifier),
-      alwaysBundle: (specifier: string) => !SHARED_MODULES.has(specifier),
-      onlyBundle: ['clsx'],
+      neverBundle: (specifier: string) => moduleTableImport(specifier),
+      alwaysBundle: (specifier: string) => !moduleTableImport(specifier),
+      // Inline-only third-party imports: clsx plus the contract/wire layers
+      // the module table does not serve (same inline set upstream keeps).
+      onlyBundle: [
+        'clsx',
+        '@deepseek-ai/dsh-util-values',
+        '@deepseek-ai/dsh-util-workspace-path',
+      ],
     },
     define: {
       __SESSION_GRAPH_VERSION__: JSON.stringify(packageManifest.version),

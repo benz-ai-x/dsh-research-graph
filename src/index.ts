@@ -38,7 +38,7 @@ import type { SessionMergeProjection } from './session-merge-projection.ts'
 import { SessionGraphHistoryService } from './session-history-host.ts'
 import { SessionGraphSearchService } from './session-search-host.ts'
 import { ResearchTopicsService, RESEARCH_TOPIC_DOMAIN } from './research-topics-host.ts'
-import { SidebarCategoriesService, SIDEBAR_CATEGORY_DOMAIN } from './sidebar-categories-host.ts'
+import { WorkspaceFoldersService, WORKSPACE_FOLDER_DOMAIN } from './workspace-folders-host.ts'
 import { KnowledgeService, KNOWLEDGE_DOMAIN } from './knowledge-host.ts'
 import { HistoryBranchService, HISTORY_BRANCH_DOMAIN } from './history-branch-host.ts'
 import { ResearchReuseService, RESEARCH_REUSE_DOMAIN } from './research-reuse-host.ts'
@@ -51,7 +51,7 @@ declare module '@deepseek-ai/cordis' {
     sessionGraphHistory: SessionGraphHistoryService
     sessionGraphSearch: SessionGraphSearchService
     sessionGraphTopics: ResearchTopicsService
-    sessionGraphCategories: SidebarCategoriesService
+    sessionGraphFolders: WorkspaceFoldersService
     sessionGraphKnowledge: KnowledgeService
     sessionGraphReuse: ResearchReuseService
     sessionGraphBranch: HistoryBranchService
@@ -225,15 +225,13 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       throw error
     }
   })
-  await ctx.inject(['storageDomain', 'sessionQuery', 'workspaceRegistry', 'sessionGraphTopics'], async categoriesCtx => {
-    const domain = await categoriesCtx.storageDomain.open(SIDEBAR_CATEGORY_DOMAIN)
+  await ctx.inject(['storageDomain', 'sessionQuery', 'workspaceRegistry'], async foldersCtx => {
+    const domain = await foldersCtx.storageDomain.open(WORKSPACE_FOLDER_DOMAIN)
     try {
-      const service = new SidebarCategoriesService(categoriesCtx, domain)
-      await service.migrateLegacyCategories()
       await provideQuiescentRemoteService(
-        categoriesCtx,
-        () => service,
-        'session-graph.sidebar-categories-service',
+        foldersCtx,
+        serviceCtx => new WorkspaceFoldersService(serviceCtx, domain),
+        'session-graph.workspace-folders-service',
       )
     } catch (error) {
       await domain.close()

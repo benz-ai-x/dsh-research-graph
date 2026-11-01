@@ -1386,8 +1386,8 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const listTopics = vi.fn<TypertRemoteMap['sessionGraphTopics/list']>(async () => ({ ok: true, value: [] }))
   const readTopic = vi.fn<TypertRemoteMap['sessionGraphTopics/read']>(async () => { throw new Error('Unconfigured topic read') })
   const writeTopic = vi.fn<TypertRemoteMap['sessionGraphTopics/write']>(async () => { throw new Error('Unconfigured topic write') })
-  const listCategories = vi.fn<TypertRemoteMap['sessionGraphCategories/list']>(async () => ({ ok: true, value: [] }))
-  const writeCategory = vi.fn<TypertRemoteMap['sessionGraphCategories/write']>(async () => { throw new Error('Unconfigured category write') })
+  const listCategories = vi.fn<TypertRemoteMap['sessionGraphFolders/list']>(async () => ({ ok: true, value: [] }))
+  const writeCategory = vi.fn<TypertRemoteMap['sessionGraphFolders/write']>(async () => { throw new Error('Unconfigured category write') })
   const submitMerge = vi.fn(async (request: {
     readonly operationId: string
     readonly sourceIds: readonly SessionId[]
@@ -1453,7 +1453,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
-  ctx.provide('remote.sessionGraphCategories', { list: listCategories, write: writeCategory } as never)
+  ctx.provide('remote.sessionGraphFolders', { list: listCategories, write: writeCategory } as never)
   ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
     hostIdentity: async () => ({ ok: true, value: { hostId } }),
     membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
