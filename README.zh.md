@@ -125,4 +125,4 @@ dsh web
 
 ## 文档与支持
 
-[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.1-rc.3.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.1-rc.5.2.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
