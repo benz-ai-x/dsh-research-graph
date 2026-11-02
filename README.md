@@ -67,9 +67,9 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.1-rc.5.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5.1), npm `next` |
+| Plugin release | [0.2.1-rc.5.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5.2), npm `next` |
 | Required Host | **DSH 0.2.1-rc.5 · Web**, Node.js `^22.19.0 \|\| >=24.0.0` |
-| Data | Research records and Sidebar Categories live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
+| Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
 | Stack and license | TypeScript · React · [MIT](LICENSE) |
@@ -81,7 +81,7 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 Requires **DSH 0.2.1-rc.5**, with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 dsh web
 ```
 

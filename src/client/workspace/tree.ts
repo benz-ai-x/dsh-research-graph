@@ -65,6 +65,7 @@ export interface SessionNode {
 /** Session order selected by the Workspace browser. */
 export type SessionOrderBy = 'manual' | 'updated'
 
+// Local delta vs upstream: user-created Workspace-folder nodes and view keys.
 /** One user-created folder row inside a Workspace group: header facts + member session rows. */
 export interface FolderNode {
   folderId: string
@@ -441,6 +442,7 @@ function sessionNode(
 }
 
 /**
+ * Local delta vs upstream: partition members between folders and the remainder.
  * Derive the workspace browser groups, splitting each Workspace's visible
  * members between its user-created folders and the unassigned remainder.
  *

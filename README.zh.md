@@ -66,7 +66,7 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.2.1-rc.5.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5.1)，npm `next` |
+| 当前插件 | [0.2.1-rc.5.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5.2)，npm `next` |
 | 适配宿主 | **DSH 0.2.1-rc.5 · Web**，Node.js `^22.19.0 \|\| >=24.0.0` |
 | 数据保存 | 研究数据与工作区文件夹保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出不调用模型；AI 生成与新讨论按需调用 |
@@ -80,7 +80,7 @@ flowchart LR
 需要 **DSH 0.2.1-rc.5**，并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 dsh web
 ```
 

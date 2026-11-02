@@ -710,6 +710,7 @@ export function SessionNodeItem({
 }
 
 /**
+ * Local delta vs upstream: user-created folder and Ungrouped rows.
  * One user-created folder row inside a Workspace group: folder glyph + title +
  * member count, hover "..." menu (rename / delete), and — while a Session row
  * drag from the same Workspace is in flight — a drop target that assigns the

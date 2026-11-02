@@ -31,9 +31,10 @@ Every intentional difference from upstream is marked with a
   vendors the shell, so the sidebar SlotMap merges come from
   `src/client/sidebar/contract/slots.ts`); adds the `folders` hook and
   `writeFolder` action to `WorkspaceBrowserInjected`.
-- `src/client/workspace/index.ts` — injects `remote.sessionGraphFolders`
-  (this package's own Host service), keeps a folder-record snapshot store
-  refreshed after every write, and feeds the browser's injected face.
+- `src/client/workspace/index.ts` and `folder-sync.ts` — inject
+  `remote.sessionGraphFolders` (this package's own Host service), synchronize
+  folder records through polling and window-focus refreshes, and discard stale
+  list responses so they cannot overwrite newer writes.
 - `src/client/workspace/tree.ts` — `GroupNode` gains `folders`
   (`FolderNode`), `deriveGroups` partitions each Workspace's visible members
   between its folders and the unassigned remainder, and `TreeView` gains

@@ -263,8 +263,10 @@
 .projectRow:hover .rowActions,
 .sessionRow:hover .rowActions,
 .searchResultRow:hover .rowActions,
+.folderRow:hover .rowActions,
 .projectRow.menuOpen .rowActions,
-.sessionRow.menuOpen .rowActions {
+.sessionRow.menuOpen .rowActions,
+.folderRow.menuOpen .rowActions {
   display: inline-flex;
 }
 

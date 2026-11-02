@@ -18,7 +18,7 @@
 需要已安装 **DeepSeek Harness 0.2.1-rc.5**、Node.js `^22.19.0 || >=24.0.0`，以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 dsh web
 ```
 
@@ -28,7 +28,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前插件 **0.2.1-rc.5.1** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+当前插件 **0.2.1-rc.5.2** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
 
 ## 研究流程
 
@@ -59,7 +59,7 @@ flowchart LR
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.1` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
+| `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.2` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 
 当前预发布 **0.2.1-rc.5.2** 是 **DSH 0.2.1-rc.5** 线的同线修订，也是**破坏性变更**：安装后将以本包自带的侧栏替换官方 `ui-sidebar`/`ui-workspace`，浏览区新增**工作区文件夹**（一级、虚拟、常驻）。侧栏分类被取代——旧分类数据保留在 Host 中休眠、不做迁移；卸载插件即可还原官方侧栏。全部钉版的 `@deepseek-ai/dsh-*` 依赖保持 `0.2.1-rc.5`（`@deepseek-ai/schemastery` 保持 `~3.18.5`、cordis peer 保持 `^4.0.2`）。画布行为、研究主题与知识功能不变。
 
@@ -212,7 +212,7 @@ DSH 持有原始会话；研图将研究主题、工作区文件夹、卡片修�
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -229,7 +229,7 @@ dsh --profile web --dump-config
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 dsh web
 ```
 
@@ -247,7 +247,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
 
-Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.1-rc.5.1` 对应 DSH `0.2.1-rc.5`）。
+Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.1-rc.5.2` 对应 DSH `0.2.1-rc.5`）。
 
 ## 使用图谱
 
@@ -306,7 +306,7 @@ Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插�
 
 在每个工作区的行菜单（**⋯** → **新建文件夹**）可以创建**文件夹**。文件夹是虚拟的、只有一级（**工作区 → 文件夹 → 会话**）、始终启用：没有文件夹的工作区按原生侧栏直接平铺会话；建了文件夹后，树中先显示文件夹行（带计数），其后是收纳未归组会话的**未分组**区段。把会话拖到文件夹行上即移入，拖到“未分组”标签上即移出；未分组区段内保持原生拖拽排序。文件夹自己的 **⋯** 菜单支持重命名与删除——删除仅把成员移回未分组，不会删除会话。
 
-文件夹归组不改变会话归属、历史、工作区统计或研究主题。成员关系与文件夹名由 Host 持久化、各客户端共享；文件夹折叠状态保存在浏览器本地，包含当前会话的文件夹会像原生工作区组一样自动展开。搜索保持原生行为：按会话标题与内容在全 Host 范围平铺匹配，不受文件夹折叠影响。
+文件夹归组不改变会话归属、历史、工作区统计或研究主题。成员关系与文件夹名由 Host 持久化，并通过定时刷新和窗口聚焦刷新在各客户端间同步；文件夹折叠状态保存在浏览器本地，包含当前会话的文件夹会像原生工作区组一样自动展开。搜索保持原生行为：按会话标题与内容在全 Host 范围平铺匹配，不受文件夹折叠影响。
 
 ## 搜索历史讨论
 

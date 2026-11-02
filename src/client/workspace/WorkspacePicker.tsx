@@ -16,6 +16,7 @@ import {
 import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
+// Local delta vs upstream: inline the controller's default-workspace helper.
 import { workspaceDisplayTitle } from './default-workspace.ts'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from './contract/slots.ts'

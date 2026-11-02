@@ -385,8 +385,8 @@ function SessionTree({
     return [...workspaces.map(workspace => workspace.workspaceId), UNGROUPED_KEY]
       .filter(key => groupExpansion[key] ?? ancestorKeys.has(key))
   }, [groupExpansion, parents, workspaces])
-  // Folders read collapsed by default; a folder that contains the current or
-  // revealed Session opens itself like a Workspace group does.
+  // Local delta vs upstream: folders read collapsed by default; a folder that
+  // contains the current or revealed Session opens like a Workspace group.
   const containsId = (folderId: string, workspaceKey: string, sessionId: SessionId | undefined): boolean => {
     if (sessionId === undefined) return false
     const record = folderRecords.get(workspaceKey)
@@ -640,6 +640,7 @@ function SessionTree({
           </div>
         )}
         {group.folders.map((folder) => {
+          // Local delta vs upstream: render folder rows and same-Workspace drops.
           // Folder drops accept only drags from the same Workspace account.
           const folderDropReady = drag !== null && drag.accountKey === group.key && group.workspaceId !== undefined
           const commitFolderAssign = (folderId: string | undefined): void => {

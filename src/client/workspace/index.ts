@@ -27,7 +27,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { WorkspaceFolderRecord, WorkspaceFolderWrite } from '../../workspace-folder.ts'
+import type { WorkspaceFolderRecord } from '../../workspace-folder.ts'
 // Type-only: pulls the Controller service merges.
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -47,6 +47,7 @@ import {
 import { createWorkspaceShortcutControls, installWorkspaceShortcuts } from './shortcuts.ts'
 import { UiWorkspaceService } from './navigation.ts'
 import { createWorkspaceViewStore } from './stores.ts'
+import { createWorkspaceFolderSync } from './folder-sync.ts'
 import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
 import { ArchiveSessionMenuItem, ArchiveSessionRowButton, SessionArchiveConfirmDialog } from './session-actions/ArchiveSession.tsx'
 import { derive } from './session-actions/derived.ts'
@@ -127,22 +128,21 @@ export function apply(ctx: Context): void {
   const rowToast = createSnapshotStore<RowToastState | null>(null)
   let toastSeq = 0
   const notify = (toast: RowToast): void => { rowToast.set({ ...toast, seq: ++toastSeq }) }
-  // Local delta vs upstream: per-Workspace folder records, pulled once and
-  // refreshed after every write (the Remote has no push channel).
+  // Local delta vs upstream: per-Workspace folder records synchronize through
+  // polling and focus refreshes because the Remote has no push channel.
   const folderRecords = createSnapshotStore<readonly WorkspaceFolderRecord[]>([])
-  const replaceFolderRecord = (record: WorkspaceFolderRecord): void => {
-    const current = folderRecords.getSnapshot()
-    folderRecords.set([...current.filter(item => item.workspaceId !== record.workspaceId), record])
+  const folderSync = createWorkspaceFolderSync({ remote: ctx.remote.sessionGraphFolders, store: folderRecords })
+  const writeFolder = folderSync.write
+  const refreshFolders = (): void => {
+    if (document.visibilityState === 'visible') void folderSync.refresh().catch(() => {})
   }
-  const writeFolder = async (request: WorkspaceFolderWrite): Promise<WorkspaceFolderRecord> => {
-    const result = await ctx.remote.sessionGraphFolders.write(request)
-    if (!result.ok) throw new Error(result.error.message)
-    replaceFolderRecord(result.value)
-    return result.value
-  }
-  void ctx.remote.sessionGraphFolders.list().then((result) => {
-    if (result.ok) folderRecords.set(result.value)
-  }).catch(() => {})
+  window.addEventListener('focus', refreshFolders)
+  document.addEventListener('visibilitychange', refreshFolders)
+  ctx.effect(() => () => {
+    window.removeEventListener('focus', refreshFolders)
+    document.removeEventListener('visibilitychange', refreshFolders)
+    folderSync.dispose()
+  }, 'workspace folder synchronization')
   const uiWorkspace = new UiWorkspaceService(
     ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify,
   )

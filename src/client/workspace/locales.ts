@@ -55,6 +55,7 @@ export const zh = {
   'rename.session.title': '重命名会话',
   'field.workspaceName': '工作区名称',
   'field.sessionName': '会话名称',
+  // Local delta vs upstream: Workspace-folder labels and dialogs.
   'folder.new': '新建文件夹',
   'folder.rename': '重命名文件夹',
   'folder.delete': '删除文件夹',
@@ -194,6 +195,7 @@ export const en = {
   'rename.session.title': 'Rename session',
   'field.workspaceName': 'Workspace name',
   'field.sessionName': 'Session name',
+  // Local delta vs upstream: Workspace-folder labels and dialogs.
   'folder.new': 'New folder',
   'folder.rename': 'Rename folder',
   'folder.delete': 'Delete folder',
