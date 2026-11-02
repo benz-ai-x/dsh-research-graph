@@ -126,4 +126,4 @@ Releases up to `0.1.5-rc.1` were also published under the previous package name 
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.1-rc.3.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.1-rc.5.2.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
