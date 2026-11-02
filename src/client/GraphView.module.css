@@ -1924,6 +1924,7 @@
 .knowledgeResults { grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); }
 .topicToolbar, .arrangementStatus { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .arrangementStatus { font-size: 12px; color: var(--dsw-alias-label-secondary); }
+.arrangementStatus > button { flex: none; white-space: nowrap; }
 .topicSelection { align-items: center; min-width: 0; }
 .topicSelection select, .topicControls input { min-height: 34px; padding: 5px 8px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 6px; color: inherit; background: var(--dsw-alias-bg-layer-2); font: inherit; }
 .frameToggle { width: 28px; height: 28px; }

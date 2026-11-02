@@ -17,6 +17,7 @@ import type { DiscussionSearchRequest, DiscussionSearchResult } from '../session
 import type { ResearchTopic, ResearchTopicSnapshot, ResearchTopicWrite } from '../research-topic.ts'
 import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-info.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
+import { ActionMenu } from './ActionMenu.tsx'
 import { DiscussionSearch } from './DiscussionSearch.tsx'
 import { KnowledgeLibrary } from './KnowledgeLibrary.tsx'
 import { ResearchMerge } from './ResearchMerge.tsx'
@@ -154,7 +155,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
   const [toolbarTarget, setToolbarTarget] = useState<HTMLDivElement | null>(null)
   const mergeTrigger = useRef<HTMLButtonElement>()
   useEffect(() => { saveWorkingPosition(workbenchKey, { workbenchView: view }) }, [workbenchKey, view])
-  const closeMerge = (): void => { setMergeOpen(false); queueMicrotask(() => { mergeTrigger.current?.focus() }) }
+  const closeMerge = (): void => { setMergeOpen(false); queueMicrotask(() => { restoreFocus(mergeTrigger.current) }) }
   const [adding, setAdding] = useState<SessionId>()
   const [topicRevision, setTopicRevision] = useState(0)
   const addTrigger = useRef<HTMLElement>()
@@ -168,6 +169,11 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
   }
   const searchButton = useRef<HTMLButtonElement>(null)
   const searchTrigger = useRef<HTMLButtonElement>()
+  const moreButton = useRef<HTMLButtonElement>(null)
+  const restoreFocus = (trigger: HTMLElement | null | undefined): void => {
+    if (trigger?.isConnected) trigger.focus()
+    else moreButton.current?.focus({ preventScroll: true })
+  }
 
   const scope = useMemo(
     () => resolveGraphScope(sessionId, sessions, workspaces),
@@ -240,7 +246,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
             </button>
             {props.mergeResearchSessions ? <button className={`${styles.searchEntry} ${styles.workbenchDesktopAction}`} type="button" onClick={event => { mergeTrigger.current = event.currentTarget; setMergeOpen(true) }}>{t('workbench.merge')}</button> : null}
             <button className={`${styles.primaryButton} ${styles.workbenchDesktopAction}`} type="button" aria-label={t('knowledge.new')} onClick={() => { knowledgeContext?.create() }}><span aria-hidden="true">+ </span>{t('reading.newKnowledge')}</button>
-            <details className={styles.workbenchMore}><summary aria-label={t('workbench.more')} title={t('workbench.more')}><span aria-hidden="true">···</span></summary><div>
+            <ActionMenu label={t('workbench.more')} triggerRef={moreButton} iconOnly>
               <div className={styles.workbenchCompactActions}>
                 {props.mergeResearchSessions ? <button className={styles.searchEntry} type="button" onClick={event => { mergeTrigger.current = event.currentTarget; setMergeOpen(true) }}>{t('workbench.merge')}</button> : null}
                 <button className={styles.searchEntry} type="button" onClick={() => { knowledgeContext?.create() }}>{t('knowledge.new')}</button>
@@ -249,7 +255,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
               <ResearchReuseEntry t={t} />
               <span className={styles.buildInfo} title={SESSION_GRAPH_BUILD_TITLE}>{SESSION_GRAPH_BUILD_LABEL}</span>
               <p>{t('knowledge.localLayout')}</p>
-            </div></details>
+            </ActionMenu>
           </div>
         </header>
         {topicMode ? null : <div className={styles.researchContext}>
@@ -299,7 +305,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
         workingKey={searchKey} initialType={knowledgeEntryKey === searchKey ? 'knowledge' : undefined} initialScope={scope === undefined ? { kind: 'all' } : scope.kind === 'workspace' ? { kind: 'workspace', workspaceId: scope.workspaceId } : { kind: 'directory', cwd: scope.path }}
         workspaces={workspaces.items} search={searchDiscussion} read={readSessionHistory} open={openSession} t={t}
         onAddToTopic={addToTopic}
-        onClose={() => { setSearchOpen(false); queueMicrotask(() => { (searchTrigger.current ?? searchButton.current)?.focus() }) }} /></div> : null}
+        onClose={() => { setSearchOpen(false); queueMicrotask(() => { restoreFocus(searchTrigger.current ?? searchButton.current) }) }} /></div> : null}
       {adding === undefined ? null : <section className={styles.searchOverlay} role="dialog" aria-modal="true" aria-label={t('topic.add')}
         onKeyDown={event => {
           if (event.key === 'Escape') { event.stopPropagation(); closePicker() }

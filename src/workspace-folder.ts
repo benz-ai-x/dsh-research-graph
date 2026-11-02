@@ -1,36 +1,36 @@
-export interface SidebarCategory {
-  readonly categoryId: string
+export interface WorkspaceFolder {
+  readonly folderId: string
   readonly title: string
   readonly sessionIds: readonly string[]
 }
 
-export interface SidebarCategoryWorkspace {
+export interface WorkspaceFolderRecord {
   readonly workspaceId: string
-  readonly categories: readonly SidebarCategory[]
+  readonly folders: readonly WorkspaceFolder[]
 }
 
-export type SidebarCategoryWrite =
+export type WorkspaceFolderWrite =
   | {
     readonly kind: 'create'
     readonly workspaceId: string
-    readonly categoryId: string
+    readonly folderId: string
     readonly title: string
     readonly sessionId?: string
   }
   | {
     readonly kind: 'rename'
     readonly workspaceId: string
-    readonly categoryId: string
+    readonly folderId: string
     readonly title: string
   }
   | {
     readonly kind: 'delete'
     readonly workspaceId: string
-    readonly categoryId: string
+    readonly folderId: string
   }
   | {
     readonly kind: 'move'
     readonly workspaceId: string
     readonly sessionId: string
-    readonly categoryId?: string
+    readonly folderId?: string
   }

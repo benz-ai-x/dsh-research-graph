@@ -272,12 +272,14 @@ describe('research workflow discovery', () => {
     await b.fiber.dispose()
   })
 
-  it('opens the knowledge library directly, updates the search heading, and returns focus to its entry', async () => {
+  it('opens the knowledge library directly, updates the search heading, and returns focus to the persistent More trigger', async () => {
     const b = await bench({ a: session('a') })
     mount(b.slots, b.sessionsStore, 'a')
     switchTab('Research Graph')
     // Container CSS switches between the toolbar and compact More entry.
     expect(screen.getAllByRole('button', { name: '新建知识卡片' }).length).toBeGreaterThan(0)
+    const more = screen.getByRole('button', { name: '更多' })
+    fireEvent.click(more)
     const entry = screen.getByRole('button', { name: '知识卡片' })
     fireEvent.click(entry)
     const search = screen.getByRole('dialog', { name: '搜索知识卡片' })
@@ -286,7 +288,25 @@ describe('research workflow discovery', () => {
     fireEvent.click(within(search).getByRole('button', { name: '讨论原文' }))
     expect(screen.getByRole('dialog', { name: '搜索历史讨论' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '关闭搜索' }))
-    await waitFor(() => { expect(document.activeElement).toBe(entry) })
+    await waitFor(() => { expect(document.activeElement).toBe(more) })
+    await b.fiber.dispose()
+  })
+
+  it('closes the workbench More menu after an action and with Escape', async () => {
+    const b = await bench({ a: session('a') })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    const trigger = screen.getByRole('button', { name: '更多' })
+    fireEvent.click(trigger)
+    const menu = screen.getByRole('group', { name: '更多' })
+    fireEvent.click(within(menu).getByRole('button', { name: '新建知识卡片' }))
+    expect(screen.queryByRole('group', { name: '更多' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '关闭卡片' }))
+    fireEvent.click(trigger)
+    const reopened = screen.getByRole('group', { name: '更多' })
+    fireEvent.keyDown(reopened, { key: 'Escape' })
+    expect(screen.queryByRole('group', { name: '更多' })).toBeNull()
+    expect(document.activeElement).toBe(trigger)
     await b.fiber.dispose()
   })
 
@@ -297,6 +317,7 @@ describe('research workflow discovery', () => {
     const workspaceKey = workingPositionKey('test-host', 'workspace:a')
     mount(b.slots, b.sessionsStore, 'root', workspaceStore)
     switchTab('Research Graph')
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
     fireEvent.click(screen.getByRole('button', { name: '知识卡片' }))
     await waitFor(() => { expect(b.searchKnowledge).toHaveBeenCalledTimes(1) })
     fireEvent.click(screen.getByRole('button', { name: '讨论原文' }))
@@ -321,6 +342,7 @@ describe('research workflow discovery', () => {
     fireEvent.click(screen.getByRole('button', { name: '搜索讨论与知识' }))
     expect(screen.getByRole('dialog', { name: '搜索历史讨论' })).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '关闭搜索' }))
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
     fireEvent.click(screen.getByRole('button', { name: '知识卡片' }))
     expect(screen.getByRole('dialog', { name: '搜索知识卡片' })).toBeTruthy()
     expect(b.open).not.toHaveBeenCalled()
@@ -336,6 +358,7 @@ describe('research workflow discovery', () => {
     localStorage.setItem(`dsh.session-graph.position.${workspaceKey}`, JSON.stringify({ v: 1, searchType, discussion, knowledge }))
     mount(b.slots, b.sessionsStore, 'root', workspaceStore)
     switchTab('Research Graph')
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
     fireEvent.click(screen.getByRole('button', { name: '知识卡片' }))
     await waitFor(() => { expect(b.searchKnowledge).toHaveBeenCalledWith({ query: '' }, expect.any(AbortSignal)) })
 
@@ -363,6 +386,7 @@ describe('research workflow discovery', () => {
       turns: knowledgeSource().source.turns, hasEarlier: false, hasLater: false } })
     mount(b.slots, b.sessionsStore, 'session-a', workspacesState([{ workspaceId: 'b', title: '目标 B', path: '/b', sessionIds: [], createdAt: '', updatedAt: '' }]))
     switchTab('Research Graph')
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
     fireEvent.click(screen.getByRole('button', { name: '材料（0）' }))
     fireEvent.change(screen.getByRole('textbox', { name: '新问题' }), { target: { value: '保留这个问题' } })
     fireEvent.click(screen.getByRole('button', { name: '选择材料' }))
@@ -731,6 +755,7 @@ describe('Research reuse registered Graph workflow', () => {
     fireEvent.click(screen.getByRole('tab', { name: '原文' }))
     fireEvent.click(await screen.findByRole('checkbox', { name: '选择第 1 轮' }))
     fireEvent.click(screen.getByRole('button', { name: '将所选轮次加入材料' }))
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
     fireEvent.click(screen.getByRole('button', { name: '材料（1）' }))
     const dialog = await screen.findByRole('dialog', { name: '开始新讨论' })
     fireEvent.change(within(dialog).getByRole('textbox', { name: '新问题' }), { target: { value: '新研究问题' } })
@@ -1386,8 +1411,8 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const listTopics = vi.fn<TypertRemoteMap['sessionGraphTopics/list']>(async () => ({ ok: true, value: [] }))
   const readTopic = vi.fn<TypertRemoteMap['sessionGraphTopics/read']>(async () => { throw new Error('Unconfigured topic read') })
   const writeTopic = vi.fn<TypertRemoteMap['sessionGraphTopics/write']>(async () => { throw new Error('Unconfigured topic write') })
-  const listCategories = vi.fn<TypertRemoteMap['sessionGraphCategories/list']>(async () => ({ ok: true, value: [] }))
-  const writeCategory = vi.fn<TypertRemoteMap['sessionGraphCategories/write']>(async () => { throw new Error('Unconfigured category write') })
+  const listCategories = vi.fn<TypertRemoteMap['sessionGraphFolders/list']>(async () => ({ ok: true, value: [] }))
+  const writeCategory = vi.fn<TypertRemoteMap['sessionGraphFolders/write']>(async () => { throw new Error('Unconfigured category write') })
   const submitMerge = vi.fn(async (request: {
     readonly operationId: string
     readonly sourceIds: readonly SessionId[]
@@ -1453,7 +1478,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('remote.sessionGraphHistory', { read: readHistory } as never)
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
-  ctx.provide('remote.sessionGraphCategories', { list: listCategories, write: writeCategory } as never)
+  ctx.provide('remote.sessionGraphFolders', { list: listCategories, write: writeCategory } as never)
   ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
     hostIdentity: async () => ({ ok: true, value: { hostId } }),
     membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
@@ -1869,6 +1894,7 @@ describe('graph tab rendering and interaction', () => {
     const b = await bench(FIXTURE)
     mount(b.slots, b.sessionsStore, 'root')
     switchTab('Research Graph')
+    fireEvent.click(screen.getByRole('button', { name: '更多' }))
 
     const badge = screen.getByText(`Research Graph v${packageMetadata.version} · test-build`)
     expect(badge.getAttribute('title')).toBe(
