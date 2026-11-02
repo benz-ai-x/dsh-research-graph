@@ -174,8 +174,8 @@ A named, Workspace-owned virtual folder for organizing Sessions in the sidebar. 
 _Avoid_: Research Topic, Workspace, Tag
 
 **Ungrouped**:
-The Workspace sidebar section containing Sessions assigned to no Workspace Folder. Moving a Session there removes only its folder assignment. It is not a folder, a Workspace, or a Research Topic.
-_Avoid_: Uncategorized, Workspace Folder, Research Topic
+A context-dependent sidebar display label for two non-equivalent cases: Sessions not accounted to any Workspace form the native Workspace-less bucket; within a Workspace, it labels members assigned to no Workspace Folder. The label alone establishes neither Workspace membership nor folder assignment; read it with its containing section. Moving a Workspace member into that section removes only its folder assignment. Neither case is a folder or a Research Topic.
+_Avoid_: treating the two contexts as one bucket, Uncategorized, Workspace Folder, Research Topic
 
 **Sidebar Category**:
 The retired predecessor of Workspace Folders. Existing `session_graph_sidebar_categories` records remain dormant and are not migrated; the term must not be presented as the current organizing model.

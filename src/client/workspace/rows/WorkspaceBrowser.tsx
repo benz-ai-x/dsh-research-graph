@@ -562,6 +562,7 @@ function SessionTree({
       : (half: 'before' | 'after') => {
         commitWorkspaceDrag(workspaceDrag, { id: workspaceId, half })
       }
+    // Local delta vs upstream: folder headers and Ungrouped share one move write.
     const commitFolderAssign = (folderId: string | undefined): void => {
       if (drag === null || sessionDropCommitted.current) return
       sessionDropCommitted.current = true
