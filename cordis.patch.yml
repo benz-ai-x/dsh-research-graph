@@ -1,4 +1,12 @@
-# Optional Web Profile Bundle: add the Research Graph view.
+# Optional Web Profile Bundle: add the Research Graph view and let this
+# package's vendored sidebar + workspace browsing halves replace the official
+# client plugins. Bundle patch layers apply after the shipped web-app layers,
+# so these overrides disable the official rows while this bundle is enabled;
+# uninstalling it restores the official sidebar.
+- id: ui-sidebar
+  disabled: true
+- id: ui-workspace
+  disabled: true
 - insert:
     - id: ui-session-graph
       name: '@benz-ai-x/dsh-research-graph'

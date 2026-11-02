@@ -58,7 +58,15 @@ async function command(args) {
 let app
 try {
   await command(['plugin', '--profile', 'web', 'add', archive])
-  assert.ok((await command(['--profile', 'web', '--dump-config'])).includes(`name: '${manifest.name}'`))
+  const installedConfig = await command(['--profile', 'web', '--dump-config'])
+  assert.ok(installedConfig.includes(`name: '${manifest.name}'`))
+  // This bundle replaces the official sidebar: its patch layer must disable
+  // the official ui-sidebar / ui-workspace rows while it stays installed.
+  for (const row of ['ui-sidebar', 'ui-workspace']) {
+    const at = installedConfig.indexOf(`id: ${row}`)
+    assert.ok(at >= 0 && /disabled: true/.test(installedConfig.slice(at, at + 400)),
+      `official ${row} row is not disabled by the bundle patch: ${JSON.stringify(installedConfig.slice(Math.max(0, at - 100), at + 400))}`)
+  }
   assert.ok((await command(['plugin', '--profile', 'web', 'exec', 'dsh-research-graph-migrate', '--help']))
     .includes('Without --output, validates only.'))
   const patch = join(root, 'smoke.patch.yml')
@@ -83,7 +91,7 @@ try {
   const stopped = await app.done.finally(() => clearTimeout(timeout))
   assert.equal(stopped.code, 130, `Profile did not complete its SIGINT shutdown: ${redact(app.output())}`)
   app = undefined
-  const sidebarPath = join(root, 'sidebar-category.json')
+  const sidebarPath = join(root, 'workspace-folders.json')
   await writeFile(sidebarPath, JSON.stringify(report.sidebar))
   await rm(reportPath)
   env.SESSION_GRAPH_SMOKE_RESTART = sidebarPath

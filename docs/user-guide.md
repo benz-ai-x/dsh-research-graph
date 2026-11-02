@@ -8,7 +8,7 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 
 | What you want to do | Read next |
 | --- | --- |
-| Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) · [Sidebar categories](#browse-sessions-by-sidebar-categories) |
+| Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) · [Workspace folders](#organize-sessions-with-workspace-folders) |
 | Read and verify evidence | [Original discussion](#read-original-discussion) · [Body search](#search-discussion-history) · [Session Digests](#generate-a-session-digest) |
 | Capture and reuse knowledge | [Knowledge Cards](#knowledge-cards) · [AI extraction](#reviewed-ai-extraction) · [Synthesis](#compare-and-synthesize) · [Follow-up discussions](#start-a-discussion-from-selected-materials) |
 | Install, recover, or troubleshoot | [Install](#install) · [History recovery](#recover-historical-merge-sessions) · [Working position](#return-to-your-working-position) · [Troubleshooting](#troubleshooting) |
@@ -18,7 +18,7 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 Requires **DeepSeek Harness 0.2.1-rc.5**, Node.js `^22.19.0 || >=24.0.0`, and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 dsh web
 ```
 
@@ -28,7 +28,7 @@ Open the one-time authenticated URL printed by the command; do not share its tok
 2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
 3. Open the saved card in **Knowledge**, inspect its sources, and choose **Continue discussion** to preview the materials for another question.
 
-Current plugin **0.2.1-rc.5.1** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
+Current plugin **0.2.1-rc.5.2** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
 
 ## Research workflow
 
@@ -59,9 +59,9 @@ Source discovery and tool execution come from your selected DSH environment. Res
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.1` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
+| `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.2` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 
-Current prerelease **0.2.1-rc.5.1** is the first same-line revision for **DSH 0.2.1-rc.5**. Every pinned `@deepseek-ai/dsh-*` dependency remains at `0.2.1-rc.5` (`@deepseek-ai/schemastery` stays `~3.18.5` and the cordis peer stays `^4.0.2`). This revision aligns Sidebar Categories with native Workspace rows, moves List/Category switching to one shared footer action, hides empty Uncategorized until dragging, and removes the duplicate new-category hint. Persistence schemas, canvas geometry, Research Topics, and Sidebar Category membership semantics are unchanged. See the [release acceptance record](reviews/release-0.2.1-rc.5.1.md) for validation and known limitations.
+Current prerelease **0.2.1-rc.5.2** is a same-line revision for **DSH 0.2.1-rc.5** and a **breaking change**: installation replaces the official `ui-sidebar`/`ui-workspace` with this package's vendored browser and adds **Workspace folders** (single-level, virtual, always enabled). Sidebar Categories are superseded; old category data remains dormant on the Host and is not migrated. Uninstalling restores the official sidebar. Every pinned `@deepseek-ai/dsh-*` dependency remains at `0.2.1-rc.5` (`@deepseek-ai/schemastery` stays `~3.18.5` and the cordis peer stays `^4.0.2`). Canvas behavior, Research Topics, and knowledge features are unchanged.
 
 In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name.
 
@@ -96,7 +96,7 @@ A professional research preset can supply methods, tools, and skills while Resea
 
 ### Where are research knowledge and original discussions stored?
 
-DSH owns original Sessions. Research Graph stores topics, Sidebar Categories, card revisions, retained sources, and acknowledged material-reuse records on the Host. The browser retains the List/Categories preference, collapse choices, working positions, and unsaved arrangements; Topic arrangements synchronize only after **Save arrangement**.
+DSH owns original Sessions. Research Graph stores topics, Workspace folders, card revisions, retained sources, and acknowledged material-reuse records on the Host. The browser retains folder collapse choices, working positions, and unsaved arrangements; Topic arrangements synchronize only after **Save arrangement**.
 
 ### Does organizing the graph call a model?
 
@@ -210,7 +210,7 @@ The [DSH plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/ds
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -227,7 +227,7 @@ The product is now **DSH Research Graph · 研图**, and the repository is `benz
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 dsh web
 ```
 
@@ -245,7 +245,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
 
-Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.2.1-rc.5` for plugin `0.2.1-rc.5.1`).
+Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.2.1-rc.5` for plugin `0.2.1-rc.5.2`).
 
 ## Use the graph
 
@@ -300,15 +300,13 @@ See the [Research Topics acceptance record and screenshots](reviews/issue-5-ui-a
 
 The topic toolbar keeps selection and layout sync status together; creation and rename fields open on demand. Workspace arrangements are kept on this device, while **Save arrangement** syncs a topic arrangement to the Host. Singleton clusters show just their node, and long node titles use up to two lines.
 
-## Browse sessions by sidebar categories
+## Organize sessions with Workspace folders
 
-The plugin can replace the sidebar's session list with a **Workspace → category → Session** tree. A category is a **single-assignment folder** inside one Workspace: a Session belongs to at most one category and otherwise appears under **Uncategorized**, so membership accounting stays consistent with the native list. Sessions no Workspace accounts trail under **Ungrouped**. Categories use independent Host records and **are not Research Topics**: moving, renaming, or deleting a category never changes Research Topic membership, original discussions, or Session ownership.
+Since `0.2.1-rc.5.2` this package ships its own copy of the DSH sidebar: installing it disables the official `ui-sidebar`/`ui-workspace` plugins and the vendored browser takes over the whole browsing region (brand, collapse rail, search, settings seat, panel list, and the Workspace tree). Uninstall the plugin — or pin `0.2.1-rc.5.1` — to restore the official sidebar. All other plugins keep working: their entries still land in the sidebar's seats, and every Session row keeps its native **⋯** menu and hover actions, including inside folders.
 
-Use the shared footer action to switch between **List** and **Categories**; both views retain the native Workspace header and row styling. A Workspace menu creates categories and new Sessions. Workspaces without categories list their Sessions directly. Once categories exist, nonempty Uncategorized appears as a collapsible system group; an empty one appears only as a drop target during dragging. Collapsed categories containing the current Session show a subtle marker. On first use, only the current Workspace and category expand, then manual collapse choices are retained. Rename from the category menu or double-click. Delete confirmation explains that members only return to Uncategorized and no Session is deleted. Sessions sort by pin and recent activity, while current, running, archived, and relative-time facts stay visible.
+Inside each Workspace you can create **folders** from the Workspace row's **⋯** menu (**New folder**). Folders are virtual, single-level (**Workspace → folder → Session**), and always enabled: a Workspace without folders lists its Sessions exactly like the native sidebar, and once folders exist the tree shows folder rows (with counts) followed by a **Ungrouped** section for unassigned Sessions. Drag a Session onto a folder header to assign it, or onto the Ungrouped label to remove it; positional drag reorder stays native behavior inside the ungrouped section. Rename or delete folders from their own **⋯** menu — deleting returns members to Ungrouped and never deletes Sessions.
 
-Each Session's **⋯** menu offers **Move to category**, **Move to Uncategorized**, **New category and move**, pin, and archive. You can also drag directly onto a category or Uncategorized within the same Workspace. Dragging provides target highlighting, hover expansion, edge auto-scroll, and Escape cancellation, with Undo after a successful move. Moves and create-and-move are atomic writes: failures retain the original assignment and input. Search matches both category and Session titles, with highlighting, Up/Down selection, and Enter to open. Arrow keys navigate, expand, and collapse tree rows. The view **⋯** menu reveals the current Session and toggles archived visibility; the currently viewed archived Session retains its row and current marker. Category membership and names are Host-persisted and shared by clients, while Research Topics retain their cross-Workspace, multi-membership semantics.
-
-On upgrade, existing Workspace-attributed Research Topics are imported once into independent Sidebar Category records. The original Topics are not renamed, deleted, or changed, and later sidebar edits do not flow back into them. The List/Categories preference and collapse choices are browser-local; category membership and names survive Host restart.
+Folder assignment never changes Session ownership, history, Workspace accounting, or Research Topics. Membership and folder names are Host-persisted and synchronized between clients through polling and window-focus refreshes; folder collapse choices are browser-local, and the folder containing the current Session opens itself like a native Workspace group. Search keeps its native behavior: it matches Session titles and content across the whole Host, flat and independent of folder collapse.
 
 ## Search discussion history
 

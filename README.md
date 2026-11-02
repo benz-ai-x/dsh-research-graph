@@ -53,7 +53,7 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 | Capability | What you can do |
 | --- | --- |
 | **Research graph** | Organize discussions, inspect branches and merges; drag, collapse, and relayout; cards show turn counts and the inspector reports Session stats |
-| **Sidebar categories** | Organize Sessions into single-assignment categories within each Workspace; drag to move, undo, and search categories or Sessions; counts match the native list and Research Topics stay unchanged |
+| **Own sidebar with Workspace folders** | Replaces the official sidebar with this package's copy and adds user-created folders inside each Workspace: create/rename/delete from the workspace menu, drag Sessions in or out, native row menus everywhere. Uninstalling the plugin restores the official sidebar |
 | **Source tracing** | Search discussion text and return to the exact original turns |
 | **Knowledge capture** | Save conclusions, conditions, and open questions; edit through new revisions |
 | **AI analysis** | Extract selected discussion and compare 2–3 materials; review before saving |
@@ -67,9 +67,9 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.1-rc.5.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5.1), npm `next` |
+| Plugin release | [0.2.1-rc.5.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.1-rc.5.2), npm `next` |
 | Required Host | **DSH 0.2.1-rc.5 · Web**, Node.js `^22.19.0 \|\| >=24.0.0` |
-| Data | Research records and Sidebar Categories live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
+| Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
 | Stack and license | TypeScript · React · [MIT](LICENSE) |
@@ -81,7 +81,7 @@ Version 0.2.1-rc.3 with demo data. Click the image for the full-resolution scree
 Requires **DSH 0.2.1-rc.5**, with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
 dsh web
 ```
 
@@ -95,7 +95,8 @@ Every npm release of the current package name, with its required DSH Host (taken
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.1-rc.5.1` | `0.2.1-rc.5` | Current release (native-style sidebar categories and footer view switching), npm `next` |
+| `0.2.1-rc.5.2` | `0.2.1-rc.5` | Current release — **breaking change**: replaces the official sidebar with the vendored copy and Workspace folders (supersedes sidebar categories; old category data stays dormant); npm `next` |
+| `0.2.1-rc.5.1` | `0.2.1-rc.5` | Native-style sidebar categories and footer view switching |
 | `0.2.1-rc.5` | `0.2.1-rc.5` | First adaptation of this DSH line |
 | `0.2.1-rc.4` | `0.2.1-rc.4` | First adaptation of this DSH line |
 | `0.2.1-rc.3.1` | `0.2.1-rc.3` | Workspace-owned sidebar categories |

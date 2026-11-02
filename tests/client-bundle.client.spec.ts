@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** Executes the packed browser-module format against a minimal dsh Client context. */
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -38,6 +38,7 @@ interface ViewDefinition {
 }
 
 interface FakeContext {
+  plugin: (definition: Readonly<Record<string, unknown>>) => { dispose: () => Promise<void> }
   inject: (
     services: readonly string[],
     apply: (ctx: FakeContext) => void | Promise<void>,
@@ -101,13 +102,22 @@ async function loadArtifact(): Promise<{ readonly handoff: Handoff; readonly plu
     ['react', await import('react')],
     ['react/jsx-runtime', await import('react/jsx-runtime')],
     ['react-dom', await import('react-dom')],
-    // Only factory wiring is exercised here; rendered Markdown uses the real
+    // Only factory wiring is exercised here; the vendored halves' service
+    // calls stay behind the plugin() stub, and rendered output uses the real
     // matching Host in views.client.spec.tsx and packed-profile acceptance.
+    ['@deepseek-ai/cordis', await import('@deepseek-ai/cordis')],
+    ['@deepseek-ai/dsh-client-store', {}],
+    ['@deepseek-ai/dsh-client-ui-slots', {}],
     ['@deepseek-ai/dsh-client-ui-primitives', { MarkdownText: () => { throw new Error('Use the Harness suite for Markdown rendering') } }],
   ])
   const metadata = JSON.parse(readFileSync(resolve('package.json'), 'utf8'))
+  // Baseline platform modules are served without an inject row; every other
+  // scoped request must name a declared module-table dependency.
+  const baseline = new Set(['@deepseek-ai/cordis', '@deepseek-ai/dsh-client-store', '@deepseek-ai/dsh-client-ui-slots', '@deepseek-ai/dsh-client-ui-primitives'])
   const plugin = handoff!.factory((specifier) => {
-    if (specifier.startsWith('@deepseek-ai/')) expect(metadata.dsh.client.inject).toContain(specifier)
+    if (specifier.startsWith('@deepseek-ai/') && !baseline.has(specifier)) {
+      expect(metadata.dsh.client.inject).toContain(specifier)
+    }
     if (!shared.has(specifier)) throw new Error(`unexpected client-module request: ${specifier}`)
     return shared.get(specifier)
   }) as unknown as ClientPlugin
@@ -124,7 +134,7 @@ describe('tsdown client artifact', () => {
     const { handoff, plugin } = await loadArtifact()
     expect(handoff.id).toBe(PLUGIN_ID)
     expect(plugin.apply).toBeTypeOf('function')
-    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote', 'remote.session'])
+    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session'])
   })
 
   it('registers and disposes the Graph view through the dsh Client services', async () => {
@@ -164,8 +174,13 @@ describe('tsdown client artifact', () => {
         }
       },
     }
+    const mountedHalves: Readonly<Record<string, unknown>>[] = []
     let ctx: FakeContext
     ctx = {
+      plugin: definition => {
+        mountedHalves.push(definition)
+        return { dispose: async () => {} }
+      },
       inject: (services, apply) => {
         injectedServices.push(services)
         const injectedCtx: FakeContext = {
@@ -291,11 +306,13 @@ describe('tsdown client artifact', () => {
       'slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale',
       'remote.session',
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
-      'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphCategories',
+      'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphFolders',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',
     ]])
-    expect(new Set(slotNames)).toEqual(new Set(['conversation.view', 'sidebar.footer.action', 'sidebar.workspaces']))
-    expect(views).toHaveLength(3)
+    // The vendored sidebar/workspace halves mount through ctx.plugin and are
+    // exercised by the Harness suite; this face sees only the Graph entry.
+    expect(new Set(slotNames)).toEqual(new Set(['conversation.view']))
+    expect(views).toHaveLength(1)
     const graph = views.find(view => view.name === 'conversation.view')
     expect(graph).toMatchObject({ name: 'conversation.view', id: 'graph' })
     expect(graph?.label()).toBe('Research Graph')
@@ -337,8 +354,12 @@ describe('tsdown client artifact', () => {
 
   it('injects package-tagged CSS when the factory materializes', async () => {
     await loadArtifact()
-    // One style tag per CSS module: the Graph view and the category browser.
+    // One style tag per CSS module across the whole client bundle: the Graph
+    // view plus the vendored sidebar/workspace browser surfaces.
+    const cssModules = readdirSync(resolve('src/client'), { recursive: true })
+      .filter(name => String(name).endsWith('.module.css'))
+      .length
     expect(document.querySelectorAll(`style[data-plugin=${JSON.stringify(PLUGIN_ID)}]`))
-      .toHaveLength(2)
+      .toHaveLength(cssModules)
   })
 })

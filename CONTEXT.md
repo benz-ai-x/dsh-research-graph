@@ -169,9 +169,17 @@ _Avoid_: Session Snapshot, copied discussion, knowledge card
 The projection of a Research Topic's Session references and Knowledge Cards, together with addressed discussion sources and follow-ups, including archived or unavailable references. It distinguishes Host-supported Branch and Merge Relations from saved Source, Synthesis, and acknowledged Reuse Relations; visibility does not imply topic membership or eligibility as a Canvas Session in a Workspace Scope.
 _Avoid_: Global graph, Workspace Scope, Session Cluster
 
-**Sidebar Category**:
-A named, Workspace-owned folder for organizing Sessions in the sidebar. Within one Workspace, a Session belongs to at most one Sidebar Category and is otherwise Uncategorized. Moving, renaming, or deleting a Sidebar Category changes only sidebar organization, never Session ownership, original history, or Research Topic membership. Sidebar Categories are Host-persisted but do not create Topic Graph collections or model context.
+**Workspace Folder**:
+A named, Workspace-owned virtual folder for organizing Sessions in the sidebar. Within one Workspace, a Session belongs to at most one Workspace Folder. Creating, renaming, moving, or deleting a folder changes only sidebar organization, never Session ownership, original history, or Research Topic membership. Folder names and membership are Host-persisted and synchronized to connected clients; they do not create Topic Graph collections or model context.
 _Avoid_: Research Topic, Workspace, Tag
+
+**Ungrouped**:
+A context-dependent sidebar display label for two non-equivalent cases: Sessions not accounted to any Workspace form the native Workspace-less bucket; within a Workspace, it labels members assigned to no Workspace Folder. The label alone establishes neither Workspace membership nor folder assignment; read it with its containing section. Moving a Workspace member into that section removes only its folder assignment. Neither case is a folder or a Research Topic.
+_Avoid_: treating the two contexts as one bucket, Uncategorized, Workspace Folder, Research Topic
+
+**Sidebar Category**:
+The retired predecessor of Workspace Folders. Existing `session_graph_sidebar_categories` records remain dormant and are not migrated; the term must not be presented as the current organizing model.
+_Avoid_: Workspace Folder, Research Topic, current sidebar organization
 
 **Research Export**:
 A standalone Markdown artifact from an explicit set of saved Knowledge Card revisions. Preview freezes the latest selected revisions and their retained source ranges; download uses exactly those bytes. Original availability is checked and annotated without replacing saved excerpts. An export never creates knowledge, sends model context, or changes Session history.

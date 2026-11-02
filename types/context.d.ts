@@ -10,6 +10,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
 declare module '@deepseek-ai/cordis' {
   interface Events {
     'agent/error'(payload: { readonly agent: import('@deepseek-ai/dsh-agent').Agent; readonly error: unknown }): void
+    'connection/reset'(): void
   }
   interface Context {
     readonly storageDomain: {
@@ -18,6 +19,7 @@ declare module '@deepseek-ai/cordis' {
     readonly locale: {
       register: (namespace: string, dictionaries: Readonly<Record<string, object>>) => () => void
       bind: (namespace: string) => (key: string, params?: Record<string, unknown>) => string
+      subscribe: (listener: () => void) => () => void
     }
     readonly slots: {
       inject: (name: string, install: () => unknown) => () => void
@@ -25,6 +27,16 @@ declare module '@deepseek-ai/cordis' {
         definition: Readonly<Record<string, unknown>>,
         component: unknown,
       ) => () => void
+      registerFactory: (definition: Readonly<Record<string, unknown>>, factory: unknown) => () => void
+      provideRoot: (entries: {
+        readonly hooks?: unknown
+        readonly keyedHooks?: Readonly<Record<string, (id: string, member?: string) => unknown>>
+      }) => void
+      entriesOfSlot: (name: string) => readonly {
+        readonly options: { readonly id?: string; readonly order?: number; readonly label?: import('@deepseek-ai/dsh-client-ui-slots').SlotLabel | undefined }
+      }[]
+      entries: (name: string) => readonly unknown[]
+      subscribe: (name: string, listener: () => void) => () => void
     }
     readonly sessions: {
       prepare: (id: import('@deepseek-ai/dsh-session/types').SessionId, options: {
@@ -58,22 +70,26 @@ declare module '@deepseek-ai/cordis' {
         }
       } | undefined
     }
-    readonly workspaces: {
-      readonly list: {
-        getSnapshot: () => import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
+    readonly workspaces: import('@deepseek-ai/dsh-api-workspace-controller/client').IWorkspaces
+    uiWorkspace: import('../src/client/workspace/navigation.ts').UiWorkspace
+    readonly shortcuts: {
+      register: (command: import('@deepseek-ai/dsh-client-shortcuts/client').ShortcutCommand) => () => void
+      readonly catalog: {
+        getSnapshot: () => readonly import('@deepseek-ai/dsh-client-shortcuts/client').ShortcutCatalogEntry[]
         subscribe: (listener: () => void) => () => void
       }
-      pinSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
-      unpinSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
-      archiveSession: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
     }
-    readonly uiWorkspace: {
-      openSession: (target: import('@deepseek-ai/dsh-session/types').SessionId | {
-        readonly parentSessionId: import('@deepseek-ai/dsh-session/types').SessionId
-        readonly childSessionId: import('@deepseek-ai/dsh-session/types').SessionId
-        readonly mode: 'one-shot' | 'continuable' | 'unknown'
-      }) => void
-      startSession: (workspaceId?: import('@deepseek-ai/dsh-workspace/types').WorkspaceId) => void
+    readonly layout: {
+      toggleSidebar: () => void
+      selectPanel: (id: import('@deepseek-ai/dsh-client-ui-layout/client').MainPanelId | null) => void
+      beginNavigation: () => AbortSignal
+      readonly panelInfo: {
+        getSnapshot: () => { readonly activePanelId: string | null }
+        subscribe: (listener: () => void) => () => void
+      }
+    }
+    readonly remoteAccess: {
+      source: (scope: string, id: string, action?: import('@deepseek-ai/dsh-api-remote-access/client').RemoteEndpoint) => boolean
     }
     readonly sessionPersistence: {
       stat: (id: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<unknown | undefined>
@@ -91,7 +107,9 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphHistory: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphHistory']
       sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
       sessionGraphTopics: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTopics']
-      sessionGraphCategories: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphCategories']
+      sessionGraphFolders: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphFolders']
+      readonly $host: import('@deepseek-ai/dsh-api-remotes/client').RemoteHostFacts
+      readonly directoryPicker: import('@deepseek-ai/dsh-api-remotes/client').ClientRemote['directoryPicker']
       sessionGraphKnowledge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphKnowledge']
       sessionGraphBranch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranch']
       sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']

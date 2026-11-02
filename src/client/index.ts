@@ -1,6 +1,7 @@
 /**
- * Browser session-graph plugin contributing one entry to the conversation
- * view slot without defining a service.
+ * Browser session-graph plugin: contributes one entry to the conversation
+ * view slot and mounts the vendored sidebar + workspace browsing halves that
+ * replace the official ui-sidebar / ui-workspace client plugins.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -17,18 +18,10 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: the 'conversation.view' SlotMap row (declared by the slot's
 // owning package) must be in the program for the register calls to type.
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-// Type-only: the 'sidebar.workspaces' and 'sidebar.footer.action' SlotMap rows
-// (declared by the sidebar shell) must be in the program for the register
-// calls to type.
-import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the slot service and global Session/Workspace standard props.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
-import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { createSessionMergeModule } from '../session-merge.ts'
-import { CategoryBrowser, type CategoryBrowserInjected } from './CategoryBrowser.tsx'
-import { CategoryFootToggle } from './CategoryFootToggle.tsx'
-import { categoryViewPreference } from './category-toggle.ts'
 import { GraphView, type GraphViewInjected } from './GraphView.tsx'
 import { NS, en, zh } from './locales.ts'
 import { SESSION_DIGEST_REMOTE } from './session-digest-remote.ts'
@@ -37,15 +30,22 @@ import { SESSION_MERGE_REMOTE } from './session-merge-remote.ts'
 import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
 import { RESEARCH_TOPICS_REMOTE } from './research-topics-remote.ts'
-import { SIDEBAR_CATEGORIES_REMOTE } from './sidebar-categories-remote.ts'
+import { WORKSPACE_FOLDERS_REMOTE } from './workspace-folders-remote.ts'
 import { HISTORY_BRANCH_REMOTE } from './history-branch-remote.ts'
 import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
 import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
+import * as sidebarEntry from './sidebar/index.ts'
+import * as workspaceEntry from './workspace/index.ts'
 
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
-/** Required services: the conversation view slot, the sessions list, the Workspace navigation, and the locale service. */
-export const inject = ['slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale', 'remote', 'remote.session']
+/**
+ * Required services: the conversation view slot, the sessions list, the
+ * Workspace projection, and the locale service. `uiWorkspace` is deliberately
+ * absent: it is provided by this package's own workspace half, so waiting for
+ * it here would deadlock the fiber.
+ */
+export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session']
 
 const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
   package: SESSION_DIGEST_REMOTE.package,
@@ -56,7 +56,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...SESSION_HISTORY_REMOTE.descriptors,
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
     ...RESEARCH_TOPICS_REMOTE.descriptors,
-    ...SIDEBAR_CATEGORIES_REMOTE.descriptors,
+    ...WORKSPACE_FOLDERS_REMOTE.descriptors,
     ...KNOWLEDGE_REMOTE.descriptors,
     ...RESEARCH_REUSE_REMOTE.descriptors,
     ...HISTORY_BRANCH_REMOTE.descriptors,
@@ -360,78 +360,28 @@ async function registerUi(ctx: Context): Promise<void> {
       },
     }),
   }, GraphView))
-
-  // The native list exposes a footer entry into category browsing; the category
-  // header switches back. The browsing region shadows the native Workspace
-  // browser only while the browser-local preference enables it.
-  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
-    name: 'sidebar.footer.action',
-    id: 'session-graph-categories',
-    order: 100,
-    locale: NS,
-  }, CategoryFootToggle))
-
-  const categoryInjected = (): CategoryBrowserInjected => ({
-    sources: {
-      sessions: ctx.sessions.list,
-      workspaces: ctx.workspaces.list,
-    },
-    categories: {
-      list: async signal => {
-        const result = await ctx.remote.sessionGraphCategories.list(signal)
-        if (!result.ok) throw new Error(result.error.message)
-        return result.value
-      },
-      write: async (request, signal) => {
-        const result = await ctx.remote.sessionGraphCategories.write(request, signal)
-        if (!result.ok) throw new Error(result.error.message)
-        return result.value
-      },
-    },
-    openSession: id => { ctx.uiWorkspace.openSession(id as SessionId) },
-    startSession: workspaceId => {
-      ctx.uiWorkspace.startSession(workspaceId === undefined ? undefined : workspaceId as WorkspaceId)
-    },
-    pinSession: id => ctx.workspaces.pinSession(id as SessionId),
-    unpinSession: id => ctx.workspaces.unpinSession(id as SessionId),
-    archiveSession: id => ctx.workspaces.archiveSession(id as SessionId),
-  })
-
-  let disposeBrowser: (() => void) | undefined
-  const syncCategoryBrowser = (): void => {
-    const enabled = categoryViewPreference.getSnapshot()
-    if (enabled && disposeBrowser === undefined) {
-      disposeBrowser = ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
-        name: 'sidebar.workspaces',
-        priority: -1,
-        locale: NS,
-        registrant: '@benz-ai-x/dsh-research-graph',
-        inject: categoryInjected,
-      }, CategoryBrowser))
-    } else if (!enabled && disposeBrowser !== undefined) {
-      disposeBrowser()
-      disposeBrowser = undefined
-    }
-  }
-  syncCategoryBrowser()
-  ctx.effect(() => {
-    const unsubscribe = categoryViewPreference.subscribe(syncCategoryBrowser)
-    return () => {
-      unsubscribe()
-      disposeBrowser?.()
-      disposeBrowser = undefined
-    }
-  }, 'ui-session-graph: category browser registration')
 }
 
 /**
- * Mount the Digest, Merge, and History Remotes, then register the Graph UI
- * inside a child Context that explicitly depends on those namespaces.
+ * Mount the Digest, Merge, and History Remotes, activate the vendored sidebar
+ * and workspace halves (they replace the official client plugins this
+ * package's bundle patch disables), then register the Graph UI inside a child
+ * Context that explicitly depends on those namespaces.
  * @param ctx - client root context.
- * @returns disposer that removes the UI before unmounting its Remote.
+ * @returns disposer that removes the UI and halves before unmounting its Remote.
  */
 export async function apply(ctx: Context): Promise<() => Promise<void>> {
   const disposeRemote = await ctx.remote.$mount(SESSION_GRAPH_REMOTE)
+  const sidebar = ctx.plugin({
+    name: 'session-graph.sidebar',
+    inject: sidebarEntry.inject,
+    apply: (sidebarCtx: Context) => { sidebarEntry.apply(sidebarCtx) },
+  })
+  const workspace = ctx.plugin({
+    name: 'session-graph.workspace',
+    inject: workspaceEntry.inject,
+    apply: (workspaceCtx: Context) => { workspaceEntry.apply(workspaceCtx) },
+  })
   const ui = ctx.inject(
     [
       'slots',
@@ -446,7 +396,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphHistory',
       'remote.sessionGraphSearch',
       'remote.sessionGraphTopics',
-      'remote.sessionGraphCategories',
+      'remote.sessionGraphFolders',
       'remote.sessionGraphKnowledge',
       'remote.sessionGraphReuse',
       'remote.sessionGraphBranch',
@@ -457,11 +407,15 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
     await ui
   } catch (error) {
     await ui.dispose()
+    await workspace.dispose()
+    await sidebar.dispose()
     await disposeRemote()
     throw error
   }
   return async () => {
     await ui.dispose()
+    await workspace.dispose()
+    await sidebar.dispose()
     await disposeRemote()
   }
 }
