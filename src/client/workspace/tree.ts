@@ -95,6 +95,7 @@ export interface GroupNode {
   expanded: boolean
   /** The group contains the selected session (active folder tint; supplied here so the renderer never scans). */
   containsCurrent: boolean
+  // Local delta vs upstream: folder rows and folder-aware counts/remainder rows.
   /** User-created folders in caller order; empty when the Workspace has none. */
   folders: readonly FolderNode[]
   /** Visible session rows outside every folder (empty while the group is folded). */
@@ -127,6 +128,7 @@ export interface SearchResultSet {
 /** Viewing state consumed by the derivation. */
 export interface TreeView {
   expandedGroups: readonly string[]
+  // Local delta vs upstream: folder expansion participates in tree derivation.
   /** Expanded folder keys (`${workspaceId}:${folderId}`). */
   expandedFolders: readonly string[]
   /** Browser-local order for Sessions without a backing Workspace account. */

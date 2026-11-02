@@ -305,7 +305,11 @@ export function apply(ctx: Context): void {
     requestAddWorkspace: shortcutControls.add,
     closeAddWorkspace: shortcutControls.closeAdd,
     setDirectoryBusy: shortcutControls.directoryBusy,
-    hooks: { directoryFlow: browserFlowSource, hostInfo, workspaceShortcuts: shortcutControls.state, shortcuts: ctx.shortcuts.catalog, folders: folderRecords },
+    hooks: {
+      directoryFlow: browserFlowSource, hostInfo, workspaceShortcuts: shortcutControls.state, shortcuts: ctx.shortcuts.catalog,
+      // Local delta vs upstream: Host-backed Workspace-folder records.
+      folders: folderRecords,
+    },
     // Local delta vs upstream: Workspace-folder writes (create / rename /
     // delete / move) flow through this package's Host service.
     writeFolder,

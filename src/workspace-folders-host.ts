@@ -47,10 +47,10 @@ function moved(
 }
 
 /**
- * Host service for browser-local Workspace folders: virtual per-Workspace
- * session folders persisted in their own storage domain. Folder membership
- * never alters Session ownership, history, or Workspace accounting; deleting
- * a folder simply drops its assignments.
+ * Host service for Workspace folders: virtual per-Workspace session folders
+ * persisted in their own storage domain and synchronized to browser clients.
+ * Folder membership never alters Session ownership, history, or Workspace
+ * accounting; deleting a folder simply drops its assignments.
  */
 export class WorkspaceFoldersService extends TypertRemoteService {
   private readonly requests = new ServiceRequests('Workspace Folders service')

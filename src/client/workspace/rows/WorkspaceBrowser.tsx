@@ -562,6 +562,20 @@ function SessionTree({
       : (half: 'before' | 'after') => {
         commitWorkspaceDrag(workspaceDrag, { id: workspaceId, half })
       }
+    const commitFolderAssign = (folderId: string | undefined): void => {
+      if (drag === null || sessionDropCommitted.current) return
+      sessionDropCommitted.current = true
+      const sessionId = drag.sessionId
+      const folderWorkspaceId = drag.accountKey
+      setDrag(null)
+      writeFolder({
+        kind: 'move', workspaceId: folderWorkspaceId,
+        sessionId,
+        ...(folderId === undefined ? {} : { folderId }),
+      }).catch((reason: unknown) => {
+        console.warn('folder move rejected:', reason)
+      })
+    }
     return (
     // Group section: header, descendant Workspaces, and own Session rows. The
     // inter-group breathing room is the section's own margin
@@ -647,20 +661,6 @@ function SessionTree({
           // Local delta vs upstream: render folder rows and same-Workspace drops.
           // Folder drops accept only drags from the same Workspace account.
           const folderDropReady = drag !== null && drag.accountKey === group.key && group.workspaceId !== undefined
-          const commitFolderAssign = (folderId: string | undefined): void => {
-            if (drag === null || sessionDropCommitted.current) return
-            sessionDropCommitted.current = true
-            const sessionId = drag.sessionId
-            const workspaceId = drag.accountKey
-            setDrag(null)
-            writeFolder({
-              kind: 'move', workspaceId,
-              sessionId,
-              ...(folderId === undefined ? {} : { folderId }),
-            }).catch((reason: unknown) => {
-              console.warn('folder move rejected:', reason)
-            })
-          }
           rowKeys.push(`folder:${folder.folderId}`)
           for (const node of folder.sessions) rowKeys.push(`session:${node.id}`)
           return (
@@ -724,15 +724,7 @@ function SessionTree({
           <UngroupedLabelRow
             t={t}
             sessionDrop={group.workspaceId !== undefined && drag !== null && drag.accountKey === group.key
-              ? () => {
-                if (drag === null || sessionDropCommitted.current) return
-                sessionDropCommitted.current = true
-                const sessionId = drag.sessionId
-                setDrag(null)
-                writeFolder({ kind: 'move', workspaceId: drag.accountKey, sessionId }).catch((reason: unknown) => {
-                  console.warn('folder move rejected:', reason)
-                })
-              }
+              ? () => { commitFolderAssign(undefined) }
               : undefined}
           />
         )}
