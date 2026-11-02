@@ -63,7 +63,7 @@ export async function topicHost(
   await beforeApply?.(ctx, workspaces)
   await ctx.plugin({ apply, inject })
   expect(ctx.get('sessionGraphTopics'), 'topic service is ready when plugin startup completes').toBeDefined()
-  expect(ctx.get('sessionGraphFolders'), 'sidebar category service is ready when plugin startup completes').toBeDefined()
+  expect(ctx.get('sessionGraphFolders'), 'Workspace folder service is ready when plugin startup completes').toBeDefined()
   await ctx.plugin(TypertGatewayService)
   const invoke = (method: string, request?: unknown, signal = new AbortController().signal) => ctx.typertGateway.invoke({
     namespace: 'sessionGraphTopics', method, args: request === undefined ? {} : { request },

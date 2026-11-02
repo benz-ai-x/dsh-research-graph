@@ -11,7 +11,7 @@
  * session and workspace hover cards are suppressed while a menu is open.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { RefObject } from 'react'
+import type { DragEvent, ReactElement, RefObject } from 'react'
 import clsx from 'clsx'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
@@ -24,6 +24,7 @@ import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/cli
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
 import type { MenuOpenState, WorkspaceBrowserProps } from '../contract/slots.ts'
+// Local delta vs upstream: FolderNode is the package-owned folder projection.
 import type { FolderNode, GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import css from './Rows.module.css'
 
@@ -222,7 +223,8 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
   containsCurrentDescendant?: boolean
   onToggle: () => void
   onCreate: () => void
-  /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown). */
+  /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown).
+   * Local delta vs upstream: createFolder adds the Workspace-folder action. */
   actions?: { rename: () => void; delete: () => void; createFolder?: (() => void) | undefined } | undefined
   /** Present only for real Workspace rows in the grouped view. */
   drag?: WorkspaceRowDragProps | undefined
@@ -279,6 +281,7 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
               setMenuOpen(false)
               // Unknown ids leave before the dispatch: a future menu row must
               // not inherit the destructive branch as an else fallback.
+              // Local delta vs upstream: dispatch the Workspace-folder action.
               if (id === 'new-folder') { actions?.createFolder?.(); return }
               /* v8 ignore next -- Menu can emit only the supplied rows. */
               if (id !== 'rename' && id !== 'delete') return
@@ -709,6 +712,38 @@ export function SessionNodeItem({
   )
 }
 
+interface FolderDropTarget {
+  readonly dropping: boolean
+  readonly handlers: {
+    readonly onDragOver?: (event: DragEvent<HTMLElement>) => void
+    readonly onDragLeave?: () => void
+    readonly onDrop?: (event: DragEvent<HTMLElement>) => void
+  }
+}
+
+function useFolderDropTarget(sessionDrop: (() => void) | undefined): FolderDropTarget {
+  const [dropping, setDropping] = useState(false)
+  if (sessionDrop === undefined) return { dropping: false, handlers: {} }
+  return {
+    dropping,
+    handlers: {
+      onDragOver: event => {
+        event.preventDefault()
+        event.stopPropagation()
+        event.dataTransfer.dropEffect = 'move'
+        setDropping(true)
+      },
+      onDragLeave: () => { setDropping(false) },
+      onDrop: event => {
+        event.preventDefault()
+        event.stopPropagation()
+        setDropping(false)
+        sessionDrop()
+      },
+    },
+  }
+}
+
 /**
  * Local delta vs upstream: user-created folder and Ungrouped rows.
  * One user-created folder row inside a Workspace group: folder glyph + title +
@@ -730,33 +765,17 @@ export function FolderRowItem({ folder, onToggle, actions, sessionDrop, t }: {
   /** Commit the in-flight Session drag as a move into this folder. */
   sessionDrop: (() => void) | undefined
   t: RowTranslate
-}) {
+}): ReactElement {
   const [menuOpen, setMenuOpen] = useState(false)
-  const [dropping, setDropping] = useState(false)
+  const dropTarget = useFolderDropTarget(sessionDrop)
   return (
     <div
-      className={clsx(css.folderRow, folder.containsCurrent && css.folderActive, menuOpen && css.menuOpen, dropping && css.folderDropTarget)}
+      className={clsx(css.folderRow, folder.containsCurrent && css.folderActive, menuOpen && css.menuOpen, dropTarget.dropping && css.folderDropTarget)}
       data-row-key={`folder:${folder.folderId}`}
       role="treeitem"
       aria-expanded={folder.expanded}
       onClick={onToggle}
-      onDragOver={sessionDrop === undefined
-        ? undefined
-        : (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          e.dataTransfer.dropEffect = 'move'
-          setDropping(true)
-        }}
-      onDragLeave={sessionDrop === undefined ? undefined : () => { setDropping(false) }}
-      onDrop={sessionDrop === undefined
-        ? undefined
-        : (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setDropping(false)
-          sessionDrop()
-        }}
+      {...dropTarget.handlers}
     >
       <span className={clsx(css.slot, css.folder)}>
         {folder.expanded ? <IconFolderOpenRegular /> : <IconFolderCloseRegular />}
@@ -814,29 +833,13 @@ export function UngroupedLabelRow({ sessionDrop, t }: {
   /** Commit the in-flight Session drag as a removal from its folder. */
   sessionDrop: (() => void) | undefined
   t: RowTranslate
-}) {
-  const [dropping, setDropping] = useState(false)
+}): ReactElement {
+  const dropTarget = useFolderDropTarget(sessionDrop)
   return (
     <div
-      className={clsx(css.ungroupedLabel, dropping && css.folderDropTarget)}
+      className={clsx(css.ungroupedLabel, dropTarget.dropping && css.folderDropTarget)}
       data-row-key="folder-ungrouped"
-      onDragOver={sessionDrop === undefined
-        ? undefined
-        : (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          e.dataTransfer.dropEffect = 'move'
-          setDropping(true)
-        }}
-      onDragLeave={sessionDrop === undefined ? undefined : () => { setDropping(false) }}
-      onDrop={sessionDrop === undefined
-        ? undefined
-        : (e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          setDropping(false)
-          sessionDrop()
-        }}
+      {...dropTarget.handlers}
     >
       {t('folder.ungrouped')}
     </div>

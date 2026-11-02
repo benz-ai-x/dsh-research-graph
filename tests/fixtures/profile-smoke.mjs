@@ -71,12 +71,12 @@ export function apply(ctx) {
     return sessionId
   }
   async function verify() {
-    const categories = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
+    const folders = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphFolders', method, args: request === undefined ? {} : { request }, signal,
     })
     if (process.env.SESSION_GRAPH_SMOKE_RESTART) {
       const expected = JSON.parse(await readFile(process.env.SESSION_GRAPH_SMOKE_RESTART, 'utf8'))
-      const workspace = (await categories('list')).find(record => record.workspaceId === expected.workspaceId)
+      const workspace = (await folders('list')).find(record => record.workspaceId === expected.workspaceId)
       assert.deepEqual(workspace.folders, [{ folderId: expected.folderId, title: 'Packed Workspace Folder Renamed', sessionIds: [expected.sessionId] }])
       const topic = (await ctx.sessionGraphTopics.list(signal)).find(topic => topic.topicId === expected.topicId)
       assert.deepEqual(topic.references.map(reference => reference.sessionId), expected.topicReferenceSessionIds)
@@ -169,14 +169,14 @@ export function apply(ctx) {
     const folderId = randomUUID()
     const otherFolderId = randomUUID()
     const { sessionId: folderSessionId } = await ctx.sessionController.create({ workspaceId: targetWorkspace.id })
-    await categories('write', { kind: 'create', workspaceId, folderId, title: 'Packed Workspace Folder', sessionId: folderSessionId })
-    await categories('write', { kind: 'create', workspaceId, folderId: otherFolderId, title: 'Temporary Workspace Folder' })
-    await categories('write', { kind: 'move', workspaceId, sessionId: folderSessionId, folderId: otherFolderId })
-    await categories('write', { kind: 'move', workspaceId, sessionId: folderSessionId, folderId })
-    await categories('write', { kind: 'rename', workspaceId, folderId, title: 'Packed Workspace Folder Renamed' })
-    await categories('write', { kind: 'delete', workspaceId, folderId: otherFolderId })
-    await assert.rejects(categories('write', { kind: 'move', workspaceId, sessionId: sourceIds[0], folderId }))
-    assert.deepEqual((await categories('list')).find(record => record.workspaceId === workspaceId).folders, [
+    await folders('write', { kind: 'create', workspaceId, folderId, title: 'Packed Workspace Folder', sessionId: folderSessionId })
+    await folders('write', { kind: 'create', workspaceId, folderId: otherFolderId, title: 'Temporary Workspace Folder' })
+    await folders('write', { kind: 'move', workspaceId, sessionId: folderSessionId, folderId: otherFolderId })
+    await folders('write', { kind: 'move', workspaceId, sessionId: folderSessionId, folderId })
+    await folders('write', { kind: 'rename', workspaceId, folderId, title: 'Packed Workspace Folder Renamed' })
+    await folders('write', { kind: 'delete', workspaceId, folderId: otherFolderId })
+    await assert.rejects(folders('write', { kind: 'move', workspaceId, sessionId: sourceIds[0], folderId }))
+    assert.deepEqual((await folders('list')).find(record => record.workspaceId === workspaceId).folders, [
       { folderId, title: 'Packed Workspace Folder Renamed', sessionIds: [folderSessionId] },
     ])
     assert.deepEqual((await topics('list')).find(topic => topic.topicId === topicId).references.map(source => source.sessionId), [sourceIds[1]])

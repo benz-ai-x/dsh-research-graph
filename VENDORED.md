@@ -10,8 +10,8 @@ live sidebar. Uninstalling the package restores the official rows unchanged.
 
 | Vendored location | Upstream package | Upstream path |
 | --- | --- | --- |
-| `src/client/sidebar/**` | `@deepseek-ai/dsh-client-ui-sidebar` | `packages/client/ui-sidebar/src/**` |
-| `src/client/workspace/**` | `@deepseek-ai/dsh-client-ui-workspace` | `packages/client/ui-workspace/src/**` |
+| `src/client/sidebar/**` | `@deepseek-ai/dsh-client-ui-sidebar` | `packages/client/ui-sidebar/src/client/**` |
+| `src/client/workspace/**` | `@deepseek-ai/dsh-client-ui-workspace` | `packages/client/ui-workspace/src/client/**` |
 | `src/client/workspace/default-workspace.ts` | `@deepseek-ai/dsh-api-workspace-controller` | `packages/api/workspace-controller/src/default-workspace.ts` |
 
 Extracted with `git show dsh-v0.2.1-rc.5:<path>` from the Harness checkout

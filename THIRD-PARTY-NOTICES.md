@@ -1,6 +1,6 @@
 # Bundled dependency notices
 
-The browser module bundles clsx. The offline history recovery command bundles the following Harness libraries and their utility dependencies. The bundled `@deepseek-ai/dsh-*` libraries are aligned to DSH `0.1.5-rc.2`.
+The browser module bundles clsx plus `@deepseek-ai/dsh-util-values` and `@deepseek-ai/dsh-util-workspace-path`, and includes the vendored sidebar/workspace client code below. The offline history recovery command bundles additional Harness libraries and their utility dependencies. The bundled `@deepseek-ai/dsh-*` libraries are aligned to DSH `0.2.1-rc.5`.
 
 ## @deepseek-ai/cordis, @deepseek-ai/cosmokit, @deepseek-ai/schemastery
 
@@ -28,7 +28,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## @deepseek-ai/dsh-brand, @deepseek-ai/dsh-llm, @deepseek-ai/dsh-session, @deepseek-ai/dsh-session-format, @deepseek-ai/dsh-session-format-catalog, @deepseek-ai/dsh-session-format-v0-to-v1, @deepseek-ai/dsh-session-format-v1-to-v2, @deepseek-ai/dsh-session-format-v2-to-v3, @deepseek-ai/dsh-timeout, @deepseek-ai/dsh-typert-protocol, @deepseek-ai/dsh-util-values
+## @deepseek-ai/dsh-brand, @deepseek-ai/dsh-llm, @deepseek-ai/dsh-session, @deepseek-ai/dsh-session-format, @deepseek-ai/dsh-session-format-catalog, @deepseek-ai/dsh-session-format-v0-to-v1, @deepseek-ai/dsh-session-format-v1-to-v2, @deepseek-ai/dsh-session-format-v2-to-v3, @deepseek-ai/dsh-timeout, @deepseek-ai/dsh-typert-protocol, @deepseek-ai/dsh-util-values, @deepseek-ai/dsh-util-workspace-path
 
 ```text
 MIT License

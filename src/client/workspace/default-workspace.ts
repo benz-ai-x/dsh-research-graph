@@ -1,4 +1,5 @@
 /**
+ * Local delta vs upstream: vendored unchanged from the workspace-controller package.
  * Fixed first-use Workspace naming, shared by the Host that creates the
  * directory and by browser consumers that label the resulting row. A pure fold
  * with no imports, so client bundles inline it instead of requesting a

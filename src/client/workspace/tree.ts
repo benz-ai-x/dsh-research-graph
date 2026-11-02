@@ -13,6 +13,7 @@ import type {
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
+// Local delta vs upstream: package-owned Workspace-folder record type.
 import type { WorkspaceFolderRecord } from '../../workspace-folder.ts'
 
 /** Group key for Sessions outside every Workspace. */
@@ -68,15 +69,15 @@ export type SessionOrderBy = 'manual' | 'updated'
 // Local delta vs upstream: user-created Workspace-folder nodes and view keys.
 /** One user-created folder row inside a Workspace group: header facts + member session rows. */
 export interface FolderNode {
-  folderId: string
-  title: string
+  readonly folderId: string
+  readonly title: string
   /** Visible sessions assigned to this folder. */
-  sessionCount: number
-  expanded: boolean
+  readonly sessionCount: number
+  readonly expanded: boolean
   /** The folder contains the selected session. */
-  containsCurrent: boolean
+  readonly containsCurrent: boolean
   /** Visible member rows (empty while the folder or its group is folded). */
-  sessions: readonly SessionNode[]
+  readonly sessions: readonly SessionNode[]
 }
 
 /** One workspace group section: header row facts + visible top-level session rows. */
@@ -132,6 +133,7 @@ export interface TreeView {
   ungroupedOrder?: readonly string[]
 }
 
+// Local delta vs upstream: folder expansion is keyed within its Workspace.
 /** Expansion key of one folder inside its Workspace group. */
 export function folderViewKey(workspaceKey: string, folderId: string): string {
   return `${workspaceKey}:${folderId}`

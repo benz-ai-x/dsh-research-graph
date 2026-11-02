@@ -263,6 +263,7 @@
 .projectRow:hover .rowActions,
 .sessionRow:hover .rowActions,
 .searchResultRow:hover .rowActions,
+/* Local delta vs upstream: folder actions use the same hover/open visibility. */
 .folderRow:hover .rowActions,
 .projectRow.menuOpen .rowActions,
 .sessionRow.menuOpen .rowActions,

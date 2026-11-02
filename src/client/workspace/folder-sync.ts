@@ -1,3 +1,4 @@
+// Local delta vs upstream: new Workspace-folder Host synchronization module.
 import type { WorkspaceFolderRecord, WorkspaceFolderWrite } from '../../workspace-folder.ts'
 
 type Result<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: { readonly message: string } }

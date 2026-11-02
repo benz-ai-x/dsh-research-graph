@@ -45,9 +45,13 @@ official one.
    reorder remains native behavior for a Workspace's ungrouped section;
    dragging a row onto a folder header assigns it, and dropping on the
    Ungrouped label removes it.
-4. **The canvas is untouched.** `conversation.view` and all canvas code are
-   unchanged; the canvas's `uiWorkspace` navigation calls are now served by
-   the vendored copy (contract checked by the harness faces).
+4. **Graph facts and geometry are untouched.** Session Graph derivation,
+   layout, routing, and the canvas's `uiWorkspace` navigation semantics are
+   unchanged (contract checked by the harness faces). Real-browser acceptance
+   later added Workbench chrome regression fixes: the shared `ActionMenu`,
+   focus recovery after Search/Merge dialogs, and a non-wrapping Save
+   arrangement control. These change `conversation.view` chrome only, not the
+   graph model or canvas geometry.
 5. **Breaking change, single package.** Installing or upgrading to this line
    replaces the official sidebar as part of the package. The READMEs say so
    prominently; uninstalling (or pinning the previous version) restores the

@@ -27,16 +27,19 @@ import type {
   SessionListState, SessionSearchResultItem,
 } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
+// Local delta vs upstream: inline the controller's default-workspace helper.
 import { workspaceDisplayTitle } from '../default-workspace.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
+// Local delta vs upstream: package-owned Workspace-folder read/write types.
 import type { WorkspaceFolderRecord, WorkspaceFolderWrite } from '../../../workspace-folder.ts'
 import type { ArchivedFilter, GroupNode, SessionNode, SessionOrderBy, SessionRowState } from '../tree.ts'
 import {
   deriveFlat, deriveGroups, deriveSearchResults, folderViewKey, orderByRecency, owningGroupKey,
   owningParentFolder, pinCurrentBlank, reconcileManualOrder, sessionMemberIds, UNGROUPED_KEY,
 } from '../tree.ts'
+// Local delta vs upstream: folder and Ungrouped rows are package additions.
 import { FolderRowItem, ProjectRowItem, SearchResultItem, SessionNodeItem, UngroupedLabelRow } from './Rows.tsx'
 import { AnimatedRows } from './AnimatedRows.tsx'
 import { FLAT_SESSION_ORDER_KEY, type SessionGroupBy } from '../stores.ts'
@@ -251,6 +254,7 @@ function workspaceGroupHalf(e: { clientY: number; currentTarget: HTMLElement }):
   return e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
 }
 
+// Local delta vs upstream: SessionTree receives folder records, expansion, dialogs, and writes.
 type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
   'useSessionStatus' | 'startSession' | 'open' | 'writeFolder'
@@ -1032,6 +1036,7 @@ function SearchResults({
 }
 
 /**
+ * Local delta vs upstream: folder hooks, write action, and dialogs extend the browser.
  * Render the browsing region.
  * @param props - composed slot props (shell owner share + store + injected actions).
  * @returns the region element tree.

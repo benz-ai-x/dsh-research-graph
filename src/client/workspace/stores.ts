@@ -109,8 +109,8 @@ export function createWorkspaceViewStore(): EngineStoreHandle<WorkspaceViewState
         d.groupExpansion = Object.fromEntries(
           Object.entries(d.groupExpansion).filter(([key]) => retained.has(key)),
         )
-        // Folder keys are `${workspaceId}:${folderId}`; only the Workspace
-        // identity before the first colon decides retention.
+        // Local delta vs upstream: folder keys use `${workspaceId}:${folderId}`;
+        // only the Workspace identity before the first colon decides retention.
         d.folderExpansion = Object.fromEntries(
           Object.entries(d.folderExpansion ?? {}).filter(([key]) => retained.has(key.split(':', 1)[0] ?? key)),
         )
