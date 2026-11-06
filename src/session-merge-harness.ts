@@ -19,6 +19,7 @@ import type {
   SessionMergeProjection,
   SessionMergeProjectionState,
 } from './session-merge-projection.ts'
+import { inspectHarnessSession } from './session-inspect.ts'
 
 /** Adapter policy for one bounded wait on the target Session's projection. */
 export interface SessionMergeHarnessOptions {
@@ -95,7 +96,7 @@ export function sessionMergeDependenciesFromHarness(
     currentCapture,
     resolveSource: async (target, sourceId, signal) => {
       const [source, candidates] = await Promise.all([
-        ctx.sessionController.inspect(sourceId as SessionId, signal),
+        inspectHarnessSession(ctx, sourceId as SessionId, signal),
         ctx.sessionReferenceResolver.remoteExportCandidates(
           agentOf(target),
           sourceId,

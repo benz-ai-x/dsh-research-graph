@@ -9,6 +9,7 @@ import { sessionInsightSource } from './session-insight-source.ts'
 import { sessionTitleOutputSchema, sessionTitleRequestSchema, type SessionTitleRequest, type SessionTitleResult } from './session-title.ts'
 import { remoteFailure } from './remote-failure.ts'
 import { ServiceRequests } from './service-requests.ts'
+import { inspectHarnessSession } from './session-inspect.ts'
 
 /** Inspect and suggest without opening an Agent, changing a title, or writing discussion events. */
 export class SessionGraphTitleService extends TypertRemoteService {
@@ -24,7 +25,7 @@ export class SessionGraphTitleService extends TypertRemoteService {
     try {
       return await this.requests.run(signal, async combined => {
         const { sessionId } = sessionTitleRequestSchema.parse(request)
-        const inspection = sessionDigestInspectionFromHarness(await this.ctx.sessionController.inspect(sessionId as SessionId, combined), this.config.route)
+        const inspection = sessionDigestInspectionFromHarness(await inspectHarnessSession(this.ctx, sessionId as SessionId, combined), this.config.route)
         combined.throwIfAborted()
         const source = sessionInsightSource(inspection)
         if (!source) return { kind: 'empty' }

@@ -6,7 +6,7 @@
 
 ## 开发与贡献
 
-环境要求为 Node.js `^22.19.0 || >=24.0.0` 与 pnpm `11.7.0`。
+环境要求为 Node.js `>=24.9.0`（自 DSH 0.2.2 起随宿主线）与 pnpm `11.7.0`。
 
 接手时先读 [AGENTS.md](../AGENTS.md) 的开发规则、[CONTEXT.md](../CONTEXT.md) 的领域词汇，以及根 [HANDOFF.md](../HANDOFF.md) 的当前状态和本地工作树。[文档分工表](agents/domain.md#documentation-map) 区分实时状态、长期决策与版本验收；`docs/HANDOFF.md` 仅为历史快照。
 
@@ -25,7 +25,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 修改 Session、Merge、Digest 或持久化行为前，请先阅读 [`CONTEXT.md`](../CONTEXT.md) 的领域模型与 [`docs/adr/`](adr) 的持久设计决策。安装方式或产品行为变化时，同步更新对应指南的中英文版本；产品定位或快速开始信息变化时，再同步更新两个 README。面向用户的工作应从 [GitHub Issue](https://github.com/benz-ai-x/dsh-research-graph/issues) 开始。
 
-`check:harness` 要求宿主版本与 `package.json` 中 `peerDependencies["@deepseek-ai/dsh-llm"]` 固定的目标版本一致。它用该 checkout 构建的真实公开声明检查四个编译面：Host／Client 源码与 Host／Client 打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 22.19、24 与 26 上运行独立检查，并根据校验后的 DSH peer 依赖选择 `dsh-v<dsh-version>`，不受插件修订号影响。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件。History 读取还经过与浏览器相同的 RPC Gateway，覆盖传输层提供的取消信号；仅模型传输使用固定响应。
+`check:harness` 要求宿主版本与 `package.json` 中 `peerDependencies["@deepseek-ai/dsh-llm"]` 固定的目标版本一致。它用该 checkout 构建的真实公开声明检查四个编译面：Host／Client 源码与 Host／Client 打包声明，不加载独立测试用的宿主声明替身；随后运行真实 Session、持久化、历史恢复与 UI 集成测试。CI 在 Node.js 24 与 26 上运行独立检查，并根据校验后的 DSH peer 依赖选择 `dsh-v<dsh-version>`，不受插件修订号影响。打包验收在临时 `web` profile 中安装归档、启动真实 Host、验证 Merge 持久化及 Digest/History 只读行为，再移除插件。History 读取还经过与浏览器相同的 RPC Gateway，覆盖传输层提供的取消信号；仅模型传输使用固定响应。
 
 使用以下命令构建可安装归档：
 

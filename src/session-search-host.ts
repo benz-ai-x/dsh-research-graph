@@ -7,6 +7,7 @@ import { discussionTurns } from './session-discussion.ts'
 import { DiscussionTextMatcher } from './discussion-text-matcher.ts'
 import { discussionSearchRequestSchema } from './session-search-codec.ts'
 import type { DiscussionSearchHit, DiscussionSearchRequest, DiscussionSearchResult } from './session-search.ts'
+import { inspectHarnessSession } from './session-inspect.ts'
 
 interface SearchSnapshot {
   readonly fingerprint: string
@@ -135,7 +136,7 @@ export class SessionGraphSearchService extends TypertRemoteService {
     const matcher = new DiscussionTextMatcher(request.query)
     try {
       for (const candidate of candidates) {
-        const source = await this.ctx.sessionController.inspect(candidate.header.id, signal)
+        const source = await inspectHarnessSession(this.ctx, candidate.header.id, signal)
         signal.throwIfAborted()
         const turns = discussionTurns(source.events).filter(turn => turn.endSeq !== null)
         const matches = turns.flatMap(turn => turn.messages.map(message => ({ turn, message })))

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { inspectSession } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => {
@@ -32,14 +33,13 @@ describe('Research Topics public Host interface', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
-    const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/b' } })
+    const source = host.ctx.sessions.create(undefined, { meta: { cwd: '/b' } })
     addTurn(source, 1, 'Original discussion.')
-    host.ctx.effect(() => host.ctx.sessions.enter(source))
     const topicId = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     await host.invoke('write', { kind: 'create', topicId, title: '持续研究' })
     await host.invoke('write', { kind: 'add', topicId, sessionIds: [source.id] })
     host.archivedSessionIds.push(source.id)
-    const inspect = vi.spyOn(host.ctx.sessionController, 'inspect')
+    const inspect = vi.spyOn(host.ctx.sessionQuery, 'observeSession')
     const original = vi.spyOn(host.ctx.sessionQuery, 'readSession')
     const snapshot = await host.invoke('read', { topicId })
     expect(snapshot.sources).toMatchObject([{ sessionId: source.id, status: 'listed', archived: true, workspace: { id: 'b' } }])
@@ -72,9 +72,8 @@ describe('Research Topics public Host interface', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
-    const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'Original discussion.')
-    host.ctx.effect(() => host.ctx.sessions.enter(source))
     const a = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     const b = '2bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     for (const topicId of [a, b]) {
@@ -99,9 +98,8 @@ describe('Research Topics public Host interface', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
-    const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'Original discussion.')
-    host.ctx.effect(() => host.ctx.sessions.enter(source))
     const request = { kind: 'create', topicId: '1bb797e8-16ad-4d78-8f41-c0a5efaf8451', title: '最初的标题' }
     await host.invoke('write', request)
     await host.invoke('write', { kind: 'add', topicId: request.topicId, sessionIds: [source.id] })
@@ -127,12 +125,9 @@ describe('Research Topics public Host interface', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-topics-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
-    const sources = ['/a', '/b'].map(cwd => host.ctx.sessions.prepare(undefined, { meta: { cwd } }))
-    for (const source of sources) {
-      addTurn(source, 1, 'Original discussion.')
-      host.ctx.effect(() => host.ctx.sessions.enter(source))
-    }
-    const before = await Promise.all(sources.map(source => host.ctx.sessionController.inspect(source.id)))
+    const sources = ['/a', '/b'].map(cwd => host.ctx.sessions.create(undefined, { meta: { cwd } }))
+    for (const source of sources) addTurn(source, 1, 'Original discussion.')
+    const before = await Promise.all(sources.map(source => inspectSession(host.ctx, source.id)))
     const a = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     const b = '2bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     await host.invoke('write', { kind: 'create', topicId: a, title: '研究 A' })
@@ -142,7 +137,7 @@ describe('Research Topics public Host interface', () => {
     const crossWorkspace = (await host.invoke('list')).find(topic => topic.topicId === a)
     expect(crossWorkspace.references.map(reference => reference.workspace?.id)).toEqual(['a', 'b'])
     await host.invoke('write', { kind: 'remove', topicId: a, sessionId: sources[0]!.id })
-    expect(await Promise.all(sources.map(source => host.ctx.sessionController.inspect(source.id)))).toEqual(before)
+    expect(await Promise.all(sources.map(source => inspectSession(host.ctx, source.id)))).toEqual(before)
     expect(host.archivedSessionIds).toEqual([])
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(root, cleanups)

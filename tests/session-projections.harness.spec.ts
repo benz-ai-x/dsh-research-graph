@@ -49,7 +49,7 @@ describe('non-activating Session projections', () => {
       list: async () => [header],
       inspect: async () => ({ meta: header, events }),
     }) as never)
-    const remote = createSessionTestRemote(host, {
+    const remote = await createSessionTestRemote(host, {
       cwd: '/research',
       defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
     })

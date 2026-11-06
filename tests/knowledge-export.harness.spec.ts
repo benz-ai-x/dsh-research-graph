@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { inspectSession } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
@@ -15,12 +16,13 @@ describe('Knowledge export through the public Host Gateway', () => {
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
     const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    let detach = (): void => {}
+    host.ctx.effect(() => { detach = host.ctx.sessions.enter(source); return detach })
+    host.ctx.sessions.announce(source)
     source.append('turn/start', { turn: 1 })
     source.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: '原文：\n```ts\nconst 答案 = 42\n```\n第二行' }] }), { surfaceOp: 'append' })
     source.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
-    let detach = (): void => {}
-    host.ctx.effect(() => { detach = host.ctx.sessions.enter(source); return detach })
-    const events = (await host.ctx.sessionController.inspect(source.id)).events
+    const events = (await inspectSession(host.ctx, source.id)).events
     const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
       namespace: 'sessionGraphKnowledge', method, args: { request }, signal: new AbortController().signal,
     })
@@ -55,11 +57,10 @@ describe('Knowledge export through the public Host Gateway', () => {
     await expect(invoke('prepareExport', { cardIds: [] })).rejects.toThrow()
     await expect(invoke('prepareExport', { cardIds: ['6bb797e8-16ad-4d78-8f41-c0a5efaf8451'] })).rejects.toThrow()
     expect(host.ctx.llm.stream).not.toHaveBeenCalled()
-    expect((await host.ctx.sessionController.inspect(source.id)).events).toEqual(events)
+    expect((await inspectSession(host.ctx, source.id)).events).toEqual(events)
     // Present a valid but incomplete history prefix through the real Session store.
     detach()
-    const partial = host.ctx.sessions.prepare(source.id, { seed: events.slice(0, -1), meta: { cwd: '/a' } })
-    host.ctx.effect(() => host.ctx.sessions.enter(partial))
+    const partial = host.ctx.sessions.create(source.id, { seed: events.slice(0, -1), meta: { cwd: '/a' } })
     const incomplete = await invoke('prepareExport', { cardIds: [first.cardId] })
     expect(incomplete.markdown).toContain('Original range incomplete / 原文范围不完整')
     expect(incomplete.markdown).toContain('const 答案 = 42')

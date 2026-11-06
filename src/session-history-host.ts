@@ -7,6 +7,8 @@ import type {
 } from './session-history.ts'
 import { sessionHistoryRequestSchema } from './session-history-codec.ts'
 import { discussionTurns } from './session-discussion.ts'
+import { inspectHarnessSession } from './session-inspect.ts'
+import type { HarnessSessionInspection } from './session-inspect.ts'
 
 function unavailable(request: SessionHistoryRequest): SessionHistoryResult {
   return {
@@ -52,9 +54,9 @@ export class SessionGraphHistoryService extends TypertRemoteService {
     } catch {
       throw new TypeError('Invalid Session History request')
     }
-    let source: Awaited<ReturnType<Context['sessionController']['inspect']>>
+    let source: HarnessSessionInspection
     try {
-      source = await this.ctx.sessionController.inspect(request.sessionId as SessionId, signal)
+      source = await inspectHarnessSession(this.ctx, request.sessionId as SessionId, signal)
     } catch {
       signal.throwIfAborted()
       return unavailable(request)

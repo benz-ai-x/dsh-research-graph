@@ -8,6 +8,7 @@ import type { KnowledgeContent } from '../src/knowledge.ts'
 import type { SynthesisClaim, SynthesisRequest } from '../src/knowledge-synthesis.ts'
 import { discussionTurns } from '../src/session-discussion.ts'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { inspectSession } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 const signal = (): AbortSignal => new AbortController().signal
@@ -22,14 +23,13 @@ async function fixture() {
   const host = await topicHost(root, cleanups)
   const topicId = randomUUID()
   await host.ctx.sessionGraphTopics.write({ kind: 'create', topicId, title: '冲突策略研究' }, signal())
-  const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+  const source = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
   for (let turn = 1; turn <= 3; turn += 1) {
     source.append('turn/start', { turn })
     source.append('user/message', createUserMessage({ source: { kind: 'user' },
       content: [{ type: 'text', text: `原始证据 ${turn}：应核对负载条件。` }] }), { surfaceOp: 'append' })
     source.append('turn/end', { turn, reason: { kind: 'completed' } })
   }
-  host.ctx.effect(() => host.ctx.sessions.enter(source))
   const turns = discussionTurns(source.snapshotEvents())
   const cards = await Promise.all(['主张默认启用缓存。依据：低负载时，策略 A 延迟更低。', '主张默认禁用缓存。依据：高负载时，策略 B 延迟更低。'].map((text, index) =>
     host.ctx.sessionGraphKnowledge.save({ cardId: randomUUID(), revisionId: randomUUID(), topicId,
@@ -81,7 +81,7 @@ describe('Knowledge synthesis public Host workflow', () => {
       content: content('已更新观点', '新观点不能替换冻结修订'), sources: [] }, signal())
     await original.ctx.fiber.dispose()
     const host = await topicHost(original.root, cleanups)
-    await expect(host.ctx.sessionController.inspect(original.source.id)).rejects.toThrow('not found')
+    await expect(inspectSession(host.ctx, original.source.id)).rejects.toThrow('not found')
     expect(await host.ctx.sessionGraphKnowledge.prepareSynthesis(original.request, signal())).toEqual(preview)
     const claims: readonly SynthesisClaim[] = [
       { category: 'disagreement', text: '主张默认启用缓存，A 在低负载下占优。', citations: [{ materialIndex: 0, quote: '主张默认启用缓存。依据：低负载时，策略 A 延迟更低。' }] },

@@ -7,6 +7,7 @@ import { apply } from '../src/index.ts'
 import { SESSION_TITLE_REMOTE } from '../src/client/session-title-remote.ts'
 import { sessionTitleResultSchema } from '../src/session-title.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { observing } from './fixtures/sessions.ts'
 
 const contexts: Context[] = []
 afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.dispose() })
@@ -22,7 +23,7 @@ async function fixture(outputs: readonly string[], source = events) {
   contexts.push(ctx)
   const inspect = vi.fn(async () => ({ meta: { id: 'selected' }, events: structuredClone(source) }))
   const calls: Readonly<Record<string, unknown>>[] = []
-  ctx.provide('sessionController', { inspect })
+  ctx.provide('sessionQuery', observing(inspect))
   ctx.provide('llm', { async *stream(options: Readonly<Record<string, unknown>>) {
     calls.push(options)
     yield { type: 'text-delta', index: 0, text: outputs[Math.min(calls.length - 1, outputs.length - 1)] }
@@ -89,7 +90,7 @@ describe('Session title and concise digest through the Host seam', () => {
     contexts.push(ctx)
     const release = Promise.withResolvers<void>()
     const started = Promise.withResolvers<AbortSignal>()
-    ctx.provide('sessionController', { inspect: async () => ({ meta: { id: 'selected' }, events }) })
+    ctx.provide('sessionQuery', observing(async () => ({ meta: { id: 'selected' }, events })))
     ctx.provide('llm', { async *stream(options: { signal: AbortSignal }) {
       started.resolve(options.signal)
       await release.promise

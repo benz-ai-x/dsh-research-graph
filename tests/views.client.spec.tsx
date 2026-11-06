@@ -467,13 +467,14 @@ describe('Working position in the registered Graph', () => {
     try {
       const host = await topicHost(root, disposals)
       const discussion = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/w' } })
+      const leave = host.ctx.sessions.enter(discussion)
+      host.ctx.effect(() => leave)
+      host.ctx.sessions.announce(discussion)
       for (let turn = 1; turn <= 12; turn++) {
         discussion.append('turn/start', { turn })
         discussion.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: `原文 ${turn}` }] }), { surfaceOp: 'append' })
         discussion.append('turn/end', { turn, reason: { kind: 'completed' } })
       }
-      const leave = host.ctx.sessions.enter(discussion)
-      host.ctx.effect(() => leave)
       const original = await host.ctx.sessionGraphHistory.read({ sessionId: discussion.id, limit: 20 }, new AbortController().signal)
       const first = original.turns[0]!
       const last = original.turns.at(-1)!
@@ -1547,6 +1548,7 @@ function mount(
   const inputActions: InputActions = {
     captureInsertion: vi.fn(() => ({ start: 0, end: 0, draftRev: 0 })),
     insertText: vi.fn(() => false),
+    insertQuote: vi.fn(() => false),
     setDraft: vi.fn(),
     persistDraft: vi.fn(),
     addAttachments: vi.fn(() => false),
@@ -1557,6 +1559,8 @@ function mount(
   const siblingViewStandardProps = {
     useChat: () => { throw new Error('graph bench does not render Chat consumers') },
     useTrajectory: () => { throw new Error('graph bench does not render Trajectory consumers') },
+    // DSH 0.2.2 provides menu bindings as a global root prop; the bench keeps native behavior.
+    useContextMenu: () => ({ getTriggerProps: () => ({}) }),
   }
   const t = (key: LocaleKeysOf<'sessionGraph'>, params?: Record<string, unknown>): string => {
     const value = (key: string, params?: Record<string, unknown>): string =>

@@ -8,6 +8,7 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { inspectSession } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
@@ -39,7 +40,7 @@ describe('Research material reuse public Host workflow', () => {
     await writeFile(join(root, 'data'), 'storage temporarily unavailable')
     try {
       await expect(host.ctx.sessionGraphReuse.submit(request, signal)).rejects.toThrow()
-      expect((await host.ctx.sessionController.inspect(record.targetSessionId as SessionId)).meta.cwd).toBe('/b')
+      expect((await inspectSession(host.ctx, record.targetSessionId as SessionId)).meta.cwd).toBe('/b')
       expect(prompt).not.toHaveBeenCalled()
       const recovered = await host.ctx.sessionGraphReuse.read(request, signal)
       expect(recovered).toMatchObject({ ...record, targetCreated: true })
@@ -125,12 +126,11 @@ describe('Research material reuse public Host workflow', () => {
     const card = { cardId: randomUUID(), revisionId: randomUUID(), content: { title: '方法 V1', question: '', conclusion: '原版本条件',
       rationale: '', openQuestions: '', kind: 'method', status: 'confirmed' }, sources: [] }
     await knowledge(card)
-    const session = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const session = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     session.append('turn/start', { turn: 1 })
     session.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: '只选这个完整轮次' }] }), { surfaceOp: 'append' })
     session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
-    host.ctx.effect(() => host.ctx.sessions.enter(session))
-    const before = await host.ctx.sessionController.inspect(session.id)
+    const before = await inspectSession(host.ctx, session.id)
     const material = { kind: 'turn', sessionId: session.id, startSeq: before.events[0]!.seq, endSeq: before.events.at(-1)!.seq }
     const sourcedCard = { ...card, cardId: randomUUID(), revisionId: randomUUID(), sources: [{ ...material, kind: 'discussion' }] }
     await knowledge(sourcedCard)
@@ -204,12 +204,12 @@ describe('Research material reuse public Host workflow', () => {
     expect(JSON.stringify(relations)).not.toContain('原版本条件')
     expect(JSON.stringify(relations)).not.toContain('后来修改的条件')
     expect(await invoke('relations', { cardIds: [], sessionIds: [] })).toEqual([])
-    expect(await host.ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(await inspectSession(host.ctx, session.id)).toEqual(before)
     await host.ctx.fiber.dispose()
     host = await topicHost(root, cleanups)
     expect(await invoke('read', { operationId: request.operationId })).toEqual(saved)
     expect(await invoke('forSession', { sessionId: preview.targetSessionId })).toEqual([saved])
-    const inspect = vi.spyOn(host.ctx.sessionController, 'inspect')
+    const inspect = vi.spyOn(host.ctx.sessionQuery, 'observeSession')
     const activate = vi.spyOn(host.ctx.sessionController, 'create')
     expect(await invoke('relations', relationQuery)).toEqual(relations)
     expect(inspect).not.toHaveBeenCalled()

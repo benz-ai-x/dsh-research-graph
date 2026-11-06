@@ -6,8 +6,18 @@ import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import { runSynthesisQuality } from './synthesis-quality.mjs'
 
+/** Read one live or persisted Session's header and events without activating it (DSH 0.2.2 observation face). */
+async function inspectSession(ctx, sessionId) {
+  const observation = await ctx.sessionQuery.observeSession(sessionId, { projectionMode: 'none' })
+  try {
+    return { meta: observation.header, inheritedEventCount: observation.inheritedEventCount, events: [...observation.events] }
+  } finally {
+    observation[Symbol.dispose]()
+  }
+}
+
 export const name = 'research-workbench-acceptance-fixture'
-export const inject = ['appReady', 'llm', 'sessionController', 'agents', 'workspaceRegistry', 'sessionGraphTopics', 'sessionGraphHistory', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphMerge', 'agentDefaultModel']
+export const inject = ['appReady', 'llm', 'sessionController', 'sessionQuery', 'agents', 'workspaceRegistry', 'sessionGraphTopics', 'sessionGraphHistory', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphMerge', 'agentDefaultModel']
 
 export function apply(ctx) {
   const root = process.env.RESEARCH_PROTOTYPE_ROOT
@@ -171,7 +181,7 @@ export function apply(ctx) {
         await completed(sessionId)
         const title = index === 0 ? 'A 的发现：响应速度与缓存收益' : 'B 的发现：权限撤销与一致性'
         await ctx.sessionController.rename({ sessionId, title })
-        sources.push({ sessionId, title, workspaceId: String(workspace.id), beforeEvents: (await ctx.sessionController.inspect(sessionId)).events.length })
+        sources.push({ sessionId, title, workspaceId: String(workspace.id), beforeEvents: (await inspectSession(ctx, sessionId)).events.length })
       }
       const targetWorkspace = spaces[2]
       const { sessionId: targetSessionId } = await ctx.sessionController.create({ workspaceId: targetWorkspace.id })
@@ -180,9 +190,9 @@ export function apply(ctx) {
         targetSessionId, targetWorkspaceId: String(targetWorkspace.id), instruction: '跨工作区汇聚：对照缓存性能与权限一致性，保留条件差异，提出一个组合方案。' }, signal)
       await completed(targetSessionId)
       await ctx.sessionController.rename({ sessionId: targetSessionId, title: '汇聚：缓存性能与权限边界' })
-      const target = await ctx.sessionController.inspect(targetSessionId)
+      const target = await inspectSession(ctx, targetSessionId)
       if (target.meta.cwd !== targetWorkspace.path || target.meta.parentSession !== undefined) throw new Error('Cross-workspace Merge target has an unexpected location or parent')
-      for (const source of sources) if ((await ctx.sessionController.inspect(source.sessionId)).events.length !== source.beforeEvents) throw new Error('Cross-workspace Merge modified a source')
+      for (const source of sources) if ((await inspectSession(ctx, source.sessionId)).events.length !== source.beforeEvents) throw new Error('Cross-workspace Merge modified a source')
       if (projection.sources.map(source => source.sessionId).join(',') !== sources.map(source => source.sessionId).join(',')) throw new Error('Cross-workspace capture did not match the selected sources')
       await ctx.sessionGraphTopics.write({ kind: 'add', topicId, sessionIds: [...sources.map(source => source.sessionId), targetSessionId] }, signal)
       crossWorkspace = { topicId, sources, targetSessionId, targetWorkspaceId: String(targetWorkspace.id), targetPath: targetWorkspace.path, projection }

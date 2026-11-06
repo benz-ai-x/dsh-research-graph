@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 import { sessionMergeDependenciesFromHarness } from '../src/session-merge-harness.ts'
 import { sessionMergeMarkerOfEvent } from '../src/session-merge-projection.ts'
+import { writeColdHistory } from './fixtures/sessions.ts'
 
 describe('current Harness public APIs', () => {
   it('digests cold JSONL and newer attached state through the real Session Controller', async () => {
@@ -20,13 +21,15 @@ describe('current Harness public APIs', () => {
       await ctx.plugin(SessionStore)
       await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
       const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
-      session.append('turn/start', { turn: 1 })
-      session.append('step/start', { turn: 1, step: 1 })
-      session.append('user/message', createUserMessage({
-        source: { kind: 'user' }, content: [{ type: 'text', text: 'Persisted question.' }],
-      }), { surfaceOp: 'append' })
-      session.append('step/end', { turn: 1, step: 1 })
-      session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+      await writeColdHistory(ctx, session, session => {
+        session.append('turn/start', { turn: 1 })
+        session.append('step/start', { turn: 1, step: 1 })
+        session.append('user/message', createUserMessage({
+          source: { kind: 'user' }, content: [{ type: 'text', text: 'Persisted question.' }],
+        }), { surfaceOp: 'append' })
+        session.append('step/end', { turn: 1, step: 1 })
+        session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+      })
       const writer = await ctx.sessionPersistence.create(session.header)
       try {
         await writer.append(session.snapshotEvents())
@@ -40,10 +43,12 @@ describe('current Harness public APIs', () => {
         yield { type: 'finish', reason: { kind: 'stop' } }
       })
       ctx.provide('llm', { stream })
+      // DSH 0.2.2 Session list summaries read the Agent registry on creation.
+      ctx.provide('agents', { get: () => undefined })
       await ctx.plugin({
-        inject: ['sessions', 'sessionPersistence', 'llm'],
-        apply(controllerCtx) {
-          createSessionTestController(controllerCtx, {
+        inject: ['sessions', 'sessionPersistence', 'llm', 'agents'],
+        async apply(controllerCtx) {
+          await createSessionTestController(controllerCtx, {
             cwd: '/test', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
           })
         },
@@ -57,6 +62,7 @@ describe('current Harness public APIs', () => {
         kind: 'ready', digest: { sourceRevision: '4', generatedWhileRunning: false },
       })
       ctx.effect(() => ctx.sessions.enter(session), 'test: attach newer Session')
+      ctx.sessions.announce(session)
       session.append('turn/start', { turn: 2 })
       session.append('step/start', { turn: 2, step: 1 })
       session.append('user/message', createUserMessage({

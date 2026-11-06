@@ -38,6 +38,7 @@ import type { SessionMergeProjection } from './session-merge-projection.ts'
 import { SessionGraphHistoryService } from './session-history-host.ts'
 import { SessionGraphSearchService } from './session-search-host.ts'
 import { ResearchTopicsService, RESEARCH_TOPIC_DOMAIN } from './research-topics-host.ts'
+import { inspectHarnessSession } from './session-inspect.ts'
 import { WorkspaceFoldersService, WORKSPACE_FOLDER_DOMAIN } from './workspace-folders-host.ts'
 import { KnowledgeService, KNOWLEDGE_DOMAIN } from './knowledge-host.ts'
 import { HistoryBranchService, HISTORY_BRANCH_DOMAIN } from './history-branch-host.ts'
@@ -61,7 +62,7 @@ declare module '@deepseek-ai/cordis' {
 export { Config, resolveConfig } from './config.ts'
 
 /** Eager Host services required by the read-only digest capability. */
-export const inject = ['sessionController', 'llm']
+export const inject = ['sessionController', 'sessionQuery', 'llm']
 
 interface QuiescentRemoteService {
   dispose(): Promise<void>
@@ -107,7 +108,7 @@ export class SessionGraphDigestService extends TypertRemoteService implements Qu
     super(ctx, 'sessionGraphDigest')
     this.digests = createSessionDigestModule({
       inspect: async (sessionId, signal) => {
-        const source = await ctx.sessionController.inspect(sessionId as SessionId, signal)
+        const source = await inspectHarnessSession(ctx, sessionId as SessionId, signal)
         return sessionDigestInspectionFromHarness(source, config.route)
       },
       generate: async (request, signal) => await callSessionInsightModel(ctx, config, request, signal),
@@ -285,6 +286,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
   })
   void ctx.inject([
     'sessionController',
+    'sessionQuery',
     'sessionReferenceResolver',
     'sessionProjections',
     'sessionProjectionCache',

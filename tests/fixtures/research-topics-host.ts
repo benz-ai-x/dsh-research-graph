@@ -53,9 +53,9 @@ export async function topicHost(
   ctx.provide('agents', { get: () => undefined, resume: vi.fn(async () => {}) })
   ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'test', model: 'test' }) })
   await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'sessionQuery', 'llm', 'typert'],
-    apply(controllerCtx) {
-      createSessionTestController(controllerCtx, {
+    inject: ['sessions', 'sessionPersistence', 'sessionQuery', 'llm', 'typert', 'agents'],
+    async apply(controllerCtx) {
+      await createSessionTestController(controllerCtx, {
         cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
       })
     },

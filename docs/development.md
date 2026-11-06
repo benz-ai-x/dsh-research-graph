@@ -6,7 +6,7 @@ Run the following commands from the repository root.
 
 ## Develop and contribute
 
-Requirements are Node.js `^22.19.0 || >=24.0.0` and pnpm `11.7.0`.
+Requirements are Node.js `>=24.9.0` (matching the DSH host line since 0.2.2) and pnpm `11.7.0`.
 
 Start with [AGENTS.md](../AGENTS.md) for contributor rules, [CONTEXT.md](../CONTEXT.md) for domain vocabulary, and root [HANDOFF.md](../HANDOFF.md) for current state and local worktrees. The [documentation map](agents/domain.md#documentation-map) distinguishes live status, durable decisions, and versioned acceptance; `docs/HANDOFF.md` is historical.
 
@@ -25,7 +25,7 @@ DSH_HARNESS_ROOT=/path/to/deepseek-harness pnpm check:harness
 
 Read [`CONTEXT.md`](../CONTEXT.md) for the domain model and [`docs/adr/`](adr) for durable design decisions before changing Session, Merge, Digest, or persistence behavior. Keep both language versions of the relevant guide aligned when setup or behavior changes; update the README overviews when product scope or quick-start information changes. Start user-visible work from a [GitHub issue](https://github.com/benz-ai-x/dsh-research-graph/issues).
 
-`check:harness` requires the Host version to equal the exact target pinned by `peerDependencies["@deepseek-ai/dsh-llm"]` in `package.json`. It checks four compiler faces: source Host/Client and published Host/Client declarations against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 22.19, 24, and 26 and selects `dsh-v<dsh-version>` using the validated DSH peer pin, independently of the plugin revision. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
+`check:harness` requires the Host version to equal the exact target pinned by `peerDependencies["@deepseek-ai/dsh-llm"]` in `package.json`. It checks four compiler faces: source Host/Client and published Host/Client declarations against that checkout's built public declarations, excluding the standalone Host adapters, then runs real Session, persistence, historical recovery, and UI integration tests. CI runs standalone checks on Node.js 24 and 26 and selects `dsh-v<dsh-version>` using the validated DSH peer pin, independently of the plugin revision. Packed acceptance installs the archive in a scratch `web` profile, boots the real Host, verifies durable Merge and read-only Digest/History behavior, then removes the plugin. History reads also pass through the same RPC Gateway used by the browser, covering transport-supplied cancellation. Only model transport uses fixed responses.
 
 Build an installable archive with:
 
