@@ -15,10 +15,10 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 
 ## Quick start
 
-Requires **DeepSeek Harness 0.2.1-rc.5**, Node.js `^22.19.0 || >=24.0.0`, and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
+Requires **DeepSeek Harness 0.2.2-rc.1**, Node.js `>=24.9.0` (the host line dropped Node 22), and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.1
 dsh web
 ```
 
@@ -28,7 +28,7 @@ Open the one-time authenticated URL printed by the command; do not share its tok
 2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
 3. Open the saved card in **Knowledge**, inspect its sources, and choose **Continue discussion** to preview the materials for another question.
 
-Current plugin **0.2.1-rc.5.2** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
+Current plugin **0.2.2-rc.1** uses npm tag `next`; the pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
 
 ## Research workflow
 
@@ -59,9 +59,10 @@ Source discovery and tool execution come from your selected DSH environment. Res
 
 | Package release | DeepSeek Harness | Node.js | Verification |
 |---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.2.2-rc.1` | `0.2.2-rc.1` | `>=24.9.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 | `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.2` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | Real Host/Client types, integration tests and packed-profile runtime acceptance |
 
-Current prerelease **0.2.1-rc.5.2** is a same-line revision for **DSH 0.2.1-rc.5** and a **breaking change**: installation replaces the official `ui-sidebar`/`ui-workspace` with this package's vendored browser and adds **Workspace folders** (single-level, virtual, always enabled). Sidebar Categories are superseded; old category data remains dormant on the Host and is not migrated. Uninstalling restores the official sidebar. Every pinned `@deepseek-ai/dsh-*` dependency remains at `0.2.1-rc.5` (`@deepseek-ai/schemastery` stays `~3.18.5` and the cordis peer stays `^4.0.2`). Canvas behavior, Research Topics, and knowledge features are unchanged.
+Current prerelease **0.2.2-rc.1** is the first adaptation for the **DSH 0.2.2-rc.1** line: the vendored sidebar and Workspace folders introduced in `0.2.1-rc.5.2` carry over unchanged, and every pinned `@deepseek-ai/dsh-*` dependency moves to `0.2.2-rc.1` (`@deepseek-ai/schemastery` `~3.19.0`, cordis peer `~4.1.0`). Host-side reads follow the 0.2.2 faces (`sessionQuery.observeSession` replaces the removed `sessionController.inspect`; exact projection reads keep carrying the stats/outline/todo/context keys), and historical-branch seed journaling follows the 0.2.2 store write gate. The host line requires Node.js `>=24.9.0`. Canvas behavior, Research Topics, and knowledge features are unchanged.
 
 In the DSH-aligned release line, the first plugin adaptation uses the full target DSH version. Further plugin releases for the same DSH prerelease append one positive revision number: plugin `0.1.5-rc.2.1` targets DSH `0.1.5-rc.2`, followed by plugin `0.1.5-rc.2.2`. Direct DSH dependencies retain the target DSH version. The previous package is `@benz-ai-x/dsh-client-ui-session-graph`; its tags and artifacts keep that name.
 
@@ -201,16 +202,16 @@ Confirming creates an independent Session and sends the frozen preview through n
 
 ## Install
 
-The [DSH plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.5/apps/cli/reference/README.md#plugin-management) invokes `pnpm`, which must be on your `PATH`. Use the launcher for your matching DSH installation throughout the commands below:
+The [DSH plugin manager](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/apps/cli/reference/README.md#plugin-management) invokes `pnpm`, which must be on your `PATH`. Use the launcher for your matching DSH installation throughout the commands below:
 
 - Installed CLI: use `dsh`.
-- npm launcher: replace `dsh` with `npx @deepseek-ai/dsh@0.2.1-rc.5`.
-- Source checkout: build the `dsh-v0.2.1-rc.5` checkout using the [upstream setup](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.5/README.md#run-from-source), run from that checkout, and replace `dsh` with `pnpm dsh`.
+- npm launcher: replace `dsh` with `npx @deepseek-ai/dsh@0.2.2-rc.1`.
+- Source checkout: build the `dsh-v0.2.2-rc.1` checkout using the [upstream setup](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/README.md#run-from-source), run from that checkout, and replace `dsh` with `pnpm dsh`.
 
 Install the published npm package into the `web` profile:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.1
 ```
 
 Confirm that the resolved profile contains the bundle:
@@ -227,7 +228,7 @@ The product is now **DSH Research Graph · 研图**, and the repository is `benz
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.1-rc.5.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.1
 dsh web
 ```
 
@@ -245,7 +246,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 Restart the target `web` profile after installation or removal. A running process does not watch its profile dependency list.
 
-Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.2.1-rc.5` for plugin `0.2.1-rc.5.2`).
+Session, LLM, and browser runtime services remain owned by the selected dsh profile. The plugin declares its Typert protocol dependency explicitly, with the matching LLM as a peer dependency. The offline recovery command bundles its format catalog and libraries so it also works before the Host starts. All directly referenced `@deepseek-ai/dsh-*` packages are pinned to the target DSH version (`0.2.2-rc.1` for plugin `0.2.2-rc.1`).
 
 ## Use the graph
 
@@ -325,7 +326,7 @@ See the [discussion search browser acceptance record and screenshots](reviews/pr
 <a id="enable-discussion-search"></a>
 ### Enable discussion search
 
-DSH `0.2.1-rc.5` disables full-text indexing by default. If Research Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
+DSH `0.2.2-rc.1` disables full-text indexing by default. If Research Graph reports **Full-text indexing is not enabled**, add this override to the active profile's `cordis.patch.yml` (for the web profile, `$DSH_HOME/profiles/web/cordis.patch.yml`):
 
 ```yaml
 - id: session-query-sqlite
