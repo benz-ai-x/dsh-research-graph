@@ -2,10 +2,11 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { KnowledgeDiscussionAddress, KnowledgeSource } from './knowledge.ts'
 import { discussionTurns } from './session-discussion.ts'
+import { inspectHarnessSession } from './session-inspect.ts'
 
 /** Capture only exact completed direct discussion boundaries through Harness. */
 export async function readKnowledgeDiscussion(ctx: Context, address: KnowledgeDiscussionAddress, signal: AbortSignal): Promise<KnowledgeSource> {
-  const snapshot = await ctx.sessionController.inspect(address.sessionId as SessionId, signal)
+  const snapshot = await inspectHarnessSession(ctx, address.sessionId as SessionId, signal)
   signal.throwIfAborted()
   if (snapshot.meta.origin === 'subagent') throw new Error('Select a direct discussion')
   const turns = discussionTurns(snapshot.events)

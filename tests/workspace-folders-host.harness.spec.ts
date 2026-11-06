@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { topicHost } from './fixtures/research-topics-host.ts'
+import { inspectSession } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => {
@@ -33,9 +34,8 @@ function addTurn(session: Session): void {
 
 async function fixture(root: string) {
   const host = await topicHost(root, cleanups)
-  const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+  const source = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
   addTurn(source)
-  host.ctx.effect(() => host.ctx.sessions.enter(source))
   await host.workspaces[0]!.attachSession(source.id)
   return { host, source }
 }
@@ -66,9 +66,8 @@ describe('Workspace Folders public Host interface', () => {
     const root = await mkdtemp(join(tmpdir(), 'workspace-folders-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const { host, source } = await fixture(root)
-    const foreign = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/b' } })
+    const foreign = host.ctx.sessions.create(undefined, { meta: { cwd: '/b' } })
     addTurn(foreign)
-    host.ctx.effect(() => host.ctx.sessions.enter(foreign))
     await host.workspaces[1]!.attachSession(foreign.id)
     await host.invokeFolders('write', {
       kind: 'create', workspaceId: 'a', folderId: A, title: '研究', sessionId: source.id,
@@ -127,12 +126,12 @@ describe('Workspace Folders public Host interface', () => {
       kind: 'rename', workspaceId: 'a', folderId: B, title: '研究',
     })).rejects.toThrow('already exists')
     expect((await host.invokeFolders('list'))[0].folders.map(folder => folder.title)).toEqual(['研究', '运维'])
-    const before = await host.ctx.sessionController.inspect(source.id)
+    const before = await inspectSession(host.ctx, source.id)
     await host.invokeFolders('write', { kind: 'delete', workspaceId: 'a', folderId: A })
     expect((await host.invokeFolders('list'))[0].folders).toMatchObject([
       { folderId: B, sessionIds: [] },
     ])
     // Deleting a folder never touches the Session log.
-    expect(await host.ctx.sessionController.inspect(source.id)).toEqual(before)
+    expect(await inspectSession(host.ctx, source.id)).toEqual(before)
   })
 })

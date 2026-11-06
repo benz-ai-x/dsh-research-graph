@@ -21,6 +21,12 @@ import type {} from '@deepseek-ai/dsh-session-turn-outline/client'
 import type {} from '@deepseek-ai/dsh-token-meter/client'
 import type {} from '@deepseek-ai/dsh-tool-todo/client'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
+// Since DSH 0.2.2 the list-row type narrows `projectionValues` to the summary
+// keys, while exact `session.projections` reads (refreshProjections) still
+// carry every registered key on the wire; fold through the full map.
+type ProjectionValues = Readonly<
+  Partial<import('@deepseek-ai/dsh-session-projection/types').SessionProjectionMap>
+>
 import type { SessionMergeProjectionSource } from '../session-merge-projection.ts'
 import type { ResearchTopicSnapshot, ResearchTopicSource } from '../research-topic.ts'
 import type { SessionArrangementIdentity } from './layout-store.ts'
@@ -374,7 +380,7 @@ function deriveRowsGraph(
     // Merge targets are unparented. Replayed Branch history can carry the
     // same projection, even when its parent is outside this graph's scope.
     const inheritedMerge = (sources?.get(row.id)?.parentSessionId ?? hostRows?.get(row.id)?.parentId ?? row.parentId) !== undefined
-    const projections = row.projectionValues
+    const projections = row.projectionValues as ProjectionValues | undefined
     const stats = projections?.sessionStats
     const model = projections?.modelSelection?.next ?? projections?.modelSelection?.lastUsed ?? undefined
     const lastTurn = projections?.turnOutline?.at(-1)

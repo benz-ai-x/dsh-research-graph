@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { inspectSession } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => {
@@ -93,7 +94,7 @@ describe('Knowledge Cards public Host workflow', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-knowledge-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     const host = await topicHost(root, cleanups)
-    const session = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const session = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     session.append('turn/start', { turn: 1 })
     session.append('user/message', createUserMessage({
       source: { kind: 'user' }, content: [{ type: 'text', text: '如何保留证据？' }],
@@ -104,8 +105,7 @@ describe('Knowledge Cards public Host workflow', () => {
       }),
     }, { surfaceOp: 'append' })
     session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
-    host.ctx.effect(() => host.ctx.sessions.enter(session))
-    const before = await host.ctx.sessionController.inspect(session.id)
+    const before = await inspectSession(host.ctx, session.id)
     const topicId = '1bb797e8-16ad-4d78-8f41-c0a5efaf8451'
     await host.invoke('write', { kind: 'create', topicId, title: '证据研究' })
     const events = before.events
@@ -124,9 +124,9 @@ describe('Knowledge Cards public Host workflow', () => {
       sources: [{ sessionId: session.id, source: { startSeq: request.sources[0]!.startSeq, endSeq: request.sources[0]!.endSeq,
         turns: [{ messages: [{ text: '如何保留证据？' }, { text: '按准确轮次保存来源摘录。' }] }] } }],
     }] })
-    expect(await host.ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(await inspectSession(host.ctx, session.id)).toEqual(before)
     expect(host.ctx.llm.stream).not.toHaveBeenCalled()
-    const unavailable = vi.spyOn(host.ctx.sessionController, 'inspect').mockRejectedValue(new Error('Source is unavailable'))
+    const unavailable = vi.spyOn(host.ctx.sessionQuery, 'observeSession').mockRejectedValue(new Error('Source is unavailable'))
     const edited = await host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx), namespace: 'sessionGraphKnowledge', method: 'save',
       args: { request: { ...request, revisionId: '4bb797e8-16ad-4d78-8f41-c0a5efaf8451',
         content: { ...request.content, title: '保留来源的新修订' },

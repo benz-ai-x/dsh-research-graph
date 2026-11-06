@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { inspectSession, observationOf, writeColdHistory } from './fixtures/sessions.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -42,10 +43,12 @@ async function searchHost(openAt: 'first-search' | 'never' = 'first-search') {
   const archivedSessionIds: string[] = []
   ctx.provide('workspaceRegistry', { list: () => workspaces, archivedSessionIds })
   ctx.provide('llm', { stream: vi.fn(() => { throw new Error('Search must not call a model') }) })
+  // DSH 0.2.2 Session list summaries read the Agent registry on creation.
+  ctx.provide('agents', { get: () => undefined })
   await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'llm', 'typert'],
-    apply(controllerCtx) {
-      createSessionTestController(controllerCtx, {
+    inject: ['sessions', 'sessionPersistence', 'llm', 'typert', 'agents'],
+    async apply(controllerCtx) {
+      await createSessionTestController(controllerCtx, {
         cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
       })
     },
@@ -82,10 +85,9 @@ describe('Discussion Search public Host interface', () => {
     ['知识 卡片', '知识-卡片 整理。'],
   ])('preserves the Harness phrase match for %s and addresses its original event', async (query, text) => {
     const { ctx } = await searchHost()
-    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, text)
-    ctx.effect(() => ctx.sessions.enter(source))
-    const before = await ctx.sessionController.inspect(source.id)
+    const before = await inspectSession(ctx, source.id)
     const indexed = await ctx.sessionQuery.searchSessions({
       query,
       sessionFilters: [{ kind: 'id', values: [source.id] }],
@@ -99,17 +101,16 @@ describe('Discussion Search public Host interface', () => {
     expect(result).toMatchObject({ kind: 'results', hits: [{
       sessionId: source.id, eventSeq: 2, turnStartSeq: 0, snippet: text,
     }] })
-    expect(await ctx.sessionController.inspect(source.id)).toEqual(before)
+    expect(await inspectSession(ctx, source.id)).toEqual(before)
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 
   it('provides readable fallback labels for empty Harness session and Workspace titles', async () => {
     const { ctx, workspaces } = await searchHost()
     workspaces[0]!.title = ''
-    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'An indexed needle.')
     source.append('session/title', { title: '', messageSeqs: [], source: { kind: 'user' } })
-    ctx.effect(() => ctx.sessions.enter(source))
     const result = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphSearch', method: 'search', args: { request }, signal: new AbortController().signal,
     })
@@ -118,7 +119,7 @@ describe('Discussion Search public Host interface', () => {
 
   it('finds the latest completed direct phrase and excludes indexed tool and injected text', async () => {
     const { ctx } = await searchHost()
-    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'An earlier cafe reference.')
     source.append('turn/start', { turn: 2 })
     source.append('step/start', { turn: 2, step: 1 })
@@ -141,8 +142,7 @@ describe('Discussion Search public Host interface', () => {
     source.append('user/message', createUserMessage({
       source: { kind: 'user' }, content: [{ type: 'text', text: 'unfinished-only cafe cafe cafe' }],
     }), { surfaceOp: 'append' })
-    ctx.effect(() => ctx.sessions.enter(source))
-    const before = await ctx.sessionController.inspect(source.id)
+    const before = await inspectSession(ctx, source.id)
     const search = (query: string) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphSearch', method: 'search',
       args: { request: { ...request, query } }, signal: new AbortController().signal,
@@ -154,7 +154,7 @@ describe('Discussion Search public Host interface', () => {
     for (const query of ['tool payload', 'injected only', 'reasoning only', 'unfinished only']) {
       expect(await search(query)).toEqual({ kind: 'results', hits: [] })
     }
-    expect(await ctx.sessionController.inspect(source.id)).toEqual(before)
+    expect(await inspectSession(ctx, source.id)).toEqual(before)
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 
@@ -162,18 +162,17 @@ describe('Discussion Search public Host interface', () => {
     const { ctx, archivedSessionIds } = await searchHost()
     const ids = []
     for (let index = 0; index < 3; index++) {
-      const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+      const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
       addTurn(source, 1, '通过知识卡片整理研究资料。')
-      ctx.effect(() => ctx.sessions.enter(source))
       ids.push(source.id)
     }
     const service = ctx.get('sessionGraphSearch')
     const search = { ...request, query: '知识卡片', limit: 1 }
     let cursor: string | undefined
     if (phase === 'initial') {
-      const inspect = ctx.sessionController.inspect.bind(ctx.sessionController)
-      vi.spyOn(ctx.sessionController, 'inspect').mockImplementationOnce(async (id, signal) => {
-        const source = await inspect(id, signal)
+      const observe = ctx.sessionQuery.observeSession.bind(ctx.sessionQuery)
+      vi.spyOn(ctx.sessionQuery, 'observeSession').mockImplementationOnce(async (id, options) => {
+        const source = await observe(id, options)
         archivedSessionIds.push(id)
         return source
       })
@@ -193,18 +192,17 @@ describe('Discussion Search public Host interface', () => {
 
   it.each(['caller', 'Host disposal'])('abandons a late source read on %s and joins accepted work', async action => {
     const { ctx } = await searchHost()
-    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'A needle to find.')
-    ctx.effect(() => ctx.sessions.enter(source))
-    const snapshot = await ctx.sessionController.inspect(source.id)
+    const snapshot = await inspectSession(ctx, source.id)
     let started!: () => void
     const admitted = new Promise<void>(resolve => { started = resolve })
     let release!: () => void
     const gate = new Promise<void>(resolve => { release = resolve })
-    vi.spyOn(ctx.sessionController, 'inspect').mockImplementationOnce(async () => {
+    vi.spyOn(ctx.sessionQuery, 'observeSession').mockImplementationOnce(async () => {
       started()
       await gate
-      return snapshot
+      return observationOf(snapshot)
     })
     const controller = new AbortController()
     const stream = ctx.llm.stream
@@ -225,9 +223,8 @@ describe('Discussion Search public Host interface', () => {
 
   it('keeps a bounded snippet around the matched words in long discussion text', async () => {
     const { ctx } = await searchHost()
-    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, `${'前文'.repeat(200)} 知识卡片 ${'后文'.repeat(200)}`)
-    ctx.effect(() => ctx.sessions.enter(source))
     const result = await ctx.get('sessionGraphSearch').search({ ...request, query: '知识卡片' }, new AbortController().signal)
     expect(result.hits[0].snippet).toContain('知识卡片')
     expect(Array.from(result.hits[0].snippet).length).toBeLessThanOrEqual(242)
@@ -235,14 +232,11 @@ describe('Discussion Search public Host interface', () => {
 
   it('reads archived cross-workspace matches only when included and preserves their archive state', async () => {
     const { ctx, archivedSessionIds } = await searchHost()
-    const first = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
-    const archived = ctx.sessions.prepare(undefined, { meta: { cwd: '/b' } })
-    for (const source of [first, archived]) {
-      addTurn(source, 1, 'Original needle.')
-      ctx.effect(() => ctx.sessions.enter(source))
-    }
+    const first = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
+    const archived = ctx.sessions.create(undefined, { meta: { cwd: '/b' } })
+    for (const source of [first, archived]) addTurn(source, 1, 'Original needle.')
     archivedSessionIds.push(archived.id)
-    const before = await ctx.sessionController.inspect(archived.id)
+    const before = await inspectSession(ctx, archived.id)
     const service = ctx.get('sessionGraphSearch')
     const all = { ...request, scope: { kind: 'all' as const } }
     expect((await service.search(all, new AbortController().signal)).hits.map(hit => hit.sessionId)).toEqual([first.id])
@@ -252,15 +246,14 @@ describe('Discussion Search public Host interface', () => {
       archived: true, workspace: { id: 'b', title: 'Research B' },
     })
     expect(archivedSessionIds).toEqual([archived.id])
-    expect(await ctx.sessionController.inspect(archived.id)).toEqual(before)
+    expect(await inspectSession(ctx, archived.id)).toEqual(before)
   })
 
   it('invalidates continuation when the query, scope, or archive membership changes', async () => {
     const { ctx, archivedSessionIds } = await searchHost()
     for (let index = 0; index < 3; index++) {
-      const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+      const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
       addTurn(source, 1, 'A needle in original discussion.')
-      ctx.effect(() => ctx.sessions.enter(source))
     }
     const service = ctx.get('sessionGraphSearch')
     const search = { ...request, limit: 1 }
@@ -299,9 +292,8 @@ describe('Discussion Search public Host interface', () => {
     const { ctx } = await searchHost()
     const expected: string[] = []
     for (let index = 0; index < 53; index++) {
-      const source = ctx.sessions.prepare(undefined, { meta: { cwd: index < 3 ? '/a' : '/b' } })
+      const source = ctx.sessions.create(undefined, { meta: { cwd: index < 3 ? '/a' : '/b' } })
       addTurn(source, 1, `保存知识卡片供后续使用 needle ${index}`)
-      ctx.effect(() => ctx.sessions.enter(source))
       if (index < 3) expected.push(source.id)
     }
     const service = ctx.get('sessionGraphSearch')
@@ -319,12 +311,12 @@ describe('Discussion Search public Host interface', () => {
   it('finds a Chinese substring in cold original discussion without activating or changing its source', async () => {
     const { ctx } = await searchHost()
     const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
-    addTurn(source, 1, '通过知识卡片整理研究资料。')
+    await writeColdHistory(ctx, source, source => addTurn(source, 1, '通过知识卡片整理研究资料。'))
     const writer = await ctx.sessionPersistence.create(source.header)
     await writer.append(source.snapshotEvents())
     await writer.flush()
     await writer.close()
-    const before = await ctx.sessionController.inspect(source.id)
+    const before = await inspectSession(ctx, source.id)
 
     const result = await ctx.get('sessionGraphSearch').search({ ...request, query: '知识卡片' }, new AbortController().signal)
 
@@ -332,19 +324,18 @@ describe('Discussion Search public Host interface', () => {
       sessionId: source.id, eventSeq: 2, turnStartSeq: 0, snippet: '通过知识卡片整理研究资料。',
     }] })
     expect(ctx.sessions.get(source.id)).toBeUndefined()
-    expect(await ctx.sessionController.inspect(source.id)).toEqual(before)
+    expect(await inspectSession(ctx, source.id)).toEqual(before)
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 
   it('finds indexed discussion through the real Gateway and addresses its exact original turn', async () => {
     const { ctx, workspaces } = await searchHost()
-    const source = ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const source = ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     addTurn(source, 1, 'Earlier discussion.')
     addTurn(source, 2, 'Find this needle in the discussion.')
     source.append('session/title', { title: 'Architecture', messageSeqs: [], source: { kind: 'user' } })
-    ctx.effect(() => ctx.sessions.enter(source))
     workspaces[0]!.sessionIds.push(source.id)
-    const before = await ctx.sessionController.inspect(source.id)
+    const before = await inspectSession(ctx, source.id)
 
     const result = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphSearch', method: 'search', args: { request },
@@ -362,7 +353,7 @@ describe('Discussion Search public Host interface', () => {
     }, new AbortController().signal)).toMatchObject({
       kind: 'original', hasEarlier: true, turns: [{ turn: 2, startSeq: 6 }],
     })
-    expect(await ctx.sessionController.inspect(source.id)).toEqual(before)
+    expect(await inspectSession(ctx, source.id)).toEqual(before)
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 })

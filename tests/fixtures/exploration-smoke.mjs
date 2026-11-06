@@ -3,6 +3,16 @@ import { randomUUID } from 'node:crypto'
 import { setTimeout } from 'node:timers/promises'
 import { ownerPeer } from './owner-peer.mjs'
 
+/** Read one live or persisted Session's header and events without activating it (DSH 0.2.2 observation face). */
+async function inspectSession(ctx, sessionId) {
+  const observation = await ctx.sessionQuery.observeSession(sessionId, { projectionMode: 'none' })
+  try {
+    return { meta: observation.header, inheritedEventCount: observation.inheritedEventCount, events: [...observation.events] }
+  } finally {
+    observation[Symbol.dispose]()
+  }
+}
+
 /** Exercise the packed plugin with native Agents, persistence, workspace and topic services. */
 export async function verifyExploration(ctx, signal, workspaceId) {
   const call = (namespace, method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace, method, args: { request }, signal })
@@ -30,7 +40,7 @@ export async function verifyExploration(ctx, signal, workspaceId) {
   await ctx.sessionGraphTopics.write({ kind: 'create', topicId, title: 'Exploration acceptance' }, signal)
   const history = await ctx.sessionGraphHistory.read({ sessionId }, signal)
   assert.equal(history.turns.length, 5)
-  const before = (await ctx.sessionController.inspect(sessionId)).events
+  const before = (await inspectSession(ctx, sessionId)).events
   const selected = history.turns[1]
   const request = { operationId: randomUUID(), sessionId, startSeq: selected.startSeq, endSeq: selected.endSeq, topicId }
   const preview = await call('sessionGraphBranch', 'prepare', request)
@@ -40,15 +50,15 @@ export async function verifyExploration(ctx, signal, workspaceId) {
   const ready = await call('sessionGraphBranch', 'submit', { operationId: preview.operationId })
   assert.equal(ready.stage, 'ready', ready.error)
   assert.deepEqual(await call('sessionGraphBranch', 'submit', { operationId: preview.operationId }), ready)
-  const child = await ctx.sessionController.inspect(ready.targetSessionId)
+  const child = await inspectSession(ctx, ready.targetSessionId)
   assert.equal(child.meta.parentSession, sessionId)
   assert.equal(child.events.filter(event => event.type === 'turn/end').length, 2)
-  assert.deepEqual((await ctx.sessionController.inspect(sessionId)).events, before)
+  assert.deepEqual((await inspectSession(ctx, sessionId)).events, before)
   assert.equal((await ctx.sessionGraphTopics.read({ topicId }, signal)).sources.find(item => item.sessionId === ready.targetSessionId).parentSessionId, sessionId)
   assert.ok(ctx.workspaceRegistry.list().find(item => item.id === workspaceId).sessionIds.includes(ready.targetSessionId))
   await ctx.sessionController.prompt({ sessionId: ready.targetSessionId, requestId: randomUUID(), mode: 'queue', content: [{ type: 'text', text: 'Continue this retained branch.' }] }, signal)
   await completed(ready.targetSessionId, 3)
-  assert.deepEqual((await ctx.sessionController.inspect(sessionId)).events, before)
+  assert.deepEqual((await inspectSession(ctx, sessionId)).events, before)
   const cards = []
   for (const [index, conclusion] of ['Under low load, A is faster.', 'Under high load, B is faster.'].entries()) {
     cards.push(await knowledge('save', { cardId: randomUUID(), revisionId: randomUUID(), topicId, sources: [],

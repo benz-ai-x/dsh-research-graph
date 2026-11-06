@@ -27,6 +27,7 @@ import { apply } from '../src/index.ts'
 import { sessionMergeDependenciesFromHarness } from '../src/session-merge-harness.ts'
 import { sessionMergeMarkerOfEvent } from '../src/session-merge-projection.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { observing } from './fixtures/sessions.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
@@ -101,7 +102,7 @@ describe('Session Graph Host integration', () => {
       events,
     }))
     const calls: Readonly<Record<string, unknown>>[] = []
-    ctx.provide('sessionController', { inspect })
+    ctx.provide('sessionQuery', observing(inspect))
     ctx.provide('llm', {
       async *stream(options: Readonly<Record<string, unknown>>) {
         calls.push(options)
@@ -168,7 +169,7 @@ describe('Session Graph Host integration', () => {
       },
     ]
     const before = structuredClone(events)
-    ctx.provide('sessionController', { inspect: async () => ({ meta: { id: 'source' }, events }) })
+    ctx.provide('sessionQuery', observing(async () => ({ meta: { id: 'source' }, events })))
     const calls: Readonly<Record<string, unknown>>[] = []
     ctx.provide('llm', {
       async *stream(options: Readonly<Record<string, unknown>>) {
@@ -224,7 +225,7 @@ describe('Session Graph Host integration', () => {
       },
     ]
     const before = structuredClone(events)
-    ctx.provide('sessionController', { inspect: async () => ({ meta: { id: 'source' }, events }) })
+    ctx.provide('sessionQuery', observing(async () => ({ meta: { id: 'source' }, events })))
     const calls: Readonly<Record<string, unknown>>[] = []
     ctx.provide('llm', {
       async *stream(options: Readonly<Record<string, unknown>>) {
@@ -263,20 +264,18 @@ describe('Session Graph Host integration', () => {
     let releaseModel: (() => void) | undefined
     const modelBarrier = new Promise<void>((resolve) => { releaseModel = resolve })
     let modelSignal: AbortSignal | undefined
-    ctx.provide('sessionController', {
-      inspect: async (sessionId: SessionId) => ({
-        meta: { id: sessionId },
-        events: [{
-          type: 'user/message',
-          seq: 0,
-          time: 1,
-          data: {
-            source: { kind: 'user' },
-            content: [{ type: 'text', text: 'Wait for plugin disposal.' }],
-          },
-        }],
-      }),
-    })
+    ctx.provide('sessionQuery', observing(async (sessionId: SessionId) => ({
+      meta: { id: sessionId },
+      events: [{
+        type: 'user/message',
+        seq: 0,
+        time: 1,
+        data: {
+          source: { kind: 'user' },
+          content: [{ type: 'text', text: 'Wait for plugin disposal.' }],
+        },
+      }],
+    })))
     ctx.provide('llm', {
       async *stream(options: Readonly<Record<string, unknown>>) {
         modelSignal = options.signal as AbortSignal
@@ -451,11 +450,11 @@ describe('Session Graph Host integration', () => {
     ctx.provide('llm', { async *stream() {} })
     ctx.provide('sessionController', {
       resolveAgent: async () => ({ agent }),
-      inspect: async (sessionId: SessionId) => ({
-        meta: { id: sessionId, cwd: `/${sessionId}` },
-        events: [{ type: 'turn/start', data: { turn: 1 } }],
-      }),
     })
+    ctx.provide('sessionQuery', observing(async (sessionId: SessionId) => ({
+      meta: { id: sessionId, cwd: `/${sessionId}` },
+      events: [{ type: 'turn/start', data: { turn: 1 } }],
+    })))
     ctx.provide('sessionReferenceResolver', {
       remoteExportCandidates: async (_agent: unknown, query: string) => [{
         sessionId: query,
@@ -550,11 +549,11 @@ describe('Session Graph Host integration', () => {
       resolveAgent: async (sessionId: SessionId) => ({
         agent: sessionId === id('waiting-target') ? waitingAgent : agent,
       }),
-      inspect: async (sessionId: SessionId) => ({
-        meta: { id: sessionId, cwd: '/workspace' },
-        events: [{ type: 'turn/start', data: { turn: 1 } }],
-      }),
     })
+    ctx.provide('sessionQuery', observing(async (sessionId: SessionId) => ({
+      meta: { id: sessionId, cwd: '/workspace' },
+      events: [{ type: 'turn/start', data: { turn: 1 } }],
+    })))
     ctx.provide('sessionReferenceResolver', {
       remoteExportCandidates: async (_agent: unknown, query: string) => [{
         sessionId: query,
@@ -646,15 +645,15 @@ describe('Session Graph Host integration', () => {
     contexts.push(ctx)
     ctx.provide('sessionController', {
       resolveAgent: async () => ({ error: { message: 'unused' } }),
-      inspect: async (sessionId: SessionId) => ({
-        meta: {
-          id: sessionId,
-          cwd: '/workspace',
-          origin: 'subagent' as const,
-        },
-        events: [],
-      }),
     })
+    ctx.provide('sessionQuery', observing(async (sessionId: SessionId) => ({
+      meta: {
+        id: sessionId,
+        cwd: '/workspace',
+        origin: 'subagent' as const,
+      },
+      events: [],
+    })))
     ctx.provide('sessionReferenceResolver', {
       remoteExportCandidates: async (_agent: unknown, query: string) => [{
         sessionId: id(query),

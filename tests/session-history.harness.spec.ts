@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { inspectSession, observing, writeColdHistory } from './fixtures/sessions.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -35,10 +36,12 @@ async function historyHost(): Promise<Context> {
   await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
   await ctx.plugin(TypertRegistry)
   ctx.provide('llm', { stream: vi.fn(() => { throw new Error('Reading must not call a model') }) })
+  // DSH 0.2.2 Session list summaries read the Agent registry on creation.
+  ctx.provide('agents', { get: () => undefined })
   await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'llm', 'typert'],
-    apply(controllerCtx) {
-      createSessionTestController(controllerCtx, {
+    inject: ['sessions', 'sessionPersistence', 'llm', 'typert', 'agents'],
+    async apply(controllerCtx) {
+      await createSessionTestController(controllerCtx, {
         cwd: '/test', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
       })
     },
@@ -71,10 +74,9 @@ describe('Session History public Host interface', () => {
   it('restores exact range boundaries without an excerpt or the normal page limit', async () => {
     const ctx = await historyHost()
     await ctx.plugin(TypertGatewayService)
-    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/test' } })
     for (let turn = 1; turn <= 13; turn++) addTurn(session, turn, `Question ${turn}`, `Answer ${turn}`)
-    ctx.effect(() => ctx.sessions.enter(session))
-    const before = await ctx.sessionController.inspect(session.id)
+    const before = await inspectSession(ctx, session.id)
     const invoke = (request: unknown) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphHistory', method: 'read',
       args: { request }, signal: new AbortController().signal })
     const request = { sessionId: session.id, range: { startSeq: 0, endSeq: 71 } }
@@ -89,17 +91,16 @@ describe('Session History public Host interface', () => {
       { ...request, range: { ...request.range, extra: true } }]) {
       await expect(invoke(invalid)).rejects.toThrow('Invalid Session History request')
     }
-    expect(await ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(await inspectSession(ctx, session.id)).toEqual(before)
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 
   it('reads original discussion through the real browser Gateway with carrier cancellation', async () => {
     const ctx = await historyHost()
     await ctx.plugin(TypertGatewayService)
-    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/test' } })
     addTurn(session, 1, 'Read through the browser endpoint.', 'Keep the original discussion accessible.')
-    ctx.effect(() => ctx.sessions.enter(session))
-    const before = await ctx.sessionController.inspect(session.id)
+    const before = await inspectSession(ctx, session.id)
 
     await expect(ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphHistory', method: 'read',
@@ -115,13 +116,13 @@ describe('Session History public Host interface', () => {
         ],
       }],
     })
-    expect(await ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(await inspectSession(ctx, session.id)).toEqual(before)
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 
   it('preserves discussion text and roles while excluding injected context, attachments, reasoning, and tool output', async () => {
     const ctx = await historyHost()
-    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/test' } })
     const image = {
       attachmentId: AttachmentId('fixture-image'), mediaType: 'image/png' as const,
       bytes: 1, width: 1, height: 1, name: 'private-image.png',
@@ -175,8 +176,7 @@ describe('Session History public Host interface', () => {
     }, { surfaceOp: 'append' })
     session.append('step/end', { turn: 1, step: 2 })
     session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
-    ctx.effect(() => ctx.sessions.enter(session))
-    const before = await ctx.sessionController.inspect(session.id)
+    const before = await inspectSession(ctx, session.id)
 
     const result = await ctx.get('sessionGraphHistory').read({ sessionId: session.id }, new AbortController().signal)
 
@@ -187,18 +187,17 @@ describe('Session History public Host interface', () => {
       { role: 'assistant', seq: 5, text: 'Visible analysis.\nVisible continuation.' },
       { role: 'assistant', seq: 10, text: 'Recorded conclusion.' },
     ])
-    expect(await ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(await inspectSession(ctx, session.id)).toEqual(before)
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })
 
   it('exposes unfinished turn status without presenting its changing text as completed discussion', async () => {
     const ctx = await historyHost()
-    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/test' } })
     addTurn(session, 1, 'Complete question', 'Complete answer')
     session.append('turn/start', { turn: 2 })
     session.append('step/start', { turn: 2, step: 1 })
     session.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Pending question' }] }), { surfaceOp: 'append' })
-    ctx.effect(() => ctx.sessions.enter(session))
     const service = ctx.get('sessionGraphHistory')
     const signal = new AbortController().signal
     const pending = await service.read({ sessionId: session.id }, signal)
@@ -215,7 +214,7 @@ describe('Session History public Host interface', () => {
     cleanups.push(async () => { await ctx.fiber.dispose() })
     let release: (value: { meta: { id: string }; events: [] }) => void = () => {}
     const pending = new Promise<{ meta: { id: string }; events: [] }>(resolve => { release = resolve })
-    ctx.provide('sessionController', { inspect: () => pending })
+    ctx.provide('sessionQuery', observing(() => pending))
     ctx.provide('llm', { async *stream() { throw new Error('No model calls') } })
     await apply(ctx)
     const caller = new AbortController()
@@ -242,11 +241,10 @@ describe('Session History public Host interface', () => {
 
   it('reopens exactly a selected completed range from the original even after newer turns arrive', async () => {
     const ctx = await historyHost()
-    const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/test' } })
     addTurn(session, 1, 'Earlier question', 'Earlier answer')
     addTurn(session, 2, 'Selected question', 'Selected answer')
     addTurn(session, 3, 'Later question', 'Later answer')
-    ctx.effect(() => ctx.sessions.enter(session))
     const service = ctx.get('sessionGraphHistory')
     const source = { startSeq: 6, endSeq: 11, turns: [{
       turn: 2, startSeq: 6, endSeq: 11, startedAt: 1000,
@@ -281,11 +279,10 @@ describe('Session History public Host interface', () => {
 
   it('locates and pages repeated discussion text by Session and event boundary', async () => {
     const ctx = await historyHost()
-    const sources = [ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } }), ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })]
+    const sources = [ctx.sessions.create(undefined, { meta: { cwd: '/test' } }), ctx.sessions.create(undefined, { meta: { cwd: '/test' } })]
     for (const session of sources) {
       for (const turn of [1, 2, 3]) addTurn(session, turn, 'Repeated question', 'Repeated answer')
       session.append('session/title', { title: 'Same title' })
-      ctx.effect(() => ctx.sessions.enter(session))
     }
     const sessionId = sources[1]!.id
     const service = ctx.get('sessionGraphHistory')
@@ -304,13 +301,13 @@ describe('Session History public Host interface', () => {
   it('reads a complete cold discussion without activating an Agent, generating text, or changing the source', async () => {
     const ctx = await historyHost()
     const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
-    addTurn(session, 1, 'Why keep the discussion?', 'To preserve its reasoning.\nAnd its original context.')
+    await writeColdHistory(ctx, session, session => addTurn(session, 1, 'Why keep the discussion?', 'To preserve its reasoning.\nAnd its original context.'))
     const writer = await ctx.sessionPersistence.create(session.header)
     try {
       await writer.append(session.snapshotEvents())
       await writer.flush()
     } finally { await writer.close() }
-    const before = await ctx.sessionController.inspect(session.id)
+    const before = await inspectSession(ctx, session.id)
 
     const result = await ctx.get('sessionGraphHistory').read({ sessionId: session.id }, new AbortController().signal)
 
@@ -321,7 +318,7 @@ describe('Session History public Host interface', () => {
         { role: 'assistant', seq: 3, text: 'To preserve its reasoning.\nAnd its original context.' },
       ],
     }] })
-    expect(await ctx.sessionController.inspect(session.id)).toEqual(before)
+    expect(await inspectSession(ctx, session.id)).toEqual(before)
     expect(ctx.sessions.get(session.id)).toBeUndefined()
     expect(ctx.llm.stream).not.toHaveBeenCalled()
   })

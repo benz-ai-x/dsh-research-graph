@@ -8,21 +8,27 @@ import { Session } from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { discussionTurns } from '../src/session-discussion.ts'
+import { inspectSession, observationOf, writeColdHistory } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 const signal = (): AbortSignal => new AbortController().signal
 afterEach(async () => { for (const close of cleanups.splice(0).reverse()) await close() })
 
-async function fixture() {
+async function fixture({ queued = false } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'research-history-branch-'))
   cleanups.push(() => rm(root, { recursive: true, force: true }))
   const host = await topicHost(root, cleanups)
   const source = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
-  for (let turn = 1; turn <= 5; turn += 1) {
-    source.append('turn/start', { turn })
-    source.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: `Question ${turn}` }] }), { surfaceOp: 'append' })
-    source.append('turn/end', { turn, reason: { kind: 'completed' } })
-  }
+  await writeColdHistory(host.ctx, source, source => {
+    for (let turn = 1; turn <= 5; turn += 1) {
+      source.append('turn/start', { turn })
+      source.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: `Question ${turn}` }] }), { surfaceOp: 'append' })
+      source.append('turn/end', { turn, reason: { kind: 'completed' } })
+      // A prompt queued between turns is inherited by a cut that ends after this turn.
+      if (queued && turn === 2) source.append('agent/inbox/spliced', { target: 'next-turn', start: 0,
+        inserted: [createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Queued follow-up' }] })] })
+    }
+  })
   const writer = await host.ctx.sessionPersistence.create(source.header)
   try { await writer.append(source.snapshotEvents()); await writer.flush() } finally { await writer.close() }
   const topicId = randomUUID()
@@ -61,7 +67,7 @@ describe('Historical branch public Host workflow', () => {
       error: 'Workspace storage offline' })
     expect(await host.ctx.sessionGraphBranch.prepare(host.request, signal())).toEqual(failed)
     // A user can continue the retained child before its Workspace association recovers.
-    const inherited = await host.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
+    const inherited = await inspectSession(host.ctx, preview.targetSessionId as SessionId)
     const writer = await host.ctx.sessionPersistence.open(preview.targetSessionId as SessionId, 'write')
     try {
       const continuation = Session.fromRestore(preview.targetSessionId as SessionId, structuredClone(inherited.events),
@@ -72,7 +78,7 @@ describe('Historical branch public Host workflow', () => {
       await writer.append(continuation.snapshotEvents().slice(inherited.events.length))
       await writer.flush()
     } finally { await writer.close() }
-    const continued = await host.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
+    const continued = await inspectSession(host.ctx, preview.targetSessionId as SessionId)
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(host.root, cleanups)
     const recovery = nativeCreation(restarted)
@@ -84,13 +90,33 @@ describe('Historical branch public Host workflow', () => {
     expect(await restarted.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).toEqual(ready)
     expect(recovery.resume).toHaveBeenCalledOnce()
     expect(recovery.workspace.sessionIds).toContain(preview.targetSessionId)
-    const child = await restarted.ctx.sessionController.inspect(preview.targetSessionId as SessionId)
+    const child = await inspectSession(restarted.ctx, preview.targetSessionId as SessionId)
     expect(child.events).toEqual(continued.events)
     expect(discussionTurns(child.events).map(turn => turn.turn)).toEqual([1, 2, 3])
-    expect((await restarted.ctx.sessionController.inspect(host.source.id)).events).toEqual(before)
+    expect((await inspectSession(restarted.ctx, host.source.id)).events).toEqual(before)
     expect((await restarted.ctx.sessionGraphTopics.read({ topicId: host.request.topicId }, signal())).sources)
       .toEqual(expect.arrayContaining([expect.objectContaining({ sessionId: preview.targetSessionId, parentSessionId: host.source.id })]))
     expect((await restarted.ctx.sessionPersistence.list()).filter(item => item.header.parentSession === host.source.id)).toHaveLength(1)
+  })
+
+  it('cancels inherited queued input inside the frozen seed so the read-only prepared child is never written', async () => {
+    const host = await fixture({ queued: true })
+    vi.spyOn(host.ctx.agents, 'resume').mockResolvedValue(undefined)
+    vi.spyOn(host.ctx.sessionController, 'rename').mockResolvedValue({ title: 'branch', seq: 9 })
+    const record = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
+    expect(record).toMatchObject({ firstTurn: 1, lastTurn: 2, inheritedEventCount: 7, stage: 'prepared' })
+    const ready = await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())
+    expect(ready.error).toBeUndefined()
+    expect(ready).toMatchObject({ stage: 'ready', targetSessionId: record.targetSessionId })
+    const child = await inspectSession(host.ctx, record.targetSessionId as SessionId)
+    expect(child.inheritedEventCount).toBe(7)
+    expect(child.events.map(event => event.seq)).toEqual(child.events.map((_event, index) => index))
+    // The inherited admission, the native end-seed marker at the cut, then the cancellation.
+    expect(child.events.slice(6).map(event => [event.type, event.data])).toEqual([
+      ['agent/inbox/spliced', expect.objectContaining({ target: 'next-turn', start: 0, inserted: [expect.objectContaining({ role: 'user' })] })],
+      ['session/end-seed', { inherited: true }],
+      ['agent/inbox/spliced', { target: 'next-turn', start: 0, removedCount: 1, inserted: [], outcome: 'canceled' }],
+    ])
   })
 
   it('previews without creating, inherits exactly two of five turns, and retries topic failure on the same child after restart', async () => {
@@ -106,11 +132,11 @@ describe('Historical branch public Host workflow', () => {
     const membership = vi.spyOn(host.ctx.sessionGraphTopics, 'write').mockRejectedValueOnce(new Error('Topic storage offline'))
     const failed = await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())
     expect(failed).toMatchObject({ stage: 'created', targetSessionId: record.targetSessionId, error: 'Topic storage offline' })
-    const child = await host.ctx.sessionController.inspect(record.targetSessionId as SessionId)
+    const child = await inspectSession(host.ctx, record.targetSessionId as SessionId)
     expect(child.meta).toMatchObject({ parentSession: host.source.id, cwd: '/a', isSeeded: true })
     expect(child.inheritedEventCount).toBe(6)
     expect(discussionTurns(child.events).map(turn => turn.turn)).toEqual([1, 2])
-    expect((await host.ctx.sessionController.inspect(host.source.id)).events).toEqual(before)
+    expect((await inspectSession(host.ctx, host.source.id)).events).toEqual(before)
     expect(membership).toHaveBeenCalledOnce()
     await host.ctx.fiber.dispose()
     const restarted = await topicHost(host.root, cleanups)
@@ -132,7 +158,7 @@ describe('Historical branch public Host workflow', () => {
     await expect(host.ctx.sessionGraphBranch.prepare({ ...host.request, endSeq: 999 }, signal())).rejects.toThrow('unavailable')
     await expect(host.ctx.sessionGraphBranch.prepare({ ...host.request, startSeq: 4 }, signal())).rejects.toThrow('unavailable')
     const record = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
-    vi.spyOn(host.ctx.sessionController, 'inspect').mockImplementation(async () => { throw new Error('Source unavailable') })
+    vi.spyOn(host.ctx.sessionQuery, 'observeSession').mockImplementation(async () => { throw new Error('Source unavailable') })
     expect(await host.ctx.sessionGraphBranch.submit({ operationId: record.operationId }, signal())).toMatchObject({ stage: 'prepared', error: 'Source unavailable' })
     expect(resume).not.toHaveBeenCalled()
     await expect(host.ctx.sessionGraphBranch.prepare({ ...host.request, endSeq: 8 }, signal())).rejects.toThrow('another source')
@@ -178,7 +204,7 @@ describe('Historical branch public Host workflow', () => {
     })
     try {
       await expect(host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).rejects.toThrow()
-      expect((await host.ctx.sessionController.inspect(preview.targetSessionId as SessionId)).inheritedEventCount).toBe(6)
+      expect((await inspectSession(host.ctx, preview.targetSessionId as SessionId)).inheritedEventCount).toBe(6)
     } finally {
       await rm(join(host.root, 'data'))
       await rename(join(host.root, 'saved-data'), join(host.root, 'data'))
@@ -198,9 +224,9 @@ describe('Historical branch public Host workflow', () => {
   it('rejects a changed inherited prefix even when the requested turn boundaries still exist', async () => {
     const host = await fixture()
     const preview = await host.ctx.sessionGraphBranch.prepare(host.request, signal())
-    const original = await host.ctx.sessionController.inspect(host.source.id)
-    vi.spyOn(host.ctx.sessionController, 'inspect').mockResolvedValue({ ...original, events: original.events.map(event => event.type === 'user/message'
-      ? { ...event, data: { ...event.data, content: [{ type: 'text', text: 'Changed historical evidence' }] } } : event) })
+    const original = await inspectSession(host.ctx, host.source.id)
+    vi.spyOn(host.ctx.sessionQuery, 'observeSession').mockResolvedValue(observationOf({ ...original, events: original.events.map(event => event.type === 'user/message'
+      ? { ...event, data: { ...event.data, content: [{ type: 'text', text: 'Changed historical evidence' }] } } : event) }))
     expect(await host.ctx.sessionGraphBranch.submit({ operationId: preview.operationId }, signal())).toMatchObject({ stage: 'prepared', error: expect.stringContaining('history changed') })
     expect(await host.ctx.sessionPersistence.stat(preview.targetSessionId as SessionId)).toBeUndefined()
   })

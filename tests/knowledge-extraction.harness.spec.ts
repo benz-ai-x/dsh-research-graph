@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { topicHost } from './fixtures/research-topics-host.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { inspectSession } from './fixtures/sessions.ts'
 
 const cleanups: (() => Promise<void>)[] = []
 afterEach(async () => { for (const dispose of cleanups.splice(0).reverse()) await dispose() })
@@ -14,15 +15,14 @@ describe('Knowledge extraction public Host workflow', () => {
     const root = await mkdtemp(join(tmpdir(), 'session-graph-extraction-'))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
     let host = await topicHost(root, cleanups)
-    const session = host.ctx.sessions.prepare(undefined, { meta: { cwd: '/a' } })
+    const session = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
     for (let turn = 1; turn <= 3; turn += 1) {
       session.append('turn/start', { turn })
       session.append('user/message', createUserMessage({ source: { kind: 'user' },
         content: [{ type: 'text', text: `证据 ${turn}：${'长文本'.repeat(200)}` }] }), { surfaceOp: 'append' })
       session.append('turn/end', { turn, reason: { kind: 'completed' } })
     }
-    host.ctx.effect(() => host.ctx.sessions.enter(session))
-    const before = await host.ctx.sessionController.inspect(session.id)
+    const before = await inspectSession(host.ctx, session.id)
     const starts = before.events.filter(event => event.type === 'turn/start').map(event => event.seq)
     const ends = before.events.filter(event => event.type === 'turn/end').map(event => event.seq)
     const invoke = (method: string, request: unknown, signal = new AbortController().signal) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
@@ -89,7 +89,7 @@ describe('Knowledge extraction public Host workflow', () => {
     expect(await invoke('search', { query: '' })).toEqual([saved])
     // The attached-only original disappeared with the first Host; its retained
     // extraction snapshot still supports generation and the explicit save.
-    await expect(host.ctx.sessionController.inspect(session.id)).rejects.toThrow('not found')
+    await expect(inspectSession(host.ctx, session.id)).rejects.toThrow('not found')
     expect(session.snapshotEvents()).toEqual(before.events)
   })
 })

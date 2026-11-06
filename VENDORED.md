@@ -69,7 +69,29 @@ slot lists (`sidebar.workspaces.session.menu.item`,
 members included. Positional drag reorder stays native behavior for the
 ungrouped section; folder members drag onto folder headers to move.
 
+### DSH 0.2.2-rc.1 (2026-11-06): kept at `dsh-v0.2.1-rc.5`, runtime-verified
+
+The 0.2.2-rc.1 adaptation round kept both vendored halves at the rc.5
+extraction above instead of re-vendoring: the plugin's four compiler faces
+compile this code against the 0.2.2-rc.1 checkout's real declarations and
+pass unchanged, and the runtime acceptance (harness suite incl. the four
+workspace-folder specs, packed-profile smoke with folder CRUD and restart,
+and a real-browser preview: sidebar tree, folder-create entry, narrow-screen
+collapse/expand) confirmed the rc.5 halves behave correctly under the
+0.2.2-rc.1 host layout. Known upstream drift deferred to a future re-vendor
+round (`dsh-v0.2.1-rc.5..dsh-v0.2.2-rc.1`):
+
+- `ui-sidebar` (+808/−229): drawer-mode adaptation for ui-layout's new
+  required `SidebarOwnerProps.drawer`, `useRemoteAccess`-related header
+  entries, and six new built-in languages (ja/es/fr/de/ru/pt).
+- `ui-workspace` (+3099/−1401): built-in session/workspace menu actions moved
+  to the new `ctx.contextMenus` service (`@deepseek-ai/dsh-client-ui-context-menu`,
+  a new official bundle row); local `rows/AnimatedRows.tsx` moved up into
+  ui-primitives; new `WorkspaceDialogs.tsx`/`path-suffix.ts`; slot-priority
+  shadowing of built-in menu items no longer works upstream.
+
 ## Upstream sync checklist (per DSH adaptation round)
+
 
 1. Re-extract the upstream trees at the new tag into a scratch directory and
    diff them against `src/client/sidebar` and `src/client/workspace`,

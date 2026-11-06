@@ -11,7 +11,6 @@ import { discussionTurns } from './session-discussion.ts'
 import { ServiceRequests } from './service-requests.ts'
 import { historyBranchIdentitySchema, historyBranchRecordSchema, historyBranchRequestSchema, type HistoryBranchRecord, type HistoryBranchRequest } from './history-branch.ts'
 
-type PreparedSession = ReturnType<Context['sessions']['prepare']>
 interface BranchSeed {
   readonly header: SessionHeader
   readonly events: readonly SessionEvent[]
@@ -32,8 +31,13 @@ const headerHash = (header: SessionHeader): string => hash({ ...header, delegati
 const inboxSpliceSchema = z.object({ target: z.enum(['next-turn', 'next-step']), start: z.number().int().nonnegative(),
   removedCount: z.number().int().nonnegative().optional(), inserted: z.array(z.unknown()) })
 
-/** The native cut includes between-turn inbox admissions. Preserve history but cancel inherited pending work in the child before activation. */
-function clearInheritedInputs(child: PreparedSession, events: BranchSeed['events']): void {
+/**
+ * The native cut includes between-turn inbox admissions. Preserve that history but cancel
+ * inherited pending work before activation. A store-prepared Session stays read-only until
+ * announced (DSH 0.2.2), so the cancellations are journaled after the inherited prefix of the
+ * frozen seed — the same persisted log the released Agent restore path adopts.
+ */
+function inheritedInputCancellations(events: BranchSeed['events']): SessionEvent[] {
   const counts = { 'next-turn': 0, 'next-step': 0 }
   for (const event of events) {
     if (event.type !== 'agent/inbox/spliced') continue
@@ -42,9 +46,15 @@ function clearInheritedInputs(child: PreparedSession, events: BranchSeed['events
     if (splice.start > counts[splice.target] || splice.start + removed > counts[splice.target]) throw new Error('Inherited input history is invalid')
     counts[splice.target] += splice.inserted.length - removed
   }
+  const last = events.at(-1)
+  let seq = last === undefined ? 0 : last.seq + 1
+  const time = Math.max(Date.now(), last?.time ?? 0)
+  const cancellations: SessionEvent[] = []
   for (const target of ['next-turn', 'next-step'] as const) {
-    if (counts[target] > 0) child.append('agent/inbox/spliced', { target, start: 0, removedCount: counts[target], inserted: [], outcome: 'canceled' })
+    if (counts[target] > 0) cancellations.push({ type: 'agent/inbox/spliced', seq: seq++ as SessionEvent['seq'], time,
+      data: { target, start: 0, removedCount: counts[target], inserted: [], outcome: 'canceled' } })
   }
+  return cancellations
 }
 
 /** Reserves a native identity before writing its inherited prefix; retries only finish that identity. */
@@ -64,16 +74,26 @@ export class HistoryBranchService extends TypertRemoteService {
   }
 
   private async source(request: HistoryBranchRequest, signal: AbortSignal) {
-    const source = await this.ctx.sessionController.inspect(request.sessionId as SessionId, signal)
-    if (source.meta.origin === 'subagent' || source.meta.cwd === undefined
-      || this.ctx.workspaceRegistry.archivedSessionIds.includes(source.meta.id)) throw new Error('This source cannot be branched')
-    const turns = discussionTurns(source.events)
-    const last = turns.findIndex(turn => turn.startSeq === request.startSeq && turn.endSeq === request.endSeq)
-    if (last < 0 || turns.slice(0, last + 1).some(turn => turn.endSeq === null)) throw new Error('The selected completed turn is unavailable; read the original again')
-    // Match the native controller: retain between-turn events through the next turn/start.
-    let cut = request.endSeq + 1
-    while (cut < source.events.length && source.events[cut]?.type !== 'turn/start') cut += 1
-    return { source, cwd: source.meta.cwd, turns: turns.slice(0, last + 1), events: source.events.slice(0, cut), cut: cut as SessionLogOffset }
+    // The seed path needs the store's real event type, so observe directly
+    // instead of folding through the digest-oriented inspection helper.
+    const observation = await this.ctx.sessionQuery.observeSession(request.sessionId as SessionId, {
+      signal,
+      projectionMode: 'none',
+    })
+    try {
+      const source = { meta: observation.header, events: [...observation.events] }
+      if (source.meta.origin === 'subagent' || source.meta.cwd === undefined
+        || this.ctx.workspaceRegistry.archivedSessionIds.includes(source.meta.id)) throw new Error('This source cannot be branched')
+      const turns = discussionTurns(source.events)
+      const last = turns.findIndex(turn => turn.startSeq === request.startSeq && turn.endSeq === request.endSeq)
+      if (last < 0 || turns.slice(0, last + 1).some(turn => turn.endSeq === null)) throw new Error('The selected completed turn is unavailable; read the original again')
+      // Match the native controller: retain between-turn events through the next turn/start.
+      let cut = request.endSeq + 1
+      while (cut < source.events.length && source.events[cut]?.type !== 'turn/start') cut += 1
+      return { source, cwd: source.meta.cwd, turns: turns.slice(0, last + 1), events: source.events.slice(0, cut), cut: cut as SessionLogOffset }
+    } finally {
+      observation[Symbol.dispose]()
+    }
   }
 
   @Remote('prepare')
@@ -143,8 +163,10 @@ export class HistoryBranchService extends TypertRemoteService {
             meta: { cwd: selected.cwd, parentSession: selected.source.meta.id, isSeeded: true,
               ...(selected.source.meta.agentPreset === undefined ? {} : { agentPreset: selected.source.meta.agentPreset }) },
           })
-          clearInheritedInputs(child, selected.events)
-          stored = { ...stored, seed: { header: child.header, events: child.snapshotEvents(), inheritedEventCount: selected.cut } }
+          // The prepared log already closes its inherited cut with the native end-seed marker.
+          const prepared = child.snapshotEvents()
+          stored = { ...stored, seed: { header: child.header,
+            events: [...prepared, ...inheritedInputCancellations(prepared)], inheritedEventCount: selected.cut } }
           combined.throwIfAborted()
           await table.put(operationId, stored)
         }

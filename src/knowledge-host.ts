@@ -22,6 +22,8 @@ import { RESEARCH_MATERIAL_BUDGET, researchReusePrompt } from './research-reuse.
 import { synthesisContent, verifySynthesisClaims, SYNTHESIS_SYSTEM_PROMPT, type KnowledgeSynthesis, type SynthesisDraft, type SynthesisPreparation, type SynthesisRequest, type SynthesisSave } from './knowledge-synthesis.ts'
 import { synthesisModelSchema, synthesisPreparationSchema, synthesisRequestSchema } from './knowledge-synthesis-codec.ts'
 import { ServiceRequests } from './service-requests.ts'
+import { inspectHarnessSession } from './session-inspect.ts'
+import type { HarnessSessionInspection } from './session-inspect.ts'
 
 const cardStorageSchema: z.ZodType<KnowledgeCard> = z.unknown().transform((value, context) => {
   try { return knowledgeCardSchema.parse(value) } catch {
@@ -86,8 +88,8 @@ export class KnowledgeService extends TypertRemoteService {
       for (const card of selected) {
         const sourceStatuses: ExportSourceStatus[] = []
         for (const source of card.revision.sources) {
-          let snapshot: Awaited<ReturnType<Context['sessionController']['inspect']>>
-          try { snapshot = await this.ctx.sessionController.inspect(source.sessionId as SessionId, reading) } catch {
+          let snapshot: HarnessSessionInspection
+          try { snapshot = await inspectHarnessSession(this.ctx, source.sessionId as SessionId, reading) } catch {
             reading.throwIfAborted()
             sourceStatuses.push('unavailable')
             continue
@@ -130,7 +132,7 @@ export class KnowledgeService extends TypertRemoteService {
       const sourceId = materials.flatMap(material => material.kind === 'turn' ? [material.source.sessionId] : material.sources.map(source => source.sessionId))[0]
       let route = this.config.route
       if (sourceId !== undefined) {
-        try { route = sessionDigestInspectionFromHarness(await this.ctx.sessionController.inspect(sourceId as SessionId, combined), route).modelRoute } catch { combined.throwIfAborted() }
+        try { route = sessionDigestInspectionFromHarness(await inspectHarnessSession(this.ctx, sourceId as SessionId, combined), route).modelRoute } catch { combined.throwIfAborted() }
       }
       const preparation: SynthesisPreparation = { preparationId: command.operationId, topicId: command.topicId, question: command.question,
         materials, claims: [], materialText, budgetChars: RESEARCH_MATERIAL_BUDGET, ...(route === undefined ? {} : { route }) }
@@ -210,7 +212,7 @@ export class KnowledgeService extends TypertRemoteService {
         break
       }
       if (turns.length === 0) throw new Error('The first completed turn exceeds the material budget; increase the budget or choose another turn')
-      const snapshot = await this.ctx.sessionController.inspect(selected.sessionId as SessionId, combined)
+      const snapshot = await inspectHarnessSession(this.ctx, selected.sessionId as SessionId, combined)
       const route = sessionDigestInspectionFromHarness(snapshot, this.config.route).modelRoute
       const value: ExtractionPreparation = {
         preparationId: randomUUID(), selected,
