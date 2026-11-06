@@ -35,4 +35,13 @@ The candidate gates establish local release readiness. Real-provider model quali
 
 ## Publication
 
-(to be completed after publication)
+Release-preparation [PR #84](https://github.com/benz-ai-x/dsh-research-graph/pull/84) passed all four CI jobs and merged as **`9197512a5b4b468320167797013a274d28183580`**; its merge tree is identical to accepted head `3b62764`. Annotated tag `v0.2.2-rc.1` points to the release merge commit, and the [GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.1) triggered successful OIDC [Publish run 42198078175](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/42198078175).
+
+- Official registry archive: **731735 bytes**, SHA-256 `195ff27b1df4fc50e3926ce771fa4feadd6cdcc4031c61f4ce893962624c64fe`, registry SHA-1 `ec6cbed4d6aee7ba8b0890d228f966bda247efd1`, integrity `sha512-Vx87af52joyVR…Lwfeg==` (SHA-512 of the downloaded bytes matches the registry integrity). npm `next` is `0.2.2-rc.1`; `latest` remains `0.1.5-rc.1`.
+- SLSA provenance (npm attestations): subject `pkg:npm/@benz-ai-x/dsh-research-graph@0.2.2-rc.1` whose SHA-512 digest equals the downloaded archive's; resolved dependency `git+https://github.com/benz-ai-x/dsh-research-graph@refs/tags/v0.2.2-rc.1`; SLSA GitHub Actions build type, `release` event. Provenance statement published to transparency log entry `3714428813`.
+- The official archive independently passed the same isolated packed-profile acceptance with **19 fixture model calls** (`version`/`dshVersion` `0.2.2-rc.1`, `durableSidebarRestart: true`, installed and removed cleanly).
+- Release attachments (official archive + `SHA256SUMS`) were uploaded, downloaded again, checksum-verified, and byte-compared with the registry archive (`cmp` clean). Private evidence is under `.artifacts/release-0.2.2-rc.1/official/`.
+
+## 8010 deployment
+
+Before this release the 8010 host had already been switched (by the machine's maintainer, 2026-11-06 14:26) to a standalone `dsh-0.2.2-rc.1` deployment under `/DSH/24-PA/deployments/`, with Node v24.22.0 — and the still-installed `0.2.1-rc.5.2` was being **skipped at boot** by the exact-peer check. This release deployed over it: backup `/DSH/24-PA/backups/dsh-20261106T175827`, then `dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.1` through the same-version deployment CLI (0.2.1-rc.5.2 → 0.2.2-rc.1), then service restart. The service is active, `127.0.0.1:8010` listens, and the startup log contains no `skipping`/`incompatible` line. Browser inspection through an SSH tunnel (closed afterwards) confirmed **`Research Graph v0.2.2-rc.1 · local-3e166337`** (Build ID identical to the official npm archive), the Research Graph tab with the graph rendering on a real Session, and the vendored sidebar tree; no research data was written.
