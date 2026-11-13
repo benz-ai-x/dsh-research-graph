@@ -90,6 +90,25 @@ round (`dsh-v0.2.1-rc.5..dsh-v0.2.2-rc.1`):
   ui-primitives; new `WorkspaceDialogs.tsx`/`path-suffix.ts`; slot-priority
   shadowing of built-in menu items no longer works upstream.
 
+### DSH 0.2.2-rc.2 (2026-11-13): kept at `dsh-v0.2.1-rc.5`, Menu anchor migration
+
+The vendored halves remain at the rc.5 extraction above. The rc.2 `Menu` contract
+removed `getAnchorRect`; `WorkspacePicker.tsx` now follows the upstream
+`anchorRef` migration with a stable empty ref when the owner supplies none. The
+standalone structural declarations carry the new `anchorRef` and `anchorPoint`
+fields. This is a targeted compatibility port, not a full re-vendor.
+
+Deferred upstream drift from rc.1 to rc.2 includes the sidebar panel-icon
+Factory, panel unpin controls and viewport scroll handoff; workspace shared
+`contextMenu.button` triggers, section scrolling and archive follow-up notices;
+and the associated style changes. The existing context-menu service and native
+row slots continue to serve the local Workspace Folder implementation.
+
+Validation on the rc.2 checkout passed the standalone suite, all four compiler
+faces, the complete Harness suite, packed-profile smoke, and real-browser checks
+of workspace selection, Workspace/Topic graphs, session-header More, narrow-screen
+sidebar collapse/expand, and Workspace Folder creation/restart/delete.
+
 ## Upstream sync checklist (per DSH adaptation round)
 
 
