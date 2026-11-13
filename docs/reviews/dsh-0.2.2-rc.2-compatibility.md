@@ -76,6 +76,7 @@ Also checked outside the dsh-* namespace: @deepseek-ai/cordis and
 | Vendored `dsh-client-ui-sidebar`, `dsh-client-ui-workspace`, `dsh-client-ui-dockkit` | **Changed; selectively ported** | Upstream picker uses the new anchor at `ui-workspace/src/client/WorkspacePicker.tsx:222`; navigation remains at `ui-workspace/src/client/navigation.ts:45`. Keep local Workspace Folders and the rc.5 base; record deferred sidebar/scroll/archive/style drift in `VENDORED.md`. Build externals remain unchanged. |
 | `dsh-attachment` | **Changed internals; used IDs unchanged** | `attachment/src/brand.ts:6`, `:13` retain `AttachmentId`. Plugin fixtures do not consume the changed attachment error behavior. |
 | `dsh-util-values`, `dsh-util-workspace-path` | **Unchanged** | `util-values/src/index.ts:12`; `util-workspace-path/src/index.ts:42`, `:58`. No bundler or utility adaptation. |
+| `@deepseek-ai/cordis`, `@deepseek-ai/schemastery` | **Unchanged** | The rc.1 → rc.2 diff is empty for both vendor trees. `vendor/cordis/src/context.ts:42` and `service.ts:11` retain the Context/Service contracts used by Host and Client plugins. `vendor/schemastery/src/index.ts:42-90` retains the schema factories used by `src/config.ts`, with the default export at `:962`. Keep `~4.1.0` and `~3.19.0`. |
 
 ## Validation and visual evidence
 
