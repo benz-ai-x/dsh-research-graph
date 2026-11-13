@@ -1,6 +1,6 @@
 # Research Graph Handoff
 
-Updated: 2026-11-13 (Asia/Shanghai, 0.2.2-rc.2 已发布，未部署)
+Updated: 2026-11-13 (Asia/Shanghai, 0.2.2-rc.2 已发布并设为 npm latest，未部署)
 
 根 `HANDOFF.md` 是唯一实时交接；`docs/HANDOFF.md` 仅为历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准。
 
@@ -17,7 +17,7 @@ Updated: 2026-11-13 (Asia/Shanghai, 0.2.2-rc.2 已发布，未部署)
   - 验证：正常 `pnpm install` 与 `pnpm run check` **253 项 / 30 文件**；rc.2 native/lib/web 重建后四个编译面与 Harness **361 项 / 25 文件**首轮全绿；候选 `.artifacts/benz-ai-x-dsh-research-graph-0.2.2-rc.2.tgz` **733662 bytes**、SHA-256 `ba36f142e2610bd2b0beb87a94f314a20ea66abf8ed2f4758d3ea3c985b2cc0b`、Build ID `local-1c4e78ae`；实包隔离冒烟 **19 次**固定模型，`durableSidebarRestart: true`、安装/移除干净。
   - 真实浏览器徽标 **`Research Graph v0.2.2-rc.2 · local-1c4e78ae`** 与候选一致；Workspace/Topic 图谱、知识卡阅读、会话头共享 More、工作区菜单定位/选择/关闭、窄屏侧栏收起/展开通过。临时 Workspace Folder 创建成功；首轮预览因后台任务超时停 Host，删除出现 `Failed to fetch`，重启后确认文件夹持久存在并成功删除，排除产品回归。预览已停止，隔离样例保留，日常 profile 未改。
   - **评审补证**：逐契约面状态、上游文件行号与完整 inject/import 覆盖清单见 [DSH rc.2 兼容分析](docs/reviews/dsh-0.2.2-rc.2-compatibility.md)；真实 Menu 截图位于 `docs/reviews/assets/pr85-dsh-rc2/workspace-picker.png`。评审前 head `4462d25` 的 Node 24/26 与 Matching DSH CI（run 43369656624）已全部通过。发布前检查与后续正式包证据归入 [release-0.2.2-rc.2.md](docs/reviews/release-0.2.2-rc.2.md)。
-  - **正式发布回验**：官方包 **733360 bytes**、SHA-256 `143c2dd3eaecb1603432ea8c4a1e416ecfb296f3abf87ce8ca810872b1b9e8a7`、registry SHA-1 `4ea6dfb8399e805291638fd9780da8804a717349`；integrity 与下载字节一致。SLSA subject/tag/commit/workflow/run 及 tlog `3847796519`、`3847749957` 核对通过。官方字节独立通过 **19 次**固定模型冒烟，Build ID 同为 `local-1c4e78ae`；npm `next=0.2.2-rc.2`、`latest=0.1.5-rc.1`。Release 归档与 SHA256SUMS 已上传、回读并 `cmp` 一致。私有证据 `.artifacts/release-0.2.2-rc.2/official/`。
+  - **正式发布回验**：官方包 **733360 bytes**、SHA-256 `143c2dd3eaecb1603432ea8c4a1e416ecfb296f3abf87ce8ca810872b1b9e8a7`、registry SHA-1 `4ea6dfb8399e805291638fd9780da8804a717349`；integrity 与下载字节一致。SLSA subject/tag/commit/workflow/run 及 tlog `3847796519`、`3847749957` 核对通过。官方字节独立通过 **19 次**固定模型冒烟，Build ID 同为 `local-1c4e78ae`；npm 最初 `next=0.2.2-rc.2`、`latest=0.1.5-rc.1`；随后按用户明确指令将 `latest` 提升至 `0.2.2-rc.2`，registry 回读确认 `latest` 与 `next` 均为该版本，包字节未变。Release 归档与 SHA256SUMS 已上传、回读并 `cmp` 一致。私有证据 `.artifacts/release-0.2.2-rc.2/official/`。
 - **DSH 0.2.2-rc.1 首次兼容适配、发布与 8010 部署已全部完成（2026-11-06，用户指令「升级」→「要」（发布+部署））**。上游 rc.5→0.2.2-rc.1 共 2623 提交，逐包 diff 插件依赖面后的实质适配：
   - **Host 读取面重构**：`SessionController.inspect` 与 `inspectApiSession` 上游删除 → 新 `src/session-inspect.ts` 以 `sessionQuery.observeSession(id, { projectionMode: 'none' })` 复刻语义（live 优先、persisted 无 cwd 判 not-found、Disposable finally 释放）；15 调用点迁移；分支 seed 路径直连 observeSession 保留真实 `SessionEvent[]` 类型。根 inject 加 `sessionQuery`（上游 SessionController 自身也注入它）。
   - **投影摘要键收窄**：0.2.2 起 `sessionStats`/`turnOutline`/`todos`/`contextPressure`/`imageLimits`/`contextBreakdown` 标记 `summary:false`——列表行类型不再携带，但 exact 读（refreshProjections → `session.projections`）wire 仍带全键；`graph-model.ts` 经 `Partial<SessionProjectionMap>` 折叠（运行时数据无损失）。

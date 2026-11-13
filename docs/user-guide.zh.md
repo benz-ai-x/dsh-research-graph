@@ -28,7 +28,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前插件 **0.2.2-rc.2** 使用 npm `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+当前插件 **0.2.2-rc.2** 使用 npm `latest` / `next` 标签，上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
 
 ## 研究流程
 
@@ -83,7 +83,7 @@ flowchart LR
 
 </details>
 
-本预发布版本使用 npm `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
+本预发布版本使用 npm `latest` / `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
 ## 常见问题
 

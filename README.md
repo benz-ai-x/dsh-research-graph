@@ -67,7 +67,7 @@ Version 0.2.2-rc.2 with demo data. Click the image for the full-resolution scree
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.2-rc.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.2), npm `next` |
+| Plugin release | [0.2.2-rc.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.2), npm `latest` / `next` |
 | Required Host | **DSH 0.2.2-rc.2 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
@@ -95,7 +95,7 @@ Every npm release of the current package name, with its required DSH Host (taken
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.2` | `0.2.2-rc.2` | Current release — DSH rc.2 compatibility and Menu anchor migration; requires Node.js `>=24.9.0`; npm `next` |
+| `0.2.2-rc.2` | `0.2.2-rc.2` | Current release — DSH rc.2 compatibility and Menu anchor migration; requires Node.js `>=24.9.0`; npm `latest` / `next` |
 | `0.2.2-rc.1` | `0.2.2-rc.1` | First adaptation of DSH 0.2.2-rc.1; requires Node.js `>=24.9.0` |
 | `0.2.1-rc.5.2` | `0.2.1-rc.5` | **Breaking change**: replaces the official sidebar with the vendored copy and Workspace folders (supersedes sidebar categories; old category data stays dormant) |
 | `0.2.1-rc.5.1` | `0.2.1-rc.5` | Native-style sidebar categories and footer view switching |
@@ -122,7 +122,7 @@ Every npm release of the current package name, with its required DSH Host (taken
 | `0.1.5-rc.2.2` | `0.1.5-rc.2` | |
 | `0.1.5-rc.2.1` | `0.1.5-rc.2` | |
 | `0.1.5-rc.2` | `0.1.5-rc.2` | |
-| `0.1.5-rc.1` | `0.1.5-rc.1` | First release under the current package name; npm `latest` |
+| `0.1.5-rc.1` | `0.1.5-rc.1` | First release under the current package name |
 
 Releases up to `0.1.5-rc.1` were also published under the previous package name `@benz-ai-x/dsh-client-ui-session-graph`, whose earlier `0.1.1`–`0.1.6` line predates the DSH-aligned release policy. A release loads only on its pinned DSH Host (profile boot enforces the exact peer check), so pick the row matching your DSH installation.
 
