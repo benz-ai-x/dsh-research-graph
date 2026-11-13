@@ -1561,6 +1561,7 @@ function mount(
     useTrajectory: () => { throw new Error('graph bench does not render Trajectory consumers') },
     // DSH 0.2.2 provides menu bindings as a global root prop; the bench keeps native behavior.
     useContextMenu: () => ({ getTriggerProps: () => ({}) }),
+    renderFactorySlot: () => null,
   }
   const t = (key: LocaleKeysOf<'sessionGraph'>, params?: Record<string, unknown>): string => {
     const value = (key: string, params?: Record<string, unknown>): string =>

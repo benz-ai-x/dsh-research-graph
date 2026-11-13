@@ -152,8 +152,8 @@ declare module '@deepseek-ai/dsh-subagent/projection-types' {
     }
     & (
       | { readonly mode: 'one-shot'; readonly label?: string }
-      | { readonly mode: 'external'; readonly label?: string }
-      | { readonly mode: 'continuable'; readonly label: string }
+      | { readonly mode: 'external'; readonly label?: string; readonly name?: string }
+      | { readonly mode: 'continuable'; readonly label: string; readonly name?: string }
       | { readonly mode: 'unknown'; readonly label?: string }
     )
 }
@@ -366,7 +366,8 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
     readonly footer?: readonly MenuEntry[] | undefined
     readonly selectedId?: string | undefined
     readonly selectedIds?: readonly string[] | undefined
-    readonly getAnchorRect?: (() => DOMRect | null) | undefined
+    readonly anchorRef?: import('react').RefObject<HTMLElement | null> | undefined
+    readonly anchorPoint?: { readonly x: number; readonly y: number } | undefined
     readonly onSelect?: (id: string) => void | undefined
     readonly onClose: () => void
     readonly align?: 'start' | 'end' | undefined
