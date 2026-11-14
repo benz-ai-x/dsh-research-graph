@@ -484,6 +484,116 @@ describe('branchLineage', () => {
   })
 })
 
+describe('deriveSessionGraph Branch Origins', () => {
+  function scoped(byId: Record<string, SessionSummary>) {
+    const list = listState(byId)
+    return { list, scope: resolveGraphScope(id('root'), list, workspacesState([])) }
+  }
+
+  it('restores a Branch edge and cluster membership for an unparented ordinary fork', () => {
+    const { list, scope } = scoped({
+      root: session('root', { updatedAt: 1_000 }),
+      fork: session('fork', { updatedAt: 900 }),
+      other: session('other', { updatedAt: 800 }),
+    })
+    const graph = deriveSessionGraph(list, scope, id('root'), new Map(), new Map([['fork', 'root']]))
+    expect(graph.edges).toContainEqual({ id: 'branch:root->fork', kind: 'branch', from: 'root', to: 'fork' })
+    expect(graph.nodes.get(id('fork'))?.branchFrom).toBe('root')
+    expect(graph.clusters.find(cluster => cluster.rootId === 'root')?.memberIds)
+      .toEqual(expect.arrayContaining([id('root'), id('fork')]))
+  })
+
+  it('keeps inherited Merge snapshots from becoming direct relations on an independent fork', () => {
+    const inherited = [{ sessionId: 'merge-source', capturedThroughSeq: 4 }]
+    const { list, scope } = scoped({
+      root: session('root', { updatedAt: 1_000 }),
+      fork: session('fork', { updatedAt: 900, projectionValues: { sessionGraphMerge: {
+        operationId: 'merge', contextEventSeq: 4, sources: inherited,
+      } } }),
+    })
+    const graph = deriveSessionGraph(list, scope, id('root'), new Map(), new Map([['fork', 'root']]))
+    expect(graph.nodes.get(id('fork'))).toMatchObject({ branchFrom: 'root', mergeSources: [], inheritedMergeSources: inherited })
+    expect(graph.edges.some(edge => edge.kind === 'merge' && edge.to === 'fork')).toBe(false)
+  })
+
+  it('restores a Branch edge between explicit Topic references without Host parentage', () => {
+    const references = [
+      { sessionId: 'root', title: 'Root', cwd: '/w' },
+      { sessionId: 'fork', title: 'Fork', cwd: '/w' },
+    ]
+    const snapshot = {
+      topic: { topicId: 'topic', title: 'Topic', references, arrangement: { positions: {}, collapsed: [], offsets: {} } },
+      sources: references.map(reference => ({ ...reference, archived: false, status: 'listed' as const })),
+    }
+    const list = listState({ root: session('root'), fork: session('fork') })
+    const graph = deriveTopicGraph(snapshot, list, id('root'), new Map(), new Map([['fork', 'root']]))
+    expect(graph.edges).toContainEqual({ id: 'branch:root->fork', kind: 'branch', from: 'root', to: 'fork' })
+    expect(graph.nodes.get(id('fork'))?.branchFrom).toBe('root')
+  })
+
+  it('keeps current Host parentage authoritative when its Topic parent is not a reference', () => {
+    const references = [
+      { sessionId: 'root', title: 'Root', cwd: '/w' },
+      { sessionId: 'fork', title: 'Fork', cwd: '/w' },
+    ]
+    const snapshot = {
+      topic: { topicId: 'topic', title: 'Topic', references, arrangement: { positions: {}, collapsed: [], offsets: {} } },
+      sources: references.map(reference => ({
+        ...reference, archived: false, status: 'listed' as const,
+        ...(reference.sessionId === 'fork' ? { parentSessionId: 'root' } : {}),
+      })),
+    }
+    const list = listState({
+      root: session('root'),
+      hostParent: session('hostParent'),
+      fork: session('fork', { parentId: id('hostParent') }),
+    })
+    const graph = deriveTopicGraph(snapshot, list, id('root'), new Map(), new Map([['fork', 'root']]))
+    expect(graph.edges.some(edge => edge.id === 'branch:root->fork')).toBe(false)
+    expect(graph.nodes.get(id('fork'))?.branchFrom).toBeUndefined()
+  })
+
+  it('keeps Host parentage authoritative over a recorded origin', () => {
+    const { list, scope } = scoped({
+      root: session('root', { updatedAt: 1_000 }),
+      middle: session('middle', { updatedAt: 950 }),
+      fork: session('fork', { parentId: id('middle'), updatedAt: 900 }),
+    })
+    const graph = deriveSessionGraph(list, scope, id('root'), new Map(), new Map([['fork', 'root']]))
+    expect(graph.nodes.get(id('fork'))?.branchFrom).toBe(id('middle'))
+    expect(graph.edges.some(edge => edge.id === 'branch:root->fork')).toBe(false)
+  })
+
+  it('does not connect a Topic fork to an unavailable parent reference', () => {
+    const references = [
+      { sessionId: 'parent', title: 'Unavailable parent' },
+      { sessionId: 'fork', title: 'Fork' },
+    ]
+    const snapshot = {
+      topic: { topicId: 'topic', title: 'Topic', references, arrangement: { positions: {}, collapsed: [], offsets: {} } },
+      sources: [
+        { ...references[0], archived: false, status: 'unavailable' as const },
+        { ...references[1], archived: false, status: 'listed' as const },
+      ],
+    }
+    const list = listState({ parent: session('parent'), fork: session('fork') })
+    const graph = deriveTopicGraph(snapshot, list, id('fork'), new Map(), new Map([['fork', 'parent']]))
+    expect(graph.edges.some(edge => edge.id === 'branch:parent->fork')).toBe(false)
+    expect(graph.nodes.get(id('fork'))?.branchFrom).toBeUndefined()
+    expect(graph.nodes.get(id('parent'))?.topicSource?.status).toBe('unavailable')
+  })
+
+  it('stays a Root Session when the origin parent is outside the scope', () => {
+    const { list, scope } = scoped({
+      root: session('root', { updatedAt: 1_000 }),
+      fork: session('fork', { updatedAt: 900 }),
+    })
+    const graph = deriveSessionGraph(list, scope, id('root'), new Map(), new Map([['fork', 'absent']]))
+    expect(graph.nodes.get(id('fork'))?.branchFrom).toBeUndefined()
+    expect(graph.clusters.find(cluster => cluster.rootId === 'fork')?.memberIds).toEqual([id('fork')])
+  })
+})
+
 describe('matchFilter', () => {
   it('matches titles case-insensitively, empty-handed queries dim all, blank stays inactive', () => {
     const graph = graphFor({

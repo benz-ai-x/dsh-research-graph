@@ -50,6 +50,7 @@ import type { KnowledgeCard, KnowledgeSave } from '../src/knowledge.ts'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ExtractionPreparation } from '../src/knowledge-extraction.ts'
 import type { ResearchReuseRecord } from '../src/research-reuse.ts'
+import type { BranchOrigin } from '../src/branch-links.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
@@ -1238,6 +1239,37 @@ describe('Research Topics registered Graph workflow', () => {
     await b.fiber.dispose()
   })
 
+  it('renders an inferred Branch between Topic references without Host parentage', async () => {
+    const b = await bench({ root: session('root'), fork: session('fork') })
+    const topic = {
+      topicId: 'research', title: '研究主题',
+      references: [
+        { sessionId: 'root', title: 'Session root', cwd: '/w' },
+        { sessionId: 'fork', title: 'Session fork', cwd: '/w' },
+      ],
+      arrangement: { positions: {}, collapsed: [], offsets: {} },
+    }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: {
+      topic,
+      sources: topic.references.map(reference => ({ ...reference, archived: false, status: 'listed' as const })),
+    } })
+    b.listBranchOrigins.mockResolvedValue({ ok: true, value: { origins: [{
+      childSessionId: 'fork', parentSessionId: 'root', source: 'inferred', createdAt: 1,
+    }] } })
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-edge-id="branch:root->fork"]')).not.toBeNull()
+    })
+    expect(b.listBranchOrigins).toHaveBeenCalledWith(
+      { sessionIds: ['root', 'fork'] }, expect.any(AbortSignal),
+    )
+    await b.fiber.dispose()
+  })
+
   it('shows cross-Workspace, archived and missing references, and reads a selected source only on demand', async () => {
     const b = await bench({ a: session('a'), b: session('b', { cwd: '/other' }) })
     const references = [
@@ -1407,6 +1439,10 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const prepareBranch = vi.fn<TypertRemoteMap['sessionGraphBranch/prepare']>()
   const submitBranch = vi.fn<TypertRemoteMap['sessionGraphBranch/submit']>()
   const readBranch = vi.fn<TypertRemoteMap['sessionGraphBranch/read']>()
+  const recordBranchOrigin = vi.fn<TypertRemoteMap['sessionGraphBranchOrigin/record']>(async request => ({
+    ok: true, value: { ...request, source: 'recorded', createdAt: 1 },
+  }))
+  const listBranchOrigins = vi.fn<TypertRemoteMap['sessionGraphBranchOrigin/list']>(async () => ({ ok: true, value: { origins: [] } }))
   const submitReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/submit']>()
   const readReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/read']>()
   const sessionReuse = vi.fn<TypertRemoteMap['sessionGraphReuse/forSession']>(async () => ({ ok: true, value: [] }))
@@ -1518,6 +1554,10 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
     membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
   ctx.provide('remote.sessionGraphReuse', { prepare: prepareReuse, submit: submitReuse, read: readReuse, forSession: sessionReuse, relations: relationsReuse } as never)
   ctx.provide('remote.sessionGraphBranch', { prepare: prepareBranch, submit: submitBranch, read: readBranch } as never)
+  ctx.provide('remote.sessionGraphBranchOrigin', {
+    record: recordBranchOrigin,
+    list: listBranchOrigins,
+  } as never)
   ctx.provide('configForms', { get: () => undefined } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
   await localeFiber
@@ -1528,6 +1568,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
     listTopics, readTopic, writeTopic, saveKnowledge, searchKnowledge, readKnowledge, membershipKnowledge,
     prepareExtraction, extractKnowledge, prepareExport,
     prepareReuse, submitReuse, readReuse, sessionReuse, relationsReuse, prepareBranch, submitBranch, readBranch,
+    recordBranchOrigin, listBranchOrigins,
   }
 }
 
@@ -3815,6 +3856,59 @@ describe('node selection, double-click, and keyboard navigation', () => {
     fireEvent.click(branchActionButton())
     expect(b.fork).toHaveBeenCalledWith({ sessionId: id('root'), increaseTitle: true })
     expect(panel.isConnected).toBe(true)
+  })
+
+  it.each([1_000, 360])('reloads Branch Origins after a canvas fork records its source at %ipx', async width => {
+    const b = await bench({ root: session('root') })
+    const origins: BranchOrigin[] = []
+    const pendingRecord = Promise.withResolvers<void>()
+    b.listBranchOrigins.mockImplementation(async request => ({
+      ok: true,
+      value: { origins: origins.filter(origin => request.sessionIds.includes(origin.childSessionId)) },
+    }))
+    b.recordBranchOrigin.mockImplementation(async request => {
+      await pendingRecord.promise
+      const origin: BranchOrigin = { ...request, source: 'recorded', createdAt: 1 }
+      origins.push(origin)
+      return { ok: true, value: origin }
+    })
+    b.fork.mockImplementation(async () => {
+      b.sessionsStore.set(listState({ root: session('root'), branched: session('branched') }))
+      return id('branched')
+    })
+    stubSize(width, 600)
+    mount(b.slots, b.sessionsStore, 'root')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('root'))
+    fireEvent.click(branchActionButton())
+
+    await waitFor(() => {
+      expect(b.listBranchOrigins).toHaveBeenCalledWith(
+        { sessionIds: ['root', 'branched'] }, expect.any(AbortSignal),
+      )
+    })
+    expect(document.querySelector('[data-edge-id="branch:root->branched"]')).toBeNull()
+    await act(async () => {
+      pendingRecord.resolve()
+      await Promise.resolve()
+    })
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-edge-id="branch:root->branched"]')).not.toBeNull()
+    })
+    fireEvent.click(screen.getByRole('button', { name: '收起会话簇' }))
+    expect(document.querySelector('[data-edge-id="branch:root->branched"]')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '展开会话簇' }))
+    expect(document.querySelector('[data-edge-id="branch:root->branched"]')).not.toBeNull()
+    const moved = nodeButton('branched')
+    fireEvent.pointerDown(moved, { pointerId: 7, clientX: 200, clientY: 200 })
+    fireEvent.pointerMove(moved, { pointerId: 7, clientX: 280, clientY: 250 })
+    fireEvent.pointerUp(moved, { pointerId: 7 })
+    chooseCanvasAction('重新布局')
+    expect(document.querySelector('[data-edge-id="branch:root->branched"]')).not.toBeNull()
+    chooseCanvasAction('撤销重新布局')
+    expect(document.querySelector('[data-edge-id="branch:root->branched"]')).not.toBeNull()
+    await b.fiber.dispose()
   })
 
   it('keeps wheel gestures inside the Selected Session inspector out of canvas zoom', async () => {

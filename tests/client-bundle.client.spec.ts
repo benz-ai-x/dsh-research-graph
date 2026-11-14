@@ -145,6 +145,7 @@ describe('tsdown client artifact', () => {
     const uiDisposers: Array<() => void | Promise<void>> = []
     const injectedServices: readonly string[][] = []
     const forkRequests: { readonly sessionId: string; readonly increaseTitle: boolean }[] = []
+    const recordedOrigins: { readonly childSessionId: string; readonly parentSessionId: string }[] = []
     const digestRequests: { readonly request: unknown; readonly signal: AbortSignal }[] = []
     const mergeRequests: { readonly request: unknown; readonly signal: AbortSignal }[] = []
     const createRequests: Readonly<Record<string, unknown>>[] = []
@@ -200,6 +201,14 @@ describe('tsdown client artifact', () => {
             sessionGraphDigest: digestRemote,
             sessionGraphMerge: mergeRemote,
             sessionGraphKnowledge: { hostIdentity: async () => ({ ok: true, value: { hostId: 'host-one' } }) },
+            sessionGraphBranchOrigin: {
+              record: async (request: { readonly childSessionId: string; readonly parentSessionId: string }) => {
+                if (request.parentSessionId === 'source-unrecorded') throw new Error('Origin storage unavailable')
+                recordedOrigins.push(request)
+                return { ok: true, value: { ...request, source: 'recorded', createdAt: 1 } }
+              },
+              list: async () => ({ ok: true, value: { origins: [] } }),
+            },
           },
         }
         const fiber = Promise.resolve(apply(injectedCtx)) as Promise<void> & { dispose: () => Promise<void> }
@@ -308,6 +317,7 @@ describe('tsdown client artifact', () => {
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
       'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphFolders',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',
+      'remote.sessionGraphBranchOrigin',
     ]])
     // The vendored sidebar/workspace halves mount through ctx.plugin and are
     // exercised by the Harness suite; this face sees only the Graph entry.
@@ -319,6 +329,12 @@ describe('tsdown client artifact', () => {
     expect(graph?.inject().hostId).toBe('host-one')
     await graph?.inject().branchSession('source')
     expect(forkRequests).toEqual([{ sessionId: 'source', increaseTitle: true }])
+    expect(recordedOrigins).toEqual([{ childSessionId: 'child', parentSessionId: 'source' }])
+    await expect(graph?.inject().branchSession('source-unrecorded')).resolves.toBeUndefined()
+    expect(forkRequests).toEqual([
+      { sessionId: 'source', increaseTitle: true },
+      { sessionId: 'source-unrecorded', increaseTitle: true },
+    ])
     const controller = new AbortController()
     await expect(graph?.inject().generateSessionDigest(
       'source', { refresh: true }, controller.signal,

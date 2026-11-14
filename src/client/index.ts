@@ -34,6 +34,7 @@ import { WORKSPACE_FOLDERS_REMOTE } from './workspace-folders-remote.ts'
 import { HISTORY_BRANCH_REMOTE } from './history-branch-remote.ts'
 import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
 import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
+import { BRANCH_ORIGIN_REMOTE } from './branch-links-remote.ts'
 import * as sidebarEntry from './sidebar/index.ts'
 import * as workspaceEntry from './workspace/index.ts'
 
@@ -60,6 +61,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...KNOWLEDGE_REMOTE.descriptors,
     ...RESEARCH_REUSE_REMOTE.descriptors,
     ...HISTORY_BRANCH_REMOTE.descriptors,
+    ...BRANCH_ORIGIN_REMOTE.descriptors,
   ],
 }
 
@@ -282,6 +284,12 @@ async function registerUi(ctx: Context): Promise<void> {
         if (!result.ok) throw new Error(result.error.message)
         return result.value
       },
+      // Plugin-owned Branch Origins for ordinary forks DSH 0.2.2 stopped parenting.
+      readBranchOrigins: async (request, signal) => {
+        const result = await ctx.remote.sessionGraphBranchOrigin.list(request, signal)
+        if (!result.ok) throw new Error(result.error.message)
+        return result.value.origins
+      },
       // Canvas Sessions exclude Subagent Sessions by construction, so
       // navigation is a plain open.
       openSession: (id: SessionId) => {
@@ -303,7 +311,14 @@ async function registerUi(ctx: Context): Promise<void> {
         ctx.uiWorkspace.openSession({ parentSessionId: parentId, childSessionId: childId, mode: entry.mode })
       },
       branchSession: async (id: SessionId) => {
-        await ctx.sessions.fork({ sessionId: id, increaseTitle: true })
+        const childId = await ctx.sessions.fork({ sessionId: id, increaseTitle: true })
+        try {
+          // Exact Branch Origin for the graph edge; the Host's inference fallback
+          // still covers unrecorded forks, so a record failure must not fail the fork.
+          await ctx.remote.sessionGraphBranchOrigin.record({ childSessionId: childId, parentSessionId: id })
+        } catch {
+          // Recorded origin is best-effort; the fork itself already succeeded.
+        }
       },
       generateSessionDigest: async (id, options, signal) => {
         const result = await ctx.remote.sessionGraphDigest.generate({
@@ -400,6 +415,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphKnowledge',
       'remote.sessionGraphReuse',
       'remote.sessionGraphBranch',
+      'remote.sessionGraphBranchOrigin',
     ],
     registerUi,
   )

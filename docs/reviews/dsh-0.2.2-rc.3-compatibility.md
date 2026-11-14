@@ -47,6 +47,16 @@ The manifest/inject/import/vendored/build surface covers: `dsh-agent`, `dsh-agen
 | `dsh-util-values`, `dsh-util-workspace-path` | **Unchanged** | `util-values/src/index.ts:12`; `util-workspace-path/src/index.ts:42`, `:58`. |
 | `@deepseek-ai/cordis`, `@deepseek-ai/schemastery` | **Unchanged** | Both vendor trees have no rc.2 → rc.3 source diff. `vendor/cordis/src/context.ts:42`, `service.ts:11`; `vendor/schemastery/src/index.ts:42-90`, `:962`. Keep `~4.1.0` and `~3.19.0`. |
 
+## Post-release behavior discovery: ordinary forks no longer persist source lineage
+
+Recorded 2026-11-14 after a real report that Branch edges disappeared from the graph for forked Sessions.
+
+- **Failure:** forks created by the Research Graph canvas "开新分支" (`ctx.sessions.fork`) and by the native UI fork entries render as Root Sessions with no connecting edge, because the graph derives Branch edges from `SessionSummary.parentId`.
+- **Upstream change:** commit `b096659245` (*fix(session): make ordinary forks independent of source lineage*, 2026-10-23), first shipped in the 0.2.2 line (`dsh-v0.2.2-alpha.2` onward). Ordinary forks omit `SessionHeader.parentSession` and the client `parentSessionId`; the upgrade guide `docs/upgrade-guide/v0.2.1-rc.3/independent-session-forks/guide.zh.md` states there is no replacement lineage field, and migration item 3 asks consumers to stop depending on persisted ordinary-fork origin. `dsh-v0.2.1-rc.5` still wrote `parentSession` in both `SessionStore.fork()` and the Session Controller fork command.
+- **Why this matrix did not catch it:** the matrix records API/type/format surfaces. `dsh-session` and `dsh-api-session-controller` are genuinely unchanged for those surfaces (V4 format, list contract, projections); this is a same-version **behavioral** change in ordinary-fork parentage, outside the consumed signatures.
+- **Evidence in a real local store:** three forks created from one conversation are `isSeeded: true` with no `parentSession`; their inherited prefixes copy delivery markers naming the source Session, while `SessionSummary.parentId` stays absent for them.
+- **Disposition:** [ADR 0020](../adr/0020-record-branch-origin-for-independent-forks.md) records plugin-owned Branch Origin (exact record for plugin-initiated forks plus a verified inference fallback for existing and native forks); graph derivation applies the fallback only when the Host `parentId` is absent. Validation for this fix is tracked separately and is not part of the rc.3 release evidence above.
+
 ## Validation
 
 - `pnpm run check`: **30 files / 253 tests passed**.

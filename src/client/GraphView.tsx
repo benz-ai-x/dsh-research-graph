@@ -15,6 +15,7 @@ import type { SessionHistoryRequest, SessionHistoryResult } from '../session-his
 import type { SessionMergeModelSelection } from '../session-merge.ts'
 import type { DiscussionSearchRequest, DiscussionSearchResult } from '../session-search.ts'
 import type { ResearchTopic, ResearchTopicSnapshot, ResearchTopicWrite } from '../research-topic.ts'
+import { readBranchOriginMap, type ReadBranchOrigins } from './branch-links-remote.ts'
 import { SESSION_GRAPH_BUILD_LABEL, SESSION_GRAPH_BUILD_TITLE } from './build-info.ts'
 import { GraphCanvas } from './GraphCanvas.tsx'
 import { ActionMenu } from './ActionMenu.tsx'
@@ -85,6 +86,11 @@ export interface GraphViewInjected {
   readonly refreshSessionProjections?: (id: SessionId) => Promise<void>
   /** Create a Branch from one session (the panel's New-branch verb). */
   branchSession: (id: SessionId) => Promise<void>
+  /**
+   * Read plugin-owned Branch Origins for ordinary forks that no longer carry
+   * Host parentage (DSH 0.2.2 independent forks).
+   */
+  readonly readBranchOrigins?: ReadBranchOrigins
   /** Explicitly generate or refresh one read-only Session Digest. */
   generateSessionDigest: (
     id: SessionId,
@@ -139,7 +145,7 @@ export function GraphView(props: GraphViewProps): ReactElement {
 function GraphViewBody(props: GraphViewProps): ReactElement {
   const {
     sessionId, useSessions, useSessionStatus, useWorkspaces,
-    hostId, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, reuse, t,
+    hostId, openSession, branchSession, generateSessionDigest, readSessionHistory, searchDiscussion, mergeSessions, retrySessionMerge, topics, knowledge, reuse, readBranchOrigins, t,
   } = props
   const knowledgeContext = useKnowledge()
   const sessions = useSessions(state => state)
@@ -179,9 +185,36 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
     () => resolveGraphScope(sessionId, sessions, workspaces),
     [sessionId, sessions, workspaces],
   )
+  // Plugin-owned Branch Origins restore Branch edges for ordinary forks that
+  // DSH 0.2.2 stopped parenting. Host parentage always wins inside derivation.
+  const [branchOrigins, setBranchOrigins] = useState<ReadonlyMap<string, string>>(() => new Map())
+  const [branchOriginRevision, setBranchOriginRevision] = useState(0)
+  const createBranch = async (id: SessionId): Promise<void> => {
+    await branchSession(id)
+    setBranchOriginRevision(value => value + 1)
+  }
+  const scopeSessionKey = useMemo(
+    () => scope === undefined ? '' : [...scope.members].sort().join('\u0000'),
+    [scope],
+  )
+  useEffect(() => {
+    if (scope === undefined || readBranchOrigins === undefined) {
+      setBranchOrigins(current => current.size === 0 ? current : new Map())
+      return
+    }
+    const controller = new AbortController()
+    void readBranchOriginMap(readBranchOrigins, [...scope.members], controller.signal).then(origins => {
+      if (controller.signal.aborted) return
+      setBranchOrigins(origins)
+    }, () => {
+      if (controller.signal.aborted) return
+      setBranchOrigins(current => current.size === 0 ? current : new Map())
+    })
+    return () => { controller.abort() }
+  }, [scopeSessionKey, readBranchOrigins, branchOriginRevision])
   const graph = useMemo(
-    () => deriveSessionGraph(sessions, scope, sessionId, sessionStatus),
-    [sessions, scope, sessionId, sessionStatus],
+    () => deriveSessionGraph(sessions, scope, sessionId, sessionStatus, branchOrigins),
+    [sessions, scope, sessionId, sessionStatus, branchOrigins],
   )
   const laid = useMemo(() => layoutSessionGraph(graph), [graph])
 
@@ -279,7 +312,7 @@ function GraphViewBody(props: GraphViewProps): ReactElement {
           t={t}
           onOpen={openSession}
           onOpenSubagent={props.openSubagent}
-          onBranch={branchSession}
+          onBranch={createBranch}
           onGenerateDigest={generateSessionDigest}
           onGenerateTitle={props.generateSessionTitle}
           onRenameTitle={props.renameSessionTitle}
