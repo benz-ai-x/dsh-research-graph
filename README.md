@@ -39,11 +39,11 @@ flowchart LR
 
 <p align="center">
   <a href="docs/assets/readme/research-workbench.png">
-    <img src="docs/assets/readme/research-workbench.png" alt="Research workbench linking source discussions, Knowledge Cards, and follow-up research, with conclusions, revisions, and source links in the reader" width="100%" />
+    <img src="docs/assets/readme/research-workbench.png" alt="Research workbench showing a Workspace graph with session cards, branches, and the minimap" width="100%" />
   </a>
 </p>
 
-Version 0.2.2-rc.2 with demo data. Click the image for the full-resolution screenshot.
+Version 0.2.2-rc.3 with demo data. Click the image for the full-resolution screenshot.
 
 <a id="features"></a>
 <a id="what-it-adds"></a>
@@ -67,8 +67,8 @@ Version 0.2.2-rc.2 with demo data. Click the image for the full-resolution scree
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.2-rc.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.2), npm `latest` / `next` |
-| Required Host | **DSH 0.2.2-rc.2 · Web**, Node.js `>=24.9.0` |
+| Plugin release | [0.2.2-rc.3](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3), npm `latest` / `next` |
+| Required Host | **DSH 0.2.2-rc.3 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
@@ -78,10 +78,10 @@ Version 0.2.2-rc.2 with demo data. Click the image for the full-resolution scree
 
 ## Quick start
 
-Requires **DSH 0.2.2-rc.2** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
+Requires **DSH 0.2.2-rc.3** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3
 dsh web
 ```
 
@@ -91,41 +91,17 @@ Open the login URL printed in the terminal, enter a **non-blank Session**, and s
 
 ## Installable versions
 
-Every npm release of the current package name, with its required DSH Host (taken from each release's pinned `@deepseek-ai/dsh-llm` peer). Install a specific one with `dsh plugin --profile web add @benz-ai-x/dsh-research-graph@<version>`:
+Install a release that matches your DSH Host with `dsh plugin --profile web add @benz-ai-x/dsh-research-graph@<version>`. Each release pins its Host through the exact `@deepseek-ai/dsh-llm` peer, enforced when the profile starts.
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.2` | `0.2.2-rc.2` | Current release — DSH rc.2 compatibility and Menu anchor migration; requires Node.js `>=24.9.0`; npm `latest` / `next` |
+| `0.2.2-rc.3` | `0.2.2-rc.3` | Current release — reusable Workspace picker Factory and New Session HOC; requires Node.js `>=24.9.0`; npm `latest` / `next` |
+| `0.2.2-rc.2` | `0.2.2-rc.2` | Previous release — DSH rc.2 compatibility and Menu anchor migration; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.1` | `0.2.2-rc.1` | First adaptation of DSH 0.2.2-rc.1; requires Node.js `>=24.9.0` |
 | `0.2.1-rc.5.2` | `0.2.1-rc.5` | **Breaking change**: replaces the official sidebar with the vendored copy and Workspace folders (supersedes sidebar categories; old category data stays dormant) |
-| `0.2.1-rc.5.1` | `0.2.1-rc.5` | Native-style sidebar categories and footer view switching |
-| `0.2.1-rc.5` | `0.2.1-rc.5` | First adaptation of this DSH line |
-| `0.2.1-rc.4` | `0.2.1-rc.4` | First adaptation of this DSH line |
-| `0.2.1-rc.3.1` | `0.2.1-rc.3` | Workspace-owned sidebar categories |
-| `0.2.1-rc.3` | `0.2.1-rc.3` | First release of this DSH line |
-| `0.2.1-rc.1` | `0.2.1-rc.1` | |
-| `0.2.1-alpha.5` | `0.2.1-alpha.5` | |
-| `0.2.1-alpha.2.1` | `0.2.1-alpha.2` | Merge model selection and rename fix |
-| `0.2.1-alpha.2` | `0.2.1-alpha.2` | |
-| `0.2.1-alpha.1` | `0.2.1-alpha.1` | |
-| `0.2.0-rc.2.1` | `0.2.0-rc.2` | Same-line revision (workbench design refresh) |
-| `0.2.0-rc.2` | `0.2.0-rc.2` | First release of that DSH line |
-| `0.1.7-rc.2` | `0.1.7-rc.2` | |
-| `0.1.7-rc.1` | `0.1.7-rc.1` | |
-| `0.1.6-alpha.2` | `0.1.6-alpha.2` | |
-| `0.1.5-rc.2.8` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.7` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.6` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.5` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.4` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.3` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.2` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.1` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2` | `0.1.5-rc.2` | |
-| `0.1.5-rc.1` | `0.1.5-rc.1` | First release under the current package name |
 
-Releases up to `0.1.5-rc.1` were also published under the previous package name `@benz-ai-x/dsh-client-ui-session-graph`, whose earlier `0.1.1`–`0.1.6` line predates the DSH-aligned release policy. A release loads only on its pinned DSH Host (profile boot enforces the exact peer check), so pick the row matching your DSH installation.
+See the [full release history](https://github.com/benz-ai-x/dsh-research-graph/releases) or [all npm versions](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph/versions) for older Host lines and package names.
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.2.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
