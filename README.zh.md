@@ -39,11 +39,11 @@ flowchart LR
 
 <p align="center">
   <a href="docs/assets/readme/research-workbench.png">
-    <img src="docs/assets/readme/research-workbench.png" alt="研图工作台：来源讨论、知识卡片与后续研究，右侧展示结论、修订版本和原文出处" width="100%" />
+    <img src="docs/assets/readme/research-workbench.png" alt="研图工作台：工作区会话卡片、分支关系与迷你地图" width="100%" />
   </a>
 </p>
 
-0.2.2-rc.2 的真实界面（演示数据），点击图片查看高清原图。
+0.2.2-rc.3 的真实界面（演示数据），点击图片查看高清原图。
 
 <a id="核心能力"></a>
 
@@ -66,8 +66,8 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.2.2-rc.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.2)，npm `latest` / `next` |
-| 适配宿主 | **DSH 0.2.2-rc.2 · Web**，Node.js `>=24.9.0` |
+| 当前插件 | [0.2.2-rc.3](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3)，npm `latest` / `next` |
+| 适配宿主 | **DSH 0.2.2-rc.3 · Web**，Node.js `>=24.9.0` |
 | 数据保存 | 研究数据与工作区文件夹保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出不调用模型；AI 生成与新讨论按需调用 |
 | Agent 能力 | 模型、工具、预设与 Agent 执行由 DSH 提供；插件不内置预设或 Agent Team 启动器。[详细说明](docs/user-guide.zh.md#dsh-与-agent-预设) |
@@ -77,10 +77,10 @@ flowchart LR
 
 ## 快速开始
 
-需要 **DSH 0.2.2-rc.2**（Node.js `>=24.9.0`），并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
+需要 **DSH 0.2.2-rc.3**（Node.js `>=24.9.0`），并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3
 dsh web
 ```
 
@@ -90,41 +90,17 @@ dsh web
 
 ## 可安装版本
 
-当前包名在 npm 上的全部发布版本及各自要求的 DSH 宿主版本（取自每个版本钉版的 `@deepseek-ai/dsh-llm` peer 依赖）。安装指定版本：`dsh plugin --profile web add @benz-ai-x/dsh-research-graph@<版本>`：
+请按本机 DSH 宿主版本安装：`dsh plugin --profile web add @benz-ai-x/dsh-research-graph@<版本>`。每个版本都通过精确的 `@deepseek-ai/dsh-llm` peer 钉版，profile 启动时会强制校验。
 
 | 插件版本 | 要求的 DSH | 备注 |
 | --- | --- | --- |
-| `0.2.2-rc.2` | `0.2.2-rc.2` | 当前版本——适配 DSH rc.2 并迁移 Menu 锚点，要求 Node.js `>=24.9.0`；npm `latest` / `next` |
+| `0.2.2-rc.3` | `0.2.2-rc.3` | 当前版本——可复用 Workspace Picker Factory 与新会话 HOC，要求 Node.js `>=24.9.0`；npm `latest` / `next` |
+| `0.2.2-rc.2` | `0.2.2-rc.2` | 上一版本——适配 DSH rc.2 并迁移 Menu 锚点，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.1` | `0.2.2-rc.1` | DSH 0.2.2-rc.1 首次适配，要求 Node.js `>=24.9.0` |
 | `0.2.1-rc.5.2` | `0.2.1-rc.5` | **破坏性变更**：以自带侧栏替换官方侧栏并提供工作区文件夹（取代侧栏分类，旧分类数据保留但不再显示） |
-| `0.2.1-rc.5.1` | `0.2.1-rc.5` | 原生风格侧栏分类与底部视图切换 |
-| `0.2.1-rc.5` | `0.2.1-rc.5` | 该 DSH 线首次适配 |
-| `0.2.1-rc.4` | `0.2.1-rc.4` | 该 DSH 线首次适配 |
-| `0.2.1-rc.3.1` | `0.2.1-rc.3` | 工作区侧栏分类 |
-| `0.2.1-rc.3` | `0.2.1-rc.3` | 该 DSH 线首个版本 |
-| `0.2.1-rc.1` | `0.2.1-rc.1` | |
-| `0.2.1-alpha.5` | `0.2.1-alpha.5` | |
-| `0.2.1-alpha.2.1` | `0.2.1-alpha.2` | 汇聚模型选择与改名修复 |
-| `0.2.1-alpha.2` | `0.2.1-alpha.2` | |
-| `0.2.1-alpha.1` | `0.2.1-alpha.1` | |
-| `0.2.0-rc.2.1` | `0.2.0-rc.2` | 同线修订（工作台设计刷新） |
-| `0.2.0-rc.2` | `0.2.0-rc.2` | 该 DSH 线首个版本 |
-| `0.1.7-rc.2` | `0.1.7-rc.2` | |
-| `0.1.7-rc.1` | `0.1.7-rc.1` | |
-| `0.1.6-alpha.2` | `0.1.6-alpha.2` | |
-| `0.1.5-rc.2.8` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.7` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.6` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.5` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.4` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.3` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.2` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2.1` | `0.1.5-rc.2` | |
-| `0.1.5-rc.2` | `0.1.5-rc.2` | |
-| `0.1.5-rc.1` | `0.1.5-rc.1` | 当前包名下首个版本 |
 
-至 `0.1.5-rc.1` 为止的版本也曾以旧包名 `@benz-ai-x/dsh-client-ui-session-graph` 发布，其更早的 `0.1.1`–`0.1.6` 线早于 DSH 对齐的发布政策。每个版本只在其钉版的 DSH 宿主上加载（profile 启动时执行精确 peer 校验），请按本机 DSH 版本选择对应行。
+更早的宿主版本与历史包名请查[完整发布记录](https://github.com/benz-ai-x/dsh-research-graph/releases)或 [npm 全部版本](https://www.npmjs.com/package/@benz-ai-x/dsh-research-graph/versions)。
 
 ## 文档与支持
 
-[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.2-rc.2.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.2-rc.3.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
