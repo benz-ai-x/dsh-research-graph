@@ -53,6 +53,39 @@ import type { ResearchReuseRecord } from '../src/research-reuse.ts'
 
 const id = (value: string): SessionId => value as SessionId
 
+describe('DSH 0.2.2-rc.3 composition', () => {
+  it('declares the reusable Workspace picker and New Session HOC', async () => {
+    const ctx = new Context()
+    const slots = new SlotRegistry(ctx)
+    ctx.provide('sessions', { list: createSnapshotStore(listState({ a: session('a') })) })
+    ctx.provide('workspaces', { list: createSnapshotStore(workspacesState()) })
+    ctx.provide('remote', { $host: { home: undefined, isLoopback: true } } as never)
+    ctx.provide('remote.directoryPicker', {})
+    ctx.provide('layout', {
+      beginNavigation: () => new AbortController().signal,
+      selectPanel: () => {},
+      toggleSidebar: () => {},
+      panelInfo: createSnapshotStore({ activePanelId: null }),
+    } as never)
+    ctx.provide('shortcuts', { register: () => () => {}, catalog: createSnapshotStore([]) } as never)
+    ctx.provide('remoteAccess', { source: () => true } as never)
+    ctx.provide('remote.sessionGraphFolders', { list: async () => ({ ok: true, value: [] }) } as never)
+    ctx.provide('configForms', { get: () => undefined } as never)
+    const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
+    await localeFiber
+    const [{ apply: applyWorkspace }, { apply: applySidebar }] = await Promise.all([
+      import('../src/client/workspace/index.ts'),
+      import('../src/client/sidebar/index.ts'),
+    ])
+    applyWorkspace(ctx)
+    slots.register({ name: 'root', children: { sidebar: { kind: 'single', scope: 'root' } } }, () => null)
+    applySidebar(ctx)
+    expect(slots.spec('workspace.picker.directoryFlow')).toBeDefined()
+    expect(slots.spec('sidebar.session.action')).toBeDefined()
+    await ctx.fiber.dispose()
+  })
+})
+
 describe('registered historical branch actions', () => {
   it('retains the original turn focus when delayed topic membership arrives after returning from a branch', async () => {
     const b = await bench({ a: session('a'), b: session('b') })

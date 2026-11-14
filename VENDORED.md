@@ -109,6 +109,27 @@ faces, the complete Harness suite, packed-profile smoke, and real-browser checks
 of workspace selection, Workspace/Topic graphs, session-header More, narrow-screen
 sidebar collapse/expand, and Workspace Folder creation/restart/delete.
 
+### DSH 0.2.2-rc.3 (2026-11-14): ported picker Factory and New Session HOC
+
+The rc.3 upstream introduces a reusable `workspace.picker` Factory and a third
+`workspace.picker.directoryFlow` declaration. Both official directory-picker
+backends inject that hole. The vendored workspace now registers the Factory,
+its occupancy source, and its shared surface flow; the standalone declarations
+cover `WorkspacePickerInput`, the Factory props, and the third slot. Omitting the
+port would leave the directory-picker composition waiting for a declaration.
+
+The New Session row now renders through the `sidebar.session.action` HOC slot.
+The vendored sidebar declares that slot and preserves the original Tooltip and
+button as its children, including the row layout and narrow-screen behavior.
+Workspace Folders, native row menus, and all local deltas remain intact. Other
+upstream drift from the rc.5 base remains deferred; this is still not a full
+re-vendor.
+
+Validation passed the standalone suite, all four compiler faces, the complete
+Harness suite (including a dedicated composition case), packed-profile smoke,
+and real-browser Host startup, workspace-menu selection, Workspace/Topic graphs,
+narrow-screen sidebar collapse/expand, and the folder-creation entry.
+
 ## Upstream sync checklist (per DSH adaptation round)
 
 

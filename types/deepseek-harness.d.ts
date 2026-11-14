@@ -416,6 +416,14 @@ declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
     readonly useSessionStatus: <T>(selector: (state: SessionStatusSnapshot) => T) => T
     readonly useWorkspaces: <T>(selector: (state: WorkspaceSnapshot) => T) => T
   }
+
+  export interface EmptyWorkspaceOwnerProps {
+    open: boolean
+    anchorRef?: import('react').RefObject<HTMLElement>
+    selectedId?: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceView['workspaceId'] | undefined
+    onPick: (workspaceId: import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceView['workspaceId']) => void
+    onClose: () => void
+  }
 }
 
 declare module '@deepseek-ai/dsh-client-locale/client' {}
