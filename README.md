@@ -43,7 +43,7 @@ flowchart LR
   </a>
 </p>
 
-Version 0.2.2-rc.3 with demo data. Click the image for the full-resolution screenshot.
+Version 0.2.2-rc.3.1 with demo data. Click the image for the full-resolution screenshot.
 
 <a id="features"></a>
 <a id="what-it-adds"></a>
@@ -67,7 +67,7 @@ Version 0.2.2-rc.3 with demo data. Click the image for the full-resolution scree
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.2-rc.3](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3), npm `latest` / `next` |
+| Plugin release | [0.2.2-rc.3.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.1), npm `next` |
 | Required Host | **DSH 0.2.2-rc.3 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
@@ -81,7 +81,7 @@ Version 0.2.2-rc.3 with demo data. Click the image for the full-resolution scree
 Requires **DSH 0.2.2-rc.3** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.1
 dsh web
 ```
 
@@ -95,7 +95,8 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.3` | `0.2.2-rc.3` | Current release — reusable Workspace picker Factory and New Session HOC; requires Node.js `>=24.9.0`; npm `latest` / `next` |
+| `0.2.2-rc.3.1` | `0.2.2-rc.3` | Current release — restores Branch links for independent ordinary forks; requires Node.js `>=24.9.0`; npm `next` |
+| `0.2.2-rc.3` | `0.2.2-rc.3` | Reusable Workspace picker Factory and New Session HOC; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.2` | `0.2.2-rc.2` | Previous release — DSH rc.2 compatibility and Menu anchor migration; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.1` | `0.2.2-rc.1` | First adaptation of DSH 0.2.2-rc.1; requires Node.js `>=24.9.0` |
 | `0.2.1-rc.5.2` | `0.2.1-rc.5` | **Breaking change**: replaces the official sidebar with the vendored copy and Workspace folders (supersedes sidebar categories; old category data stays dormant) |
@@ -104,4 +105,4 @@ See the [full release history](https://github.com/benz-ai-x/dsh-research-graph/r
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.1.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
