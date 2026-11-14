@@ -4,6 +4,7 @@ import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/c
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ResearchTopic, ResearchTopicSnapshot } from '../research-topic.ts'
+import { readBranchOriginMap } from './branch-links-remote.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphNode } from './graph-model.ts'
 import type { KnowledgeCard } from '../knowledge.ts'
@@ -58,6 +59,23 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
   const reuse = useResearchReuse()
   const relations = useResearchRelations(context.actions.reuse, { cardIds: cards.map(card => card.cardId), sessionIds: topic.references.map(item => item.sessionId) }, revision + (reuse?.refresh ?? 0))
   const membership = JSON.stringify(topic.references.map(reference => reference.sessionId))
+  // Ordinary forks lose Host parentage in DSH 0.2.2; the plugin-owned Branch
+  // Origins restore their Branch edges in the topic graph.
+  const [branchOrigins, setBranchOrigins] = useState<ReadonlyMap<string, string>>(() => new Map())
+  const readBranchOrigins = context.actions.readBranchOrigins
+  useEffect(() => {
+    if (readBranchOrigins === undefined) return
+    const controller = new AbortController()
+    const sessionIds = topic.references.map(reference => reference.sessionId)
+    void readBranchOriginMap(readBranchOrigins, sessionIds, controller.signal).then(origins => {
+      if (controller.signal.aborted) return
+      setBranchOrigins(origins)
+    }, () => {
+      if (controller.signal.aborted) return
+      setBranchOrigins(current => current.size === 0 ? current : new Map())
+    })
+    return () => { controller.abort() }
+  }, [membership, readBranchOrigins])
   const read = context.actions.topics.read
   const searchCards = knowledge.api.search
   const readCard = knowledge.api.read
@@ -90,8 +108,8 @@ export function TopicGraph({ topic, context, arrangement, onArrange, remove, bus
         ...source.workspace, title: workspaceTitles.get(source.workspace.id) || source.workspace.title,
       } }),
     }))
-    return withResearchRelations(withKnowledgeCards(deriveTopicGraph({ sources, topic: snapshot.topic }, context.sessions, context.viewedId, context.sessionStatus), [...cards, ...sourceCards], context.sessions, archived), relations.relations, context.sessions, context.workspaces)
-  }, [snapshot, context.sessions, context.workspaces, context.viewedId, context.sessionStatus, cards, sourceCards, relations.relations])
+    return withResearchRelations(withKnowledgeCards(deriveTopicGraph({ sources, topic: snapshot.topic }, context.sessions, context.viewedId, context.sessionStatus, branchOrigins), [...cards, ...sourceCards], context.sessions, archived), relations.relations, context.sessions, context.workspaces)
+  }, [snapshot, context.sessions, context.workspaces, context.viewedId, context.sessionStatus, cards, sourceCards, relations.relations, branchOrigins])
   const laid = useMemo(() => graph === undefined ? undefined : layoutResearchGraph(graph), [graph])
   // Keep the last complete graph while a save refreshes cards and relations.
   // An incomplete relation result must not unmount the reader or clear selection.

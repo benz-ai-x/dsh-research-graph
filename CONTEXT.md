@@ -59,12 +59,16 @@ The activity label presented for a Canvas Session or an inspected Subagent Sessi
 _Avoid_: Session lifecycle state, combined status
 
 **Session Lineage**:
-Parent-child ancestry among sessions, encompassing both Branches and Subagent Derivations.
+Parent-child ancestry among sessions, encompassing both Branches and Subagent Derivations. Since DSH 0.2.2, ordinary forks are independent Sessions that carry no persisted Host parent; a Branch Origin may still present their Branch relation in the graph.
 _Avoid_: Branch tree, derivation tree
 
 **Branch**:
-A directed lineage relation from one Canvas Session to a child Canvas Session. Creating a Branch produces a distinct session without changing the source session.
+A directed lineage relation from one Canvas Session to a child Canvas Session. Creating a Branch produces a distinct session without changing the source session. The Host no longer persists ordinary-fork parentage, so the graph may present a Branch from a Branch Origin instead of Host ancestry.
 _Avoid_: Fork, Subagent Derivation
+
+**Branch Origin**:
+A plugin-owned provenance record naming the Canvas Session a fork copy was created from. It is recorded exactly when the plugin initiates the fork, or inferred from the child's Host-validated inherited prefix for other forks. It presents a Branch relation without creating Session Lineage, a Merge Relation, or model context, and a child without a visible origin remains a Root Session.
+_Avoid_: Session Lineage, parent relation, Merge Relation, fork history
 
 **Historical Branch**:
 A Branch created from the completed history through an explicitly selected Discussion Turn. Its preview records the actual inherited range and reserves one child identity for recovery. Continuing the child starts with a new question rather than pending work inherited from the source; the source history remains intact.

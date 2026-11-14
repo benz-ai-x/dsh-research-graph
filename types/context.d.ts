@@ -59,7 +59,7 @@ declare module '@deepseek-ai/cordis' {
       fork: (request: {
         readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId
         readonly increaseTitle: boolean
-      }) => Promise<unknown>
+      }) => Promise<import('@deepseek-ai/dsh-session/types').SessionId>
       binding: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => {
         readonly session: {
           rename: (title: string) => Promise<
@@ -112,6 +112,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphKnowledge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphKnowledge']
       sessionGraphBranch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranch']
       sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']
+      sessionGraphBranchOrigin: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranchOrigin']
     }
     readonly sessionProjections: {
       register: (definition: unknown) => () => void

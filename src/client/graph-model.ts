@@ -300,6 +300,7 @@ function byRecency(a: SessionSummary, b: SessionSummary): number {
  * @param scope - the resolved graph scope, or undefined for the empty state.
  * @param viewedId - the Viewed Session (kept when blank, highlighted).
  * @param statuses - unified UI status facts (pending interaction, unread completion) keyed by Session id.
+ * @param branchOrigins - plugin-owned child-to-parent origins for ordinary forks without Host parentage.
  * @returns the derived graph.
  */
 export function deriveSessionGraph(
@@ -307,6 +308,7 @@ export function deriveSessionGraph(
   scope: GraphScope | undefined,
   viewedId: SessionId | undefined,
   statuses: SessionStatusSnapshot,
+  branchOrigins?: ReadonlyMap<string, string>,
 ): SessionGraph<SessionGraphNode> {
   const visible = new Map<SessionId, SessionSummary>()
   if (scope !== undefined) {
@@ -317,7 +319,7 @@ export function deriveSessionGraph(
     }
   }
 
-  return deriveRowsGraph(visible, viewedId, statuses)
+  return deriveRowsGraph(visible, viewedId, statuses, undefined, undefined, branchOrigins)
 }
 
 /** Project explicit references without widening the scope-bound Canvas rules. */
@@ -326,23 +328,25 @@ export function deriveTopicGraph(
   list: SessionListState,
   viewedId: SessionId | undefined,
   statuses: SessionStatusSnapshot,
+  branchOrigins?: ReadonlyMap<string, string>,
 ): SessionGraph<SessionGraphNode> {
   const sources = new Map(snapshot.sources.map(source => [source.sessionId, source]))
   const visible = new Map<SessionId, SessionSummary>()
   for (const reference of snapshot.topic.references) {
     const source = sources.get(reference.sessionId)
     const row = source?.status === 'listed' ? list.byId[reference.sessionId as SessionId] : undefined
-    const parent = source?.parentSessionId
+    const hostParent = row?.parentId ?? source?.parentSessionId
+    const parent = hostParent ?? branchOrigins?.get(reference.sessionId)
     visible.set(reference.sessionId as SessionId, {
       id: reference.sessionId as SessionId,
       displayTitle: row?.displayTitle.trim() || reference.title,
       blank: false, running: row?.running ?? false, updatedAt: row?.updatedAt ?? 0,
       retainedBy: row?.retainedBy ?? {},
-      ...(parent === undefined || sources.get(parent)?.status !== 'listed' ? {} : { parentId: parent as SessionId }),
+      ...(parent === undefined ? {} : { parentId: parent as SessionId }),
       ...(row?.projectionValues === undefined ? {} : { projectionValues: row.projectionValues }),
     })
   }
-  return deriveRowsGraph(visible, viewedId, statuses, sources, new Map(Object.values(list.byId).map(row => [row.id, row])))
+  return deriveRowsGraph(visible, viewedId, statuses, sources, new Map(Object.values(list.byId).map(row => [row.id, row])), branchOrigins)
 }
 
 function deriveRowsGraph(
@@ -351,6 +355,7 @@ function deriveRowsGraph(
   statuses: SessionStatusSnapshot,
   sources?: ReadonlyMap<string, ResearchTopicSource>,
   hostRows?: ReadonlyMap<SessionId, SessionSummary>,
+  branchOrigins?: ReadonlyMap<string, string>,
 ): SessionGraph<SessionGraphNode> {
 
   const badges = indexBadges(hostRows ?? visible)
@@ -361,8 +366,11 @@ function deriveRowsGraph(
   const branchParent = new Map<SessionId, SessionId>()
   const branchChildren = new Map<SessionId, SessionSummary[]>()
   for (const row of visible.values()) {
-    if (row.origin === 'subagent' || row.parentId === undefined) continue
-    const parent = visible.get(row.parentId)
+    // Host parentage is Session Lineage and always wins; a Branch Origin only
+    // restores the Branch relation DSH 0.2.2 stopped persisting for forks.
+    const parentId = row.parentId ?? branchOrigins?.get(row.id)
+    if (row.origin === 'subagent' || parentId === undefined) continue
+    const parent = visible.get(parentId as SessionId)
     if (parent === undefined || parent.origin === 'subagent') continue
     branchParent.set(row.id, parent.id)
     const siblings = branchChildren.get(parent.id)
@@ -379,7 +387,9 @@ function deriveRowsGraph(
     const mergeSources = row.projectionValues?.sessionGraphMerge?.sources ?? []
     // Merge targets are unparented. Replayed Branch history can carry the
     // same projection, even when its parent is outside this graph's scope.
-    const inheritedMerge = (sources?.get(row.id)?.parentSessionId ?? hostRows?.get(row.id)?.parentId ?? row.parentId) !== undefined
+    const inheritedMerge = sources?.get(row.id)?.parentSessionId !== undefined
+      || hostRows?.get(row.id)?.parentId !== undefined || row.parentId !== undefined
+      || branchOrigins?.has(row.id) === true
     const projections = row.projectionValues as ProjectionValues | undefined
     const stats = projections?.sessionStats
     const model = projections?.modelSelection?.next ?? projections?.modelSelection?.lastUsed ?? undefined
