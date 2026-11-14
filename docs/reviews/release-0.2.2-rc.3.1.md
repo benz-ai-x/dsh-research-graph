@@ -2,7 +2,7 @@
 
 This is the first same-line revision for DSH `0.2.2-rc.3`. Per the release policy, the plugin appends revision `1` to `0.2.2-rc.3`; the exact `@deepseek-ai/dsh-llm` peer and every direct `@deepseek-ai/dsh-*` dependency remain pinned to DSH `0.2.2-rc.3`. Zod remains `4.6.6`; Node.js remains `>=24.9.0`; Schemastery `~3.19.0` and the Cordis peer `~4.1.0` are unchanged.
 
-The matching Host is official `dsh-v0.2.2-rc.3`, commit `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`. The Harness checkout was clean and its HEAD matched that commit during validation; its native/lib/web artifacts had been rebuilt at that tag.
+The matching Host is official `dsh-v0.2.2-rc.3`, commit `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`. The Harness checkout was clean and its HEAD matched that commit during validation; its native/lib/web artifacts had been rebuilt at that tag. The expired temporary pnpm minimum-release-age override was removed from CI and publishing; a frozen install passed without it.
 
 ## Scope
 
