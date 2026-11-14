@@ -49,9 +49,12 @@ leaves the direct parent unknown instead of promoting an ancestor.
    and no stored record, the Host reads the inherited prefix and takes the last
    foreign delivery ID after the last inherited seed boundary as the direct
    parent, verifies that Session exists, and caches the result as `inferred`.
-   Inference is bounded, abort-aware, and tolerant of unreadable Sessions. A
-   later exact record upgrades an inferred record; an inferred record never
-   overwrites a different recorded one.
+   Inference is bounded, abort-aware, and tolerant of unreadable Sessions. Shared
+   storage work belongs to the service lifecycle: cancelling one graph read
+   detaches only that caller, and disposal waits for pending work before closing
+   storage. A later exact record upgrades an inferred record; an in-flight exact
+   write blocks inference for that child, so an inferred write can never replace
+   a different recorded one.
 4. **Presentation precedence.** Host `parentId` (real Session Lineage) wins over
    a recorded Branch Origin, which wins over an inferred one. A Branch Origin
    only yields a Branch relation when the named parent is visible in the same

@@ -191,7 +191,7 @@ Confirming creates an independent Session and sends the frozen preview through n
 | Search discussion | Uses the Host index and verifies original text; retains temporary result snapshots without changing sources or archive state | None |
 | Generate / apply a title | Suggestion is temporary; Apply saves a native user-title event | One auxiliary request only when generating |
 | Generate a digest | Keeps a revision-scoped Host-memory cache; does not append a message | One auxiliary request on the Session route or configured fallback; one compression retry if complete output is too long |
-| Create a branch | Uses the normal Harness branch operation | No additional request from this plugin |
+| Create a branch | Uses the normal Harness branch operation; Research Graph stores an exact or verifiably inferred child → source Branch Origin in plugin Host storage without rewriting Session headers or logs | No additional request from this plugin |
 | Branch from a historical turn | Reserves one native child identity and inherits the selected completed prefix; retries recover that child | None until you continue the new discussion |
 | Manually create / edit knowledge | Saves a new card or immutable revision with selected sources | None |
 | Reviewed AI extraction | Retains an extraction source snapshot; generated drafts become cards only after explicit reviewed Save | One request per Generate, up to 5 drafts |

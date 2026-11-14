@@ -16,6 +16,32 @@ import { ServiceRequests } from './service-requests.ts'
 /** Concurrency for cold inherited-prefix reads during one list; keeps a graph read bounded. */
 const INFERENCE_CONCURRENCY = 4
 
+/** Detach one caller from shared inference without cancelling the storage operation. */
+function waitForOrigin(
+  operation: Promise<BranchOrigin | undefined>,
+  signal: AbortSignal,
+): Promise<BranchOrigin | undefined> {
+  signal.throwIfAborted()
+  return new Promise((resolve, reject) => {
+    let waiting = true
+    const release = (): void => {
+      if (!waiting) return
+      waiting = false
+      signal.removeEventListener('abort', onAbort)
+    }
+    const onAbort = (): void => {
+      release()
+      reject(signal.reason)
+    }
+    signal.addEventListener('abort', onAbort, { once: true })
+    if (signal.aborted) onAbort()
+    void operation.then(
+      value => { release(); resolve(value) },
+      (error: unknown) => { release(); reject(error) },
+    )
+  })
+}
+
 const originSchema: z.ZodType<BranchOrigin> = z.unknown().transform((value, context) => {
   try { return branchOriginSchema.parse(value) } catch {
     context.addIssue({ code: 'custom', message: 'Invalid Branch Origin record' })
@@ -36,7 +62,9 @@ export const BRANCH_ORIGIN_DOMAIN = { name: 'session_graph_branch_links', versio
  */
 export class BranchOriginService extends TypertRemoteService {
   private readonly requests = new ServiceRequests('Branch Origin service')
+  private readonly inferenceLifecycle = new AbortController()
   private readonly pending = new Map<string, Promise<BranchOrigin | undefined>>()
+  private readonly recording = new Map<string, Promise<void>>()
 
   constructor(ctx: Context, private readonly domain: Domain<typeof BRANCH_ORIGIN_DOMAIN>) {
     super(ctx, 'sessionGraphBranchOrigin')
@@ -54,13 +82,18 @@ export class BranchOriginService extends TypertRemoteService {
   }
 
   dispose(): Promise<void> {
-    return this.requests.dispose(async () => { await this.domain.close() })
+    this.inferenceLifecycle.abort(new Error('Branch Origin service is disposed'))
+    return this.requests.dispose(async () => {
+      await Promise.allSettled([...this.pending.values()])
+      await this.domain.close()
+    })
   }
 
   private async recordOrigin(request: BranchOriginRecord, signal: AbortSignal): Promise<BranchOrigin> {
     signal.throwIfAborted()
     let command: BranchOriginRecord
     try { command = branchOriginRecordSchema.parse(request) } catch { throw new TypeError('Invalid Branch Origin request') }
+    await this.recording.get(command.childSessionId)?.catch(() => undefined)
     const table = this.domain.table('origins')
     const existing = table.get(command.childSessionId)
     if (existing !== undefined && existing.source === 'recorded' && existing.parentSessionId !== command.parentSessionId) {
@@ -70,8 +103,14 @@ export class BranchOriginService extends TypertRemoteService {
     const origin: BranchOrigin = {
       ...command, source: 'recorded', createdAt: existing?.createdAt ?? Date.now(),
     }
-    await table.put(command.childSessionId, origin)
-    return origin
+    const writing = table.put(command.childSessionId, origin)
+    this.recording.set(command.childSessionId, writing)
+    try {
+      await writing
+      return origin
+    } finally {
+      this.recording.delete(command.childSessionId)
+    }
   }
 
   private async listOrigins(request: BranchOriginQuery, signal: AbortSignal): Promise<BranchOriginList> {
@@ -94,19 +133,19 @@ export class BranchOriginService extends TypertRemoteService {
     return { origins: [...known, ...inferred] }
   }
 
-  /** Single-flight one child's inference so concurrent graph reads share its storage work. */
+  /** Share service-owned storage work while each graph read retains its own cancellation. */
   private inferOnce(childSessionId: string, signal: AbortSignal): Promise<BranchOrigin | undefined> {
     const pending = this.pending.get(childSessionId)
-    if (pending !== undefined) return pending
-    const operation = this.inferOrigin(childSessionId, signal)
+    if (pending !== undefined) return waitForOrigin(pending, signal)
+    const operation = this.inferOrigin(childSessionId, this.inferenceLifecycle.signal)
       .finally(() => { this.pending.delete(childSessionId) })
     this.pending.set(childSessionId, operation)
-    return operation
+    return waitForOrigin(operation, signal)
   }
 
   private async inferOrigin(childSessionId: string, signal: AbortSignal): Promise<BranchOrigin | undefined> {
     const table = this.domain.table('origins')
-    if (table.get(childSessionId) !== undefined) return undefined
+    if (table.get(childSessionId) !== undefined || this.recording.has(childSessionId)) return undefined
     signal.throwIfAborted()
     try {
       if ((await this.ctx.sessionPersistence.stat(childSessionId as SessionId)) === undefined) return undefined
@@ -120,8 +159,8 @@ export class BranchOriginService extends TypertRemoteService {
         const parentSessionId = inferForkParent(events, inherited, childSessionId)
         if (parentSessionId === undefined) return undefined
         if ((await this.ctx.sessionPersistence.stat(parentSessionId as SessionId)) === undefined) return undefined
-        // An exact record may land while this read is in flight; never shadow it.
-        if (table.get(childSessionId) !== undefined) return undefined
+        // An exact record may land or already be writing; never shadow it.
+        if (table.get(childSessionId) !== undefined || this.recording.has(childSessionId)) return undefined
         signal.throwIfAborted()
         const origin: BranchOrigin = { childSessionId, parentSessionId, source: 'inferred', createdAt: Date.now() }
         await table.put(childSessionId, origin)

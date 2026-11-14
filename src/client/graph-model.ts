@@ -371,7 +371,7 @@ function deriveRowsGraph(
     const parentId = row.parentId ?? branchOrigins?.get(row.id)
     if (row.origin === 'subagent' || parentId === undefined) continue
     const parent = visible.get(parentId as SessionId)
-    if (parent === undefined || parent.origin === 'subagent') continue
+    if (parent === undefined || parent.origin === 'subagent' || sources?.get(parent.id)?.status === 'unavailable') continue
     branchParent.set(row.id, parent.id)
     const siblings = branchChildren.get(parent.id)
     if (siblings === undefined) branchChildren.set(parent.id, [row])

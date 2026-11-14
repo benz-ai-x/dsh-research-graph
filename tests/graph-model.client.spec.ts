@@ -564,6 +564,25 @@ describe('deriveSessionGraph Branch Origins', () => {
     expect(graph.edges.some(edge => edge.id === 'branch:root->fork')).toBe(false)
   })
 
+  it('does not connect a Topic fork to an unavailable parent reference', () => {
+    const references = [
+      { sessionId: 'parent', title: 'Unavailable parent' },
+      { sessionId: 'fork', title: 'Fork' },
+    ]
+    const snapshot = {
+      topic: { topicId: 'topic', title: 'Topic', references, arrangement: { positions: {}, collapsed: [], offsets: {} } },
+      sources: [
+        { ...references[0], archived: false, status: 'unavailable' as const },
+        { ...references[1], archived: false, status: 'listed' as const },
+      ],
+    }
+    const list = listState({ parent: session('parent'), fork: session('fork') })
+    const graph = deriveTopicGraph(snapshot, list, id('fork'), new Map(), new Map([['fork', 'parent']]))
+    expect(graph.edges.some(edge => edge.id === 'branch:parent->fork')).toBe(false)
+    expect(graph.nodes.get(id('fork'))?.branchFrom).toBeUndefined()
+    expect(graph.nodes.get(id('parent'))?.topicSource?.status).toBe('unavailable')
+  })
+
   it('stays a Root Session when the origin parent is outside the scope', () => {
     const { list, scope } = scoped({
       root: session('root', { updatedAt: 1_000 }),
