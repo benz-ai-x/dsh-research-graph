@@ -25,6 +25,8 @@ jobs:
     environment: npm-publish
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      # Temporary while DSH 0.2.2-rc.3 is within 24h of publication; remove after 2026-11-14T07:46Z.
+      pnpm_config_minimum_release_age: 0
     steps:
       - uses: actions/checkout@v7
         with:
