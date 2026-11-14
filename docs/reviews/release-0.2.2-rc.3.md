@@ -33,4 +33,10 @@ The candidate gates establish local release readiness. Real-provider model quali
 
 ## Publication
 
-Official registry, provenance, packed-profile, and Release-attachment evidence is appended only after those artifacts have been published and independently verified.
+Release preparation [PR #88](https://github.com/benz-ai-x/dsh-research-graph/pull/88) passed CI in [run 43549181511](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43549181511) and merged as **`0eff30d3469c45b26ce13912272f16acb7e3e53a`**. The annotated tag `v0.2.2-rc.3` points to that merge; its post-merge [main CI run 43549946336](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43549946336) passed. The [GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3) was created and OIDC [Publish run 43549990874](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43549990874) succeeded. Registry readback is **`next=0.2.2-rc.3`**, **`latest=0.2.2-rc.2`**; this release did not change `latest` or deploy the plugin.
+
+The independently downloaded official npm archive is **733756 bytes**, SHA-256 `763480888ec6651e96a8d1e0ac71e90177b970b93e8e2596a31486fa149f6bff`, registry SHA-1 `750d46c02369d5fa0beaa9c8aa963d5528de31a9`, with integrity `sha512-SOC8Q/y9DWYfRCq8jqUwZWHPHVugWtsKWzRZWijHlsN7kKcfrPaOfCGitxkQapeVcV9Oysg/XyW4xyWD6yeoaQ==`. Its Build ID is **`local-70cd4182`**. The local candidate remains **734165 bytes**, SHA-256 `7fc8676c3c68ac7c107880331cf1d16f42f41a5116140ac834ca33ebaf7fa7cd`; those candidate values are not the official npm artifact values.
+
+SLSA provenance assertions covered the archive subject, `refs/tags/v0.2.2-rc.3`, commit `0eff30d3469c45b26ce13912272f16acb7e3e53a`, publish workflow, release event, and invocation run `43549990874`; transparency-log entries **`3868412752`** and **`3868379612`** were verified. The official archive independently passed the same isolated packed-profile acceptance with **19 deterministic fixture model calls**, including offline recovery, research writes, sidebar restart persistence, and clean installation/removal.
+
+The Release archive and `SHA256SUMS` were uploaded, downloaded again, and compared byte-for-byte with the official registry archive. Private verification evidence is retained in `.artifacts/release-0.2.2-rc.3/official/`.
