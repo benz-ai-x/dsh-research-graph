@@ -18,7 +18,7 @@
 需要已安装 **DeepSeek Harness 0.2.2-rc.3**、Node.js `>=24.9.0`（该宿主线已不再支持 Node 22），以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.3
 dsh web
 ```
 
@@ -28,7 +28,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前插件 **0.2.2-rc.3.2** 同时使用 npm `latest` / `next` 标签；上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+当前插件 **0.2.2-rc.3.3** 同时使用 npm `latest` / `next` 标签；上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
 
 ## 研究流程
 
@@ -59,10 +59,11 @@ flowchart LR
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
+| `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.3` | `0.2.2-rc.3` | `>=24.9.0` | 真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.2` | `0.2.2-rc.3` | `>=24.9.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.2` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 
-当前预发布 **0.2.2-rc.3.2** 适配 **DSH 0.2.2-rc.3**。本次同线修订在目录所属工作区注册被移除后，重新添加同一目录时恢复持久的会话工作区归属：插件 Host 服务仅收编当前未归属、且 Session header 可解析到同一规范化目录的会话；其他工作区归属、归档状态和 Session 日志不变。重建的工作区使用新身份，原浏览器排列、手动成员顺序和工作区文件夹结构不会恢复。全部直接 `@deepseek-ai/dsh-*` 依赖与精确 LLM peer 仍钉到 DSH `0.2.2-rc.3`；Zod 保持 `4.6.6`，`dsh-error` 继续承担 LLM 类型链。宿主线要求 Node.js `>=24.9.0`；Schemastery 与 Cordis 保持 `~3.19.0`、`~4.1.0`。详见[契约分析](reviews/dsh-0.2.2-rc.3-compatibility.md)与[发布验收](reviews/release-0.2.2-rc.3.2.md)。
+当前预发布 **0.2.2-rc.3.3** 适配 **DSH 0.2.2-rc.3**。本次同线修订新增原生会话备份与按需恢复：一个 ZIP 同时包含完整已提交会话／上下文事件、子代理与附件；侧栏文件名包含实际工作区标题、会话标题、UTC 时间和短 ID。恢复严格校验 V4 日志与附件完整性，保留 Session ID 和继承历史，内容一致者跳过，同 ID 冲突者拒绝覆盖。恢复将 header 的工作目录重定向到所选工作区，不调用模型，并以失败 Session ID 明确报告部分恢复。全部直接 `@deepseek-ai/dsh-*` 依赖与精确 LLM peer 仍钉到 DSH `0.2.2-rc.3`；Zod 保持 `4.6.6`，`dsh-error` 继续承担 LLM 类型链。宿主线要求 Node.js `>=24.9.0`；Schemastery 与 Cordis 保持 `~3.19.0`、`~4.1.0`。详见[契约分析](reviews/dsh-0.2.2-rc.3-compatibility.md)与[发布验收](reviews/release-0.2.2-rc.3.3.md)。
 
 在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。
 
@@ -214,7 +215,7 @@ DSH 持有原始会话；研图将研究主题、工作区文件夹、卡片修�
 从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.3
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -231,7 +232,7 @@ dsh --profile web --dump-config
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.3
 dsh web
 ```
 
@@ -249,7 +250,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
 
-Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.2-rc.3.2` 对应 DSH `0.2.2-rc.3`）。
+Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.2-rc.3.3` 对应 DSH `0.2.2-rc.3`）。
 
 ## 使用图谱
 
