@@ -1,4 +1,4 @@
-/** Host loader entry for Session Graph, Session Digest, and durable Session Merge. */
+/** Host loader entry for Session Graph, insights, research workflows, and Session Backup restoration. */
 
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-session-controller'
@@ -45,6 +45,7 @@ import { KnowledgeService, KNOWLEDGE_DOMAIN } from './knowledge-host.ts'
 import { HistoryBranchService, HISTORY_BRANCH_DOMAIN } from './history-branch-host.ts'
 import { ResearchReuseService, RESEARCH_REUSE_DOMAIN } from './research-reuse-host.ts'
 import { BranchOriginService, BRANCH_ORIGIN_DOMAIN } from './branch-links-host.ts'
+import { SessionGraphBackupService } from './session-backup-host.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -60,6 +61,7 @@ declare module '@deepseek-ai/cordis' {
     sessionGraphReuse: ResearchReuseService
     sessionGraphBranchOrigin: BranchOriginService
     sessionGraphBranch: HistoryBranchService
+    sessionGraphBackup: SessionGraphBackupService
   }
 }
 
@@ -273,6 +275,13 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
     try {
       await provideQuiescentRemoteService(branchCtx, serviceCtx => new HistoryBranchService(serviceCtx, domain), 'session-graph.branch-service')
     } catch (error) { await domain.close(); throw error }
+  })
+  void ctx.inject(['connection', 'sessionPersistence', 'sessionProjectionCache', 'workspaceRegistry', 'attachments'], async backupCtx => {
+    await provideQuiescentRemoteService(
+      backupCtx,
+      serviceCtx => new SessionGraphBackupService(serviceCtx, resolvedConfig),
+      'session-graph.backup-service',
+    )
   })
   await ctx.inject(['storageDomain', 'sessionPersistence', 'sessionQuery'], async originCtx => {
     const domain = await originCtx.storageDomain.open(BRANCH_ORIGIN_DOMAIN)
