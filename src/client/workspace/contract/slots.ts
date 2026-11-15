@@ -28,7 +28,7 @@
  * row of a Session's "..." menu is an entry of
  * `sidebar.workspaces.session.menu.item`, and every hover button at the row's
  * end is an entry of `sidebar.workspaces.session.row.action`. The shipped
- * actions — pin, rename, fork, archive, copy ID — are ordinary entries
+ * actions — pin, rename, fork, backup, archive, copy ID — are ordinary entries
  * registered from `apply`, each carrying its own behavior in its own inject
  * face and reading its own Host state through hooks that face injects, so a
  * client plugin's action lands beside them by `order` and needs nothing from
@@ -145,7 +145,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /**
      * The rows of one Session's "..." menu, in ascending `order`. ui-workspace
      * registers the shipped rows here — `pin` (100), `rename` (200), `fork`
-     * (300), `archive` (400), and `session-id` (450) — so a plugin row is placed
+     * (300), `session-backup` (350), `archive` (400), and `session-id` (450) — so a plugin row is placed
      * by its own `order` among them. Use a package-namespaced `id`; reusing a shipped id at
      * another `priority` shadows that row. Each entry renders one
      * `role="menuitem"` `<button>` (the shipped rows use ui-primitives'
@@ -330,6 +330,8 @@ export type RowToast =
   | { kind: 'defaultWorkspaceFailed' }
   | { kind: 'forkRequiresOpen'; sessionId: SessionId }
   | { kind: 'shortcutForkFailed'; reason: 'unavailable' | 'failed' }
+  // Local delta vs upstream: native Session backup failure notice.
+  | { kind: 'backupFailed'; message: string }
   /**
    * An explicit New Session request that failed. `message` is untranslated:
    * a Host refusal as `code: message` — the stable code stays in the copy so
@@ -412,6 +414,11 @@ export interface SessionArchiveConfirmInjected {
    * raises the stopped-and-archived notice.
    */
   stopAndArchiveSession: (sessionId: SessionId) => Promise<void>
+}
+
+// Local delta vs upstream: package-owned Session backup action share.
+export interface BackupSessionInjected {
+  downloadBackup: (sessionId: SessionId, displayTitle: string) => void
 }
 
 /** Fork action share. */

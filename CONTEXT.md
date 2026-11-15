@@ -188,6 +188,14 @@ _Avoid_: Workspace Folder, Research Topic, current sidebar organization
 **Research Export**:
 A standalone Markdown artifact from an explicit set of saved Knowledge Card revisions. Preview freezes the latest selected revisions and their retained source ranges; download uses exactly those bytes. Original availability is checked and annotated without replacing saved excerpts. An export never creates knowledge, sends model context, or changes Session history.
 
+**Session Backup**:
+One native DSH ZIP containing a selected root Session's complete committed logical event log, its Subagent descendants, and referenced attachment bytes. Conversation and context events share each JSONL log; the archive is neither a Research Export nor a whole-profile snapshot, model KV cache, Workspace-file archive, or plugin-database export.
+_Avoid_: Session Digest, Research Export, context-only file
+
+**Session Restore**:
+An explicit, owner-driven cold restoration of a native Session Backup into a chosen Workspace, preserving Session identities and history while remapping restored headers' working directory. Identical existing Sessions are skipped and conflicting identities are never overwritten; a restore starts no Agent or model call and changes no Viewed Session.
+_Avoid_: Session rollback, Research Export import, profile restore
+
 ### Arrangement and discovery
 
 **Working Position**:

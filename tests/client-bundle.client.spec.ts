@@ -228,7 +228,7 @@ describe('tsdown client artifact', () => {
       slots: {
         inject: (name, install) => {
           slotNames.push(name)
-          expect(['conversation.view', 'sidebar.footer.action', 'sidebar.workspaces']).toContain(name)
+          expect(['conversation.view', 'sidebar.footer.action', 'sidebar.workspaces', 'sidebar.session.action']).toContain(name)
           const disposer = install()
           if (typeof disposer === 'function') uiDisposers.push(disposer as () => void | Promise<void>)
         },
@@ -317,12 +317,12 @@ describe('tsdown client artifact', () => {
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
       'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphFolders', 'remote.sessionGraphWorkspaces',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',
-      'remote.sessionGraphBranchOrigin',
+      'remote.sessionGraphBranchOrigin', 'remote.sessionGraphBackup',
     ]])
     // The vendored sidebar/workspace halves mount through ctx.plugin and are
-    // exercised by the Harness suite; this face sees only the Graph entry.
-    expect(new Set(slotNames)).toEqual(new Set(['conversation.view']))
-    expect(views).toHaveLength(1)
+    // exercised by the Harness suite; this face sees the Graph and backup HOC.
+    expect(new Set(slotNames)).toEqual(new Set(['conversation.view', 'sidebar.session.action']))
+    expect(views.filter(view => view.name === 'conversation.view')).toHaveLength(1)
     const graph = views.find(view => view.name === 'conversation.view')
     expect(graph).toMatchObject({ name: 'conversation.view', id: 'graph' })
     expect(graph?.label()).toBe('Research Graph')
