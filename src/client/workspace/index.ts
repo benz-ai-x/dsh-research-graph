@@ -110,6 +110,7 @@ export const inject = [
   // Local delta vs upstream: the Workspace-folder records this package's own
   // Host service publishes (virtual per-Workspace session folders).
   'remote.sessionGraphFolders',
+  // Local delta vs upstream: the package-owned Host service restores Workspace membership.
   'remote.sessionGraphWorkspaces',
 ]
 
@@ -289,6 +290,7 @@ export function apply(ctx: Context): void {
     hooks: { toast: rowToast },
     dismissToast: () => { rowToast.set(null) },
   })
+  // Local delta vs upstream: native Workspace creation is followed by Host membership restoration.
   const createWorkspace = createWorkspaceWithRestoredMembership(workspaces, ctx.remote.sessionGraphWorkspaces)
   const browserInjected = (): WorkspaceBrowserInjected => ({
     // Explicit group actions keep their target; unscoped New Session inherits
@@ -305,6 +307,7 @@ export function apply(ctx: Context): void {
       await workspaces.insertBefore(workspaceId, beforeWorkspaceId)
     },
     unarchiveSession: async (sessionId) => { await uiWorkspace.unarchiveSession(sessionId) },
+    // Local delta vs upstream: the browser creates and restores through the shared callback.
     createWorkspace,
     requestSearch: shortcutControls.search,
     requestAddWorkspace: shortcutControls.add,
@@ -320,6 +323,7 @@ export function apply(ctx: Context): void {
     writeFolder,
   })
   const pickerInjected = (directoryFlow: HostObservable<boolean>) => (): WorkspacePickerInjected => ({
+    // Local delta vs upstream: the picker and Factory share the same restoring creation callback.
     createWorkspace,
     hooks: { directoryFlow },
   })

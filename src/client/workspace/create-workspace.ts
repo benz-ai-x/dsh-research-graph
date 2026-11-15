@@ -1,3 +1,4 @@
+// Local delta vs upstream: package-owned helper restores same-directory Workspace membership after native creation.
 import type { IWorkspaces } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import type { WorkspaceMembershipRestoreRequest, WorkspaceMembershipRestoreResult } from '../../workspace-membership.ts'
