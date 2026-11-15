@@ -25,7 +25,7 @@ A Canvas Session chosen inside the graph for inspection or an explicit action. S
 _Avoid_: Current session, opened session
 
 **Workspace**:
-A named Harness grouping with a canonical working directory and an accounted set of sessions.
+A named Harness grouping with a canonical working directory and an accounted set of sessions. Removing a Workspace retains its directory and Session logs; adding the same canonical directory through this package restores currently unaccounted Sessions whose headers resolve to that directory, without restoring the removed Workspace identity, manual order, browser arrangement, or Workspace Folders.
 _Avoid_: Project, directory, Workspace Scope
 
 **Workspace Scope**:

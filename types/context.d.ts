@@ -107,6 +107,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphSearch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphSearch']
       sessionGraphTopics: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphTopics']
       sessionGraphFolders: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphFolders']
+      sessionGraphWorkspaces: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphWorkspaces']
       readonly $host: import('@deepseek-ai/dsh-api-remotes/client').RemoteHostFacts
       readonly directoryPicker: import('@deepseek-ai/dsh-api-remotes/client').ClientRemote['directoryPicker']
       sessionGraphKnowledge: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphKnowledge']

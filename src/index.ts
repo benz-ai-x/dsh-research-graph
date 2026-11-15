@@ -40,6 +40,7 @@ import { SessionGraphSearchService } from './session-search-host.ts'
 import { ResearchTopicsService, RESEARCH_TOPIC_DOMAIN } from './research-topics-host.ts'
 import { inspectHarnessSession } from './session-inspect.ts'
 import { WorkspaceFoldersService, WORKSPACE_FOLDER_DOMAIN } from './workspace-folders-host.ts'
+import { WorkspaceMembershipService } from './workspace-membership-host.ts'
 import { KnowledgeService, KNOWLEDGE_DOMAIN } from './knowledge-host.ts'
 import { HistoryBranchService, HISTORY_BRANCH_DOMAIN } from './history-branch-host.ts'
 import { ResearchReuseService, RESEARCH_REUSE_DOMAIN } from './research-reuse-host.ts'
@@ -54,6 +55,7 @@ declare module '@deepseek-ai/cordis' {
     sessionGraphSearch: SessionGraphSearchService
     sessionGraphTopics: ResearchTopicsService
     sessionGraphFolders: WorkspaceFoldersService
+    sessionGraphWorkspaces: WorkspaceMembershipService
     sessionGraphKnowledge: KnowledgeService
     sessionGraphReuse: ResearchReuseService
     sessionGraphBranchOrigin: BranchOriginService
@@ -249,6 +251,13 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       await domain.close()
       throw error
     }
+  })
+  await ctx.inject(['sessionQuery', 'workspaceRegistry'], async membershipCtx => {
+    await provideQuiescentRemoteService(
+      membershipCtx,
+      serviceCtx => new WorkspaceMembershipService(serviceCtx),
+      'session-graph.workspace-membership-service',
+    )
   })
   await ctx.inject(['storageDomain', 'sessionGraphKnowledge', 'workspaceRegistry', 'sessionQuery'], async reuseCtx => {
     const domain = await reuseCtx.storageDomain.open(RESEARCH_REUSE_DOMAIN)

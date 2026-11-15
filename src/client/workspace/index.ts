@@ -50,6 +50,8 @@ import { UiWorkspaceService } from './navigation.ts'
 import { createWorkspaceViewStore } from './stores.ts'
 // Local delta vs upstream: package-owned Workspace-folder synchronization.
 import { createWorkspaceFolderSync } from './folder-sync.ts'
+// Local delta vs upstream: creating a Workspace restores matching unaccounted Sessions.
+import { createWorkspaceWithRestoredMembership } from './create-workspace.ts'
 import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
 import { ArchiveSessionMenuItem, ArchiveSessionRowButton, SessionArchiveConfirmDialog } from './session-actions/ArchiveSession.tsx'
 import { derive } from './session-actions/derived.ts'
@@ -108,6 +110,8 @@ export const inject = [
   // Local delta vs upstream: the Workspace-folder records this package's own
   // Host service publishes (virtual per-Workspace session folders).
   'remote.sessionGraphFolders',
+  // Local delta vs upstream: the package-owned Host service restores Workspace membership.
+  'remote.sessionGraphWorkspaces',
 ]
 
 /**
@@ -286,6 +290,8 @@ export function apply(ctx: Context): void {
     hooks: { toast: rowToast },
     dismissToast: () => { rowToast.set(null) },
   })
+  // Local delta vs upstream: native Workspace creation is followed by Host membership restoration.
+  const createWorkspace = createWorkspaceWithRestoredMembership(workspaces, ctx.remote.sessionGraphWorkspaces)
   const browserInjected = (): WorkspaceBrowserInjected => ({
     // Explicit group actions keep their target; unscoped New Session inherits
     // the current Session Workspace before the recent-Workspace fallback.
@@ -301,7 +307,8 @@ export function apply(ctx: Context): void {
       await workspaces.insertBefore(workspaceId, beforeWorkspaceId)
     },
     unarchiveSession: async (sessionId) => { await uiWorkspace.unarchiveSession(sessionId) },
-    createWorkspace: input => workspaces.create(input),
+    // Local delta vs upstream: the browser creates and restores through the shared callback.
+    createWorkspace,
     requestSearch: shortcutControls.search,
     requestAddWorkspace: shortcutControls.add,
     closeAddWorkspace: shortcutControls.closeAdd,
@@ -316,7 +323,8 @@ export function apply(ctx: Context): void {
     writeFolder,
   })
   const pickerInjected = (directoryFlow: HostObservable<boolean>) => (): WorkspacePickerInjected => ({
-    createWorkspace: input => workspaces.create(input),
+    // Local delta vs upstream: the picker and Factory share the same restoring creation callback.
+    createWorkspace,
     hooks: { directoryFlow },
   })
   // Each registration declares its owned children in the same call; slot

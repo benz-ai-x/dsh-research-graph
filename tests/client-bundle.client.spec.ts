@@ -315,7 +315,7 @@ describe('tsdown client artifact', () => {
       'slots', 'sessions', 'workspaces', 'uiWorkspace', 'locale',
       'remote.session',
       'remote.sessionGraphDigest', 'remote.sessionGraphTitle', 'remote.sessionGraphMerge', 'remote.sessionGraphHistory',
-      'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphFolders',
+      'remote.sessionGraphSearch', 'remote.sessionGraphTopics', 'remote.sessionGraphFolders', 'remote.sessionGraphWorkspaces',
       'remote.sessionGraphKnowledge', 'remote.sessionGraphReuse', 'remote.sessionGraphBranch',
       'remote.sessionGraphBranchOrigin',
     ]])

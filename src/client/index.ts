@@ -31,6 +31,7 @@ import { SESSION_HISTORY_REMOTE } from './session-history-remote.ts'
 import { DISCUSSION_SEARCH_REMOTE } from './session-search-remote.ts'
 import { RESEARCH_TOPICS_REMOTE } from './research-topics-remote.ts'
 import { WORKSPACE_FOLDERS_REMOTE } from './workspace-folders-remote.ts'
+import { WORKSPACE_MEMBERSHIP_REMOTE } from './workspace-membership-remote.ts'
 import { HISTORY_BRANCH_REMOTE } from './history-branch-remote.ts'
 import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
 import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
@@ -58,6 +59,7 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...DISCUSSION_SEARCH_REMOTE.descriptors,
     ...RESEARCH_TOPICS_REMOTE.descriptors,
     ...WORKSPACE_FOLDERS_REMOTE.descriptors,
+    ...WORKSPACE_MEMBERSHIP_REMOTE.descriptors,
     ...KNOWLEDGE_REMOTE.descriptors,
     ...RESEARCH_REUSE_REMOTE.descriptors,
     ...HISTORY_BRANCH_REMOTE.descriptors,
@@ -412,6 +414,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphSearch',
       'remote.sessionGraphTopics',
       'remote.sessionGraphFolders',
+      'remote.sessionGraphWorkspaces',
       'remote.sessionGraphKnowledge',
       'remote.sessionGraphReuse',
       'remote.sessionGraphBranch',
