@@ -50,7 +50,7 @@ flowchart LR
   </a>
 </p>
 
-0.2.2-rc.3.2 的真实界面（演示数据），点击图片查看高清原图。
+0.2.2-rc.3.3 的真实界面（演示数据），点击图片查看高清原图。
 
 <a id="核心能力"></a>
 
@@ -74,7 +74,7 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.2.2-rc.3.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.2)，npm `latest` / `next` |
+| 当前插件 | [0.2.2-rc.3.3](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.3)，npm `latest` / `next` |
 | 适配宿主 | **DSH 0.2.2-rc.3 · Web**，Node.js `>=24.9.0` |
 | 数据保存 | 研究数据与工作区文件夹保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出、备份与恢复不调用模型；AI 生成与新讨论按需调用 |
@@ -106,7 +106,7 @@ flowchart LR
 需要 **DSH 0.2.2-rc.3**（Node.js `>=24.9.0`），并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.2
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.3
 dsh web
 ```
 
@@ -120,7 +120,8 @@ dsh web
 
 | 插件版本 | 要求的 DSH | 备注 |
 | --- | --- | --- |
-| `0.2.2-rc.3.2` | `0.2.2-rc.3` | 当前版本——同目录重新添加工作区时恢复未归属会话，要求 Node.js `>=24.9.0`；npm `latest` / `next` |
+| `0.2.2-rc.3.3` | `0.2.2-rc.3` | 当前版本——原生会话备份与按需恢复，文件名包含工作区且不覆盖现有会话，要求 Node.js `>=24.9.0`；npm `latest` / `next` |
+| `0.2.2-rc.3.2` | `0.2.2-rc.3` | 同目录重新添加工作区时恢复未归属会话，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | 恢复独立普通 fork 的分支连线，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3` | `0.2.2-rc.3` | 可复用 Workspace Picker Factory 与新会话 HOC，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.2` | `0.2.2-rc.2` | 上一版本——适配 DSH rc.2 并迁移 Menu 锚点，要求 Node.js `>=24.9.0` |
@@ -131,4 +132,4 @@ dsh web
 
 ## 文档与支持
 
-[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.2-rc.3.2.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.2-rc.3.3.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
