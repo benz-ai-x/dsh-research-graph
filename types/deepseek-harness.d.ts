@@ -279,6 +279,10 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   export function IconArchiveCheckOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconBranchOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconChevronsUpDownOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconChevronDownOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconDownloadOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconUploadOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconUploadOutlineMedium(props: SidebarIconProps): import('react').ReactElement
   export function IconClockOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconCopyOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconPanelLeftOutlineRegular(props: SidebarIconProps): import('react').ReactElement
@@ -401,6 +405,7 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   export interface RelativeTime { readonly unit: 'now' | 'minutes' | 'hours' | 'days' | 'months' | 'years'; readonly n: number }
   export function relativeTime(at: number, now: number): RelativeTime
   export function writeClipboard(text: string): Promise<boolean>
+  export function fileSizeText(bytes: number): string
   export function isDarwinDesktop(): boolean
 }
 

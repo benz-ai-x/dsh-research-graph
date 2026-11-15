@@ -29,6 +29,7 @@ const env = {
   DSH_HOME: join(root, 'home'), DSH_AGENTS_HOME: join(root, 'agents'),
   DSH_TELEMETRY_DISABLED: '1', TSX_TSCONFIG_PATH: join(harness, 'tsconfig.base.json'),
   SESSION_GRAPH_SMOKE_REPORT: reportPath,
+  SESSION_GRAPH_BACKUP_ARCHIVE: join(root, 'session-backup.zip'),
 }
 // Boot output can contain a one-time browser credential; never print raw logs.
 const redact = text => text.replace(/https?:\/\/\S+/g, '[URL omitted]').slice(-12_000)
@@ -86,6 +87,7 @@ try {
     await setTimeout(100, undefined, { signal })
   }
   assert.equal(report.ok, true, report.error)
+  assert.equal(report.sessionBackupExported, true)
   app.child.kill('SIGINT')
   const timeout = globalThis.setTimeout(() => app?.child.kill('SIGKILL'), 20_000)
   const stopped = await app.done.finally(() => clearTimeout(timeout))
@@ -120,7 +122,36 @@ try {
   assert.ok(!(await command(['--profile', 'web', '--dump-config'])).includes(manifest.name))
   const profile = JSON.parse(await readFile(join(env.DSH_HOME, 'profiles/web/package.json'), 'utf8'))
   assert.equal(profile.dependencies?.[manifest.name], undefined)
-  console.log(JSON.stringify({ ...report, version: manifest.version, dshVersion, packedInstall: true, removed: true }))
+
+  await rm(reportPath, { force: true })
+  env.DSH_HOME = join(root, 'restore-home')
+  env.DSH_AGENTS_HOME = join(root, 'restore-agents')
+  delete env.SESSION_GRAPH_SMOKE_RESTART
+  env.SESSION_GRAPH_SMOKE_RESTORE = join(root, 'session-backup.zip')
+  await command(['plugin', '--profile', 'web', 'add', archive])
+  app = launch(['--profile', 'web', '--patch', patch, '--port', '0', '--no-open'])
+  const restoreSignal = AbortSignal.timeout(90_000)
+  let restoreReport
+  for (;;) {
+    restoreSignal.throwIfAborted()
+    assert.equal(app.child.exitCode, null, `Restore profile exited: ${redact(app.output())}`)
+    try {
+      restoreReport = JSON.parse(await readFile(reportPath, 'utf8'))
+      break
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error
+    }
+    await setTimeout(100, undefined, { signal: restoreSignal })
+  }
+  assert.equal(restoreReport.sessionBackupRestore, true, restoreReport.error)
+  assert.equal(restoreReport.sessionBackupModelCalls, 1)
+  app.child.kill('SIGINT')
+  const restoreTimeout = globalThis.setTimeout(() => app?.child.kill('SIGKILL'), 20_000)
+  const restoredStop = await app.done.finally(() => clearTimeout(restoreTimeout))
+  assert.equal(restoredStop.code, 130, `Restore profile did not complete its SIGINT shutdown: ${redact(app.output())}`)
+  app = undefined
+  await command(['plugin', '--profile', 'web', 'remove', manifest.name])
+  console.log(JSON.stringify({ ...report, sessionBackupRestore: true, sessionBackupModelCalls: 1, version: manifest.version, dshVersion, packedInstall: true, removed: true }))
 } catch (error) {
   throw new Error(`${error.message}${app ? `\n${redact(app.output())}` : ''}`, { cause: error })
 } finally {

@@ -56,6 +56,7 @@ declare module '@deepseek-ai/cordis' {
         import('@deepseek-ai/dsh-session/types').SessionId
       >
       refreshProjections: (sessionId: import('@deepseek-ai/dsh-session/types').SessionId) => Promise<void>
+      refresh: () => Promise<void>
       fork: (request: {
         readonly sessionId: import('@deepseek-ai/dsh-session/types').SessionId
         readonly increaseTitle: boolean
@@ -114,6 +115,7 @@ declare module '@deepseek-ai/cordis' {
       sessionGraphBranch: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranch']
       sessionGraphReuse: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphReuse']
       sessionGraphBranchOrigin: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBranchOrigin']
+      sessionGraphBackup: import('@deepseek-ai/dsh-typert-protocol').TypertRemoteNamespaceMap['sessionGraphBackup']
     }
     readonly sessionProjections: {
       register: (definition: unknown) => () => void
@@ -160,6 +162,11 @@ declare module '@deepseek-ai/cordis' {
     }
     readonly sessionProjectionCache: {
       write: (session: unknown) => Promise<void>
+      coldSnapshot: (
+        header: import('@deepseek-ai/dsh-session/types').SessionHeader,
+        inheritedEventCount: import('@deepseek-ai/dsh-session/types').SessionLogOffset,
+        events: readonly import('@deepseek-ai/dsh-session/types').SessionEvent[],
+      ) => unknown
     }
     readonly agents: {
       get: (id: import('@deepseek-ai/dsh-session/types').SessionId) => import('@deepseek-ai/dsh-agent').Agent | undefined
