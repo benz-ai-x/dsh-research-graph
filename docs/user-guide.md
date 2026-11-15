@@ -28,7 +28,7 @@ Open the one-time authenticated URL printed by the command; do not share its tok
 2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
 3. Open the saved card in **Knowledge**, inspect its sources, and choose **Continue discussion** to preview the materials for another question.
 
-Current plugin **0.2.2-rc.3.2** is available through npm `next`; `latest` remains on the previous stable line. The pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
+Current plugin **0.2.2-rc.3.2** is available through both npm `latest` and `next`. The pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
 
 ## Research workflow
 

@@ -74,7 +74,7 @@ Version 0.2.2-rc.3.2 with demo data. Click the image for the full-resolution scr
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.2-rc.3.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.2), npm `next` |
+| Plugin release | [0.2.2-rc.3.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.2), npm `latest` / `next` |
 | Required Host | **DSH 0.2.2-rc.3 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
@@ -120,7 +120,7 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.3.2` | `0.2.2-rc.3` | Current release — restores unaccounted Sessions when re-adding the same Workspace directory; requires Node.js `>=24.9.0`; npm `next` |
+| `0.2.2-rc.3.2` | `0.2.2-rc.3` | Current release — restores unaccounted Sessions when re-adding the same Workspace directory; requires Node.js `>=24.9.0`; npm `latest` / `next` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | Restores Branch links for independent ordinary forks; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3` | `0.2.2-rc.3` | Reusable Workspace picker Factory and New Session HOC; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.2` | `0.2.2-rc.2` | Previous release — DSH rc.2 compatibility and Menu anchor migration; requires Node.js `>=24.9.0` |

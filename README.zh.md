@@ -73,7 +73,7 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.2.2-rc.3.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.2)，npm `next` |
+| 当前插件 | [0.2.2-rc.3.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.2)，npm `latest` / `next` |
 | 适配宿主 | **DSH 0.2.2-rc.3 · Web**，Node.js `>=24.9.0` |
 | 数据保存 | 研究数据与工作区文件夹保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出不调用模型；AI 生成与新讨论按需调用 |
@@ -119,7 +119,7 @@ dsh web
 
 | 插件版本 | 要求的 DSH | 备注 |
 | --- | --- | --- |
-| `0.2.2-rc.3.2` | `0.2.2-rc.3` | 当前版本——同目录重新添加工作区时恢复未归属会话，要求 Node.js `>=24.9.0`；npm `next` |
+| `0.2.2-rc.3.2` | `0.2.2-rc.3` | 当前版本——同目录重新添加工作区时恢复未归属会话，要求 Node.js `>=24.9.0`；npm `latest` / `next` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | 恢复独立普通 fork 的分支连线，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3` | `0.2.2-rc.3` | 可复用 Workspace Picker Factory 与新会话 HOC，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.2` | `0.2.2-rc.2` | 上一版本——适配 DSH rc.2 并迁移 Menu 锚点，要求 Node.js `>=24.9.0` |
