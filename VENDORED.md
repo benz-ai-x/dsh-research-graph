@@ -35,6 +35,12 @@ Every intentional difference from upstream is marked with a
   `remote.sessionGraphFolders` (this package's own Host service), synchronize
   folder records through polling and window-focus refreshes, and discard stale
   list responses so they cannot overwrite newer writes.
+- `src/client/workspace/create-workspace.ts`, `src/client/workspace/index.ts`, and
+  `src/client/workspace-membership-remote.ts` — every picked-directory creation first uses
+  native `workspaces.create`, then calls the package-owned
+  `sessionGraphWorkspaces.restore` Remote to attach currently unaccounted Sessions whose
+  canonical directory matches. Native creation failures short-circuit; restoration failures
+  surface in the existing picker dialog and can be retried idempotently.
 - `src/client/workspace/tree.ts` — `GroupNode` gains `folders`
   (`FolderNode`), `deriveGroups` partitions each Workspace's visible members
   between its folders and the unassigned remainder, and `TreeView` gains

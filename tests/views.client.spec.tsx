@@ -71,6 +71,7 @@ describe('DSH 0.2.2-rc.3 composition', () => {
     ctx.provide('shortcuts', { register: () => () => {}, catalog: createSnapshotStore([]) } as never)
     ctx.provide('remoteAccess', { source: () => true } as never)
     ctx.provide('remote.sessionGraphFolders', { list: async () => ({ ok: true, value: [] }) } as never)
+    ctx.provide('remote.sessionGraphWorkspaces', { restore: async () => ({ ok: true, value: { sessionIds: [] } }) } as never)
     ctx.provide('configForms', { get: () => undefined } as never)
     const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })
     await localeFiber
@@ -1483,6 +1484,9 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   const writeTopic = vi.fn<TypertRemoteMap['sessionGraphTopics/write']>(async () => { throw new Error('Unconfigured topic write') })
   const listFolders = vi.fn<TypertRemoteMap['sessionGraphFolders/list']>(async () => ({ ok: true, value: [] }))
   const writeFolder = vi.fn<TypertRemoteMap['sessionGraphFolders/write']>(async () => { throw new Error('Unconfigured folder write') })
+  const restoreMembership = vi.fn<TypertRemoteMap['sessionGraphWorkspaces/restore']>(async () => ({
+    ok: true, value: { sessionIds: [] },
+  }))
   const submitMerge = vi.fn(async (request: {
     readonly operationId: string
     readonly sourceIds: readonly SessionId[]
@@ -1549,6 +1553,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('remote.sessionGraphSearch', { search: searchDiscussion } as never)
   ctx.provide('remote.sessionGraphTopics', { list: listTopics, read: readTopic, write: writeTopic } as never)
   ctx.provide('remote.sessionGraphFolders', { list: listFolders, write: writeFolder } as never)
+  ctx.provide('remote.sessionGraphWorkspaces', { restore: restoreMembership } as never)
   ctx.provide('remote.sessionGraphKnowledge', { save: saveKnowledge, read: readKnowledge, search: searchKnowledge,
     hostIdentity: async () => ({ ok: true, value: { hostId } }),
     membership: membershipKnowledge, prepareExtraction, prepareExport, extract: extractKnowledge } as never)
