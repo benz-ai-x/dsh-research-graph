@@ -133,7 +133,12 @@ function SessionBackupDialog({
         <div className={css.summary} role="status">
           <p>{t('result.restored', { count: String(result.importedSessionIds.length), name: state.workspace, attachments: String(result.attachmentCount) })}</p>
           {result.existingSessionIds.length > 0 && <p>{t('result.existing', { count: String(result.existingSessionIds.length) })}</p>}
-          {result.partial && <p className={css.partial}>{t('result.partial', { message: result.error ?? '' })}</p>}
+          {result.partial && (
+            <p className={css.partial}>
+              {t('result.partial', { message: result.error ?? '' })}
+              {result.failedSessionId !== undefined && ` ${t('result.partialId', { id: result.failedSessionId })}`}
+            </p>
+          )}
         </div>
       </Modal>
     )

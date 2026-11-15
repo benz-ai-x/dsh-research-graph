@@ -78,6 +78,8 @@ pnpm preview:dsh --stop
 | [`src/client/GraphCanvas.tsx`](../src/client/GraphCanvas.tsx) | 画布渲染、端子、检查器、控件、手势、悬停状态与 minimap |
 | [`src/config.ts`](../src/config.ts) | 对外 Standard Schema、默认值与规范化 Host 配置 |
 | [`src/index.ts`](../src/index.ts) | Host 服务与存储域注册、配置、生命周期和 Remote 错误 |
+| [`src/session-backup-archive.ts`](../src/session-backup-archive.ts)、[`src/session-backup-import.ts`](../src/session-backup-import.ts) 与 [`src/session-backup-host.ts`](../src/session-backup-host.ts) | 防御式原生 ZIP 恢复、附件完整性、精确冲突／部分结果和 owner-only Host 上传 |
+| [`src/client/SessionBackup.tsx`](../src/client/SessionBackup.tsx)、[`src/client/session-backup-download.ts`](../src/client/session-backup-download.ts) 与 [`src/client/session-backup-upload.ts`](../src/client/session-backup-upload.ts) | 带工作区命名的备份下载、恢复对话框、上传进度、取消与列表刷新 |
 | [`src/knowledge-host.ts`](../src/knowledge-host.ts)、[`src/knowledge-extraction.ts`](../src/knowledge-extraction.ts)、[`src/knowledge-synthesis.ts`](../src/knowledge-synthesis.ts)、[`src/knowledge-export.ts`](../src/knowledge-export.ts) | 持久卡片修订与来源、审阅式生成、冻结引用和 Markdown 导出 |
 | [`src/history-branch-host.ts`](../src/history-branch-host.ts) 与 [`src/research-reuse-host.ts`](../src/research-reuse-host.ts) | 可恢复的历史分支与冻结研究材料的确认提交 |
 | [`src/session-digest.ts`](../src/session-digest.ts) 与 [`src/session-digest-harness.ts`](../src/session-digest-harness.ts) | 摘要输出校验、revision 缓存、并发控制与 Harness 路由重建 |

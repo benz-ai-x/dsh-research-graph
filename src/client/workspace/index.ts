@@ -1,3 +1,4 @@
+// Local delta vs upstream: Session backup joins the documented shipped action lists.
 /**
  * Workspace plugin, browser half. Two registrations and one Component Factory:
  * WorkspaceBrowser fills the sidebar shell's `sidebar.workspaces` hole (the whole browsing region),
@@ -54,8 +55,9 @@ import { createWorkspaceFolderSync } from './folder-sync.ts'
 import { createWorkspaceWithRestoredMembership } from './create-workspace.ts'
 import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
 import { ArchiveSessionMenuItem, ArchiveSessionRowButton, SessionArchiveConfirmDialog } from './session-actions/ArchiveSession.tsx'
+// Local delta vs upstream: package-owned Session backup row action and filename flow.
 import { BackupSessionMenuItem } from './session-actions/BackupSession.tsx'
-import { downloadSessionBackup } from '../session-backup-download.ts'
+import { downloadSessionBackup, sessionBackupWorkspaceTitle } from '../session-backup-download.ts'
 import { derive } from './session-actions/derived.ts'
 import { ForkSessionMenuItem } from './session-actions/ForkSession.tsx'
 import { PinSessionMenuItem, PinSessionRowButton } from './session-actions/PinSession.tsx'
@@ -82,6 +84,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>
     /** Whether the current Peer may call `action` on one Workspace resource. */
     useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean
+    // Local delta vs upstream: the backup restore HOC checks this non-resource access.
     /** Whether the current Peer may call one non-resource Remote action. */
     useRemoteAccess: (action: RemoteEndpoint) => boolean
   }
@@ -260,12 +263,9 @@ export function apply(ctx: Context): void {
   const backupInjected = (): BackupSessionInjected => ({
     downloadBackup: (sessionId, displayTitle) => {
       const snapshot = workspaces.list.getSnapshot()
-      const row = sessions.list.getSnapshot().byId[sessionId]
-      const workspace = snapshot.items.find(item => item.sessionIds.includes(sessionId))
-        ?? snapshot.items.find(item => item.path === row?.cwd)
       const translate = ctx.locale.bind(NS)
       void downloadSessionBackup({
-        workspaceTitle: workspace?.title ?? translate('group.ungrouped'),
+        workspaceTitle: sessionBackupWorkspaceTitle(snapshot.items, sessionId, translate('group.ungrouped')),
         sessionTitle: displayTitle || translate('session.untitled'),
         sessionId,
         date: new Date(),

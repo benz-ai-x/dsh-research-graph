@@ -35,6 +35,7 @@ export interface SessionBackupResult {
   readonly existingSessionIds: readonly string[]
   readonly attachmentCount: number
   readonly partial: boolean
+  readonly failedSessionId?: string
   readonly error?: string
 }
 

@@ -51,6 +51,42 @@ function rootWithImage(): Session {
   return session
 }
 
+function rootWithAttemptImage(): Session {
+  const session = rootWithImage()
+  const attachment = { attachmentId: IMAGE, mediaType: 'image/png', bytes: 4, width: 1, height: 1 }
+  const events = session.snapshotEvents().map(event => {
+    if (event.type !== 'user/message') return event
+    const { surfaceOp: _surfaceOp, ...rest } = event
+    return {
+      ...rest,
+      type: 'assistant/attempt',
+      data: { turn: 1, step: 1, stream: [{ type: 'chunk', time: 1, chunk: { type: 'block-end', block: { type: 'image', attachment } } }] },
+    }
+  })
+  Object.defineProperty(session, 'snapshotEvents', { value: () => events })
+  return session
+}
+
+const FILE_BYTES = new Uint8Array([1, 2, 3, 4])
+const FILE_DIGEST = createHash('sha256').update(FILE_BYTES).digest('hex')
+
+function rootWithFile(): Session {
+  const session = Session.create(ROOT, [], {
+    version: SESSION_FORMAT_VERSION, id: ROOT, createdAt: 1, cwd: '/old', isSeeded: false,
+  })
+  session.append('turn/start', { turn: 1 })
+  session.append('step/start', { turn: 1, step: 1 })
+  session.append('user/message', createUserMessage({
+    source: { kind: 'user' },
+    content: [{ type: 'file', attachment: {
+      attachmentId: AttachmentId(`sha256:${FILE_DIGEST}`), name: 'context.txt', bytes: FILE_BYTES.byteLength,
+    } }],
+  }), { surfaceOp: 'append' })
+  session.append('step/end', { turn: 1, step: 1 })
+  session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+  return session
+}
+
 function child(): Session {
   const session = Session.create(CHILD, [], {
     version: SESSION_FORMAT_VERSION, id: CHILD, createdAt: 2, cwd: '/old', isSeeded: false,
@@ -89,6 +125,8 @@ function duplicateArchive(): Promise<Uint8Array> {
 class MemoryPersistence implements SessionBackupPersistence {
   readonly stored = new Map<string, Stored>()
   failOn: string | undefined
+  onCreate: (() => void) | undefined
+  onClose: (() => void) | undefined
 
   async stat(id: SessionId): Promise<unknown | undefined> {
     return this.stored.get(String(id))
@@ -101,6 +139,7 @@ class MemoryPersistence implements SessionBackupPersistence {
   }
 
   async create(header: SessionHeader, options: { readonly inheritedEventCount: SessionLogOffset }) {
+    this.onCreate?.()
     if (this.failOn === String(header.id)) throw new Error('simulated write failure')
     if (this.stored.has(String(header.id))) throw new Error('already exists')
     const stored: Stored = { header, inheritedEventCount: options.inheritedEventCount, events: [] }
@@ -119,7 +158,7 @@ class MemoryPersistence implements SessionBackupPersistence {
         this.stored.set(String(stored.header.id), { ...stored, events: current })
       },
       flush: async () => {},
-      close: async () => {},
+      close: async () => { this.onClose?.() },
     }
   }
 }
@@ -142,13 +181,18 @@ function attachmentStore(): SessionBackupAttachmentStore & { readonly saveImage:
   }
 }
 
-const request = (bytes: Uint8Array, persistence: MemoryPersistence, attachments = attachmentStore()) => [{
+const request = (
+  bytes: Uint8Array,
+  persistence: MemoryPersistence,
+  attachments = attachmentStore(),
+  workspace = { id: 'workspace', path: '/new', attachSession: vi.fn(async () => {}) },
+) => [{
   persistence,
   attachments,
 }, {
   archive: bytes,
   maxEntryBytes: 1024 * 1024,
-  workspace: { id: 'workspace', path: '/new', attachSession: vi.fn(async () => {}) },
+  workspace,
 }] as const
 
 describe('DSH Session Backup archive', () => {
@@ -221,12 +265,69 @@ describe('DSH Session Backup archive', () => {
     expect(persistence.stored.get(CHILD)?.header.parentSession).toBe(ROOT)
   })
 
-  it('reports partial recovery when a later descendant cannot be written', async () => {
+  it('collects and remaps attachments embedded in assistant/attempt streams', async () => {
+    const bytes = archive([rootWithAttemptImage()], { 'media/image-1.png': new Uint8Array([1, 2, 3, 4]) })
+    const persistence = new MemoryPersistence()
+    const result = await importSessionBackup(...request(bytes, persistence), new AbortController().signal)
+    expect(result).toMatchObject({ attachmentCount: 1, partial: false })
+    expect(JSON.stringify(persistence.stored.get(ROOT)?.events)).toContain('normalized-image')
+  })
+
+  it('rejects same-length file corruption and an explicit missing-attachment report before writes', async () => {
+    const path = `files/${FILE_DIGEST.slice(0, 2)}/${FILE_DIGEST}/context.txt`
+    const persistence = new MemoryPersistence()
+    const corrupted = archive([rootWithFile()], { [path]: new Uint8Array([4, 3, 2, 1]) })
+    await expect(importSessionBackup(...request(corrupted, persistence), new AbortController().signal))
+      .rejects.toMatchObject({ reason: 'attachment-failed' })
+    expect(persistence.stored.size).toBe(0)
+
+    const reported = archive([rootWithFile()], {
+      [path]: FILE_BYTES,
+      'attachments-missing.txt': strToU8(`${path}\tobject deleted`),
+    })
+    await expect(importSessionBackup(...request(reported, persistence), new AbortController().signal))
+      .rejects.toMatchObject({ reason: 'missing-attachment' })
+    expect(persistence.stored.size).toBe(0)
+  })
+
+  it('sanitizes attachment backend failures before returning them to the browser', async () => {
+    const bytes = archive([rootWithImage()], { 'media/image-1.png': new Uint8Array([1, 2, 3, 4]) })
+    const persistence = new MemoryPersistence()
+    const attachments = attachmentStore()
+    attachments.saveImage.mockImplementation(async () => { throw new Error('/host/private/attachment.png') })
+    await expect(importSessionBackup(...request(bytes, persistence, attachments), new AbortController().signal))
+      .rejects.toThrow(/^((?!\/host\/private).)*$/u)
+  })
+
+  it('counts a committed Session after close-time cancellation without blaming the next untouched Session', async () => {
     const bytes = archive([rootWithImage(), child()], { 'media/image-1.png': new Uint8Array([1, 2, 3, 4]) })
     const persistence = new MemoryPersistence()
-    persistence.failOn = CHILD
-    const result = await importSessionBackup(...request(bytes, persistence), new AbortController().signal)
+    const controller = new AbortController()
+    persistence.onClose = () => { controller.abort() }
+    const result = await importSessionBackup(...request(bytes, persistence), controller.signal)
     expect(result).toMatchObject({ importedSessionIds: [ROOT], partial: true })
-    expect(result.error).toContain('simulated write failure')
+    expect(result.failedSessionId).toBeUndefined()
+  })
+
+  it('reports partial recovery with the failing Session id and repairs root attachment on retry', async () => {
+    const bytes = archive([rootWithImage(), child()], { 'media/image-1.png': new Uint8Array([1, 2, 3, 4]) })
+    const persistence = new MemoryPersistence()
+    const workspace = { id: 'workspace', path: '/new', attachSession: vi.fn(async () => {}) }
+    persistence.failOn = CHILD
+    const controller = new AbortController()
+    persistence.onCreate = () => {
+      if (persistence.stored.has(ROOT)) controller.abort()
+    }
+    const first = await importSessionBackup(...request(bytes, persistence, attachmentStore(), workspace), controller.signal)
+    expect(first).toMatchObject({ importedSessionIds: [ROOT], partial: true, failedSessionId: CHILD })
+    expect(first.error).not.toContain('/host')
+    expect(workspace.attachSession).not.toHaveBeenCalled()
+
+    persistence.failOn = undefined
+    persistence.onCreate = undefined
+    const second = await importSessionBackup(...request(bytes, persistence, attachmentStore(), workspace), new AbortController().signal)
+    expect(second).toMatchObject({ importedSessionIds: [CHILD], existingSessionIds: [ROOT], partial: false })
+    expect(workspace.attachSession).toHaveBeenCalledOnce()
+    expect(workspace.attachSession).toHaveBeenCalledWith(ROOT)
   })
 })

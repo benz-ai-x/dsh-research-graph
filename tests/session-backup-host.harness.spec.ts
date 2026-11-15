@@ -111,6 +111,22 @@ describe('native Session Backup round trip', () => {
     }, [signal])).toThrow('only the owner may restore Session backups')
   })
 
+  it('aborts and waits for an active import during disposal', async () => {
+    const controller = new AbortController()
+    let finish: () => void = () => {}
+    const settled = new Promise<void>(resolve => { finish = resolve })
+    const state = { active: { controller, settled }, disposal: undefined }
+    const disposal = Reflect.apply(SessionGraphBackupService.prototype.dispose, state, []) as Promise<void>
+    expect(controller.signal.aborted).toBe(true)
+    let completed = false
+    void disposal.then(() => { completed = true })
+    await new Promise(resolve => setImmediate(resolve))
+    expect(completed).toBe(false)
+    finish()
+    await disposal
+    expect(completed).toBe(true)
+  })
+
   it('restores native ZIP logs, descendants, and attachments into a separate durable Host', async () => {
     const root = await realpath(await mkdtemp(join(tmpdir(), 'session-backup-roundtrip-')))
     cleanups.push(() => rm(root, { recursive: true, force: true }))
@@ -140,7 +156,7 @@ describe('native Session Backup round trip', () => {
     try {
       const restored = await handle.read()
       const sourceEvents = (await source.ctx.sessionQuery.readSession(ROOT)).events
-      expect(restored.events.map(event => event.type)).toEqual(sourceEvents.map(event => event.type))
+      expect(restored.events).toEqual(sourceEvents)
       expect(JSON.stringify(restored.events)).toContain('complete context')
       expect(handle.header.cwd).toBe(targetDirectory)
       const user = restored.events.find(event => event.type === 'user/message')

@@ -1,6 +1,14 @@
 // Local delta vs upstream: the native export route keeps its bytes; this package owns backup naming.
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
+export function sessionBackupWorkspaceTitle(
+  workspaces: readonly { readonly title: string; readonly sessionIds: readonly SessionId[] }[],
+  sessionId: SessionId,
+  ungrouped: string,
+): string {
+  return workspaces.find(workspace => workspace.sessionIds.includes(sessionId))?.title ?? ungrouped
+}
+
 export interface SessionBackupFilenameInput {
   readonly workspaceTitle: string
   readonly sessionTitle: string

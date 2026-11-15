@@ -63,6 +63,7 @@ interface FakeContext {
       }
     } | undefined
     fork: (request: { readonly sessionId: string; readonly increaseTitle: boolean }) => Promise<string>
+    refresh: () => Promise<void>
   }
   uiWorkspace: {
     openSession: (id: string) => void
@@ -82,6 +83,9 @@ interface FakeContext {
     }
     sessionGraphKnowledge: {
       hostIdentity: (signal: AbortSignal) => Promise<unknown>
+    }
+    sessionGraphBackup: {
+      limits: (signal: AbortSignal) => Promise<unknown>
     }
   }
 }
@@ -145,6 +149,7 @@ describe('tsdown client artifact', () => {
     const uiDisposers: Array<() => void | Promise<void>> = []
     const injectedServices: readonly string[][] = []
     const forkRequests: { readonly sessionId: string; readonly increaseTitle: boolean }[] = []
+    const refreshSessions = vi.fn(async () => {})
     const recordedOrigins: { readonly childSessionId: string; readonly parentSessionId: string }[] = []
     const digestRequests: { readonly request: unknown; readonly signal: AbortSignal }[] = []
     const mergeRequests: { readonly request: unknown; readonly signal: AbortSignal }[] = []
@@ -201,6 +206,9 @@ describe('tsdown client artifact', () => {
             sessionGraphDigest: digestRemote,
             sessionGraphMerge: mergeRemote,
             sessionGraphKnowledge: { hostIdentity: async () => ({ ok: true, value: { hostId: 'host-one' } }) },
+            sessionGraphBackup: {
+              limits: async () => ({ ok: true, value: { maxUploadBytes: 1024, maxEntryBytes: 1024 } }),
+            },
             sessionGraphBranchOrigin: {
               record: async (request: { readonly childSessionId: string; readonly parentSessionId: string }) => {
                 if (request.parentSessionId === 'source-unrecorded') throw new Error('Origin storage unavailable')
@@ -270,6 +278,7 @@ describe('tsdown client artifact', () => {
           forkRequests.push(request)
           return 'child'
         },
+        refresh: refreshSessions,
       },
       uiWorkspace: {
         openSession: id => { opened.push(id) },
@@ -360,6 +369,37 @@ describe('tsdown client artifact', () => {
       },
       signal: controller.signal,
     })
+    const backup = views.find(view => view.name === 'sidebar.session.action') as unknown as {
+      inject: () => {
+        importArchive: (file: File, workspaceId: string, progress: () => void, signal: AbortSignal) => Promise<{ readonly ok: boolean }>
+      }
+    }
+    Object.assign(globalThis, { __DSH_TRANSPORT__: { fetch: async () => new Response(`${JSON.stringify({
+      type: 'outcome', outcome: { ok: true, value: {
+        rootSessionId: 'restored-root', importedSessionIds: ['restored-root'], existingSessionIds: [], attachmentCount: 0, partial: false,
+      } },
+    })}\n`, { status: 200 }) } })
+    try {
+      const outcome = await backup.inject().importArchive(new File(['zip'], 'backup.zip'), 'workspace-1', () => {}, controller.signal)
+      expect(outcome.ok).toBe(true)
+      expect(refreshSessions).toHaveBeenCalledOnce()
+
+      Reflect.set(globalThis, '__DSH_TRANSPORT__', { fetch: async () => new Response(`${JSON.stringify({
+        type: 'outcome', outcome: { ok: false, error: { reason: 'session-conflict', message: 'different content' } },
+      })}\n`, { status: 200 }) })
+      const failure = await backup.inject().importArchive(new File(['zip'], 'backup.zip'), 'workspace-1', () => {}, controller.signal)
+      expect(failure.ok).toBe(false)
+      expect(refreshSessions).toHaveBeenCalledTimes(2)
+
+      Reflect.set(globalThis, '__DSH_TRANSPORT__', { fetch: async () => { throw new DOMException('cancelled', 'AbortError') } })
+      const cancelled = new AbortController()
+      cancelled.abort()
+      const cancellation = await backup.inject().importArchive(new File(['zip'], 'backup.zip'), 'workspace-1', () => {}, cancelled.signal)
+      expect(cancellation.ok).toBe(false)
+      expect(refreshSessions).toHaveBeenCalledTimes(3)
+    } finally {
+      Reflect.deleteProperty(globalThis, '__DSH_TRANSPORT__')
+    }
     expect(opened).toEqual(['target-session'])
     expect(disposePlugin).toBeTypeOf('function')
     await disposePlugin?.()

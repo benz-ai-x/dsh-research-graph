@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { downloadSessionBackup, sessionBackupFilename } from '../src/client/session-backup-download.ts'
+import { downloadSessionBackup, sessionBackupFilename, sessionBackupWorkspaceTitle } from '../src/client/session-backup-download.ts'
 
 const input = {
   workspaceTitle: '研图开发',
@@ -10,6 +10,15 @@ const input = {
 }
 
 describe('Session Backup download', () => {
+  it('uses only actual Workspace membership for the filename', () => {
+    const workspaces = [
+      { title: 'Member', sessionIds: [input.sessionId] },
+      { title: 'Same cwd but unaccounted', sessionIds: [] },
+    ]
+    expect(sessionBackupWorkspaceTitle(workspaces, input.sessionId, 'Ungrouped')).toBe('Member')
+    expect(sessionBackupWorkspaceTitle(workspaces, SessionId('session-unaccounted'), 'Ungrouped')).toBe('Ungrouped')
+  })
+
   it('names the archive with Workspace, Session, UTC time, and short id', () => {
     expect(sessionBackupFilename(input)).toBe('DSH_研图开发_备份功能设计_20261115T073052Z_52a6b553.zip')
   })

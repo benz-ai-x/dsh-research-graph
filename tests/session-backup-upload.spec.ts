@@ -50,6 +50,27 @@ describe('Session Backup upload route', () => {
     expect(lines[2]).toEqual({ type: 'outcome', outcome: { ok: true, value: result } })
   })
 
+  it('sanitizes unexpected Host failures in the NDJSON outcome', async () => {
+    const response = await createSessionBackupUploadRoute(handler({
+      import: async () => { throw new Error('/host/private/session.jsonl') },
+    }))(request())
+    const text = await response.text()
+    expect(text).not.toContain('/host/private')
+    expect(text).toContain('no existing Session was overwritten')
+  })
+
+  it('returns a partial outcome with the failing Session id after cancellation', async () => {
+    const controller = new AbortController()
+    const response = await createSessionBackupUploadRoute(handler({
+      claim: () => ({ signal: controller.signal, release: vi.fn() }),
+      import: async () => ({ ...result, partial: true, failedSessionId: 'session-child', error: 'restore cancelled' }),
+    }))(request())
+    const outcome = JSON.parse((await response.text()).trim().split('\n').at(-1)!)
+    expect(outcome).toEqual({ type: 'outcome', outcome: { ok: true, value: {
+      ...result, partial: true, failedSessionId: 'session-child', error: 'restore cancelled',
+    } } })
+  })
+
   it('cancels the import and releases the single import slot when the response is abandoned', async () => {
     const release = vi.fn()
     const controller = new AbortController()

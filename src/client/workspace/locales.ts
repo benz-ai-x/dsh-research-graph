@@ -217,6 +217,7 @@ export const en = {
   'delete.desc': 'This removes “{name}” from the workspace list. The folder and session logs will be kept. Its sessions will appear under Ungrouped.',
   'delete.pending': 'Deleting workspace…',
   'menu.fork': 'Fork session',
+  // Local delta vs upstream: Session backup labels.
   'menu.backupSession': 'Download Session backup',
   'menu.archiveSession': 'Archive session',
   'menu.unarchiveSession': 'Unarchive session',
@@ -251,6 +252,7 @@ export const en = {
   'toast.pinFailed': 'Pin failed. Try again later.',
   'toast.unpinFailed': 'Unpin failed. Try again later.',
   'toast.createFailed': 'New session failed: {message}',
+  // Local delta vs upstream: Session backup failure notice.
   'toast.backupFailed': 'Session backup failed: {message}',
   'toast.forkRequiresOpen': 'Open the original session to complete migration before creating a branch.',
   'toast.openForkSource': 'Open original session',

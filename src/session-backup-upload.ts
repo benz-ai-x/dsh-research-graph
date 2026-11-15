@@ -95,8 +95,10 @@ function importStream(
           end()
         } else {
           handler.failed(error)
-          controller.error(error)
-          open = false
+          send({ type: 'outcome', outcome: { ok: false, error: {
+            reason: 'write-failed', message: 'restore could not be completed; no existing Session was overwritten',
+          } } })
+          end()
         }
       }).finally(() => { claim.release() })
     },

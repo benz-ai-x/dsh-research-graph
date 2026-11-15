@@ -1,3 +1,4 @@
+// Local delta vs upstream: Session backup joins the documented shipped action lists.
 /**
  * ui-workspace contracts. Two registrations and one Component Factory share this package:
  *
@@ -142,6 +143,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * its trailing status line. Mounted only while that card is open.
      */
     'sidebar.session.row.hover': { kind: 'list'; scope: 'root'; owner: SessionRowScheduleOwnerProps }
+    /**
+    // Local delta vs upstream: `session-backup` (350) joins the shipped row vocabulary.
     /**
      * The rows of one Session's "..." menu, in ascending `order`. ui-workspace
      * registers the shipped rows here — `pin` (100), `rename` (200), `fork`

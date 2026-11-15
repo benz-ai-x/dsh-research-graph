@@ -75,7 +75,7 @@ export async function importSessionBackup(
     ...artifact,
     header: { ...artifact.header, cwd: request.workspace.path },
   }))
-  assertAttachmentEntries(archive, artifacts)
+  await assertAttachmentEntries(archive, artifacts, signal)
   await classifyExisting(deps.persistence, artifacts, signal, true)
   const restoredAttachments = await restoreAttachments(deps.attachments, archive, artifacts, signal)
   const remapped = remapSessionBackupAttachments(artifacts, restoredAttachments)
@@ -85,22 +85,24 @@ export async function importSessionBackup(
   const existingSessionIds: string[] = []
   const total = remapped.length
   let done = 0
+  let activeSessionId: string | undefined
   try {
     for (const artifact of remapped) {
       signal.throwIfAborted()
       const id = artifact.header.id
       if (existing.get(id) === true) existingSessionIds.push(String(id))
       else {
+        activeSessionId = String(id)
         await writeSession(deps, artifact, signal)
         importedSessionIds.push(String(id))
+        activeSessionId = undefined
       }
       done += 1
       request.onProgress?.(done, total)
     }
-    if (importedSessionIds.includes(rootSessionId)) {
-      signal.throwIfAborted()
-      await request.workspace.attachSession(rootSessionId as SessionId)
-    }
+    activeSessionId = rootSessionId
+    signal.throwIfAborted()
+    await request.workspace.attachSession(rootSessionId as SessionId)
     return {
       rootSessionId,
       importedSessionIds,
@@ -109,26 +111,27 @@ export async function importSessionBackup(
       partial: false,
     }
   } catch (error) {
-    signal.throwIfAborted()
-    if (importedSessionIds.length === 0) {
-      if (error instanceof SessionBackupError) throw error
-      throw new SessionBackupError('write-failed', errorMessage(error), { cause: error })
-    }
     return {
       rootSessionId,
       importedSessionIds,
       existingSessionIds,
       attachmentCount: restoredAttachments.size,
       partial: true,
-      error: errorMessage(error),
+      ...(activeSessionId === undefined ? {} : { failedSessionId: activeSessionId }),
+      error: publicErrorMessage(error),
     }
   }
 }
 
-function assertAttachmentEntries(
+async function assertAttachmentEntries(
   archive: SessionBackupArchive,
   artifacts: readonly SessionBackupArtifact[],
-): void {
+  signal: AbortSignal,
+): Promise<void> {
+  if (archive.has('attachments-missing.txt')) {
+    const missing = new TextDecoder().decode(await archive.read('attachments-missing.txt', signal)).trim()
+    if (missing !== '') throw new SessionBackupError('missing-attachment', 'the export records missing attachments')
+  }
   for (const plan of sessionBackupAttachmentPlans(artifacts).values()) {
     if (!archive.has(plan.path)) throw new SessionBackupError('missing-attachment', `attachment is absent: ${plan.path}`)
   }
@@ -145,6 +148,7 @@ async function restoreAttachments(
     signal.throwIfAborted()
     try {
       const data = await archive.read(plan.path, signal)
+      assertSourceAttachmentBytes(plan.ref, data, plan.path)
       if ('mediaType' in plan.ref) {
         const ref = await store.saveImage({
           data,
@@ -153,10 +157,6 @@ async function restoreAttachments(
         })
         restored.set(plan.key, ref)
       } else {
-        const expectedBytes = plan.ref.bytes
-        if (data.byteLength !== expectedBytes) {
-          throw new SessionBackupError('attachment-failed', `attachment byte length differs from its reference: ${plan.path}`)
-        }
         const ref = await store.saveFileStream({
           data: (async function* () {
             yield data
@@ -164,15 +164,33 @@ async function restoreAttachments(
           signal,
           ...(plan.ref.name === undefined ? {} : { name: plan.ref.name }),
         })
+        if (String(ref.attachmentId) !== String(plan.ref.attachmentId) || ref.bytes !== plan.ref.bytes) {
+          throw new SessionBackupError('attachment-failed', `restored file identity differs from its reference: ${plan.path}`)
+        }
         restored.set(plan.key, ref)
       }
     } catch (error) {
       signal.throwIfAborted()
       if (error instanceof SessionBackupError) throw error
-      throw new SessionBackupError('attachment-failed', `cannot restore attachment ${plan.path}: ${errorMessage(error)}`, { cause: error })
+      throw new SessionBackupError('attachment-failed', `cannot restore attachment ${plan.path}`, { cause: error })
     }
   }
   return restored
+}
+
+function assertSourceAttachmentBytes(
+  ref: ImageAttachmentRef | FileAttachmentRef,
+  data: Uint8Array,
+  path: string,
+): void {
+  if (data.byteLength !== ref.bytes) {
+    throw new SessionBackupError('attachment-failed', `attachment byte length differs from its reference: ${path}`)
+  }
+  const id = String(ref.attachmentId)
+  if (id.startsWith('sha256:')) {
+    const digest = createHash('sha256').update(data).digest('hex')
+    if (id !== `sha256:${digest}`) throw new SessionBackupError('attachment-failed', `attachment digest differs from its reference: ${path}`)
+  }
 }
 
 async function classifyExisting(
@@ -220,11 +238,10 @@ async function writeSession(
     await handle.flush()
     deps.projectionCache?.coldSnapshot(artifact.header, artifact.inheritedEventCount, artifact.events)
   } catch (error) {
-    throw new SessionBackupError('write-failed', `cannot store Session ${String(artifact.header.id)}: ${errorMessage(error)}`, { cause: error })
+    throw new SessionBackupError('write-failed', `cannot store Session ${String(artifact.header.id)}`, { cause: error })
   } finally {
     if (handle !== undefined) await handle.close()
   }
-  signal.throwIfAborted()
 }
 
 function hashHeader(header: SessionHeader): string {
@@ -241,6 +258,8 @@ function hash(value: unknown, attachmentAgnostic = false): string {
   })).digest('hex')
 }
 
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+function publicErrorMessage(error: unknown): string {
+  if (error instanceof SessionBackupError) return error.message
+  if (error instanceof Error && error.name === 'AbortError') return 'restore cancelled'
+  return 'restore could not be completed; no existing Session was overwritten'
 }

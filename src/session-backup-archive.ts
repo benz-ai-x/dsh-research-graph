@@ -199,8 +199,8 @@ function collectContentPlans(content: unknown, plans: Map<string, AttachmentPlan
   }
 }
 
-function collectEventPlans(event: SessionEvent, plans: Map<string, AttachmentPlan>): void {
-  if (typeof event.data !== 'object' || event.data === null) return
+function eventAttachmentContents(event: SessionEvent): readonly unknown[] {
+  if (typeof event.data !== 'object' || event.data === null) return []
   const carrier = event.data as {
     content?: unknown
     message?: { content?: unknown }
@@ -209,33 +209,38 @@ function collectEventPlans(event: SessionEvent, plans: Map<string, AttachmentPla
     rawOutput?: unknown
     stream?: Array<{ type?: unknown; chunk?: { type?: unknown; block?: unknown } }>
   }
+  const contents: unknown[] = []
   const eventType: string = event.type
   switch (eventType) {
     case 'user/message': case 'tool/ptc-dispatch':
-      collectContentPlans(carrier.content, plans)
-      return
+      contents.push(carrier.content)
+      break
     case 'system/message': case 'developer/message': case 'tool/result': case 'team/message/queued':
-      collectContentPlans(carrier.message?.content, plans)
-      return
+      contents.push(carrier.message?.content)
+      break
     case 'agent/inbox/spliced':
       if (Array.isArray(carrier.inserted)) {
         for (const message of carrier.inserted) {
-          if (typeof message === 'object' && message !== null) collectContentPlans((message as { content?: unknown }).content, plans)
+          if (typeof message === 'object' && message !== null) contents.push((message as { content?: unknown }).content)
         }
       }
-      return
-    case 'compaction/summary':
-      collectContentPlans(carrier.summary, plans)
-      collectContentPlans(carrier.rawOutput, plans)
-      return
-    case 'assistant/message':
-      collectContentPlans(carrier.message?.content, plans)
       break
-    default: return
+    case 'compaction/summary':
+      contents.push(carrier.summary, carrier.rawOutput)
+      break
+    case 'assistant/message': case 'assistant/attempt':
+      contents.push(carrier.message?.content)
+      break
+    default: return []
   }
   for (const record of carrier.stream ?? []) {
-    if (record.type === 'chunk' && record.chunk?.type === 'block-end') collectContentPlans([record.chunk.block], plans)
+    if (record.type === 'chunk' && record.chunk?.type === 'block-end') contents.push([record.chunk.block])
   }
+  return contents
+}
+
+function collectEventPlans(event: SessionEvent, plans: Map<string, AttachmentPlan>): void {
+  for (const content of eventAttachmentContents(event)) collectContentPlans(content, plans)
 }
 
 export function remapSessionBackupAttachments(
@@ -286,7 +291,7 @@ function remapEvent(event: SessionEvent, restored: ReadonlyMap<string, ImageAtta
       next['summary'] = remapContent(data['summary'], restored)
       next['rawOutput'] = remapContent(data['rawOutput'], restored)
       break
-    case 'assistant/message':
+    case 'assistant/message': case 'assistant/attempt':
       if (data.message !== undefined) next['message'] = { ...data.message, content: remapContent(data.message.content, restored) }
       if (Array.isArray(data.stream)) next['stream'] = data.stream.map(record => {
         if (record.type !== 'chunk' || record.chunk?.type !== 'block-end') return record

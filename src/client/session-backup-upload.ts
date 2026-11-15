@@ -178,6 +178,7 @@ function isResult(value: unknown): value is SessionBackupResult {
     && Array.isArray(value['existingSessionIds']) && value['existingSessionIds'].every(id => typeof id === 'string')
     && typeof value['attachmentCount'] === 'number'
     && typeof value['partial'] === 'boolean'
+    && (value['failedSessionId'] === undefined || typeof value['failedSessionId'] === 'string')
     && (value['error'] === undefined || typeof value['error'] === 'string')
 }
 function responseOf(value: unknown): SessionBackupResponse | undefined {
