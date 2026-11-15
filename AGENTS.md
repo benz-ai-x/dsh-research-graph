@@ -80,7 +80,7 @@ When deciding where a rule, term, or decision belongs, follow `docs/agents/domai
 
 ### Handoffs
 
-The repository root `HANDOFF.md` is the only canonical live handoff: update it in place, create no alternates, and treat `docs/HANDOFF.md` and historical entries as snapshots that never override current state.
+The repository root `HANDOFF.md` is the only canonical live handoff: update it in place, create no alternates, and keep historical release evidence in `docs/reviews/` rather than duplicate handoff snapshots.
 
 ### Skills
 

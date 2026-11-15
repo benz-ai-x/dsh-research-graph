@@ -66,7 +66,7 @@ disable-model-invocation: true
 ## 红线
 
 - 测试红、验证缺级、版本政策不符时不宣称完成；合并与发布必须用户明确指令。
-- HANDOFF.md 是唯一实时交接，原地更新；`docs/HANDOFF.md` 是历史快照。
+- HANDOFF.md 是唯一实时交接，原地更新，不另维护历史快照；历史发布证据保留在 `docs/reviews/`。
 - 凭证、token、预览 URL 不进 GitHub 与公开文档。
 
 ## 模式沉淀

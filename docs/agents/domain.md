@@ -15,7 +15,7 @@ This is a single-context repository.
 | Root [HANDOFF.md](../../HANDOFF.md) | Current release, local worktrees, unfinished work, and evidence locations | Work changes the state the next session needs |
 | [docs/reviews/](../reviews/) | Versioned acceptance, inspected screenshots, and known limitations | A feature or release is validated |
 
-Read the handoff's current-state sections before historical entries. `docs/HANDOFF.md` is an early snapshot, not another live handoff. Keep local absolute paths, ephemeral process state, release hashes, and test totals out of `CONTEXT.md`; do not copy private authentication URLs into public evidence.
+Read the root handoff for current state and `docs/reviews/` for historical evidence; do not maintain duplicate handoff snapshots. Keep local absolute paths, ephemeral process state, release hashes, and test totals out of `CONTEXT.md`; do not copy private authentication URLs into public evidence.
 
 ## Before exploring
 
