@@ -1517,7 +1517,6 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('sessions', {
     list: sessionsStore,
     refreshProjections,
-    refresh: async () => {},
     fork,
     create,
     binding: () => ({ session: { rename } }),
@@ -1563,9 +1562,6 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
   ctx.provide('remote.sessionGraphBranchOrigin', {
     record: recordBranchOrigin,
     list: listBranchOrigins,
-  } as never)
-  ctx.provide('remote.sessionGraphBackup', {
-    limits: async () => ({ ok: true, value: { maxUploadBytes: 512 * 1024 * 1024, maxEntryBytes: 256 * 1024 * 1024 } }),
   } as never)
   ctx.provide('configForms', { get: () => undefined } as never)
   const localeFiber = ctx.plugin({ inject: [...localeInject], apply: localeApply })

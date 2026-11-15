@@ -17,14 +17,6 @@ describe('Session Graph configuration', () => {
     expect(() => Config({ timeoutMs: 0 })).toThrow()
   })
 
-  it('accepts optional Session Backup byte limits without changing existing defaults', () => {
-    expect(resolveConfig(Config({ backupMaxUploadBytes: 1024, backupMaxEntryBytes: 512 }))).toMatchObject({
-      backupMaxUploadBytes: 1024, backupMaxEntryBytes: 512,
-    })
-    expect(() => Config({ backupMaxUploadBytes: 0 })).toThrow()
-    expect(() => Config({ backupMaxEntryBytes: 1.5 })).toThrow()
-  })
-
   it('normalizes the validated route before runtime use', () => {
     expect(resolveConfig(Config({
       provider: '  deepseek  ',

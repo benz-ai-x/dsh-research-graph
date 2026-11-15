@@ -73,8 +73,6 @@ export const zh = {
   'delete.desc': '将把“{name}”从工作区列表中移除。文件夹与会话记录会保留，其会话将显示在“未分组”下。',
   'delete.pending': '正在删除工作区…',
   'menu.fork': '分叉会话',
-  // Local delta vs upstream: Session backup labels.
-  'menu.backupSession': '下载会话备份',
   'menu.archiveSession': '归档会话',
   'menu.unarchiveSession': '取消归档',
   'menu.pinSession': '置顶会话',
@@ -108,8 +106,6 @@ export const zh = {
   'toast.pinFailed': '置顶失败，请稍后重试',
   'toast.unpinFailed': '取消置顶失败，请稍后重试',
   'toast.createFailed': '新建会话失败：{message}',
-  // Local delta vs upstream: Session backup failure notice.
-  'toast.backupFailed': '会话备份失败：{message}',
   'toast.forkRequiresOpen': '请先打开原会话完成迁移，再创建分支',
   'toast.openForkSource': '打开原会话',
   'sessions.count.one': '{n} 个会话',
@@ -217,7 +213,6 @@ export const en = {
   'delete.desc': 'This removes “{name}” from the workspace list. The folder and session logs will be kept. Its sessions will appear under Ungrouped.',
   'delete.pending': 'Deleting workspace…',
   'menu.fork': 'Fork session',
-  'menu.backupSession': 'Download Session backup',
   'menu.archiveSession': 'Archive session',
   'menu.unarchiveSession': 'Unarchive session',
   'menu.pinSession': 'Pin session',
@@ -251,7 +246,6 @@ export const en = {
   'toast.pinFailed': 'Pin failed. Try again later.',
   'toast.unpinFailed': 'Unpin failed. Try again later.',
   'toast.createFailed': 'New session failed: {message}',
-  'toast.backupFailed': 'Session backup failed: {message}',
   'toast.forkRequiresOpen': 'Open the original session to complete migration before creating a branch.',
   'toast.openForkSource': 'Open original session',
   'sessions.count.one': '{n} session',

@@ -107,11 +107,9 @@
     "prepublishOnly": "pnpm run check"
   },
   "dependencies": {
-    "@deepseek-ai/dsh-session-format-catalog": "0.2.2-rc.3",
     "@deepseek-ai/dsh-typert-protocol": "0.2.2-rc.3",
     "@deepseek-ai/schemastery": "~3.19.0",
     "clsx": "^2.1.1",
-    "fflate": "^0.8.3",
     "zod": "4.6.6"
   },
   "peerDependencies": {
@@ -126,8 +124,7 @@
     "@deepseek-ai/dsh-error": "0.2.2-rc.3",
     "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
     "@deepseek-ai/dsh-package-manifest": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session": "0.2.2-rc.3",
-    "@deepseek-ai/dsh-session-log-export": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-session-format-catalog": "0.2.2-rc.3",
     "@deepseek-ai/dsh-util-values": "0.2.2-rc.3",
     "@deepseek-ai/dsh-util-workspace-path": "0.2.2-rc.3",
     "@testing-library/react": "^16.3.2",

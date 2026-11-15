@@ -1,22 +1,18 @@
 import z from '@deepseek-ai/schemastery'
 import type { SessionDigestRouteFallback } from './session-digest-harness.ts'
 
-/** Optional auxiliary-model, bounded output, and Session Backup upload policy. */
+/** Optional auxiliary-model fallback and bounded output policy. */
 export interface Config {
   readonly provider?: string
   readonly model?: string
   readonly maxOutputTokens?: number
   readonly timeoutMs?: number
-  readonly backupMaxUploadBytes?: number
-  readonly backupMaxEntryBytes?: number
 }
 
 export interface ResolvedConfig {
   readonly route?: SessionDigestRouteFallback
   readonly maxOutputTokens: number
   readonly timeoutMs: number
-  readonly backupMaxUploadBytes?: number
-  readonly backupMaxEntryBytes?: number
 }
 
 // Providers may count reasoning against the same output budget as the digest JSON.
@@ -47,13 +43,8 @@ const route = z.union([
   }),
 ])
 
-const backupLimits = z.object({
-  backupMaxUploadBytes: z.union([z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER), z.never()]),
-  backupMaxEntryBytes: z.union([z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER), z.never()]),
-})
-
 /** Loader-facing runtime schema shared by direct callers and plugin activation. */
-export const Config: z<Config> = z.intersect([limits, route, backupLimits]) as z<Config>
+export const Config: z<Config> = z.intersect([limits, route]) as z<Config>
 
 /** Validate, default, and normalize configuration before runtime use. */
 export function resolveConfig(config: Config = {}): ResolvedConfig {
@@ -66,7 +57,5 @@ export function resolveConfig(config: Config = {}): ResolvedConfig {
       : { route: { provider, model } }),
     maxOutputTokens: validated.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
     timeoutMs: validated.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    ...(validated.backupMaxUploadBytes === undefined ? {} : { backupMaxUploadBytes: validated.backupMaxUploadBytes }),
-    ...(validated.backupMaxEntryBytes === undefined ? {} : { backupMaxEntryBytes: validated.backupMaxEntryBytes }),
   }
 }

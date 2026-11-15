@@ -41,8 +41,6 @@ Every intentional difference from upstream is marked with a
   `sessionGraphWorkspaces.restore` Remote to attach currently unaccounted Sessions whose
   canonical directory matches. Native creation failures short-circuit; restoration failures
   surface in the existing picker dialog and can be retried idempotently.
-- `src/client/workspace/session-actions/BackupSession.tsx`, `src/client/workspace/index.ts`, and `src/client/session-backup-download.ts` — add a **Download Session backup** row action over the native export route, with a Workspace/title/UTC/short-ID filename and existing toast failure reporting.
-- `src/client/SessionBackup.tsx`, `src/client/index.ts`, and the backup upload/Remote modules — add a **Restore Session backup** HOC beside New Session, owner-gated native-ZIP upload, Workspace selection, progress, cancellation, and explicit restored-root navigation.
 - `src/client/workspace/tree.ts` — `GroupNode` gains `folders`
   (`FolderNode`), `deriveGroups` partitions each Workspace's visible members
   between its folders and the unassigned remainder, and `TreeView` gains

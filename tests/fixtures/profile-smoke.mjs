@@ -5,13 +5,11 @@ import { randomUUID } from 'node:crypto'
 import { join } from 'node:path'
 import { setTimeout } from 'node:timers/promises'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
-import { readSessionLogText, sessionLogZipEntries } from '@deepseek-ai/dsh-session-log-export'
-import { zipSync } from 'fflate'
 import { verifyExploration } from './exploration-smoke.mjs'
 import { ownerPeer } from './owner-peer.mjs'
 
 export const name = 'session-graph-profile-smoke'
-export const inject = ['appReady', 'llm', 'sessionController', 'sessionQuery', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphFolders', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry', 'connection', 'sessions', 'attachments']
+export const inject = ['appReady', 'llm', 'sessionController', 'sessionQuery', 'agents', 'sessionGraphDigest', 'sessionGraphHistory', 'sessionGraphSearch', 'sessionGraphMerge', 'sessionGraphTopics', 'sessionGraphFolders', 'sessionGraphKnowledge', 'sessionGraphReuse', 'sessionGraphBranch', 'sessionPersistence', 'typertGateway', 'agentDefaultModel', 'workspaceRegistry']
 
 export function apply(ctx) {
   let calls = 0
@@ -72,55 +70,7 @@ export function apply(ctx) {
     }
     return sessionId
   }
-  async function exportNativeBackup(sessionId) {
-    const rootContent = await readSessionLogText(ctx.sessionPersistence, sessionId)
-    assert.ok(rootContent)
-    const entries = {}
-    for await (const entry of sessionLogZipEntries({
-      sessionQuery: ctx.sessionQuery,
-      sessionPersistence: ctx.sessionPersistence,
-      attachments: ctx.attachments,
-      sessions: ctx.sessions,
-    }, rootContent, sessionId, true)) {
-      if ('content' in entry) entries[entry.path] = new TextEncoder().encode(entry.content)
-      else if ('data' in entry) entries[entry.path] = entry.data
-      else {
-        const chunks = []
-        for await (const chunk of entry.chunks) chunks.push(chunk)
-        entries[entry.path] = Buffer.concat(chunks)
-      }
-    }
-    await writeFile(process.env.SESSION_GRAPH_BACKUP_ARCHIVE, zipSync(entries))
-  }
-  async function restoreNativeBackup() {
-    const archive = await readFile(process.env.SESSION_GRAPH_SMOKE_RESTORE)
-    const targetPath = join(process.cwd(), 'restored-backup')
-    await mkdir(targetPath, { recursive: true })
-    const workspace = await ctx.workspaceRegistry.create(targetPath, 'Restored backup')
-    const response = await ctx.connection.createSharedFetchHandler('/api').fetch(new Request(`http://local/api/session-graph/backup-import?workspaceId=${encodeURIComponent(String(workspace.id))}`, {
-      method: 'POST', body: archive, headers: { 'content-type': 'application/octet-stream' },
-    }), ownerPeer(ctx))
-    assert.equal(response.status, 200)
-    const lines = (await response.text()).trim().split('\n').map(line => JSON.parse(line))
-    const outcome = lines.at(-1)
-    assert.equal(outcome.type, 'outcome')
-    assert.equal(outcome.outcome.ok, true, JSON.stringify(outcome.outcome.error))
-    assert.equal(outcome.outcome.value.importedSessionIds.length, 1)
-    assert.equal(outcome.outcome.value.partial, false)
-    assert.equal(calls, 0, 'backup import must not call a model')
-    const rootSessionId = outcome.outcome.value.rootSessionId
-    await ctx.sessionController.selectModel({ sessionId: rootSessionId, provider: 'graph-fixture', model: 'fixture' })
-    await ctx.sessionController.prompt({
-      requestId: `graph-restored-${rootSessionId}`, sessionId: rootSessionId, mode: 'queue',
-      content: [{ type: 'text', text: 'Continue the restored context.' }],
-    }, signal)
-    await waitForTurn(rootSessionId)
-    assert.equal(calls, 1)
-    assert.ok(modelRequests[0].messages.some(message => JSON.stringify(message).includes('First fixture.')))
-    return { ok: true, sessionBackupRestore: true, sessionBackupModelCalls: calls }
-  }
   async function verify() {
-    if (process.env.SESSION_GRAPH_SMOKE_RESTORE) return restoreNativeBackup()
     const folders = (method, request) => ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
       namespace: 'sessionGraphFolders', method, args: request === undefined ? {} : { request }, signal,
     })
@@ -135,7 +85,6 @@ export function apply(ctx) {
     }
     const secondPrompt = '通过知识卡片整理研究资料。 Café uses foo-bar. 修复 foo-bar 设置。'
     const sourceIds = [await create('First fixture.'), await create(secondPrompt)]
-    await exportNativeBackup(sourceIds[0])
     const before = sourceIds.map(id => ctx.agents.get(id).session.snapshotEvents())
     const callsBeforeHistory = calls
     const history = await ctx.typertGateway.invoke({ peer: ownerPeer(ctx),
@@ -282,7 +231,7 @@ export function apply(ctx) {
     const exploration = await verifyExploration(ctx, signal, targetWorkspace.id)
     assert.ok(calls >= 4)
     return { ok: true, ...exploration, sources: sourceIds.length, durableTopics: true, durableSidebar: true, sidebar, durableMerge: true, durableKnowledge: true, reviewedExtraction: true,
-      acceptedReuse: true, frozenMarkdown: true, readonlyTitleSuggestion: true, nativeTitleRename: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, sessionBackupExported: true, fixtureModelCalls: calls }
+      acceptedReuse: true, frozenMarkdown: true, readonlyTitleSuggestion: true, nativeTitleRename: true, readonlyDigest: true, readonlyHistory: true, exactHistoryRange: true, readonlySearch: true, fixtureModelCalls: calls }
   }
   ctx.effect(() => ctx.appReady.onReady(() => {
     void verify().catch(error => ({ ok: false, error: error.stack ?? String(error) })).then(async report => {

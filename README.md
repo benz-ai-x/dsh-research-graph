@@ -31,7 +31,7 @@ config:
 ---
 flowchart LR
   G["DSH Research Graph"] --> O["Organize research"] & K["Capture knowledge"] & R["Extend research"]
-  O --> O1["Cross-workspace topics"] & O2["Conversation graph<br/>Branches · Merges<br/>Subagent records"] & O3["Session backups<br/>Logs · Attachments · Restore"]
+  O --> O1["Cross-workspace topics"] & O2["Conversation graph<br/>Branches · Merges<br/>Subagent records"]
   K --> K1["History search<br/>Sources · Digests"] & K2["Knowledge Cards<br/>AI extraction · Review · Revisions"]
   R --> R1["Synthesis · Frozen materials"] & R2["Follow-up discussions<br/>Markdown export"]
   classDef brand fill:#2563eb,stroke:#2563eb,color:#fff
@@ -39,7 +39,7 @@ flowchart LR
   classDef feature fill:#f8fafc,stroke:#cbd5e1,color:#0f172a
   class G brand
   class O,K,R group
-  class O1,O2,O3,K1,K2,R1,R2 feature
+  class O1,O2,K1,K2,R1,R2 feature
 ```
 
 ## Workbench screenshot
@@ -61,7 +61,6 @@ Version 0.2.2-rc.3.2 with demo data. Click the image for the full-resolution scr
 | --- | --- |
 | **Visual conversation graph** | See how discussions fork and merge, show verified ordinary-fork Branch links, and inspect existing Subagent work; drag, collapse, and relayout without changing source Sessions |
 | **Own sidebar with Workspace folders** | Organize Sessions in user-created folders inside each Workspace while retaining native row menus. Re-adding a removed Workspace's directory restores its currently unaccounted Sessions; uninstalling restores the official sidebar |
-| **Session backup and restore** | Back up complete Session logs, context events, descendants, and attachments in one ZIP; name archives by Workspace and restore on demand without overwriting different same-ID Sessions |
 | **Research Topics and source tracing** | Gather discussions across Workspaces, search discussion text, and return to the exact original turns behind a finding |
 | **Source-linked Knowledge Cards** | Save reviewed conclusions, conditions, and open questions with exact sources; edit through new revisions without losing earlier versions |
 | **AI extraction and synthesis** | Extract selected turns and compare 2–3 frozen materials; inspect drafts and citations before explicitly saving |
@@ -78,7 +77,7 @@ Version 0.2.2-rc.3.2 with demo data. Click the image for the full-resolution scr
 | Plugin release | [0.2.2-rc.3.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.2), npm `latest` / `next` |
 | Required Host | **DSH 0.2.2-rc.3 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
-| Model calls | Browsing, manual capture, export, backup, and restore make no model call; AI generation and new discussions use models on demand |
+| Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
 | Stack and license | TypeScript · React · [MIT](LICENSE) |
 
@@ -98,7 +97,7 @@ Research Topics, Knowledge Card revisions, Reuse records, and Workspace folders 
 
 ### When does it call an AI model?
 
-Browsing, searching, manual capture, Markdown export, and Session backup/restore make no model call. AI extraction, synthesis, title or digest generation, and new discussions use models only when explicitly requested.
+Browsing, searching, manual capture, and Markdown export make no model call. AI extraction, synthesis, title or digest generation, and new discussions use models only when explicitly requested.
 
 <a id="install"></a>
 
