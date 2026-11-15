@@ -50,7 +50,7 @@ flowchart LR
   </a>
 </p>
 
-Version 0.2.2-rc.3.1 with demo data. Click the image for the full-resolution screenshot.
+Version 0.2.2-rc.3.2 with demo data. Click the image for the full-resolution screenshot.
 
 <a id="features"></a>
 <a id="what-it-adds"></a>
@@ -60,7 +60,7 @@ Version 0.2.2-rc.3.1 with demo data. Click the image for the full-resolution scr
 | Capability | What you can do |
 | --- | --- |
 | **Visual conversation graph** | See how discussions fork and merge, show verified ordinary-fork Branch links, and inspect existing Subagent work; drag, collapse, and relayout without changing source Sessions |
-| **Own sidebar with Workspace folders** | Organize Sessions in user-created folders inside each Workspace while retaining native row menus. Create, rename, delete, and drag members; uninstalling restores the official sidebar |
+| **Own sidebar with Workspace folders** | Organize Sessions in user-created folders inside each Workspace while retaining native row menus. Re-adding a removed Workspace's directory restores its currently unaccounted Sessions; uninstalling restores the official sidebar |
 | **Research Topics and source tracing** | Gather discussions across Workspaces, search discussion text, and return to the exact original turns behind a finding |
 | **Source-linked Knowledge Cards** | Save reviewed conclusions, conditions, and open questions with exact sources; edit through new revisions without losing earlier versions |
 | **AI extraction and synthesis** | Extract selected turns and compare 2–3 frozen materials; inspect drafts and citations before explicitly saving |
@@ -74,7 +74,7 @@ Version 0.2.2-rc.3.1 with demo data. Click the image for the full-resolution scr
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.2-rc.3.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.1), npm `next` |
+| Plugin release | [0.2.2-rc.3.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.2), npm `next` |
 | Required Host | **DSH 0.2.2-rc.3 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
@@ -106,7 +106,7 @@ Browsing, searching, manual capture, and Markdown export make no model call. AI 
 Requires **DSH 0.2.2-rc.3** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.2
 dsh web
 ```
 
@@ -120,7 +120,8 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.3.1` | `0.2.2-rc.3` | Current release — restores Branch links for independent ordinary forks; requires Node.js `>=24.9.0`; npm `next` |
+| `0.2.2-rc.3.2` | `0.2.2-rc.3` | Current release — restores unaccounted Sessions when re-adding the same Workspace directory; requires Node.js `>=24.9.0`; npm `next` |
+| `0.2.2-rc.3.1` | `0.2.2-rc.3` | Restores Branch links for independent ordinary forks; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3` | `0.2.2-rc.3` | Reusable Workspace picker Factory and New Session HOC; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.2` | `0.2.2-rc.2` | Previous release — DSH rc.2 compatibility and Menu anchor migration; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.1` | `0.2.2-rc.1` | First adaptation of DSH 0.2.2-rc.1; requires Node.js `>=24.9.0` |
@@ -130,4 +131,4 @@ See the [full release history](https://github.com/benz-ai-x/dsh-research-graph/r
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.1.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.2.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
