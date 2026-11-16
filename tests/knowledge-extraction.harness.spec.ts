@@ -41,6 +41,7 @@ describe('Knowledge extraction public Host workflow', () => {
     vi.mocked(host.ctx.llm.stream).mockImplementation(async function* (options) {
       expect(options.provider).toBe('fixture')
       expect(options.model).toBe('fixed-v1')
+      expect(options.system).toContain('每个景点分别生成一张知识卡片')
       const input = JSON.stringify(options.messages)
       expect(input).toContain('证据 1')
       expect(input).not.toContain('证据 2')
@@ -51,7 +52,8 @@ describe('Knowledge extraction public Host workflow', () => {
       ] }) }
       yield { type: 'finish', reason: { kind: 'stop' } }
     })
-    const generated = await invoke('extract', { preparationId: preview.preparationId, provider: 'fixture', model: 'fixed-v1' })
+    const generated = await invoke('extract', { preparationId: preview.preparationId, provider: 'fixture', model: 'fixed-v1',
+      instruction: '每个景点分别生成一张知识卡片' })
     expect(generated.drafts).toHaveLength(3)
     expect(generated.drafts[0]).toMatchObject({ content: { status: 'draft' }, needsVerification: false, invalidCitations: 0,
       sources: [{ kind: 'extraction', preparationId: preview.preparationId, startSeq: starts[0], endSeq: ends[0] }] })

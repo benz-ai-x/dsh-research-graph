@@ -10,8 +10,9 @@ import { SourcePreview } from './SourcePreview.tsx'
 import styles from './GraphView.module.css'
 
 /** Each model response appends a new batch, so in-progress edits never get replaced. */
-export function KnowledgeExtraction({ source, api, topics, read, topicId, changed, t }: {
+export function KnowledgeExtraction({ source, instruction = '', api, topics, read, topicId, changed, t }: {
   readonly source: KnowledgeDiscussionAddress
+  readonly instruction?: string
   readonly api: KnowledgeApi
   readonly topics: GraphViewInjected['topics']
   readonly read: GraphViewInjected['readSessionHistory']
@@ -20,6 +21,7 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
   readonly t: (key: SessionGraphKey, params?: Record<string, unknown>) => string
 }): ReactElement {
   const [budgetChars, setBudgetChars] = useState(20_000)
+  const [task, setTask] = useState(instruction)
   const [prepared, setPrepared] = useState<ExtractionPreparation>()
   const [provider, setProvider] = useState('')
   const [model, setModel] = useState('')
@@ -40,7 +42,8 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
     setCanceled(false)
     try {
       if (generate && prepared !== undefined) {
-        const result = await api.extract({ preparationId: prepared.preparationId, provider, model }, controller.signal)
+        const result = await api.extract({ preparationId: prepared.preparationId, provider, model,
+          ...(task.trim() === '' ? {} : { instruction: task.trim() }) }, controller.signal)
         if (!controller.signal.aborted) setBatches(value => [...value, { id: crypto.randomUUID(), result, preparation: prepared }])
       } else {
         setPrepared(undefined)
@@ -69,6 +72,7 @@ export function KnowledgeExtraction({ source, api, topics, read, topicId, change
       {prepared.omitted.length === 0 ? <p>{t('extract.noneOmitted')}</p> : <ul>{prepared.omitted.map(range => <li key={range.startSeq}>
         {t('knowledge.sourceRange', { start: range.startSeq, end: range.endSeq })}</li>)}</ul>}
       <p>{t('extract.hint')}</p>
+      <label>{t('extract.instruction')}<input disabled={busy} maxLength={2_000} value={task} placeholder={t('extract.instructionHint')} onChange={event => { setTask(event.target.value) }} /></label>
       <label>{t('extract.provider')}<input disabled={busy} maxLength={200} value={provider} onChange={event => { setProvider(event.target.value) }} /></label>
       <label>{t('extract.model')}<input disabled={busy} maxLength={200} value={model} onChange={event => { setModel(event.target.value) }} /></label>
       <button className={styles.primaryButton} type="button" disabled={busy || provider.trim() === '' || model.trim() === ''} onClick={() => { void run(true) }}>

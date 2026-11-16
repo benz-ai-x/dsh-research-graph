@@ -141,6 +141,10 @@ _Avoid_: Branch, Merge Relation, Topic Reference
 The Host-retained selection and exact included direct discussion text shown before an explicit AI extraction. A character budget admits only whole completed turns and lists omitted ranges. Generated drafts and corrected citations can address this frozen material across Host restart; the snapshot does not itself create a Knowledge Card or claim that its statements are true.
 _Avoid_: Full-session summary, verified tool evidence, saved card
 
+**Selected Session Extraction**:
+An explicitly opened, reviewed AI extraction of every completed Discussion Turn in the addressed Session Inspector. It reads exact source boundaries without changing the Viewed Session, accepts an optional extraction task such as one draft per attraction, and reuses Extraction Snapshots and explicit per-card Save. The action itself neither calls a model nor creates Knowledge Cards, and entity-level organization is not a completeness guarantee.
+_Avoid_: Session Digest, automatic knowledge capture, verified entity catalog
+
 **Research Material**:
 An explicitly selected saved Card Revision or a continuous range of completed Discussion Turns, frozen for further research. A card contributes its own content and source labels; original discussion must be selected separately. One new discussion uses one to three ordered materials; a Synthesis uses two or three within the visible message budget.
 _Avoid_: Whole Research Topic, inherited context, Session Snapshot

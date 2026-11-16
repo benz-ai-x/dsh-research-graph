@@ -98,6 +98,8 @@ export const extractionPreparationRequestSchema = { parse(value: unknown): Extra
   return { source, budgetChars }
 } }
 export const extractionRequestSchema = { parse(value: unknown): ExtractionRequest {
-  const item = object(value, ['preparationId', 'provider', 'model'])
-  return { preparationId: uuid(item.preparationId), provider: identity(item.provider).trim(), model: identity(item.model).trim() }
+  const item = object(value, ['preparationId', 'provider', 'model', 'instruction'])
+  const instruction = item.instruction === undefined ? '' : text(item.instruction, 2_000).trim()
+  return { preparationId: uuid(item.preparationId), provider: identity(item.provider).trim(), model: identity(item.model).trim(),
+    ...(instruction === '' ? {} : { instruction }) }
 } }

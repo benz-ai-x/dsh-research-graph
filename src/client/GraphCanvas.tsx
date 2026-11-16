@@ -20,6 +20,7 @@ import type { SessionDigest } from '../session-digest.ts'
 import { SessionTitleControl } from './SessionTitleControl.tsx'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
+import { useSessionExtraction } from './session-extraction.ts'
 import { InspectorFrame } from './InspectorFrame.tsx'
 import { SubagentDetails } from './SubagentDetails.tsx'
 import { canvasNodeTitle, duplicateTitleIds, shortSessionId } from './node-labels.ts'
@@ -343,13 +344,16 @@ function digestErrorLabel(code: string | undefined, t: Translate): string {
 
 /** The structured, explicitly generated digest inside the Selected Session inspector. */
 function DigestSection({
-  node, entry, now, t, onGenerate,
+  node, entry, now, t, onGenerate, onExtract, extractionLoading, extractionFailed,
 }: {
   node: SessionGraphNode
   entry: DigestEntry | undefined
   now: number
   t: Translate
   onGenerate: (refresh: boolean) => void
+  onExtract: () => void
+  extractionLoading: boolean
+  extractionFailed: boolean
 }): ReactElement {
   const ready = priorReady(entry)
   const emptyStale = entry?.phase === 'empty' && node.updatedAt > entry.sourceUpdatedAt
@@ -386,6 +390,18 @@ function DigestSection({
       </div>
     )
 
+  const generateAction = entry === undefined && !node.blank
+    ? <button type="button" className={styles.digestAction} onClick={() => { onGenerate(false) }}>{t('digest.generate')}</button>
+    : emptyStale
+      ? <button type="button" className={styles.digestAction} onClick={() => { onGenerate(false) }}>{t('digest.generate')}</button>
+      : entry?.phase === 'ready'
+        ? <button type="button" className={styles.digestAction} onClick={() => { onGenerate(true) }}>{stale ? t('digest.refresh') : t('digest.regenerate')}</button>
+        : null
+  const extractionAction = node.blank ? null : <button type="button" className={styles.digestAction}
+    disabled={extractionLoading || node.turns === 0} onClick={onExtract}>
+    {extractionLoading ? t('extract.reading') : t('extract.title')}
+  </button>
+
   return (
     <section
       className={styles.digestSection}
@@ -402,25 +418,12 @@ function DigestSection({
         </div>
       </div>
       {entry === undefined && !node.blank
-        ? (
-          <div className={styles.digestEmptyState}>
-            <p>{t('digest.intro')}</p>
-            <button type="button" className={styles.digestAction} onClick={() => { onGenerate(false) }}>
-              {t('digest.generate')}
-            </button>
-          </div>
-        )
+        ? <div className={styles.digestEmptyState}><p>{t('digest.intro')}</p></div>
         : null}
       {node.blank || entry?.phase === 'empty'
         ? <p className={styles.digestQuiet}>{t('digest.empty')}</p>
         : null}
-      {emptyStale
-        ? (
-          <button type="button" className={styles.digestAction} onClick={() => { onGenerate(false) }}>
-            {t('digest.generate')}
-          </button>
-        )
-        : null}
+      {extractionFailed ? <p role="alert">{t('extract.error')}</p> : null}
       {entry?.phase === 'generating'
         ? (
           <div className={styles.digestGenerating} role="status" aria-live="polite">
@@ -430,13 +433,7 @@ function DigestSection({
         )
         : null}
       {renderReady}
-      {entry?.phase === 'ready'
-        ? (
-          <button type="button" className={styles.digestAction} onClick={() => { onGenerate(true) }}>
-            {stale ? t('digest.refresh') : t('digest.regenerate')}
-          </button>
-        )
-        : null}
+      {node.blank ? null : <div className={styles.digestActions}>{generateAction}{extractionAction}</div>}
       {entry?.phase === 'error'
         ? (
           <div
@@ -490,6 +487,7 @@ function SelectedSessionPanel({
   }>())
   const nextDigestRequestId = useRef(0)
   const previousSelectedId = useRef<SessionId | undefined>(undefined)
+  const extraction = useSessionExtraction(node, onReadHistory, () => { setTab('history') })
 
   useEffect(() => {
     const previous = previousSelectedId.current
@@ -568,6 +566,7 @@ function SelectedSessionPanel({
         }
       })
   }, [node, onGenerateDigest])
+  const openExtraction = extraction.openExtraction
 
   if (node === undefined) return null
   const status = displayStatusLabel(node.displayStatus, t)
@@ -741,6 +740,9 @@ function SelectedSessionPanel({
             now={now}
             t={t}
             onGenerate={generateDigest}
+            onExtract={openExtraction}
+            extractionLoading={extraction.extractionLoading}
+            extractionFailed={extraction.extractionFailed}
           />}
       </div>
     </InspectorFrame>

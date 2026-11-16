@@ -19,6 +19,7 @@ import { InspectorFrame } from './InspectorFrame.tsx'
 import { SubagentDetails } from './SubagentDetails.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
+import { useSessionExtraction } from './session-extraction.ts'
 import { KnowledgeReader } from './KnowledgeReader.tsx'
 import { useResearchReuse } from './ResearchReuse.tsx'
 import { useResearchRelations } from './research-relations.ts'
@@ -185,6 +186,7 @@ function TopicSourcePanel({ node, read, open, openSubagent, remove, busy, onClos
   const [reading, setReading] = useState(() => loadWorkingPosition(workingKey).selected === node.id && loadWorkingPosition(workingKey).tab === 'history')
   useEffect(() => { saveWorkingPosition(workingKey, { tab: reading ? 'history' : 'digest' }) }, [workingKey, reading])
   const source = node.topicSource
+  const extraction = useSessionExtraction(node, read, () => { setReading(true) })
   const inherited = node.mergeSources.length === 0 && !!node.inheritedMergeSources?.length
   const mergeSources = inherited ? node.inheritedMergeSources! : node.mergeSources
   const sourceLinks = mergeSources.map(item => {
@@ -217,6 +219,10 @@ function TopicSourcePanel({ node, read, open, openSubagent, remove, busy, onClos
     </details> : <section className={styles.readingSources}><h3>{t('workbench.mergeFrom')}</h3><p>{t('workbench.mergeCaptured')}</p>{sourceLinks}</section> : null}
     <SubagentDetails node={node} onOpen={openSubagent} t={t} />
     {node.reuseRelations?.map(item => <button className={styles.readingSourceLink} type="button" key={item.operationId} onClick={() => { reuse?.inspect(item.operationId) }}><strong>{t('workbench.frozen')}</strong><small>{item.question}</small></button>)}
+    <div className={styles.digestActions}><button type="button" className={styles.digestAction}
+      disabled={source?.status === 'unavailable' || node.turns === 0 || extraction.extractionLoading}
+      onClick={() => { void extraction.openExtraction() }}>{t(extraction.extractionLoading ? 'extract.reading' : 'extract.title')}</button></div>
+    {extraction.extractionFailed ? <p role="alert">{t('extract.error')}</p> : null}
     {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { retainedSource: node.retainedSource })} read={read} t={t} /> : null}
 
   </InspectorFrame>
