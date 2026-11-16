@@ -53,7 +53,7 @@ export function apply(ctx) {
   ]
   class DemoAdapter extends LlmAdapter {
     async listModels() {
-      return [{ provider, id: model, name: 'Demo' }]
+      return [{ provider, id: model, name: 'Demo' }, { provider, id: 'demo-alt', name: 'Demo alternate' }]
     }
     async *stream(options) {
       options.signal?.throwIfAborted()

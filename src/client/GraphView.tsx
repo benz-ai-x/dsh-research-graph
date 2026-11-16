@@ -39,7 +39,7 @@ import { loadWorkingPosition, saveWorkingPosition, workingPositionKey } from './
 /** Projection refresh concurrency per scope pass, bounding cold-start disk reads. */
 const PROJECTION_REFRESH_BATCH = 6
 
-/** Host model-catalog projection consumed by Merge model pickers. */
+/** Host model-catalog projection consumed by model-route pickers. */
 export interface MergeModelCatalog {
   /** Route unconfigured Sessions use; null when the Host reports none. */
   readonly default: { readonly provider: string; readonly model: string } | null
@@ -112,7 +112,7 @@ export interface GraphViewInjected {
     signal: AbortSignal,
     model?: SessionMergeModelSelection,
   ) => Promise<SessionId>
-  /** List the Host model catalog backing Merge model selection. */
+  /** List the Host model catalog backing Merge and extraction model selection. */
   readonly models?: {
     readonly catalog: () => Promise<MergeModelCatalog>
   }
@@ -135,7 +135,7 @@ export function GraphView(props: GraphViewProps): ReactElement {
     picker={<ResearchMaterialPicker api={props.knowledge} useSessions={props.useSessions} read={props.readSessionHistory} t={props.t} />}
     workspaces={workspaces.items} viewedId={props.sessionId} openSession={props.openSession} t={props.t}>
     <KnowledgeProvider api={props.knowledge} useSessions={props.useSessions}
-    topics={props.topics} read={props.readSessionHistory} openSession={props.openSession} branchSession={props.branchSession} t={props.t}>
+    topics={props.topics} read={props.readSessionHistory} models={props.models} openSession={props.openSession} branchSession={props.branchSession} t={props.t}>
     <HistoryBranchProvider api={props.historyBranch} hostId={props.hostId} openSession={props.openSession} t={props.t}>
       <GraphViewBody {...props} />
     </HistoryBranchProvider>

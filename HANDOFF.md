@@ -1,11 +1,12 @@
 # Research Graph Handoff
 
-Updated: 2026-11-16 (Asia/Shanghai, 0.2.2-rc.3.4 已发布，未部署)
+Updated: 2026-11-16 (Asia/Shanghai, Issue #100 模型下拉选择开发中，0.2.2-rc.3.4 已发布但未部署)
 
 根 `HANDOFF.md` 是唯一实时交接，不另维护历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准；历史发布证据保留在 `docs/reviews/`。
 
 ## 当前状态
 
+- 当前工作分支为 `feat/extraction-model-select`，基线 `main@0a3510c`；[Issue #100](https://github.com/benz-ai-x/dsh-research-graph/issues/100) 将提炼提供方和模型改为 Host 目录联动下拉，保留并标注缺失的当前路由，目录失败时禁止生成。
 - 发布基线为 `main@a723bba1659d1981ed2ee0cf427a86bda59a62fc`；[PR #97](https://github.com/benz-ai-x/dsh-research-graph/pull/97) 与 [PR #98](https://github.com/benz-ai-x/dsh-research-graph/pull/98) 已合并，功能与发布分支已清理。合并后 [main CI 43813450335](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43813450335) 全部通过。
 - 当前发布为 **0.2.2-rc.3.4**，目标 DSH **0.2.2-rc.3**，npm **`latest=next=0.2.2-rc.3.4`**，官方 registry 与当前镜像回读一致，`@latest` 解析为新版本。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.4) 与 OIDC [Publish 43814175804](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43814175804) 已完成，透明日志 `3918786239`。未部署。
 - 正式包 **779783 bytes**，SHA-256 `210927a441adfaac340a400a7169fa04d5ad686076a69b79877b3a92684eefb7`，Build ID `local-3525e2e8`。本地候选为 **780928 bytes**，SHA-256 `1b1fd4e2f0a8e36d702c41046d5fda2f2565fd08bc188c312d12863a8be0a5fe`，两者不可混用。正式包独立通过 19 次固定模型冒烟及第二 profile 恢复后继续 1 次，`npm audit signatures` 为 `invalid: []`、`missing: []`。
@@ -29,7 +30,8 @@ Updated: 2026-11-16 (Asia/Shanghai, 0.2.2-rc.3.4 已发布，未部署)
 
 ## 验证基线
 
-- `pnpm run check`：**36 文件 / 302 项**；匹配 DSH `0.2.2-rc.3` 四编译面与完整 Harness：**28 文件 / 385 项**，候选与发布流水线均通过。
+- Issue #100 `pnpm run check`：**36 文件 / 302 项**；匹配 DSH `0.2.2-rc.3` 四编译面与完整 Harness：**28 文件 / 386 项**，均通过。上一版发布流水线证据见 rc.3.4 验收记录。
 - 候选与正式 npm 包分别独立通过双 profile：原 profile 19 次固定模型调用；第二 profile 恢复后继续 1 次，安装/移除干净。
 - Workspace/Topic 实际浏览器入口、原文实际勾选、三景点固定草稿编辑及所选 Topic 入库、390px 窄窗口已验收；真实模型逐景点质量未验收。预览已停止，日常 DSH profile 未修改，隔离演示 profile 保留。
 - PR 初审发现的向前分页、原文选择及生成中导航缺陷已修复，并新增真实 Host 13 轮分页与三景点 Topic 入库回归。官方 npm 包独立验收及 Release 归档下载复核均已完成。
+- Issue #100 模型目录下拉已验证缺失路由保留、提供方/模型联动和目录失败禁用；浏览器切换 `Demo alternate` 后生成请求显示 `research-prototype / demo-alt`。验收见 [extraction-model-select.md](docs/reviews/extraction-model-select.md)。

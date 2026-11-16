@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { KnowledgeDiscussionAddress } from '../knowledge.ts'
 import type { ExtractionPreparation, ExtractionResult } from '../knowledge-extraction.ts'
+import type { SessionMergeModelSelection } from '../session-merge.ts'
+import { ExtractionModelSelect } from './ExtractionModelSelect.tsx'
 import type { KnowledgeApi } from './knowledge-remote.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
 import type { SessionGraphKey } from './locales.ts'
@@ -11,11 +13,12 @@ import { SourcePreview } from './SourcePreview.tsx'
 import styles from './GraphView.module.css'
 
 /** Each model response appends a new batch, so in-progress edits never get replaced. */
-export function KnowledgeExtraction({ source, api, topics, read, openSession, branchSession, topicId, changed, t }: {
+export function KnowledgeExtraction({ source, api, topics, read, models, openSession, branchSession, topicId, changed, t }: {
   readonly source: KnowledgeDiscussionAddress
   readonly api: KnowledgeApi
   readonly topics: GraphViewInjected['topics']
   readonly read: GraphViewInjected['readSessionHistory']
+  readonly models: GraphViewInjected['models']
   readonly openSession: GraphViewInjected['openSession']
   readonly branchSession: GraphViewInjected['branchSession']
   readonly topicId: string | undefined
@@ -25,8 +28,8 @@ export function KnowledgeExtraction({ source, api, topics, read, openSession, br
   const [budgetChars, setBudgetChars] = useState(20_000)
   const [task, setTask] = useState('')
   const [prepared, setPrepared] = useState<ExtractionPreparation>()
-  const [provider, setProvider] = useState('')
-  const [model, setModel] = useState('')
+  const [route, setRoute] = useState<SessionMergeModelSelection>({ provider: '', model: '' })
+  const [modelAvailable, setModelAvailable] = useState(false)
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState<string>()
   const [canceled, setCanceled] = useState(false)
@@ -49,7 +52,7 @@ export function KnowledgeExtraction({ source, api, topics, read, openSession, br
     setCanceled(false)
     try {
       if (generate && prepared !== undefined) {
-        const result = await api.extract({ preparationId: prepared.preparationId, provider, model,
+        const result = await api.extract({ preparationId: prepared.preparationId, provider: route.provider, model: route.model,
           ...(task.trim() === '' ? {} : { instruction: task.trim() }) }, controller.signal)
         if (!controller.signal.aborted) setBatches(value => [...value, { id: crypto.randomUUID(), result, preparation: prepared }])
       } else {
@@ -57,8 +60,7 @@ export function KnowledgeExtraction({ source, api, topics, read, openSession, br
         const value = await api.prepareExtraction({ source, budgetChars }, controller.signal)
         if (controller.signal.aborted) return
         setPrepared(value)
-        setProvider(value.route?.provider ?? '')
-        setModel(value.route?.model ?? '')
+        setRoute({ provider: value.route?.provider ?? '', model: value.route?.model ?? '' })
       }
     } catch (error) {
       if (!controller.signal.aborted) setFailed(error instanceof Error ? error.message : String(error))
@@ -80,9 +82,8 @@ export function KnowledgeExtraction({ source, api, topics, read, openSession, br
         {t('knowledge.sourceRange', { start: range.startSeq, end: range.endSeq })}</li>)}</ul>}
       <p>{t('extract.hint')}</p>
       <label>{t('extract.instruction')}<input disabled={busy} maxLength={2_000} value={task} placeholder={t('extract.instructionHint')} onChange={event => { setTask(event.target.value) }} /></label>
-      <label>{t('extract.provider')}<input disabled={busy} maxLength={200} value={provider} onChange={event => { setProvider(event.target.value) }} /></label>
-      <label>{t('extract.model')}<input disabled={busy} maxLength={200} value={model} onChange={event => { setModel(event.target.value) }} /></label>
-      <button className={styles.primaryButton} type="button" disabled={busy || provider.trim() === '' || model.trim() === ''} onClick={() => { void run(true) }}>
+      <ExtractionModelSelect catalog={models?.catalog} value={route} busy={busy} onChange={setRoute} onAvailabilityChange={setModelAvailable} t={t} />
+      <button className={styles.primaryButton} type="button" disabled={busy || !modelAvailable || route.provider.trim() === '' || route.model.trim() === ''} onClick={() => { void run(true) }}>
         {t(batches.length === 0 ? 'extract.generate' : 'extract.append')}</button>
       <p>{t('extract.preserve')}</p><p>{t('extract.snapshot')}</p>
     </>}
