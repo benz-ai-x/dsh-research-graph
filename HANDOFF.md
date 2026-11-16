@@ -7,7 +7,7 @@ Updated: 2026-11-15 (Asia/Shanghai, 0.2.2-rc.3.3 已发布，未部署)
 ## 当前状态
 
 - 当前分支为 `main`，`origin/main` 与本地一致；最近核对提交为 `525f3daa4589f850397bbedf3a21d5c91320bbcf`，[main CI 43726524298](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43726524298) 全部通过，无开放 PR。
-- 当前发布为 **0.2.2-rc.3.3**，目标 DSH **0.2.2-rc.3**，npm **`next=0.2.2-rc.3.3`**，`latest` 保持 `0.2.2-rc.3.2`。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.3) 与 OIDC [Publish 43720788768](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43720788768) 已完成，SLSA 透明日志 `3903385624` 核对通过。未部署。
+- 当前发布为 **0.2.2-rc.3.3**，目标 DSH **0.2.2-rc.3**，npm **`next=0.2.2-rc.3.3`**，随后按用户直接安装最新版的要求将 `latest` 也提升至 `0.2.2-rc.3.3`；registry 回读确认 `latest` 与 `next` 均为该版本，包字节未变。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.3) 与 OIDC [Publish 43720788768](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43720788768) 已完成，SLSA 透明日志 `3903385624` 核对通过。未部署。
 - 正式包 **775309 bytes**，SHA-256 `baac709c33a62cf5b3f0c8d5eafbe171275f831ca98d1f3df36b6cd4fbd0752b`，Build ID `local-c699c66d`。本地候选为 **776112 bytes**，两者不可混用。正式包独立通过 19 次固定模型冒烟及第二 profile 恢复后继续 1 次，Release 归档与 SHA256SUMS 回读一致。
 - 完整发布证据见 [release-0.2.2-rc.3.3.md](docs/reviews/release-0.2.2-rc.3.3.md)，功能验收见 [session-backup-restore.md](docs/reviews/session-backup-restore.md)。
 
