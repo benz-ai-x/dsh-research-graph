@@ -12,6 +12,8 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply, inject } from '../src/index.ts'
 import { ownerPeer } from './fixtures/owner-peer.ts'
+import { readSessionExtractionSelection } from '../src/client/session-extraction-source.ts'
+import type { SessionHistoryRequest } from '../src/session-history.ts'
 import { inspectSession, observing, writeColdHistory } from './fixtures/sessions.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
@@ -71,6 +73,25 @@ function addTurn(session: Session, turn: number, prompt: string, answer: string)
 }
 
 describe('Session History public Host interface', () => {
+  it('collects every completed turn backwards through real Host pagination', async () => {
+    const ctx = await historyHost()
+    await ctx.plugin(TypertGatewayService)
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/test' } })
+    for (let turn = 1; turn <= 13; turn++) addTurn(session, turn, `Question ${turn}`, `Answer ${turn}`)
+    const events = (await inspectSession(ctx, session.id)).events
+    const starts = events.filter(event => event.type === 'turn/start').map(event => event.seq)
+    const ends = events.filter(event => event.type === 'turn/end').map(event => event.seq)
+    const requests: SessionHistoryRequest[] = []
+    const selection = await readSessionExtractionSelection(session.id, async (request, signal) => {
+      requests.push(request)
+      return ctx.typertGateway.invoke({ peer: ownerPeer(ctx), namespace: 'sessionGraphHistory', method: 'read', args: { request }, signal })
+    }, new AbortController().signal)
+    expect(selection).toMatchObject({ sessionId: session.id, startSeq: starts[0], endSeq: ends.at(-1) })
+    expect(selection?.turns.map(turn => turn.turn)).toEqual(Array.from({ length: 13 }, (_, index) => index + 1))
+    expect(requests).toEqual([{ sessionId: session.id }, { sessionId: session.id, beforeSeq: starts[3] }])
+    expect(ctx.llm.stream).not.toHaveBeenCalled()
+  })
+
   it('restores exact range boundaries without an excerpt or the normal page limit', async () => {
     const ctx = await historyHost()
     await ctx.plugin(TypertGatewayService)

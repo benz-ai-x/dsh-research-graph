@@ -865,8 +865,9 @@ describe('Knowledge Cards registered Graph workflow', () => {
     const unfinishedTurn = { turn: 3, startSeq: 20, endSeq: null, startedAt: 1000,
       messages: [{ role: 'user' as const, seq: 21, text: 'still running' }] }
     b.readHistory.mockImplementation(async request => ({ ok: true, value: { kind: 'original', sessionId: 'a',
-      turns: request.afterSeq === undefined ? [source.source.turns[0]!] : [...source.source.turns.slice(1), unfinishedTurn],
-      hasEarlier: false, hasLater: request.afterSeq === undefined } }))
+      turns: request.source !== undefined ? source.source.turns : request.beforeSeq === undefined ? [source.source.turns[1]!, unfinishedTurn] : [source.source.turns[0]!],
+      hasEarlier: request.source === undefined && request.beforeSeq === undefined,
+      hasLater: request.source !== undefined || request.beforeSeq !== undefined } }))
     b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
     b.extractKnowledge.mockResolvedValue({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } })
     const topic = { topicId: 'research', title: '旅行研究', references: [{ sessionId: 'a', title: 'Trip A', cwd: '/w' }], arrangement: { positions: {}, collapsed: [], offsets: {} } }
@@ -883,7 +884,7 @@ describe('Knowledge Cards registered Graph workflow', () => {
     const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
     expect(b.extractKnowledge).not.toHaveBeenCalled()
     expect(b.readHistory).toHaveBeenNthCalledWith(1, { sessionId: 'a' }, expect.any(AbortSignal))
-    expect(b.readHistory).toHaveBeenNthCalledWith(2, { sessionId: 'a', afterSeq: 2 }, expect.any(AbortSignal))
+    expect(b.readHistory).toHaveBeenNthCalledWith(2, { sessionId: 'a', beforeSeq: 10 }, expect.any(AbortSignal))
     fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
     expect(b.prepareExtraction).toHaveBeenCalledWith({ source: { kind: 'discussion', sessionId: 'a', startSeq: 2, endSeq: 14 }, budgetChars: 20_000 }, expect.any(AbortSignal))
     const task = await within(dialog).findByRole('textbox', { name: '本次提炼任务（选填）' })
@@ -892,6 +893,41 @@ describe('Knowledge Cards registered Graph workflow', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
     expect(b.extractKnowledge).toHaveBeenCalledWith({ preparationId: 'preview-trip', provider: 'fixture', model: 'fixed-v1',
       instruction: '每个景点分别生成一张知识卡片' }, expect.any(AbortSignal))
+    await waitFor(() => { expect(within(dialog).getByRole('button', { name: /生成知识草稿|追加一组草稿/ })).toHaveProperty('disabled', false) })
+    fireEvent.click(within(dialog).getByRole('button', { name: '关闭卡片' }))
+    expect(await screen.findByRole('checkbox', { name: '选择第 1 轮' })).toHaveProperty('checked', true)
+    expect(screen.getByRole('checkbox', { name: '选择第 2 轮' })).toHaveProperty('checked', true)
+    expect(b.readHistory).toHaveBeenCalledWith({ sessionId: 'a', source: { startSeq: 2, endSeq: 14, turns: source.source.turns } }, expect.any(AbortSignal))
+  })
+  it('allows Session navigation during extraction generation and cancels late results', async () => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'Trip A', source: { startSeq: 10, endSeq: 14,
+      turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: 'Day 1: temple' }] }] } }
+    const preview: ExtractionPreparation = { preparationId: 'preview-navigation', selected: source, included: source, omitted: [], budgetChars: 20_000,
+      materialText: 'Day 1: temple', route: { provider: 'fixture', model: 'fixed-v1' } }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: source.source.turns, hasEarlier: false, hasLater: false } })
+    b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
+    const opening = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphKnowledge/extract']>>>()
+    const branching = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphKnowledge/extract']>>>()
+    b.extractKnowledge.mockReturnValueOnce(opening.promise).mockReturnValueOnce(branching.promise)
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
+    const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
+    fireEvent.click(await within(dialog).findByRole('button', { name: '生成知识草稿' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '打开会话' }))
+    expect(b.open).toHaveBeenCalledWith('a')
+    expect(b.extractKnowledge.mock.calls[0]?.[1]?.aborted).toBe(true)
+    await act(async () => { opening.resolve({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } }) })
+    expect(within(dialog).queryByRole('textbox', { name: '结论' })).toBeNull()
+    fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '开新分支' }))
+    expect(b.fork).toHaveBeenCalledWith({ sessionId: 'a', increaseTitle: true })
+    expect(b.extractKnowledge.mock.calls[1]?.[1]?.aborted).toBe(true)
+    await act(async () => { branching.resolve({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } }) })
+    expect(within(dialog).queryByRole('textbox', { name: '结论' })).toBeNull()
   })
   it('disables Selected Session extraction when the Host reports no completed turns, including narrow containers', async () => {
     stubSize(360, 600)

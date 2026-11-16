@@ -142,7 +142,7 @@ The Host-retained selection and exact included direct discussion text shown befo
 _Avoid_: Full-session summary, verified tool evidence, saved card
 
 **Selected Session Extraction**:
-An explicitly opened, reviewed AI extraction of every completed Discussion Turn in the addressed Session Inspector. It reads exact source boundaries without changing the Viewed Session, accepts an optional extraction task such as one draft per attraction, and reuses Extraction Snapshots and explicit per-card Save. The action itself neither calls a model nor creates Knowledge Cards, and entity-level organization is not a completeness guarantee.
+An explicitly opened, reviewed AI extraction of every completed Discussion Turn in the addressed Session Inspector. It pages backwards to select exact completed source boundaries in Original without changing the Viewed Session, accepts an optional extraction task such as one draft per attraction, and reuses Extraction Snapshots and explicit per-card Save. Opening a Session or creating a Branch during generation first cancels that generation so no late result replaces the newer choice. The action itself neither calls a model nor creates Knowledge Cards, and entity-level organization is not a completeness guarantee.
 _Avoid_: Session Digest, automatic knowledge capture, verified entity catalog
 
 **Research Material**:

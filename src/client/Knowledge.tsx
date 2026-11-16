@@ -30,7 +30,7 @@ interface KnowledgeContextValue {
   readonly open: (cardId: string, readRevisionId?: string) => void
   readonly synthesize?: (topicId: string) => void
   readonly edit: (cardId: string, revisionId: string) => void
-  readonly extract: (source: KnowledgeDiscussionAddress, instruction?: string) => void
+  readonly extract: (source: KnowledgeDiscussionAddress) => void
   readonly exportCards: (cards: readonly ExportChoice[]) => void
   readonly saved: { readonly cardId: string; readonly title: string; readonly hasSources: boolean } | undefined
   readonly dismissSaved: () => void
@@ -40,16 +40,18 @@ export function useKnowledge(): KnowledgeContextValue | undefined { return useCo
 
 interface KnowledgeDialog {
   readonly id: string
-  readonly content: { readonly cardId?: string; readonly readRevisionId?: string; readonly synthesisTopicId?: string; readonly editRevisionId?: string; readonly source?: KnowledgeDiscussionAddress; readonly extraction?: KnowledgeDiscussionAddress; readonly extractionInstruction?: string }
+  readonly content: { readonly cardId?: string; readonly readRevisionId?: string; readonly synthesisTopicId?: string; readonly editRevisionId?: string; readonly source?: KnowledgeDiscussionAddress; readonly extraction?: KnowledgeDiscussionAddress }
   readonly trigger: HTMLElement | undefined
 }
 
 /** Owns explicit card dialogs; source readers only supply an address, never authoritative text. */
-export function KnowledgeProvider({ api, topics, read, t, children, useSessions }: {
+export function KnowledgeProvider({ api, topics, read, openSession, branchSession, t, children, useSessions }: {
   readonly useSessions?: GraphViewProps['useSessions']
   readonly api: KnowledgeApi
   readonly topics: GraphViewInjected['topics']
   readonly read: GraphViewInjected['readSessionHistory']
+  readonly openSession: GraphViewInjected['openSession']
+  readonly branchSession: GraphViewInjected['branchSession']
   readonly t: Translate
   readonly children: ReactNode
 }): ReactElement {
@@ -84,7 +86,7 @@ export function KnowledgeProvider({ api, topics, read, t, children, useSessions 
     create: source => { open(source === undefined ? {} : { source }) }, open: (cardId, readRevisionId) => { open({ cardId, ...(readRevisionId === undefined ? {} : { readRevisionId }) }) },
     ...(api.prepareSynthesis === undefined || api.synthesize === undefined || useSessions === undefined ? {} : { synthesize: (synthesisTopicId: string) => { open({ synthesisTopicId }) } }),
     edit: (cardId, editRevisionId) => { open({ cardId, editRevisionId }) },
-    extract: (extraction, extractionInstruction) => { open({ extraction, ...(extractionInstruction === undefined ? {} : { extractionInstruction }) }) }, exportCards: cards => {
+    extract: extraction => { open({ extraction }) }, exportCards: cards => {
       if (document.activeElement instanceof HTMLElement) exportTrigger.current = document.activeElement
       setExporting(cards)
     } }}>
@@ -110,7 +112,7 @@ export function KnowledgeProvider({ api, topics, read, t, children, useSessions 
           setSaved({ cardId: card.cardId, title: revision.content.title, hasSources: revision.sources.length > 0 })
           if (capturing) close()
         }} />
-        : <KnowledgeExtraction source={dialog.extraction} {...(dialog.extractionInstruction === undefined ? {} : { instruction: dialog.extractionInstruction })} topicId={topicId} api={api} topics={topics} read={read} t={t}
+        : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} openSession={openSession} branchSession={branchSession} t={t}
           changed={() => { setRefresh(value => value + 1) }} />}
     </section>}</DraftGuard>
     })}

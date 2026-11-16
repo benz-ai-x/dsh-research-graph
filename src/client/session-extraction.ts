@@ -4,6 +4,7 @@ import type { KnowledgeDiscussionAddress } from '../knowledge.ts'
 import type { SessionGraphNode } from './graph-model.ts'
 import type { GraphViewInjected } from './GraphView.tsx'
 import { useKnowledge } from './Knowledge.tsx'
+import { readSessionExtractionSelection, type SessionExtractionSelection } from './session-extraction-source.ts'
 
 interface ExtractionRequest {
   readonly sessionId: SessionId
@@ -11,7 +12,7 @@ interface ExtractionRequest {
   readonly controller: AbortController
 }
 
-export function useSessionExtraction(node: SessionGraphNode | undefined, read: GraphViewInjected['readSessionHistory'], onOpen: () => void): {
+export function useSessionExtraction(node: SessionGraphNode | undefined, read: GraphViewInjected['readSessionHistory'], onOpen: (selection: SessionExtractionSelection) => void): {
   readonly openExtraction: () => Promise<void>
   readonly extractionLoading: boolean
   readonly extractionFailed: boolean
@@ -40,23 +41,11 @@ export function useSessionExtraction(node: SessionGraphNode | undefined, read: G
     setLoading(sessionId)
     setFailed(undefined)
     try {
-      const completed: { startSeq: number; endSeq: number }[] = []
-      const pageStarts = new Set<number>()
-      let result = await read({ sessionId }, controller.signal)
-      for (;;) {
-        if (result.kind !== 'original') break
-        completed.push(...result.turns.flatMap(turn => turn.endSeq === null ? [] : [{ startSeq: turn.startSeq, endSeq: turn.endSeq }]))
-        const last = result.turns.at(-1)
-        if (!result.hasLater || last === undefined || pageStarts.has(last.startSeq)) break
-        pageStarts.add(last.startSeq)
-        result = await read({ sessionId, afterSeq: last.startSeq }, controller.signal)
-      }
+      const selection = await readSessionExtractionSelection(sessionId, read, controller.signal)
       if (controller.signal.aborted || active.current?.requestId !== requestId) return
-      const first = completed[0]
-      const last = completed.at(-1)
-      if (first === undefined || last === undefined || knowledge === undefined) throw new Error('No completed turns')
-      const source: KnowledgeDiscussionAddress = { kind: 'discussion', sessionId, startSeq: first.startSeq, endSeq: last.endSeq }
-      onOpen()
+      if (selection === undefined || knowledge === undefined) throw new Error('No completed turns')
+      const source: KnowledgeDiscussionAddress = { kind: 'discussion', sessionId, startSeq: selection.startSeq, endSeq: selection.endSeq }
+      onOpen(selection)
       knowledge.extract(source)
     } catch {
       if (!controller.signal.aborted && active.current?.requestId === requestId) setFailed(sessionId)

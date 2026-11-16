@@ -135,7 +135,7 @@ export function GraphView(props: GraphViewProps): ReactElement {
     picker={<ResearchMaterialPicker api={props.knowledge} useSessions={props.useSessions} read={props.readSessionHistory} t={props.t} />}
     workspaces={workspaces.items} viewedId={props.sessionId} openSession={props.openSession} t={props.t}>
     <KnowledgeProvider api={props.knowledge} useSessions={props.useSessions}
-    topics={props.topics} read={props.readSessionHistory} t={props.t}>
+    topics={props.topics} read={props.readSessionHistory} openSession={props.openSession} branchSession={props.branchSession} t={props.t}>
     <HistoryBranchProvider api={props.historyBranch} hostId={props.hostId} openSession={props.openSession} t={props.t}>
       <GraphViewBody {...props} />
     </HistoryBranchProvider>

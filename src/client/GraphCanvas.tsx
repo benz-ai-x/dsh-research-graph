@@ -21,6 +21,7 @@ import { SessionTitleControl } from './SessionTitleControl.tsx'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { useSessionExtraction } from './session-extraction.ts'
+import { sessionExtractionSource, type SessionExtractionSelection } from './session-extraction-source.ts'
 import { InspectorFrame } from './InspectorFrame.tsx'
 import { SubagentDetails } from './SubagentDetails.tsx'
 import { canvasNodeTitle, duplicateTitleIds, shortSessionId } from './node-labels.ts'
@@ -487,7 +488,11 @@ function SelectedSessionPanel({
   }>())
   const nextDigestRequestId = useRef(0)
   const previousSelectedId = useRef<SessionId | undefined>(undefined)
-  const extraction = useSessionExtraction(node, onReadHistory, () => { setTab('history') })
+  const [extractionSelection, setExtractionSelection] = useState<SessionExtractionSelection>()
+  const extraction = useSessionExtraction(node, onReadHistory, selection => {
+    setExtractionSelection(selection)
+    setTab('history')
+  })
 
   useEffect(() => {
     const previous = previousSelectedId.current
@@ -733,7 +738,7 @@ function SelectedSessionPanel({
       <SubagentDetails key={node.id} node={node} onOpen={onOpenSubagent} t={t} />
       <div id={`${tabId}-content`} role="tabpanel" aria-labelledby={`${tabId}-${tab}`}>
         {tab === 'history'
-          ? <SessionHistory key={node.id} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} workingKey={workingKey} onUnavailable={onUnavailable} read={onReadHistory} t={t} />
+          ? <SessionHistory key={node.id} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} initialSelection={extractionSelection?.sessionId === node.id ? sessionExtractionSource(extractionSelection) : undefined} workingKey={workingKey} onUnavailable={onUnavailable} read={onReadHistory} t={t} />
           : <DigestSection
             node={node}
             entry={digestBySession[node.id]}

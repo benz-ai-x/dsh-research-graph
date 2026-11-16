@@ -94,4 +94,46 @@ describe('Knowledge extraction public Host workflow', () => {
     await expect(inspectSession(host.ctx, session.id)).rejects.toThrow('not found')
     expect(session.snapshotEvents()).toEqual(before.events)
   })
+
+  it('saves reviewed per-attraction fixture drafts into the selected Topic with exact sources', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'session-graph-itinerary-extraction-'))
+    cleanups.push(() => rm(root, { recursive: true, force: true }))
+    const host = await topicHost(root, cleanups)
+    const session = host.ctx.sessions.create(undefined, { meta: { cwd: '/a' } })
+    session.append('turn/start', { turn: 1 })
+    session.append('user/message', createUserMessage({ source: { kind: 'user' },
+      content: [{ type: 'text', text: '大同行程：华严寺、云冈石窟、大同古城墙。' }] }), { surfaceOp: 'append' })
+    session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+    const events = (await inspectSession(host.ctx, session.id)).events
+    const startSeq = events.find(event => event.type === 'turn/start')!.seq
+    const endSeq = events.find(event => event.type === 'turn/end')!.seq
+    const invoke = (method: string, request: unknown) => host.ctx.typertGateway.invoke({ peer: ownerPeer(host.ctx),
+      namespace: 'sessionGraphKnowledge', method, args: { request }, signal: new AbortController().signal,
+    })
+    const preview = await invoke('prepareExtraction', { source: { kind: 'discussion', sessionId: session.id, startSeq, endSeq }, budgetChars: 20_000 })
+    const attractions = ['华严寺', '云冈石窟', '大同古城墙']
+    vi.mocked(host.ctx.llm.stream).mockImplementation(async function* (options) {
+      expect(options.system).toContain('每个景点分别生成一张知识卡片')
+      yield { type: 'text-delta', index: 0, text: JSON.stringify({ cards: attractions.map(title => ({
+        title, question: `${title}的行程要点是什么？`, conclusion: `${title}的参观安排仍需人工核对。`, rationale: '', openQuestions: '', kind: 'conclusion',
+        citations: [{ startSeq, endSeq }],
+      })) }) }
+      yield { type: 'finish', reason: { kind: 'stop' } }
+    })
+    const generated = await invoke('extract', { preparationId: preview.preparationId, provider: 'fixture', model: 'fixed-v1',
+      instruction: '每个景点分别生成一张知识卡片' })
+    expect(generated.drafts.map(draft => draft.content.title)).toEqual(attractions)
+    expect(await invoke('search', { query: '' })).toEqual([])
+    const topicId = crypto.randomUUID()
+    await host.ctx.sessionGraphTopics.write({ kind: 'create', topicId, title: '大同旅行研究' }, new AbortController().signal)
+    for (const draft of generated.drafts) {
+      const saved = await invoke('save', { cardId: draft.cardId, revisionId: draft.revisionId, topicId,
+        content: { ...draft.content, conclusion: `人工核对：${draft.content.title}` }, sources: draft.sources })
+      expect(saved.topicIds).toEqual([topicId])
+      expect(saved.revisions[0].sources[0].source).toMatchObject({ startSeq, endSeq })
+    }
+    const cards = await invoke('search', { query: '', topicId })
+    expect(new Set(cards.map(card => card.revisions[0].content.title))).toEqual(new Set(attractions))
+    expect(cards.every(card => card.revisions[0].content.conclusion.startsWith('人工核对：'))).toBe(true)
+  })
 })

@@ -13,7 +13,7 @@ import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
 
 /** The Selected Session's explicitly opened discussion reader. */
-export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId, anchorSeq, highlightSeq, source, retainedSource, workingKey, onUnavailable, read, t, materials }: {
+export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId, anchorSeq, highlightSeq, source, initialSelection, retainedSource, workingKey, onUnavailable, read, t, materials }: {
   readonly materials?: MaterialSelectionActions | undefined
   readonly sourceTitle?: string | undefined
   readonly showSourceTitle?: boolean
@@ -21,6 +21,7 @@ export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId,
   readonly anchorSeq?: number
   readonly highlightSeq?: number
   readonly source?: SessionDiscussionSource
+  readonly initialSelection?: SessionDiscussionSource | undefined
   /** Topic provenance is a fallback; an explicitly opened source still wins. */
   readonly retainedSource?: SessionDiscussionSource
   readonly workingKey?: string | undefined
@@ -43,6 +44,7 @@ export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId,
   const unavailable = useRef(onUnavailable)
   unavailable.current = onUnavailable
   const [request, setRequest] = useState<SessionHistoryRequest>(() => {
+    if (initialSelection !== undefined) return { sessionId, source: initialSelection }
     if (source !== undefined) return { sessionId, source }
     if (anchorSeq !== undefined) return { sessionId, anchorSeq }
     const position = loadWorkingPosition(workingKey)
@@ -53,12 +55,20 @@ export function SessionHistory({ sourceTitle, showSourceTitle = true, sessionId,
     return { sessionId, ...(retainedSource === undefined ? {} : { source: retainedSource }) }
   })
   const [loading, setLoading] = useState(true)
-  const [selection, setSelection] = useState<SessionDiscussionSource>()
+  const [selection, setSelection] = useState<SessionDiscussionSource | undefined>(initialSelection)
   const [failed, setFailed] = useState(false)
   const [canceled, setCanceled] = useState(false)
   const [incompleteRange, setIncompleteRange] = useState(false)
   const activeRead = useRef<AbortController>()
   const loadedTurns = useRef(new Map<number, SessionHistoryTurn>())
+  const requestedSelection = useRef(initialSelection)
+  useEffect(() => {
+    if (initialSelection === undefined || requestedSelection.current === initialSelection) return
+    requestedSelection.current = initialSelection
+    setSelection(initialSelection)
+    setIncompleteRange(false)
+    setRequest({ sessionId, source: initialSelection })
+  }, [initialSelection, sessionId])
   useEffect(() => {
     const controller = new AbortController()
     activeRead.current = controller

@@ -20,6 +20,7 @@ import { SubagentDetails } from './SubagentDetails.tsx'
 import styles from './GraphView.module.css'
 import { useKnowledge } from './Knowledge.tsx'
 import { useSessionExtraction } from './session-extraction.ts'
+import { sessionExtractionSource, type SessionExtractionSelection } from './session-extraction-source.ts'
 import { KnowledgeReader } from './KnowledgeReader.tsx'
 import { useResearchReuse } from './ResearchReuse.tsx'
 import { useResearchRelations } from './research-relations.ts'
@@ -186,7 +187,11 @@ function TopicSourcePanel({ node, read, open, openSubagent, remove, busy, onClos
   const [reading, setReading] = useState(() => loadWorkingPosition(workingKey).selected === node.id && loadWorkingPosition(workingKey).tab === 'history')
   useEffect(() => { saveWorkingPosition(workingKey, { tab: reading ? 'history' : 'digest' }) }, [workingKey, reading])
   const source = node.topicSource
-  const extraction = useSessionExtraction(node, read, () => { setReading(true) })
+  const [extractionSelection, setExtractionSelection] = useState<SessionExtractionSelection>()
+  const extraction = useSessionExtraction(node, read, selection => {
+    setExtractionSelection(selection)
+    setReading(true)
+  })
   const inherited = node.mergeSources.length === 0 && !!node.inheritedMergeSources?.length
   const mergeSources = inherited ? node.inheritedMergeSources! : node.mergeSources
   const sourceLinks = mergeSources.map(item => {
@@ -223,7 +228,7 @@ function TopicSourcePanel({ node, read, open, openSubagent, remove, busy, onClos
       disabled={source?.status === 'unavailable' || node.turns === 0 || extraction.extractionLoading}
       onClick={() => { void extraction.openExtraction() }}>{t(extraction.extractionLoading ? 'extract.reading' : 'extract.title')}</button></div>
     {extraction.extractionFailed ? <p role="alert">{t('extract.error')}</p> : null}
-    {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} {...(node.retainedSource === undefined ? {} : { retainedSource: node.retainedSource })} read={read} t={t} /> : null}
+    {reading ? <SessionHistory workingKey={workingKey} onUnavailable={onUnavailable} sourceTitle={node.title} showSourceTitle={false} sessionId={node.id} initialSelection={extractionSelection?.sessionId === node.id ? sessionExtractionSource(extractionSelection) : undefined} {...(node.retainedSource === undefined ? {} : { retainedSource: node.retainedSource })} read={read} t={t} /> : null}
 
   </InspectorFrame>
 }
