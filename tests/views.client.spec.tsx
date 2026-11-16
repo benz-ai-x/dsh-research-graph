@@ -869,7 +869,9 @@ describe('Knowledge Cards registered Graph workflow', () => {
       hasEarlier: request.source === undefined && request.beforeSeq === undefined,
       hasLater: request.source !== undefined || request.beforeSeq !== undefined } }))
     b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
-    b.extractKnowledge.mockResolvedValue({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } })
+    b.extractKnowledge.mockResolvedValue({ ok: true, value: { provider: 'research', model: 'reasoner', drafts: [] } })
+    b.modelCatalog.mockResolvedValue({ ok: true, value: { default: { provider: 'host', model: 'everyday' },
+      groups: [{ id: 'research', name: '研究供应商', models: [{ id: 'synthesizer', name: '综合者' }, { id: 'reasoner', name: '推理者' }] }] } })
     const topic = { topicId: 'research', title: '旅行研究', references: [{ sessionId: 'a', title: 'Trip A', cwd: '/w' }], arrangement: { positions: {}, collapsed: [], offsets: {} } }
     b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
     b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [{ sessionId: 'a', title: 'Trip A', cwd: '/w', archived: false, status: 'listed' }] } })
@@ -890,8 +892,17 @@ describe('Knowledge Cards registered Graph workflow', () => {
     const task = await within(dialog).findByRole('textbox', { name: '本次提炼任务（选填）' })
     expect(task).toHaveProperty('value', '')
     fireEvent.change(task, { target: { value: '每个景点分别生成一张知识卡片' } })
+    const provider = await within(dialog).findByRole('combobox', { name: '模型提供方' })
+    const model = within(dialog).getByRole('combobox', { name: '模型' })
+    expect(provider).toHaveProperty('value', 'fixture')
+    expect(model).toHaveProperty('value', 'fixed-v1')
+    expect(within(dialog).getByRole('option', { name: 'fixture（当前路由，不在目录中）' })).toBeTruthy()
+    expect(within(dialog).queryByRole('textbox', { name: '模型提供方' })).toBeNull()
+    fireEvent.change(provider, { target: { value: 'research' } })
+    expect(model).toHaveProperty('value', 'synthesizer')
+    fireEvent.change(model, { target: { value: 'reasoner' } })
     fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
-    expect(b.extractKnowledge).toHaveBeenCalledWith({ preparationId: 'preview-trip', provider: 'fixture', model: 'fixed-v1',
+    expect(b.extractKnowledge).toHaveBeenCalledWith({ preparationId: 'preview-trip', provider: 'research', model: 'reasoner',
       instruction: '每个景点分别生成一张知识卡片' }, expect.any(AbortSignal))
     await waitFor(() => { expect(within(dialog).getByRole('button', { name: /生成知识草稿|追加一组草稿/ })).toHaveProperty('disabled', false) })
     fireEvent.click(within(dialog).getByRole('button', { name: '关闭卡片' }))
@@ -928,6 +939,27 @@ describe('Knowledge Cards registered Graph workflow', () => {
     expect(b.extractKnowledge.mock.calls[1]?.[1]?.aborted).toBe(true)
     await act(async () => { branching.resolve({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } }) })
     expect(within(dialog).queryByRole('textbox', { name: '结论' })).toBeNull()
+  })
+  it('disables extraction generation when the model catalog is unavailable', async () => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'Trip A', source: { startSeq: 10, endSeq: 14,
+      turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: 'Day 1: temple' }] }] } }
+    const preview: ExtractionPreparation = { preparationId: 'preview-catalog-error', selected: source, included: source, omitted: [], budgetChars: 20_000,
+      materialText: 'Day 1: temple', route: { provider: 'fixture', model: 'fixed-v1' } }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: source.source.turns, hasEarlier: false, hasLater: false } })
+    b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
+    b.modelCatalog.mockRejectedValue(new Error('catalog unavailable'))
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
+    const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
+    expect(await within(dialog).findByText('无法从 Host 模型目录选择模型。')).toBeTruthy()
+    expect(within(dialog).getByRole('combobox', { name: '模型提供方' })).toHaveProperty('disabled', true)
+    expect(within(dialog).getByRole('combobox', { name: '模型' })).toHaveProperty('disabled', true)
+    expect(within(dialog).getByRole('button', { name: '生成知识草稿' })).toHaveProperty('disabled', true)
+    expect(b.extractKnowledge).not.toHaveBeenCalled()
   })
   it('disables Selected Session extraction when the Host reports no completed turns, including narrow containers', async () => {
     stubSize(360, 600)

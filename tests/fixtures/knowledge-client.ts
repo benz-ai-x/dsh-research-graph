@@ -28,6 +28,9 @@ export function knowledgeClient() {
     },
     topics: { list: vi.fn<GraphViewInjected['topics']['list']>(async () => []),
       read: vi.fn<GraphViewInjected['topics']['read']>(), write: vi.fn<GraphViewInjected['topics']['write']>() },
+    models: { catalog: vi.fn(async () => ({ default: { provider: 'fixture', model: 'fixed' },
+      groups: [{ id: 'fixture', name: 'Fixture', models: [{ id: 'fixed', name: 'Fixed' }] }] })) },
+    openSession: vi.fn(), branchSession: vi.fn(async () => {}),
     read: vi.fn<GraphViewInjected['readSessionHistory']>(async request => {
       const later = request.afterSeq === 10 || request.range?.startSeq === 20
       return { kind: 'original', sessionId: 'session-a', turns: knowledgeSource(later ? 2 : 1).source.turns,
