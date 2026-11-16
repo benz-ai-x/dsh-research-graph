@@ -1,12 +1,12 @@
 # Research Graph Handoff
 
-Updated: 2026-11-16 (Asia/Shanghai, Issue #100 模型下拉选择开发中，0.2.2-rc.3.4 已发布但未部署)
+Updated: 2026-11-16 (Asia/Shanghai, PR #101 已合并，PR #102 待合并，0.2.2-rc.3.4 已发布但未部署)
 
 根 `HANDOFF.md` 是唯一实时交接，不另维护历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准；历史发布证据保留在 `docs/reviews/`。
 
 ## 当前状态
 
-- 当前工作分支为 `feat/extraction-model-select`，基线 `main@0a3510c`；[Issue #100](https://github.com/benz-ai-x/dsh-research-graph/issues/100) 将提炼提供方和模型改为 Host 目录联动下拉，保留并标注缺失的当前路由，目录失败时禁止生成。
+- [Issue #100](https://github.com/benz-ai-x/dsh-research-graph/issues/100) 的提炼模型下拉已由 [PR #101](https://github.com/benz-ai-x/dsh-research-graph/pull/101) 合并为 `7260a3f62c638940f4013b37c316c2d2958ce123`，合并树与已验收 head `cf1913f742b58106ed745168bd993080ed2f68fa` 一致；合并后 [main CI 43856022521](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43856022521) 全部通过。当前本地已切回 `main`；[PR #102](https://github.com/benz-ai-x/dsh-research-graph/pull/102) 的知识库 UIUX 优化仍开放，未合并。
 - 发布基线为 `main@a723bba1659d1981ed2ee0cf427a86bda59a62fc`；[PR #97](https://github.com/benz-ai-x/dsh-research-graph/pull/97) 与 [PR #98](https://github.com/benz-ai-x/dsh-research-graph/pull/98) 已合并，功能与发布分支已清理。合并后 [main CI 43813450335](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43813450335) 全部通过。
 - 当前发布为 **0.2.2-rc.3.4**，目标 DSH **0.2.2-rc.3**，npm **`latest=next=0.2.2-rc.3.4`**，官方 registry 与当前镜像回读一致，`@latest` 解析为新版本。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.4) 与 OIDC [Publish 43814175804](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43814175804) 已完成，透明日志 `3918786239`。未部署。
 - 正式包 **779783 bytes**，SHA-256 `210927a441adfaac340a400a7169fa04d5ad686076a69b79877b3a92684eefb7`，Build ID `local-3525e2e8`。本地候选为 **780928 bytes**，SHA-256 `1b1fd4e2f0a8e36d702c41046d5fda2f2565fd08bc188c312d12863a8be0a5fe`，两者不可混用。正式包独立通过 19 次固定模型冒烟及第二 profile 恢复后继续 1 次，`npm audit signatures` 为 `invalid: []`、`missing: []`。
