@@ -1,11 +1,11 @@
 export const readingZh = {
   'reading.library': '知识库',
-  'reading.newKnowledge': '新建知识',
+  'reading.newKnowledge': '新建知识卡片',
   'reading.cancel': '取消',
   'reading.topicOptions': '主题选项',
   'reading.canvasOptions': '图谱选项',
   'reading.zoom': '图谱缩放',
-  'reading.search': '搜索',
+  'reading.search': '搜索讨论与知识',
   'reading.originalInfo': '阅读与来源说明',
   'reading.close': '关闭阅读',
   'reading.legend': '关系图例',
@@ -38,12 +38,12 @@ export type ReadingKey = keyof typeof readingZh
 
 export const readingEn: Record<ReadingKey, string> = {
   'reading.library': 'Knowledge',
-  'reading.newKnowledge': 'New knowledge',
+  'reading.newKnowledge': 'New Knowledge Card',
   'reading.cancel': 'Cancel',
   'reading.topicOptions': 'Topic options',
   'reading.canvasOptions': 'Graph options',
   'reading.zoom': 'Graph zoom',
-  'reading.search': 'Search',
+  'reading.search': 'Search discussions & knowledge',
   'reading.originalInfo': 'About this original',
   'reading.close': 'Close reading',
   'reading.legend': 'Relationship legend',
