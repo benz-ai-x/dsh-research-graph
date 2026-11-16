@@ -16,7 +16,7 @@ Updated: 2026-11-16 (Asia/Shanghai, 0.2.2-rc.3.4 已发布，未部署)
 - 主工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`。
 - 未合并原型工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-prototype`，分支 `prototype/research-workbench`，保留不动。
 - rc.3.4 候选与正式 npm 验证证据分别保留在 `.artifacts/release-0.2.2-rc.3.4/candidate/` 与 `official/`，不要混用。rc.3.3 证据及预览 profile 保留在 `.artifacts/release-worktree-0.2.2-rc.3.3/`。
-- Release 已上传正式归档和 `SHA256SUMS`，服务端摘要与官方包一致；Release-CDN 下载连续超时，下载后逐字节复核仍未完成，未声称通过。
+- Release 已上传正式归档和 `SHA256SUMS`，服务端摘要与官方包一致；初次 Release-CDN 下载超时后，覆盖失败的下载副本并逐字节复核通过。
 - 既有 `.zcode/`、`docs/design/`、`docs/reports/`、研究文档和其他未跟踪资料未纳入发布，未修改。
 
 ## 当前能力边界
@@ -32,4 +32,4 @@ Updated: 2026-11-16 (Asia/Shanghai, 0.2.2-rc.3.4 已发布，未部署)
 - `pnpm run check`：**36 文件 / 302 项**；匹配 DSH `0.2.2-rc.3` 四编译面与完整 Harness：**28 文件 / 385 项**，候选与发布流水线均通过。
 - 候选与正式 npm 包分别独立通过双 profile：原 profile 19 次固定模型调用；第二 profile 恢复后继续 1 次，安装/移除干净。
 - Workspace/Topic 实际浏览器入口、原文实际勾选、三景点固定草稿编辑及所选 Topic 入库、390px 窄窗口已验收；真实模型逐景点质量未验收。预览已停止，日常 DSH profile 未修改，隔离演示 profile 保留。
-- PR 初审发现的向前分页、原文选择及生成中导航缺陷已修复，并新增真实 Host 13 轮分页与三景点 Topic 入库回归。Release-CDN 下载复核是本次唯一保留的未完成验证，不影响已完成的官方 npm 包独立验收。
+- PR 初审发现的向前分页、原文选择及生成中导航缺陷已修复，并新增真实 Host 13 轮分页与三景点 Topic 入库回归。官方 npm 包独立验收及 Release 归档下载复核均已完成。
