@@ -17,6 +17,7 @@ export interface ExtractionRequest {
   readonly preparationId: string
   readonly provider: string
   readonly model: string
+  readonly instruction?: string
 }
 export interface ExtractionDraft {
   readonly cardId: string

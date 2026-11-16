@@ -72,7 +72,16 @@ export function apply(ctx) {
       } else if (options.system?.startsWith('Extract up to five')) {
         const material = JSON.parse(options.messages[0].content[0].text)
         const turn = material.turns[0]
-        yield { type: 'text-delta', index: 0, text: JSON.stringify({ cards: [{
+        const attractions = ['华严寺', '云冈石窟', '大同古城墙'].filter(name => userText.includes(name))
+        if (options.system.includes('每个景点分别生成一张知识卡片') && attractions.length > 0) {
+          yield { type: 'text-delta', index: 0, text: JSON.stringify({ cards: attractions.map(name => ({
+            title: name, question: `${name}的行程要点是什么？`,
+            conclusion: `固定演示：${name}的参观安排仍需人工核对。`,
+            rationale: '仅用于验证逐实体草稿、编辑、来源和明确入库流程，不是实际旅行建议。',
+            openQuestions: '开放时间、门票与交通是否已在原始来源中确认？', kind: 'conclusion',
+            citations: [{ startSeq: turn.startSeq, endSeq: turn.endSeq }],
+          })) }) }
+        } else yield { type: 'text-delta', index: 0, text: JSON.stringify({ cards: [{
           title: '把性能收益与一致性风险分别验证', question: '怎样判断缓存方案是否适用？',
           conclusion: '评估缓存时，同时保留用户可感知的性能指标与敏感数据的一致性约束。不能用命中率替代这两项验证。',
           rationale: '演示整理：根据所选讨论梳理，仍需人工核对原文与适用条件。',
@@ -90,7 +99,7 @@ export function apply(ctx) {
         yield { type: 'text-delta', index: 0, text: JSON.stringify({ title: '两种观点的适用条件与验证问题', question: '这些观点在什么条件下成立？', kind: 'hypothesis', claims }) }
       } else {
         const researchQuestion = userText.match(/# Research question \/ 研究问题\n([^\n]+)/)?.[1]
-        const content = userText.includes('跨工作区汇聚：') ? '把两个工作区的讨论放在一起，可以同时看到性能收益与权限一致性这两个维度。先保留各自的适用条件，再用相同负载和权限撤销事件验证组合方案。\n\n来源讨论继续保留在各自工作区；后续实验使用这个新会话所属工作区的文件与执行环境。' : researchQuestion?.includes('反例') ? '可以先构造一个反例：缓存命中率很高，但权限撤销通知没有及时到达某个节点。此时性能表现很好，一致性要求却没有满足。\n\n把“请求耗时”和“权限撤销后是否仍能访问”作为两个独立观察项，再讨论是否接受这个风险。\n\n这是用于体验研究流程的固定示例，没有执行实验。'
+        const content = userText.includes('旅行行程验收') ? '第一天上午参观华严寺，下午游览大同古城墙。\n\n第二天前往云冈石窟。以上为固定行程演示，未核对真实开放时间、门票或交通。' : userText.includes('跨工作区汇聚：') ? '把两个工作区的讨论放在一起，可以同时看到性能收益与权限一致性这两个维度。先保留各自的适用条件，再用相同负载和权限撤销事件验证组合方案。\n\n来源讨论继续保留在各自工作区；后续实验使用这个新会话所属工作区的文件与执行环境。' : researchQuestion?.includes('反例') ? '可以先构造一个反例：缓存命中率很高，但权限撤销通知没有及时到达某个节点。此时性能表现很好，一致性要求却没有满足。\n\n把“请求耗时”和“权限撤销后是否仍能访问”作为两个独立观察项，再讨论是否接受这个风险。\n\n这是用于体验研究流程的固定示例，没有执行实验。'
           : researchQuestion ? answers[2] : userText.includes('体验种子：低延迟') ? answers[0]
           : userText.includes('体验种子：权限') ? answers[1] : answers[2]
         for (const paragraph of content.split('\n\n')) {

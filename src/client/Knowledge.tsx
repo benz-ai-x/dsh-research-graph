@@ -45,11 +45,13 @@ interface KnowledgeDialog {
 }
 
 /** Owns explicit card dialogs; source readers only supply an address, never authoritative text. */
-export function KnowledgeProvider({ api, topics, read, t, children, useSessions }: {
+export function KnowledgeProvider({ api, topics, read, openSession, branchSession, t, children, useSessions }: {
   readonly useSessions?: GraphViewProps['useSessions']
   readonly api: KnowledgeApi
   readonly topics: GraphViewInjected['topics']
   readonly read: GraphViewInjected['readSessionHistory']
+  readonly openSession: GraphViewInjected['openSession']
+  readonly branchSession: GraphViewInjected['branchSession']
   readonly t: Translate
   readonly children: ReactNode
 }): ReactElement {
@@ -110,7 +112,7 @@ export function KnowledgeProvider({ api, topics, read, t, children, useSessions 
           setSaved({ cardId: card.cardId, title: revision.content.title, hasSources: revision.sources.length > 0 })
           if (capturing) close()
         }} />
-        : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} t={t}
+        : <KnowledgeExtraction source={dialog.extraction} topicId={topicId} api={api} topics={topics} read={read} openSession={openSession} branchSession={branchSession} t={t}
           changed={() => { setRefresh(value => value + 1) }} />}
     </section>}</DraftGuard>
     })}

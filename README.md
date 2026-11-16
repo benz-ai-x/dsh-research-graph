@@ -64,7 +64,7 @@ Version 0.2.2-rc.3.3 with demo data. Click the image for the full-resolution scr
 | **Session backup and restore** | Back up complete Session logs, context events, descendants, and attachments in one ZIP; name archives by Workspace and restore on demand without overwriting different same-ID Sessions |
 | **Research Topics and source tracing** | Gather discussions across Workspaces, search discussion text, and return to the exact original turns behind a finding |
 | **Source-linked Knowledge Cards** | Save reviewed conclusions, conditions, and open questions with exact sources; edit through new revisions without losing earlier versions |
-| **AI extraction and synthesis** | Extract selected turns and compare 2–3 frozen materials; inspect drafts and citations before explicitly saving |
+| **AI extraction and synthesis** | Extract from Original or Session details with optional per-entity tasks, and compare 2–3 frozen materials; inspect drafts and citations before explicitly saving |
 | **Follow-up research** | Start from a historical turn or reuse chosen card revisions and discussion ranges, retaining the exact materials used |
 | **Inspection and delivery** | Read turn counts and Session statistics, inspect existing Subagent records, and export Markdown research results |
 

@@ -1300,6 +1300,13 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+.digestActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .digestAction {
   min-height: 30px;
   padding: 5px 10px;

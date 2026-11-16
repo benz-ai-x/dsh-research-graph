@@ -853,6 +853,109 @@ describe('Knowledge Cards registered Graph workflow', () => {
     expect(conclusion.value).toBe('人工改写，必须保留')
     expect(b.saveKnowledge).not.toHaveBeenCalled()
   })
+  it.each(['workspace', 'topic'] as const)('opens Selected Session extraction with every completed page and a custom task in a %s', async scope => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'Trip A', source: { startSeq: 2, endSeq: 14,
+      turns: [
+        { turn: 1, startSeq: 2, endSeq: 4, startedAt: 1000, messages: [{ role: 'user' as const, seq: 3, text: 'Plan the trip' }] },
+        { turn: 2, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: 'Day 1: temple' }] },
+      ] } }
+    const preview: ExtractionPreparation = { preparationId: 'preview-trip', selected: source, included: source, omitted: [], budgetChars: 20_000,
+      materialText: 'Day 1: temple', route: { provider: 'fixture', model: 'fixed-v1' } }
+    const unfinishedTurn = { turn: 3, startSeq: 20, endSeq: null, startedAt: 1000,
+      messages: [{ role: 'user' as const, seq: 21, text: 'still running' }] }
+    b.readHistory.mockImplementation(async request => ({ ok: true, value: { kind: 'original', sessionId: 'a',
+      turns: request.source !== undefined ? source.source.turns : request.beforeSeq === undefined ? [source.source.turns[1]!, unfinishedTurn] : [source.source.turns[0]!],
+      hasEarlier: request.source === undefined && request.beforeSeq === undefined,
+      hasLater: request.source !== undefined || request.beforeSeq !== undefined } }))
+    b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
+    b.extractKnowledge.mockResolvedValue({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } })
+    const topic = { topicId: 'research', title: '旅行研究', references: [{ sessionId: 'a', title: 'Trip A', cwd: '/w' }], arrangement: { positions: {}, collapsed: [], offsets: {} } }
+    b.listTopics.mockResolvedValue({ ok: true, value: [topic] })
+    b.readTopic.mockResolvedValue({ ok: true, value: { topic, sources: [{ sessionId: 'a', title: 'Trip A', cwd: '/w', archived: false, status: 'listed' }] } })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    if (scope === 'topic') {
+      fireEvent.change(screen.getByRole('combobox', { name: '研究范围' }), { target: { value: 'topics' } })
+      await waitFor(() => { expect(document.querySelector('[data-node-id="a"]')).not.toBeNull() })
+    }
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
+    const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
+    expect(b.extractKnowledge).not.toHaveBeenCalled()
+    expect(b.readHistory).toHaveBeenNthCalledWith(1, { sessionId: 'a' }, expect.any(AbortSignal))
+    expect(b.readHistory).toHaveBeenNthCalledWith(2, { sessionId: 'a', beforeSeq: 10 }, expect.any(AbortSignal))
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
+    expect(b.prepareExtraction).toHaveBeenCalledWith({ source: { kind: 'discussion', sessionId: 'a', startSeq: 2, endSeq: 14 }, budgetChars: 20_000 }, expect.any(AbortSignal))
+    const task = await within(dialog).findByRole('textbox', { name: '本次提炼任务（选填）' })
+    expect(task).toHaveProperty('value', '')
+    fireEvent.change(task, { target: { value: '每个景点分别生成一张知识卡片' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
+    expect(b.extractKnowledge).toHaveBeenCalledWith({ preparationId: 'preview-trip', provider: 'fixture', model: 'fixed-v1',
+      instruction: '每个景点分别生成一张知识卡片' }, expect.any(AbortSignal))
+    await waitFor(() => { expect(within(dialog).getByRole('button', { name: /生成知识草稿|追加一组草稿/ })).toHaveProperty('disabled', false) })
+    fireEvent.click(within(dialog).getByRole('button', { name: '关闭卡片' }))
+    expect(await screen.findByRole('checkbox', { name: '选择第 1 轮' })).toHaveProperty('checked', true)
+    expect(screen.getByRole('checkbox', { name: '选择第 2 轮' })).toHaveProperty('checked', true)
+    expect(b.readHistory).toHaveBeenCalledWith({ sessionId: 'a', source: { startSeq: 2, endSeq: 14, turns: source.source.turns } }, expect.any(AbortSignal))
+  })
+  it('allows Session navigation during extraction generation and cancels late results', async () => {
+    const b = await bench({ a: session('a') })
+    const source = { sessionId: 'a', title: 'Trip A', source: { startSeq: 10, endSeq: 14,
+      turns: [{ turn: 1, startSeq: 10, endSeq: 14, startedAt: 1000, messages: [{ role: 'user' as const, seq: 11, text: 'Day 1: temple' }] }] } }
+    const preview: ExtractionPreparation = { preparationId: 'preview-navigation', selected: source, included: source, omitted: [], budgetChars: 20_000,
+      materialText: 'Day 1: temple', route: { provider: 'fixture', model: 'fixed-v1' } }
+    b.readHistory.mockResolvedValue({ ok: true, value: { kind: 'original', sessionId: 'a', turns: source.source.turns, hasEarlier: false, hasLater: false } })
+    b.prepareExtraction.mockResolvedValue({ ok: true, value: preview })
+    const opening = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphKnowledge/extract']>>>()
+    const branching = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphKnowledge/extract']>>>()
+    b.extractKnowledge.mockReturnValueOnce(opening.promise).mockReturnValueOnce(branching.promise)
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
+    const dialog = await screen.findByRole('dialog', { name: '提炼知识' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '预览纳入材料' }))
+    fireEvent.click(await within(dialog).findByRole('button', { name: '生成知识草稿' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '打开会话' }))
+    expect(b.open).toHaveBeenCalledWith('a')
+    expect(b.extractKnowledge.mock.calls[0]?.[1]?.aborted).toBe(true)
+    await act(async () => { opening.resolve({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } }) })
+    expect(within(dialog).queryByRole('textbox', { name: '结论' })).toBeNull()
+    fireEvent.click(within(dialog).getByRole('button', { name: '生成知识草稿' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: '开新分支' }))
+    expect(b.fork).toHaveBeenCalledWith({ sessionId: 'a', increaseTitle: true })
+    expect(b.extractKnowledge.mock.calls[1]?.[1]?.aborted).toBe(true)
+    await act(async () => { branching.resolve({ ok: true, value: { provider: 'fixture', model: 'fixed-v1', drafts: [] } }) })
+    expect(within(dialog).queryByRole('textbox', { name: '结论' })).toBeNull()
+  })
+  it('disables Selected Session extraction when the Host reports no completed turns, including narrow containers', async () => {
+    stubSize(360, 600)
+    const b = await bench({ a: session('a', { projectionValues: { sessionStats: { turns: 0, steps: 0, llmMs: 0, toolMs: 0, ttftMs: 0, ttftSteps: 0, decodeMs: 0, decodeTokens: 0 } } }) })
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('a'))
+    await waitFor(() => { expect(screen.getByRole('button', { name: '提炼知识' })).toHaveProperty('disabled', true) })
+    expect(b.readHistory).not.toHaveBeenCalled()
+    expect(b.prepareExtraction).not.toHaveBeenCalled()
+    expect(b.extractKnowledge).not.toHaveBeenCalled()
+  })
+  it('cancels pending Selected Session extraction when the selection changes', async () => {
+    const b = await bench({ a: session('a'), b: session('b') })
+    const pending = Promise.withResolvers<Awaited<ReturnType<TypertRemoteMap['sessionGraphHistory/read']>>>()
+    b.readHistory.mockReturnValue(pending.promise)
+    mount(b.slots, b.sessionsStore, 'a')
+    switchTab('Research Graph')
+    fireEvent.click(nodeButton('a'))
+    fireEvent.click(screen.getByRole('button', { name: '提炼知识' }))
+    fireEvent.click(nodeButton('b'))
+    expect(b.readHistory.mock.calls[0]?.[1]?.aborted).toBe(true)
+    await act(async () => { pending.resolve({ ok: true, value: { kind: 'original', sessionId: 'a', turns: [], hasEarlier: false, hasLater: false } }) })
+    expect(screen.queryByRole('dialog', { name: '提炼知识' })).toBeNull()
+    expect(screen.getByTestId('session-graph-panel').textContent).toContain('Session b')
+    expect(b.prepareExtraction).not.toHaveBeenCalled()
+    expect(b.extractKnowledge).not.toHaveBeenCalled()
+  })
   it('finds a card through the shared search entry and draws an explicit source relation in its topic', async () => {
     const b = await bench({ a: session('a') })
     const fixture = researchTopicFixture()
@@ -1836,6 +1939,7 @@ describe('Session insights in the registered Graph', () => {
     expect(digest.querySelectorAll('ul > li')).toHaveLength(3)
     expect(digest.querySelector('a[href^="javascript:"]')).toBeNull()
     expect(digest.textContent).not.toContain('**')
+    expect(screen.getByRole('button', { name: '提炼知识' })).toBeTruthy()
   })
 })
 

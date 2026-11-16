@@ -237,7 +237,10 @@ export class KnowledgeService extends TypertRemoteService {
       for await (const chunk of this.ctx.llm.stream({ provider: command.provider, model: command.model,
         messages: [createUserMessage({ source: { kind: SESSION_GRAPH_MESSAGE_KIND },
           content: [{ type: 'text', text: prepared.materialText }] })],
-        system: EXTRACTION_SYSTEM_PROMPT, maxTokens: 4096, sessionId: prepared.selected.sessionId as SessionId, signal: callSignal,
+        system: command.instruction === undefined
+          ? EXTRACTION_SYSTEM_PROMPT
+          : `${EXTRACTION_SYSTEM_PROMPT}\nAdditional extraction task from the operator: ${command.instruction}`,
+        maxTokens: 4096, sessionId: prepared.selected.sessionId as SessionId, signal: callSignal,
       })) {
         callSignal.throwIfAborted()
         outputSize += JSON.stringify(chunk).length
