@@ -1,12 +1,12 @@
 # Research Graph Handoff
 
-Updated: 2026-11-16 (Asia/Shanghai, Issue #96 功能分支，0.2.2-rc.3.3 已发布但未部署)
+Updated: 2026-11-16 (Asia/Shanghai, 0.2.2-rc.3.4 发布准备中，0.2.2-rc.3.3 已发布但未部署)
 
 根 `HANDOFF.md` 是唯一实时交接，不另维护历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准；历史发布证据保留在 `docs/reviews/`。
 
 ## 当前状态
 
-- 当前工作分支为 `feat/96-session-extraction-action`，基线 `main@5790e74`；Issue #96 的 Selected Session 提炼入口已实现并完成本地验收。发布基线 `main@525f3daa4589f850397bbedf3a21d5c91320bbcf` 的 [CI 43726524298](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43726524298) 全部通过。
+- 当前工作分支为 `release/0.2.2-rc.3.4`，基线 `main@42e1eca`；[PR #97](https://github.com/benz-ai-x/dsh-research-graph/pull/97) 已合并，Selected Session 提炼功能验收通过。合并后 [main CI 43812022648](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43812022648) 与本地候选发布门禁核对后创建发布 PR。
 - 当前发布为 **0.2.2-rc.3.3**，目标 DSH **0.2.2-rc.3**，npm **`next=0.2.2-rc.3.3`**，随后按用户直接安装最新版的要求将 `latest` 也提升至 `0.2.2-rc.3.3`；registry 回读确认 `latest` 与 `next` 均为该版本，包字节未变。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.3) 与 OIDC [Publish 43720788768](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43720788768) 已完成，SLSA 透明日志 `3903385624` 核对通过。未部署。
 - 正式包 **775309 bytes**，SHA-256 `baac709c33a62cf5b3f0c8d5eafbe171275f831ca98d1f3df36b6cd4fbd0752b`，Build ID `local-c699c66d`。本地候选为 **776112 bytes**，两者不可混用。正式包独立通过 19 次固定模型冒烟及第二 profile 恢复后继续 1 次，Release 归档与 SHA256SUMS 回读一致。
 - 完整发布证据见 [release-0.2.2-rc.3.3.md](docs/reviews/release-0.2.2-rc.3.3.md)，功能验收见 [session-backup-restore.md](docs/reviews/session-backup-restore.md)。
