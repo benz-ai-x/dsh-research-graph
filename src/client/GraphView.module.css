@@ -2044,12 +2044,13 @@
 .knowledgeReading > section[data-field='openQuestions'] > p { color: var(--dsw-alias-label-primary); }
 .knowledgeReading > section[data-field='openQuestions'] .readingSectionTitle,
 .knowledgeReading > section[data-field='openQuestions'] .readingSectionTitle svg { color: var(--dsw-alias-state-warn-label); }
-.readingRevision { display: inline-flex; align-items: center; gap: 5px; }
-.readingSavedAt { display: inline-flex; align-items: center; gap: 5px; }
+.readingRevision, .readingSavedAt { display: inline-flex; align-items: center; gap: 5px; }
+.knowledgeBadge[data-saved='saved'] { color: var(--dsw-alias-state-done-primary); border-color: var(--dsw-alias-state-done-primary); background: transparent; }
 .readingActions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .knowledgeBoundary .readingActions .primaryButton { border-color: var(--dsw-alias-button-info-fill); background: var(--dsw-alias-button-info-fill); color: var(--dsw-alias-label-primary-foreground); }
 .knowledgeBoundary .readingActions .primaryButton:hover { border-color: var(--dsw-alias-button-info-hover); background: var(--dsw-alias-button-info-hover); }
-.readingActions .tertiaryButton { color: var(--dsw-alias-label-secondary); }
+.readingActions .tertiaryButton { border: 0; background: transparent; color: var(--dsw-alias-label-secondary); font-weight: 400; }
+.readingActions .tertiaryButton:hover { background: var(--dsw-alias-interactive-bg-hover); }
 .readingSourceGroup { margin: 10px 0; padding: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 9px; background: var(--dsw-alias-bg-layer-2); }
 .readingSourceGroupTitle { display: flex; align-items: flex-start; gap: 7px; min-width: 0; color: var(--dsw-alias-state-business-primary); }
 .readingSourceGroupTitle svg { flex: none; margin-top: 3px; }

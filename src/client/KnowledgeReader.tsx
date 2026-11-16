@@ -13,7 +13,8 @@ import { useResearchReuse } from './ResearchReuse.tsx'
 import { SessionHistory } from './SessionHistory.tsx'
 import { InspectorFrame } from './InspectorFrame.tsx'
 import { ResearchMarkdown } from './ResearchMarkdown.tsx'
-import { KnowledgeKindBadge, KnowledgeStatusBadge } from './KnowledgeBadges.tsx'
+import { KnowledgeKindBadge, KnowledgeSavedBadge, KnowledgeStatusBadge } from './KnowledgeBadges.tsx'
+import { latestKnowledgeRevision } from './knowledge-presentation.ts'
 import { SynthesisClaims, SynthesisMaterialView } from './SynthesisClaims.tsx'
 import styles from './GraphView.module.css'
 import { loadWorkingPosition, saveWorkingPosition } from './working-position.ts'
@@ -69,7 +70,7 @@ export function KnowledgeReader({ card, relations, read, workingKey, inspector, 
     panel?.addEventListener('scroll', remember, { passive: true })
     return () => { panel?.removeEventListener('scroll', remember) }
   }, [workingKey, card.cardId, version, source])
-  const latest = card.revisions.at(-1)!
+  const latest = latestKnowledgeRevision(card.revisions)
   const revision = version === '' ? latest : card.revisions.find(item => item.revisionId === version)
   if (revision === undefined) return <div role="alert">{t('knowledge.error')}
     {onRetry ? <button type="button" onClick={onRetry}>{t('topic.retry')}</button> : null}</div>
@@ -80,7 +81,7 @@ export function KnowledgeReader({ card, relations, read, workingKey, inspector, 
     if (existing === undefined) sourceGroups.push({ title: item.title, items: [{ source: item, index }] })
     else existing.items.push({ source: item, index })
   })
-  const meta = <div className={styles.readingMeta}><KnowledgeStatusBadge status={revision.content.status} t={t} />
+  const meta = <div className={styles.readingMeta}><KnowledgeSavedBadge t={t} /><KnowledgeStatusBadge status={revision.content.status} t={t} />
       <KnowledgeKindBadge kind={revision.content.kind} t={t} />
       <label className={styles.readingRevision}><IconLayersOutlineRegular size={13} />{t('knowledge.version')}<select value={revision.revisionId === latest.revisionId ? '' : version} onChange={event => { setVersion(event.target.value); setSource(undefined) }}>
         <option value="">{t('knowledge.versionNumber', { number: card.revisions.at(-1)!.number })}</option>

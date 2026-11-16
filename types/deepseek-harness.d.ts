@@ -305,6 +305,7 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   export function IconInspectOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconLinkOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconPaperPlaneOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconSaveOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function FishLogo(props: SidebarIconProps): import('react').ReactElement
   export type StateDotState = 'done' | 'warning' | 'ongoing' | 'error' | 'idle'
   export function StateDot(props: { readonly state: StateDotState }): import('react').ReactElement

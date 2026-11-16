@@ -1,13 +1,17 @@
 import type { ReactElement } from 'react'
 import {
   IconCheckCircleOutlineRegular, IconChecklistOutlineRegular, IconLightOutlineRegular,
-  IconQuestionOutlineRegular, IconSparkleRegular, IconWarningTriangleOutlineRegular,
+  IconQuestionOutlineRegular, IconSaveOutlineRegular, IconSparkleRegular, IconWarningTriangleOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { KnowledgeContent } from '../knowledge.ts'
 import type { SessionGraphKey } from './locales.ts'
 import styles from './GraphView.module.css'
 
 type Translate = (key: SessionGraphKey) => string
+
+export function KnowledgeSavedBadge({ t }: { readonly t: Translate }): ReactElement {
+  return <span className={styles.knowledgeBadge} data-saved="saved"><IconSaveOutlineRegular size={13} />{t('workbench.saved')}</span>
+}
 
 export function KnowledgeStatusBadge({ status, t }: {
   readonly status: KnowledgeContent['status']
