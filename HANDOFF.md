@@ -24,6 +24,7 @@ Updated: 2026-11-15 (Asia/Shanghai, 0.2.2-rc.3.3 已发布，未部署)
 - 会话 ZIP 同时包含完整已提交会话与上下文事件、子代理和附件；文件名包含实际工作区、会话标题、UTC 时间和短 ID。
 - 恢复保留 Session ID、继承历史与附件，按所选工作区重定向 header cwd。内容一致者跳过，同 ID 冲突者拒绝覆盖；取消和失败明确报告部分恢复及失败 Session ID，不泄露 Host 路径。
 - 备份不包含凭据、模型/插件配置、工作区定义与文件夹、研图 Topic/知识库/Branch Origin 数据、工作区文件、未提交 token 或 KV cache。
+- **Selected Session 提炼入口（[Issue #96](https://github.com/benz-ai-x/dsh-research-graph/issues/96)，`ready-for-agent`，未实施）**：在“生成摘要”旁加入“提炼知识”，自动选择当前 Selected Session 的已完成轮次并打开现有提炼流程，支持按景点等实体分别生成草稿，审核后保存；点击按钮本身不调用模型，不自动入库。
 - 用户优先级：图谱使用体验第一，知识库归纳第二。[Issue #32](https://github.com/benz-ai-x/dsh-research-graph/issues/32) 的 P5 两项仍暂缓；新工作以用户下一条要求及 Issue 当前范围为准。
 
 ## 验证基线
