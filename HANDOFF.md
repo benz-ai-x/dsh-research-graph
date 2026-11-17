@@ -19,6 +19,7 @@ Updated: 2026-11-16 (Asia/Shanghai, PR #101 已合并，PR #102 待合并，0.2.
 - rc.3.4 候选与正式 npm 验证证据分别保留在 `.artifacts/release-0.2.2-rc.3.4/candidate/` 与 `official/`，不要混用。rc.3.3 证据及预览 profile 保留在 `.artifacts/release-worktree-0.2.2-rc.3.3/`。
 - Release 已上传正式归档和 `SHA256SUMS`，服务端摘要与官方包一致；初次 Release-CDN 下载超时后，覆盖失败的下载副本并逐字节复核通过。
 - 既有 `.zcode/`、`docs/design/`、`docs/reports/`、研究文档和其他未跟踪资料未纳入发布，未修改。
+- **知识库 UIUX 优化（[PR #102](https://github.com/benz-ai-x/dsh-research-graph/pull/102)，已提交并推送，未合并）**：功能提交 `c758e4d6a84702f25f7ec40ac576ebb8c824fe90`，基于 `origin/main@0a3510c`，覆盖搜索提示、状态/类型筛选、最近保存/标题排序、SVG 图标与语义色徽章、来源按 Session 分组和摘录、主次操作、空后续区隐藏及宽窄屏布局；只改展示，不改卡片、修订、来源或 Host 记录。`pnpm run check` **36 文件 / 302 项**、完整 Harness **29 文件 / 387 项**与四编译面通过；最终品牌色修正后独立 302 项及知识库/阅读聚焦 **8 项**再次通过。真实隔离浏览器已检查宽屏与窄屏列表/详情切换、来源和警告区；预览与标签均已停止/关闭。实拍 `docs/reviews/assets/knowledge-library-uiux.png`，日常 profile 未改。两轴复审初轮 Spec 发现独立保存徽章缺失及导出不具备三级层级，Standards 另有枚举、长链和重复选择器简化建议；已补齐保存徽章、导出三级文本按钮，并新增 `knowledge-presentation.ts` 共享枚举和最新修订读取。修复后独立 **302 项**、Harness **387 项**及四编译面再次通过，原 Standards 与 Spec 审查员复核均 **通过、剩余问题为零**。
 
 ## 当前能力边界
 

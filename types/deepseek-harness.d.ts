@@ -295,6 +295,17 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   export function IconWarningOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconWorkspaceTreeOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function IconAppsAddOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconLayersOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconCheckCircleOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconChecklistOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconLightOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconQuestionOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconSparkleRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconWarningTriangleOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconInspectOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconLinkOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconPaperPlaneOutlineRegular(props: SidebarIconProps): import('react').ReactElement
+  export function IconSaveOutlineRegular(props: SidebarIconProps): import('react').ReactElement
   export function FishLogo(props: SidebarIconProps): import('react').ReactElement
   export type StateDotState = 'done' | 'warning' | 'ongoing' | 'error' | 'idle'
   export function StateDot(props: { readonly state: StateDotState }): import('react').ReactElement

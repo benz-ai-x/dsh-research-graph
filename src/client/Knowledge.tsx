@@ -18,6 +18,7 @@ import { DraftGuard, useDraftProtection } from './DraftGuard.tsx'
 import { knowledgePrefill } from './knowledge-prefill.ts'
 import { editableKnowledgeSources, changeExtractionCitation } from './knowledge-citations.ts'
 import { KnowledgeReader } from './KnowledgeReader.tsx'
+import { KNOWLEDGE_KINDS, KNOWLEDGE_STATUSES } from './knowledge-presentation.ts'
 
 type Translate = (key: SessionGraphKey, params?: Record<string, unknown>) => string
 interface KnowledgeContextValue {
@@ -331,11 +332,11 @@ export function KnowledgeEditor({ cardId, readRevisionId, synthesisDraft, frozen
               onChange={event => { editedFields.current.add(field); setContent(value => ({ ...value, [field]: event.target.value })) }} /></label>)}
         <label>{t('knowledge.kind')}<select value={content.kind} disabled={busy}
           onChange={event => { setContent(value => ({ ...value, kind: event.target.value as KnowledgeContent['kind'] })) }}>
-          {(['conclusion', 'method', 'hypothesis', 'question'] as const).map(kind => <option key={kind} value={kind}>{t(`knowledge.kind.${kind}`)}</option>)}
+          {KNOWLEDGE_KINDS.map(kind => <option key={kind} value={kind}>{t(`knowledge.kind.${kind}`)}</option>)}
         </select></label>
         <label>{t('knowledge.status')}<select value={content.status} disabled={busy}
           onChange={event => { setContent(value => ({ ...value, status: event.target.value as KnowledgeContent['status'] })) }}>
-          {(['draft', 'confirmed'] as const).map(status => <option key={status} value={status}>{t(`knowledge.status.${status}`)}</option>)}
+          {KNOWLEDGE_STATUSES.map(status => <option key={status} value={status}>{t(`knowledge.status.${status}`)}</option>)}
         </select></label>
         </details>
         {synthesis === undefined ? <p>{prefillInfo ? t('workbench.sourceTurns', { first: prefillInfo.first, last: prefillInfo.last }) : t('knowledge.sourceHint')}</p> : null}
