@@ -50,7 +50,7 @@ flowchart LR
   </a>
 </p>
 
-Version 0.2.2-rc.3.3 with demo data. Click the image for the full-resolution screenshot.
+Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution screenshot.
 
 <a id="features"></a>
 <a id="what-it-adds"></a>
@@ -63,8 +63,8 @@ Version 0.2.2-rc.3.3 with demo data. Click the image for the full-resolution scr
 | **Own sidebar with Workspace folders** | Organize Sessions in user-created folders inside each Workspace while retaining native row menus. Re-adding a removed Workspace's directory restores its currently unaccounted Sessions; uninstalling restores the official sidebar |
 | **Session backup and restore** | Back up complete Session logs, context events, descendants, and attachments in one ZIP; name archives by Workspace and restore on demand without overwriting different same-ID Sessions |
 | **Research Topics and source tracing** | Gather discussions across Workspaces, search discussion text, and return to the exact original turns behind a finding |
-| **Source-linked Knowledge Cards** | Save reviewed conclusions, conditions, and open questions with exact sources; edit through new revisions without losing earlier versions |
-| **AI extraction and synthesis** | Extract from Original or Session details with optional per-entity tasks, and compare 2–3 frozen materials; inspect drafts and citations before explicitly saving |
+| **Source-linked Knowledge Cards** | Save reviewed conclusions, conditions, and open questions with exact sources; filter and sort the catalog, inspect saved/verification/type badges, and read grouped source excerpts without losing revision history |
+| **AI extraction and synthesis** | Extract from Original or Session details with optional per-entity tasks and Host-linked model selection, or compare 2–3 frozen materials; inspect drafts and citations before explicitly saving |
 | **Follow-up research** | Start from a historical turn or reuse chosen card revisions and discussion ranges, retaining the exact materials used |
 | **Inspection and delivery** | Read turn counts and Session statistics, inspect existing Subagent records, and export Markdown research results |
 
@@ -75,7 +75,7 @@ Version 0.2.2-rc.3.3 with demo data. Click the image for the full-resolution scr
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.2-rc.3.3](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.3), npm `latest` / `next` |
+| Plugin release | [0.2.2-rc.3.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.5), npm `latest` / `next` |
 | Required Host | **DSH 0.2.2-rc.3 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, export, backup, and restore make no model call; AI generation and new discussions use models on demand |
@@ -107,7 +107,7 @@ Browsing, searching, manual capture, Markdown export, and Session backup/restore
 Requires **DSH 0.2.2-rc.3** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.3
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.5
 dsh web
 ```
 
@@ -121,7 +121,9 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.3.3` | `0.2.2-rc.3` | Current release — native Session backup and on-demand restore with Workspace-aware filenames and no overwriting; requires Node.js `>=24.9.0`; npm `latest` / `next` |
+| `0.2.2-rc.3.5` | `0.2.2-rc.3` | Current release — Host-linked extraction model selection plus richer Knowledge Card filtering, badges, and grouped source reading; requires Node.js `>=24.9.0`; npm `latest` / `next` |
+| `0.2.2-rc.3.4` | `0.2.2-rc.3` | Reviewed Selected Session extraction with exact sources; requires Node.js `>=24.9.0` |
+| `0.2.2-rc.3.3` | `0.2.2-rc.3` | Native Session backup and on-demand restore with Workspace-aware filenames and no overwriting; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.2` | `0.2.2-rc.3` | Restores unaccounted Sessions when re-adding the same Workspace directory; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | Restores Branch links for independent ordinary forks; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3` | `0.2.2-rc.3` | Reusable Workspace picker Factory and New Session HOC; requires Node.js `>=24.9.0` |
@@ -133,4 +135,4 @@ See the [full release history](https://github.com/benz-ai-x/dsh-research-graph/r
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.3.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.5.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
