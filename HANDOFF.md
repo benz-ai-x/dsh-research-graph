@@ -1,12 +1,12 @@
 # Research Graph Handoff
 
-Updated: 2026-11-16 (Asia/Shanghai, PR #101 已合并，PR #102 待合并，0.2.2-rc.3.4 已发布但未部署)
+Updated: 2026-11-17 (Asia/Shanghai, PR #101 / #102 已合并，0.2.2-rc.3.4 已发布但未部署)
 
 根 `HANDOFF.md` 是唯一实时交接，不另维护历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准；历史发布证据保留在 `docs/reviews/`。
 
 ## 当前状态
 
-- [Issue #100](https://github.com/benz-ai-x/dsh-research-graph/issues/100) 的提炼模型下拉已由 [PR #101](https://github.com/benz-ai-x/dsh-research-graph/pull/101) 合并为 `7260a3f62c638940f4013b37c316c2d2958ce123`，合并树与已验收 head `cf1913f742b58106ed745168bd993080ed2f68fa` 一致；合并后 [main CI 43856022521](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43856022521) 全部通过。当前本地已切回 `main`；[PR #102](https://github.com/benz-ai-x/dsh-research-graph/pull/102) 的知识库 UIUX 优化仍开放，未合并。
+- [Issue #100](https://github.com/benz-ai-x/dsh-research-graph/issues/100) 的提炼模型下拉已由 [PR #101](https://github.com/benz-ai-x/dsh-research-graph/pull/101) 合并为 `7260a3f62c638940f4013b37c316c2d2958ce123`，合并树与已验收 head `cf1913f742b58106ed745168bd993080ed2f68fa` 一致；合并后 [main CI 43856022521](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43856022521) 全部通过。当前本地已切回 `main`；[PR #102](https://github.com/benz-ai-x/dsh-research-graph/pull/102) 的知识库 UIUX 优化已合并为 `2671df7d81879672f13d454177fb2f5c465ab806`，合并后 [main CI 43995458835](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43995458835) 全部通过。
 - 发布基线为 `main@a723bba1659d1981ed2ee0cf427a86bda59a62fc`；[PR #97](https://github.com/benz-ai-x/dsh-research-graph/pull/97) 与 [PR #98](https://github.com/benz-ai-x/dsh-research-graph/pull/98) 已合并，功能与发布分支已清理。合并后 [main CI 43813450335](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43813450335) 全部通过。
 - 当前发布为 **0.2.2-rc.3.4**，目标 DSH **0.2.2-rc.3**，npm **`latest=next=0.2.2-rc.3.4`**，官方 registry 与当前镜像回读一致，`@latest` 解析为新版本。[GitHub prerelease](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.4) 与 OIDC [Publish 43814175804](https://github.com/benz-ai-x/dsh-research-graph/actions/runs/43814175804) 已完成，透明日志 `3918786239`。未部署。
 - 正式包 **779783 bytes**，SHA-256 `210927a441adfaac340a400a7169fa04d5ad686076a69b79877b3a92684eefb7`，Build ID `local-3525e2e8`。本地候选为 **780928 bytes**，SHA-256 `1b1fd4e2f0a8e36d702c41046d5fda2f2565fd08bc188c312d12863a8be0a5fe`，两者不可混用。正式包独立通过 19 次固定模型冒烟及第二 profile 恢复后继续 1 次，`npm audit signatures` 为 `invalid: []`、`missing: []`。
@@ -19,7 +19,7 @@ Updated: 2026-11-16 (Asia/Shanghai, PR #101 已合并，PR #102 待合并，0.2.
 - rc.3.4 候选与正式 npm 验证证据分别保留在 `.artifacts/release-0.2.2-rc.3.4/candidate/` 与 `official/`，不要混用。rc.3.3 证据及预览 profile 保留在 `.artifacts/release-worktree-0.2.2-rc.3.3/`。
 - Release 已上传正式归档和 `SHA256SUMS`，服务端摘要与官方包一致；初次 Release-CDN 下载超时后，覆盖失败的下载副本并逐字节复核通过。
 - 既有 `.zcode/`、`docs/design/`、`docs/reports/`、研究文档和其他未跟踪资料未纳入发布，未修改。
-- **知识库 UIUX 优化（[PR #102](https://github.com/benz-ai-x/dsh-research-graph/pull/102)，已提交并推送，未合并）**：功能提交 `c758e4d6a84702f25f7ec40ac576ebb8c824fe90`，基于 `origin/main@0a3510c`，覆盖搜索提示、状态/类型筛选、最近保存/标题排序、SVG 图标与语义色徽章、来源按 Session 分组和摘录、主次操作、空后续区隐藏及宽窄屏布局；只改展示，不改卡片、修订、来源或 Host 记录。`pnpm run check` **36 文件 / 302 项**、完整 Harness **29 文件 / 387 项**与四编译面通过；最终品牌色修正后独立 302 项及知识库/阅读聚焦 **8 项**再次通过。真实隔离浏览器已检查宽屏与窄屏列表/详情切换、来源和警告区；预览与标签均已停止/关闭。实拍 `docs/reviews/assets/knowledge-library-uiux.png`，日常 profile 未改。两轴复审初轮 Spec 发现独立保存徽章缺失及导出不具备三级层级，Standards 另有枚举、长链和重复选择器简化建议；已补齐保存徽章、导出三级文本按钮，并新增 `knowledge-presentation.ts` 共享枚举和最新修订读取。修复后独立 **302 项**、Harness **387 项**及四编译面再次通过，原 Standards 与 Spec 审查员复核均 **通过、剩余问题为零**。
+- **知识库 UIUX 优化（[PR #102](https://github.com/benz-ai-x/dsh-research-graph/pull/102)，已合并）**：功能提交 `c758e4d6a84702f25f7ec40ac576ebb8c824fe90`，最终合并为 `2671df7d81879672f13d454177fb2f5c465ab806`，与最新 main 的预期合并树一致；合并后 main CI 43995458835 通过，基于 `origin/main@0a3510c`，覆盖搜索提示、状态/类型筛选、最近保存/标题排序、SVG 图标与语义色徽章、来源按 Session 分组和摘录、主次操作、空后续区隐藏及宽窄屏布局；只改展示，不改卡片、修订、来源或 Host 记录。`pnpm run check` **36 文件 / 302 项**、完整 Harness **29 文件 / 387 项**与四编译面通过；最终品牌色修正后独立 302 项及知识库/阅读聚焦 **8 项**再次通过。真实隔离浏览器已检查宽屏与窄屏列表/详情切换、来源和警告区；预览与标签均已停止/关闭。实拍 `docs/reviews/assets/knowledge-library-uiux.png`，日常 profile 未改。两轴复审初轮 Spec 发现独立保存徽章缺失及导出不具备三级层级，Standards 另有枚举、长链和重复选择器简化建议；已补齐保存徽章、导出三级文本按钮，并新增 `knowledge-presentation.ts` 共享枚举和最新修订读取。修复后独立 **302 项**、Harness **387 项**及四编译面再次通过，原 Standards 与 Spec 审查员复核均 **通过、剩余问题为零**。
 
 ## 当前能力边界
 
