@@ -16,7 +16,7 @@ Updated: 2026-11-17 (Asia/Shanghai, 0.2.2-rc.3.5 已发布，未部署)
 ## 当前工作树与证据
 
 - 主工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`。
-- 未合并原型工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph-prototype`，分支 `prototype/research-workbench`，保留不动。
+- 原型工作树及本地/远端 `prototype/research-workbench` 分支已按用户要求移除；该分支 3 个独有提交已保存为 `.artifacts/prototype-cleanup/prototype-research-workbench.bundle`（`git bundle verify` 通过），原 `.artifacts/prototype-dsh` 资料另存于 `.artifacts/prototype-cleanup/prototype-artifacts/`，均未公开。
 - rc.3.4 候选与正式 npm 验证证据分别保留在 `.artifacts/release-0.2.2-rc.3.4/candidate/` 与 `official/`，不要混用。rc.3.3 证据及预览 profile 保留在 `.artifacts/release-worktree-0.2.2-rc.3.3/`。
 - Release 已上传正式归档和 `SHA256SUMS`，服务端摘要与官方包一致；初次 Release-CDN 下载超时后，覆盖失败的下载副本并逐字节复核通过。
 - 既有 `.zcode/`、`docs/design/`、`docs/reports/`、研究文档和其他未跟踪资料未纳入发布，未修改。
