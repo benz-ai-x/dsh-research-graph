@@ -148,8 +148,8 @@ remain unchanged, with no re-vendor in this round.
 
 Validation passed the standalone suite (302 tests), all four compiler faces,
 the complete Harness suite (389 tests), packed-profile smoke (19 fixed model
-calls plus one post-restore call), and real-browser Workspace/Topic rendering,
-knowledge/source reading, and narrow-screen sidebar open/close.
+calls plus one post-restore call), and real-browser Workspace/Directory/Topic rendering, Workspace Folder
+creation/deletion, knowledge/source reading, and narrow-screen sidebar open/close.
 
 ## Upstream sync checklist (per DSH adaptation round)
 
