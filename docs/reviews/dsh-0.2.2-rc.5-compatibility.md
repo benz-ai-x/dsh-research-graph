@@ -61,7 +61,7 @@ All direct `@deepseek-ai/dsh-*` dependencies and the exact LLM peer move from rc
 ## Validation
 
 - The official rc.5 checkout remained clean at `9c2670d3bce5275e0d1610272958121af87787bb`. Native, Host/Client declarations, runtime bundles, and Web assets were rebuilt from a clean output tree; sampled declaration and Web artifacts were newer than the tag commit.
-- `pnpm run check`: **36 files / 302 tests passed**, including typecheck and build.
+- `pnpm run check`: **36 files / 302 standalone tests passed**, including typecheck and build. `vitest.config.ts` excludes Harness specs; the new refusal regression runs in the following Harness gate rather than in this standalone count.
 - Matching rc.5 Harness: all four compiler faces and **29 files / 389 tests passed**, including the new `CONTENT_REFUSED` regression.
 - Candidate archive: `.artifacts/benz-ai-x-dsh-research-graph-0.2.2-rc.5.tgz`, **788899 bytes**, SHA-256 `c696663fc9ebd26cd4e26fa7e3a65be2c36e5b89b202b5fb6b9fd3ca64547520`; Build ID **`local-b7f7a7d4`**. These are local-candidate values, not official npm artifact values.
 - Packed-profile smoke: **19 deterministic fixture model calls**, plus **1** after native Session restoration in a second profile. Installation, offline recovery, research reads/writes, durable sidebar restart, native backup/restore, and clean removal passed; the report identifies plugin and DSH `0.2.2-rc.5`.

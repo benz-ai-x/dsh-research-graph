@@ -15,10 +15,10 @@
 
 ## 快速开始
 
-需要已安装 **DeepSeek Harness 0.2.2-rc.3**、Node.js `>=24.9.0`（该宿主线已不再支持 Node 22），以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
+需要已安装 **DeepSeek Harness 0.2.2-rc.5**、Node.js `>=24.9.0`（该宿主线已不再支持 Node 22），以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
 dsh web
 ```
 
@@ -28,7 +28,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前插件 **0.2.2-rc.3.5** 同时使用 npm `latest` / `next` 标签；上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+当前兼容目标 **0.2.2-rc.5** 为候选版本；最新已发布的 **0.2.2-rc.3.5** 仍通过 npm `next` 提供给 DSH `0.2.2-rc.3`，npm `latest` 仍为 `0.2.2-rc.3.4`。上方 rc.5 固定版本命令在候选发布后使用。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
 
 ## 研究流程
 
@@ -59,11 +59,12 @@ flowchart LR
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.5` | `0.2.2-rc.3` | `>=24.9.0` | 真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复及打包 profile 验收 |
+| `@benz-ai-x/dsh-research-graph@0.2.2-rc.5` | `0.2.2-rc.5` | `>=24.9.0` | 候选：真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复、打包 profile 与真实浏览器验收 |
+| `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.5` | `0.2.2-rc.3` | `>=24.9.0` | 最新已发布：真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.2` | `0.2.2-rc.3` | `>=24.9.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.2` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 
-当前预发布 **0.2.2-rc.3.5** 适配 **DSH 0.2.2-rc.3**。本次同线修订增加 Host 目录联动的提炼提供方/模型选择，并优化知识卡片目录和阅读体验：独立的保存/核实/类型 SVG 徽章、状态/类型筛选、最近保存或标题排序、按来源会话分组的轮次与保留摘录，以及三级导出按钮，让依据更易核对。准确来源和模型接收行为不变，不涉及数据迁移或部署变更。全部直接 `@deepseek-ai/dsh-*` 依赖与精确 LLM peer 仍钉到 DSH `0.2.2-rc.3`；Zod 保持 `4.6.6`，`dsh-error` 继续承担 LLM 类型链。宿主线要求 Node.js `>=24.9.0`；Schemastery 与 Cordis 保持 `~3.19.0`、`~4.1.0`。详见[契约分析](reviews/dsh-0.2.2-rc.3-compatibility.md)与[发布验收](reviews/release-0.2.2-rc.3.5.md)。
+当前兼容目标 **0.2.2-rc.5** 适配 **DSH 0.2.2-rc.5**。本版保持图谱与研究行为不变，通过现有通用错误路径覆盖上游 `CONTENT_REFUSED` 拒答，并接受 Host 按模型路由选择 Web 搜索提供方的新默认行为，不涉及数据迁移或部署变更。全部直接 `@deepseek-ai/dsh-*` 依赖与精确 LLM peer 钉到 DSH `0.2.2-rc.5`；Zod 保持 `4.6.6`，`dsh-error` 继续承担 LLM 类型链。宿主线要求 Node.js `>=24.9.0`；Schemastery 与 Cordis 保持 `~3.19.0`、`~4.1.0`。详见[契约分析与候选验收](reviews/dsh-0.2.2-rc.5-compatibility.md)；最新已发布验收仍为 [0.2.2-rc.3.5](reviews/release-0.2.2-rc.3.5.md)。
 
 在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。
 
@@ -84,7 +85,7 @@ flowchart LR
 
 </details>
 
-本预发布版本使用 npm `latest` / `next` 标签，下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
+已发布的预发布版使用 npm `next`；npm `latest` 当前解析为 `0.2.2-rc.3.4`，rc.5 候选尚未发布。下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
 ## 常见问题
 
@@ -210,16 +211,16 @@ DSH 持有原始会话；研图将研究主题、工作区文件夹、卡片修�
 
 ## 安装
 
-[DSH 插件管理器](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/apps/cli/reference/README.zh.md#插件管理) 会调用 `pnpm`，因此它必须在 `PATH` 中可用。下方所有命令请统一使用与目标 DSH 版本匹配的启动方式：
+[DSH 插件管理器](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.5/apps/cli/reference/README.zh.md#插件管理) 会调用 `pnpm`，因此它必须在 `PATH` 中可用。下方所有命令请统一使用与目标 DSH 版本匹配的启动方式：
 
 - 已安装 CLI：使用 `dsh`。
-- npm 启动：将 `dsh` 替换为 `npx @deepseek-ai/dsh@0.2.2-rc.3`。
-- 源码启动：按[上游说明](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/README.zh.md#从源码运行) 构建 `dsh-v0.2.2-rc.3` checkout，在该目录中将 `dsh` 替换为 `pnpm dsh`。
+- npm 启动：将 `dsh` 替换为 `npx @deepseek-ai/dsh@0.2.2-rc.5`。
+- 源码启动：按[上游说明](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.5/README.zh.md#从源码运行) 构建 `dsh-v0.2.2-rc.5` checkout，在该目录中将 `dsh` 替换为 `pnpm dsh`。
 
-从 npm 安装已发布的包，并将其加入 `web` profile：
+rc.5 候选发布后，从 npm 安装该包并加入 `web` profile：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
 ```
 
 确认解析后的 profile 已包含该组合包：
@@ -236,7 +237,7 @@ dsh --profile web --dump-config
 
 ```sh
 dsh plugin --profile web remove @benz-ai-x/dsh-client-ui-session-graph
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
 dsh web
 ```
 
@@ -254,7 +255,7 @@ dsh plugin --profile web remove @benz-ai-x/dsh-research-graph
 
 安装或移除后请重启目标 `web` profile。运行中的进程不会监视 profile 依赖列表。
 
-Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.2-rc.3.5` 对应 DSH `0.2.2-rc.3`）。
+Session、LLM 和浏览器运行时服务仍由所选 dsh profile 持有。插件显式声明 Typert 协议依赖，LLM 使用与 DSH 同版本的 peer dependency；离线恢复命令会打包所需格式目录与库，宿主尚未启动时也可使用；直接引用的所有 `@deepseek-ai/dsh-*` 包均锁定到目标 DSH 版本（插件 `0.2.2-rc.5` 对应 DSH `0.2.2-rc.5`）。
 
 ## 使用图谱
 
@@ -346,7 +347,7 @@ Viewed Session 的图范围身份变化时（例如目录变为具名工作区�
 <a id="enable-discussion-search"></a>
 ### 启用讨论搜索
 
-DSH `0.2.2-rc.3` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
+DSH `0.2.2-rc.5` 默认关闭全文索引。若提示「全文索引尚未启用」，在当前 profile 的 `cordis.patch.yml` 中加入以下覆盖项（web profile 位于 `$DSH_HOME/profiles/web/cordis.patch.yml`）：
 
 ```yaml
 - id: session-query-sqlite
