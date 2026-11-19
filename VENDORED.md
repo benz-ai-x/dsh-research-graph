@@ -139,6 +139,18 @@ Harness suite (including a dedicated composition case), packed-profile smoke,
 and real-browser Host startup, workspace-menu selection, Workspace/Topic graphs,
 narrow-screen sidebar collapse/expand, and the folder-creation entry.
 
+### DSH 0.2.2-rc.5 (2026-11-19): unchanged vendored sources
+
+The rc.3 → rc.5 diff is empty for `ui-sidebar/src`, `ui-workspace/src`, and the
+vendored `default-workspace.ts`; only their upstream package versions changed.
+The rc.3 picker Factory/New Session HOC ports and all local deltas therefore
+remain unchanged, with no re-vendor in this round.
+
+Validation passed the standalone suite (302 tests), all four compiler faces,
+the complete Harness suite (389 tests), packed-profile smoke (19 fixed model
+calls plus one post-restore call), and real-browser Workspace/Topic rendering,
+knowledge/source reading, and narrow-screen sidebar open/close.
+
 ## Upstream sync checklist (per DSH adaptation round)
 
 
