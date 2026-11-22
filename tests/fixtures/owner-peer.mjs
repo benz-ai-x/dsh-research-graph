@@ -1,4 +1,5 @@
 /** Owner Peer for direct Gateway calls from real-profile smoke fixtures. */
+import { Context } from '@deepseek-ai/cordis'
 import { Peer } from '@deepseek-ai/dsh-client-connection'
 
 const owners = new WeakMap()
@@ -10,10 +11,10 @@ const owners = new WeakMap()
  * @returns the tree's shared owner Peer.
  */
 export function ownerPeer(ctx) {
-  let peer = owners.get(ctx.root)
+  let peer = owners.get(ctx[Context.root])
   if (peer === undefined) {
-    peer = new Peer(ctx.root, { principal: { kind: 'owner' } })
-    owners.set(ctx.root, peer)
+    peer = new Peer(ctx[Context.root], { principal: { kind: 'owner' } })
+    owners.set(ctx[Context.root], peer)
   }
   return peer
 }

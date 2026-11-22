@@ -151,6 +151,14 @@ the complete Harness suite (389 tests), packed-profile smoke (19 fixed model
 calls plus one post-restore call), and real-browser Workspace/Directory/Topic rendering, Workspace Folder
 creation/deletion, knowledge/source reading, and narrow-screen sidebar open/close.
 
+### DSH 0.2.3-alpha.1 (2026-11-22): Session status and conversation retention ports
+
+The unified Session status table moved from `@deepseek-ai/dsh-client-ui-session` to `@deepseek-ai/dsh-client-ui-session-status`. The vendored workspace imports the new public type, explicitly injects `uiSession.sessionStatus`, and retains the main Session with the `conversation` facet required by the new Session Controller and Conversation composition.
+
+Upstream `completionUnread` now covers both Host-confirmed unread completion and an explicit unread mark, while `completionFailed` distinguishes an unread failed completion. Session rows therefore present **Unread** or **Run failed**, not the old Completed label. The Research Graph canvas independently refuses to treat either unread form as confirmed completion.
+
+This remains a targeted compatibility port, not a full re-vendor. Workspace Folders, backup/restore actions, restoring Workspace creation, native row slots, and all marked local deltas remain intact. Optional upstream additions are deferred: recent-view retention and its synced configuration, manual read/unread menus and shortcuts, fuzzy picker/session search, panel trailing content, shared Marquee migration, external Session drag copy, and unrelated scrollbar/style changes. The original extraction provenance above is unchanged.
+
 ## Upstream sync checklist (per DSH adaptation round)
 
 

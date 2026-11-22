@@ -23,7 +23,7 @@ import type {
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { TypertRemoteMap } from '@deepseek-ai/dsh-typert-protocol'
-import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session-status/client'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { EMPTY_CONVERSATION_SNAPSHOT } from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -55,10 +55,13 @@ import type { BranchOrigin } from '../src/branch-links.ts'
 const id = (value: string): SessionId => value as SessionId
 
 describe('DSH 0.2.2-rc.3 composition', () => {
-  it('declares the reusable Workspace picker and New Session HOC', async () => {
+  it('declares the reusable Workspace picker and New Session HOC and retains the conversation facet', async () => {
     const ctx = new Context()
     const slots = new SlotRegistry(ctx)
-    ctx.provide('sessions', { list: createSnapshotStore(listState({ a: session('a') })) })
+    const retain = vi.fn(() => ({ sessionId: id('a'), release: vi.fn() }))
+    ctx.provide('sessions', {
+      list: createSnapshotStore(listState({ a: session('a') })), retain, subagentAddress: () => undefined,
+    })
     ctx.provide('workspaces', { list: createSnapshotStore(workspacesState()) })
     ctx.provide('remote', { $host: { home: undefined, isLoopback: true } } as never)
     ctx.provide('remote.directoryPicker', {})
@@ -80,6 +83,8 @@ describe('DSH 0.2.2-rc.3 composition', () => {
       import('../src/client/sidebar/index.ts'),
     ])
     applyWorkspace(ctx)
+    ctx.uiWorkspace.openSession(id('a'))
+    expect(retain).toHaveBeenCalledWith(id('a'), { source: 'mainView', facets: { conversation: true } })
     slots.register({ name: 'root', children: { sidebar: { kind: 'single', scope: 'root' } } }, () => null)
     applySidebar(ctx)
     expect(slots.spec('workspace.picker.directoryFlow')).toBeDefined()
@@ -1657,6 +1662,7 @@ async function bench(byId: Record<string, SessionSummary>, hostId = 'test-host')
     create,
     binding: () => ({ session: { rename } }),
   })
+  ctx.provide('uiSession.sessionStatus', {} as never)
   ctx.provide('uiWorkspace', {
     openSession: (target: unknown) => {
       if (typeof target === 'string') open(target)
@@ -4377,11 +4383,11 @@ describe('node selection, double-click, and keyboard navigation', () => {
       .toContain('分支自：Session root')
   })
 
-  it('shows one Display Status on the Selected Session using the agreed priority', async () => {
+  it('shows Running and Waiting without treating an unread reminder as Completed', async () => {
     const b = await bench({
       running: session('running', { running: true }),
       waiting: session('waiting'),
-      completed: session('completed'),
+      unread: session('unread'),
     })
     mount(
       b.slots,
@@ -4389,9 +4395,9 @@ describe('node selection, double-click, and keyboard navigation', () => {
       'running',
       workspacesState(),
       new Map([
-        [id('running'), { running: true, pendingInteraction: {}, completionUnread: true }],
-        [id('waiting'), { running: false, pendingInteraction: {}, completionUnread: false }],
-        [id('completed'), { running: false, pendingInteraction: undefined, completionUnread: true }],
+        [id('running'), { running: true, pendingInteraction: {}, completionUnread: true, completionFailed: false }],
+        [id('waiting'), { running: false, pendingInteraction: {}, completionUnread: false, completionFailed: false }],
+        [id('unread'), { running: false, pendingInteraction: undefined, completionUnread: true, completionFailed: false }],
       ]) as SessionStatusSnapshot,
     )
     switchTab('Research Graph')
@@ -4399,7 +4405,7 @@ describe('node selection, double-click, and keyboard navigation', () => {
     expect(nodeButton('running').dataset.displayStatus).toBe('running')
     expect(nodeButton('running').className).not.toContain('nodePending')
     expect(nodeButton('waiting').dataset.displayStatus).toBe('waiting-input')
-    expect(nodeButton('completed').dataset.displayStatus).toBe('completed')
+    expect(nodeButton('unread').dataset.displayStatus).toBeUndefined()
 
     fireEvent.click(nodeButton('running'))
     expect(screen.getByTestId('session-graph-panel').textContent).toContain('运行中')
@@ -4408,6 +4414,9 @@ describe('node selection, double-click, and keyboard navigation', () => {
 
     fireEvent.click(nodeButton('waiting'))
     expect(screen.getByTestId('session-graph-panel').textContent).toContain('等待输入')
+    expect(screen.getByTestId('session-graph-panel').textContent).not.toContain('已完成')
+
+    fireEvent.click(nodeButton('unread'))
     expect(screen.getByTestId('session-graph-panel').textContent).not.toContain('已完成')
   })
 

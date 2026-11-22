@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session-status/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ResearchTopic, ResearchTopicSnapshot } from '../research-topic.ts'

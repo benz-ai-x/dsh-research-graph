@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { createSessionFormatCatalogWithChildren } from '@deepseek-ai/dsh-session-format-catalog'
@@ -19,6 +20,7 @@ describe('current Harness public APIs', () => {
     const ctx = new Context()
     try {
       await ctx.plugin(SessionStore)
+      await ctx.plugin(SessionProjectionRegistry)
       await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
       const session = ctx.sessions.prepare(undefined, { meta: { cwd: '/test' } })
       await writeColdHistory(ctx, session, session => {
@@ -45,13 +47,8 @@ describe('current Harness public APIs', () => {
       ctx.provide('llm', { stream })
       // DSH 0.2.2 Session list summaries read the Agent registry on creation.
       ctx.provide('agents', { get: () => undefined })
-      await ctx.plugin({
-        inject: ['sessions', 'sessionPersistence', 'llm', 'agents'],
-        async apply(controllerCtx) {
-          await createSessionTestController(controllerCtx, {
-            cwd: '/test', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
-          })
-        },
+      await createSessionTestController(ctx, {
+        cwd: '/test', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
       })
       await ctx.plugin({ apply, inject }, { provider: 'test', model: 'test' })
       const service = ctx.get('sessionGraphDigest')

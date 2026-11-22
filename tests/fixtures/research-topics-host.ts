@@ -1,5 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
@@ -35,6 +36,7 @@ export async function topicHost(
   await ctx.plugin(StorageDomain, { backend: 'json' })
   expect(ctx.get('storageDomain'), 'storage domain fixture is available').toBeDefined()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(JsonlSessionPersistence, { root: join(root, 'sessions'), compression: 'none' })
   await ctx.plugin(TypertRegistry)
   await ctx.plugin(SqliteSessionQueryEngine, { path: ':memory:', openAt: 'never' })
@@ -52,15 +54,11 @@ export async function topicHost(
   // The released branch flow adopts its persisted seed through agents.resume.
   ctx.provide('agents', { get: () => undefined, resume: vi.fn(async () => {}) })
   ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'test', model: 'test' }) })
-  await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'sessionQuery', 'llm', 'typert', 'agents'],
-    async apply(controllerCtx) {
-      await createSessionTestController(controllerCtx, {
-        cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
-      })
-    },
+  await createSessionTestController(ctx, {
+    cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
   })
   await beforeApply?.(ctx, workspaces)
+  expect(ctx.get('sessionController'), 'Session Controller fixture is available').toBeDefined()
   await ctx.plugin({ apply, inject })
   expect(ctx.get('sessionGraphTopics'), 'topic service is ready when plugin startup completes').toBeDefined()
   expect(ctx.get('sessionGraphFolders'), 'Workspace folder service is ready when plugin startup completes').toBeDefined()

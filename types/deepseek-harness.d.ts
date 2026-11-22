@@ -423,7 +423,7 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
   type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
   type SessionListState = import('@deepseek-ai/dsh-api-session-controller/client').SessionListState
-  type SessionStatusSnapshot = import('@deepseek-ai/dsh-client-ui-session/client').SessionStatusSnapshot
+  type SessionStatusSnapshot = import('@deepseek-ai/dsh-client-ui-session-status/client').SessionStatusSnapshot
   type WorkspaceSnapshot = import('@deepseek-ai/dsh-api-workspace-controller/client').WorkspaceSnapshot
 
   export interface ConvViewProps {
@@ -443,13 +443,18 @@ declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
 }
 
 declare module '@deepseek-ai/dsh-client-locale/client' {}
-declare module '@deepseek-ai/dsh-client-ui-renderer/client' {}declare module '@deepseek-ai/dsh-client-ui-session/client' {
+declare module '@deepseek-ai/dsh-client-ui-renderer/client' {}
+declare module '@deepseek-ai/dsh-client-ui-session/client' {
+  export interface SessionPendingInteraction { readonly kind?: string }
+}
+declare module '@deepseek-ai/dsh-client-ui-session-status/client' {
   type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
 
   export interface SessionStatus {
     readonly running: boolean | undefined
     readonly pendingInteraction: { readonly kind?: string } | undefined
     readonly completionUnread: boolean
+    readonly completionFailed: boolean
   }
   export type SessionStatusSnapshot = ReadonlyMap<SessionId, SessionStatus>
 }
@@ -478,7 +483,12 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
   type SessionId = import('@deepseek-ai/dsh-session/types').SessionId
   type SubagentAddress = import('@deepseek-ai/dsh-subagent/client').SubagentAddress
 
-  export interface SessionRetainOptions { readonly source: string; readonly signal?: AbortSignal }
+  export type SessionRetainFacet = 'conversation'
+  export interface SessionRetainOptions {
+    readonly source: string
+    readonly facets?: Readonly<Partial<Record<SessionRetainFacet, true>>>
+    readonly signal?: AbortSignal
+  }
   export interface SessionBinding {
     readonly session: {
       readonly rename: (title: string) => Promise<RemoteResult<{ readonly title: string; readonly seq: number }>>
