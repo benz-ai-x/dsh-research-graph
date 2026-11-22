@@ -138,7 +138,7 @@ describe('tsdown client artifact', () => {
     const { handoff, plugin } = await loadArtifact()
     expect(handoff.id).toBe(PLUGIN_ID)
     expect(plugin.apply).toBeTypeOf('function')
-    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session'])
+    expect(plugin.inject).toEqual(['slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session', 'uiSession.sessionStatus'])
   })
 
   it('registers and disposes the Graph view through the dsh Client services', async () => {

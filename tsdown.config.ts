@@ -82,6 +82,7 @@ const MODULE_TABLE_ROOTS = new Set([
   '@deepseek-ai/dsh-client-ui-layout',
   '@deepseek-ai/dsh-client-ui-renderer',
   '@deepseek-ai/dsh-client-ui-session',
+  '@deepseek-ai/dsh-client-ui-session-status',
 ])
 
 /** Whether one import specifier resolves through the browser module table. */

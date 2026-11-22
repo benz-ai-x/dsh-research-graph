@@ -1,5 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { type Session } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
@@ -33,6 +34,7 @@ async function searchHost(openAt: 'first-search' | 'never' = 'first-search') {
     await rm(root, { recursive: true, force: true })
   })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(JsonlSessionPersistence, { root, compression: 'none' })
   await ctx.plugin(TypertRegistry)
   await ctx.plugin(SqliteSessionQueryEngine, { path: ':memory:', openAt })
@@ -45,13 +47,8 @@ async function searchHost(openAt: 'first-search' | 'never' = 'first-search') {
   ctx.provide('llm', { stream: vi.fn(() => { throw new Error('Search must not call a model') }) })
   // DSH 0.2.2 Session list summaries read the Agent registry on creation.
   ctx.provide('agents', { get: () => undefined })
-  await ctx.plugin({
-    inject: ['sessions', 'sessionPersistence', 'llm', 'typert', 'agents'],
-    async apply(controllerCtx) {
-      await createSessionTestController(controllerCtx, {
-        cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
-      })
-    },
+  await createSessionTestController(ctx, {
+    cwd: '/a', defaultModelSelection: () => ({ provider: 'test', model: 'test' }),
   })
   await ctx.plugin({ apply, inject })
   await ctx.plugin(TypertGatewayService)

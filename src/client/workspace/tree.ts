@@ -9,10 +9,12 @@ import {
 import type { WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type {
   SessionStatusSnapshot,
-} from '@deepseek-ai/dsh-client-ui-session/client'
+} from '@deepseek-ai/dsh-client-ui-session-status/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
+// Local delta vs upstream: mirror the pure directory read without pulling the full Controller declarations into the standalone compiler.
+import { selectSessionDirectory } from '../session-directory.ts'
 // Local delta vs upstream: package-owned Workspace-folder record type.
 import type { WorkspaceFolderRecord } from '../../workspace-folder.ts'
 
@@ -54,8 +56,13 @@ export interface SessionNode {
   running: boolean
   /** Running direct children in the loaded subagent catalog. */
   runningSubagentCount: number
-  /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
-  completed: boolean
+  /** Host-confirmed unread completion or explicit unread mark. */
+  // Local delta vs upstream: name the reminder by its meaning instead of implying completion.
+  unread: boolean
+  /** Latest unread completion ended with an execution error. */
+  failed: boolean
+  /** Current working directory; absent when the Host reports none or an empty path. */
+  cwd?: string
   /** In the registry-global pin set: leads its section, reorderable only among pinned rows. */
   pinned: boolean
   /** In the registry-global archive set: shown grayed in place and not openable. */
@@ -112,8 +119,11 @@ export interface SearchResultNode {
   running: boolean
   /** Running direct children in the loaded subagent catalog. */
   runningSubagentCount: number
-  /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
-  completed: boolean
+  /** Host-confirmed unread completion or explicit unread mark. */
+  // Local delta vs upstream: name the reminder by its meaning instead of implying completion.
+  unread: boolean
+  /** Latest unread completion ended with an execution error. */
+  failed: boolean
   /** In the registry-global archive set: shown grayed and not openable. */
   archived: boolean
   snippet?: string
@@ -431,13 +441,16 @@ function sessionNode(
 ): SessionNode {
   const status = statuses.get(s.id)
   const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+  const root = selectSessionDirectory(list, s.id)
   return {
     id: s.id,
     title: sessionTitle(s),
     blank: s.blank,
     running: status?.running ?? s.running,
     runningSubagentCount: runningChildCount(list, s.id, statuses),
-    completed: status?.completionUnread === true,
+    unread: status?.completionUnread === true,
+    failed: status?.completionFailed === true,
+    ...(root === undefined || root === '' ? {} : { cwd: root }),
     pinned: !archived.has(s.id) && pinned.has(s.id),
     archived: archived.has(s.id),
     updatedAt: s.updatedAt,
@@ -687,7 +700,8 @@ export function deriveSearchResults(
         ...(pendingInteraction === undefined
           ? {}
           : { pendingInteraction }),
-        completed: status?.completionUnread === true,
+        unread: status?.completionUnread === true,
+        failed: status?.completionFailed === true,
         archived: archived.has(summary.id),
         ...match === undefined ? {} : { snippet: match.snippet },
       }

@@ -90,7 +90,7 @@ function requiredWatermark(
     index += 1
     const attention = index <= SESSION_WATERMARK_AUTO_MAX && (
       session.running || session.runningSubagentCount > 0 || session.pendingInteraction !== undefined
-      || session.completed || session.id === current
+      || session.unread || session.id === current
     )
     if (attention || session.id === revealSessionId) required = index
   }

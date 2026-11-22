@@ -43,8 +43,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     usePanelInfo: <T>(selector: (info: { readonly activePanelId: string | null }) => T) => T
     /** Selector hook over the Session catalog (declared by ui-session). */
     useSessions: <T>(selector: (state: import('@deepseek-ai/dsh-api-session-controller/client').SessionListState) => T) => T
-    /** Selector hook over the unified Session status map (declared by ui-session). */
-    useSessionStatus: <T>(selector: (state: import('@deepseek-ai/dsh-client-ui-session/client').SessionStatusSnapshot) => T) => T
     /** Whether the current Peer may call one Session-scoped remote action (declared by ui-session). */
     useSessionAccess: (sessionId: string, action?: string) => boolean
   }

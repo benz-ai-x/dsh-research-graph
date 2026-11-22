@@ -29,11 +29,11 @@ A named Harness grouping with a canonical working directory and an accounted set
 _Avoid_: Project, directory, Workspace Scope
 
 **Workspace Scope**:
-The named graph scope resolved for the Viewed Session, preferring formal Workspace membership over a matching working directory. It contains non-archived sessions accounted to that Workspace or sharing its working directory.
+The named graph scope resolved for the Viewed Session, preferring formal Workspace membership over a matching current working directory. It contains non-archived sessions accounted to that Workspace or sharing its current working directory.
 _Avoid_: Project scope, current directory
 
 **Directory Scope**:
-The unnamed fallback scope containing non-archived sessions that share the Viewed Session's working directory when no Workspace matches.
+The unnamed fallback scope containing non-archived sessions that share the Viewed Session's current working directory when no Workspace matches. The Client working-directory projection takes precedence over the original Session header cwd, with the header retained as fallback.
 _Avoid_: Untitled Workspace, loose Workspace
 
 **Unscoped Session**:
@@ -55,7 +55,7 @@ A session whose conversation has no established content. It is included only whe
 _Avoid_: Empty node, placeholder
 
 **Display Status**:
-The activity label presented for a Canvas Session or an inspected Subagent Session, with Running taking precedence over Waiting for Input and then confirmed Completed. An absence of running or waiting activity alone does not establish completion.
+The activity label presented for a Canvas Session or an inspected Subagent Session, with Running taking precedence over Waiting for Input and then confirmed Completed. An absence of running or waiting activity alone does not establish completion. Host unread reminders may represent a natural completion or an explicit unread mark and may carry failure; neither form is sufficient evidence for Completed when the public status cannot distinguish them.
 _Avoid_: Session lifecycle state, combined status
 
 **Session Lineage**:

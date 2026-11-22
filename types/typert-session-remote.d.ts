@@ -21,12 +21,20 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     ) => Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<
       import('@deepseek-ai/dsh-api-session-controller/remote').SessionRenameValue
     >>
+    // The official SessionReadModel declarations require this namespace even though product code does not invoke it.
+    'sessionStatus/mark': (
+      sessionId: import('@deepseek-ai/dsh-session/types').SessionId,
+      action: { readonly type: 'unread' } | { readonly type: 'read' | 'acknowledge'; readonly throughTurn: number },
+    ) => Promise<import('@deepseek-ai/dsh-typert-protocol').RemoteResult<void>>
   }
   interface TypertRemoteNamespaceMap {
     session: {
       selectModel: TypertRemoteMap['session/selectModel']
       modelCatalog: TypertRemoteMap['session/modelCatalog']
       rename: TypertRemoteMap['session/rename']
+    }
+    sessionStatus: {
+      mark: TypertRemoteMap['sessionStatus/mark']
     }
   }
 }

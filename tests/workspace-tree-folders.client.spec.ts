@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session-status/client'
 import type { WorkspaceFolderRecord } from '../src/workspace-folder.ts'
 import { deriveGroups, folderViewKey, UNGROUPED_KEY } from '../src/client/workspace/tree.ts'
 
@@ -116,6 +116,32 @@ describe('Workspace tree folders', () => {
       { expandedGroups: ['w1'], expandedFolders: [folderViewKey('w1', F1)] },
     )
     expect(expanded[0]?.folders[0]?.sessionCount).toBe(1)
+  })
+
+  it('keeps unread and failed reminder facts distinct in session rows', () => {
+    const list = listState({ unread: session('unread'), failed: session('failed') })
+    const statuses: SessionStatusSnapshot = new Map([
+      [id('unread'), { running: false, pendingInteraction: undefined, completionUnread: true, completionFailed: false }],
+      [id('failed'), { running: false, pendingInteraction: undefined, completionUnread: true, completionFailed: true }],
+    ])
+    const groups = deriveGroups(
+      list, [workspace('w1', ['unread', 'failed'])], rowState, statuses,
+      { expandedGroups: ['w1'], expandedFolders: [] }, new Map(),
+    )
+    expect(groups[0]?.sessions.map(node => ({ id: node.id, unread: node.unread, failed: node.failed }))).toEqual([
+      { id: 'unread', unread: true, failed: false },
+      { id: 'failed', unread: true, failed: true },
+    ])
+  })
+
+  it('selects the current directory before the original header cwd for session rows', () => {
+    const list = listState({ s1: session('s1', { cwd: '/header' }), s2: session('s2', { cwd: '/header' }) })
+    Object.assign(list.projectionsBySession, { s1: { values: { workingDirectory: '/current' } } })
+    const groups = deriveGroups(
+      list, [workspace('w1', ['s1', 's2'])], rowState, noStatuses,
+      { expandedGroups: ['w1'], expandedFolders: [] }, new Map(),
+    )
+    expect(groups[0]?.sessions.map(node => node.cwd)).toEqual(['/current', '/header'])
   })
 
   it('never folders the ungrouped bucket', () => {

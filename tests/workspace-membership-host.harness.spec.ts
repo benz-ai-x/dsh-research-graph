@@ -1,5 +1,6 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SqliteSessionQueryEngine from '@deepseek-ai/dsh-session-query-sqlite'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
@@ -29,6 +30,7 @@ async function workspaceHost(root: string) {
   await ctx.plugin(StorageJson, { root: join(root, 'data') })
   await ctx.plugin(StorageDomain, { backend: 'json' })
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(JsonlSessionPersistence, { root: join(root, 'sessions'), compression: 'none' })
   await ctx.plugin(TypertRegistry)
   await ctx.plugin(SqliteSessionQueryEngine, { path: ':memory:', openAt: 'never' })

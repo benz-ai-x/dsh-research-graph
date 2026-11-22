@@ -8,7 +8,8 @@
  * @module @benz-ai-x/dsh-research-graph/src/client/graph-model
  */
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
-import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import { selectSessionDirectory } from './session-directory.ts'
+import type { SessionStatusSnapshot } from '@deepseek-ai/dsh-client-ui-session-status/client'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionStatsProjection } from '@deepseek-ai/dsh-session-stats/client'
@@ -37,9 +38,9 @@ import type { SessionDiscussionSource } from '../session-history.ts'
 /**
  * The graph scope the view renders. Formal Workspace membership follows the
  * host's own rule — `sessionIds` accounting is authoritative — with two display-only
- * extensions: same-cwd rows join the member set (a directory's work shows
- * together even when the host accounts it separately), and an unaccounted
- * cwd yields a label-less bucket rather than no graph at all.
+ * extensions: rows with the same current directory join the member set (a
+ * directory's work shows together even when the host accounts it separately),
+ * and an unaccounted directory yields a label-less bucket rather than no graph.
  */
 interface GraphScopeBase {
   /** Workspace title, or undefined for a Directory Scope. */
@@ -186,9 +187,10 @@ export interface SessionGraph<Node extends GraphNode = GraphNode> {
 /**
  * Resolve the graph scope the graph of one Viewed Session renders.
  * Preference order: the workspace accounting the session in `sessionIds`,
- * then a workspace whose path equals the session cwd, then a cwd-only
- * bucket. Archived rows never join the member set. A session with neither
- * membership nor cwd has no scope (the view shows its empty state).
+ * then a workspace whose path equals the current working directory, then a
+ * directory-only bucket. The current-directory projection takes precedence
+ * over the original header cwd. Archived rows never join the member set. A
+ * session with neither membership nor directory has no scope.
  * @param sessionId - the viewed session.
  * @param list - the sessions-list snapshot.
  * @param workspaces - the workspaces-list snapshot.
@@ -200,21 +202,23 @@ export function resolveGraphScope(
   workspaces: WorkspaceSnapshot,
 ): GraphScope | undefined {
   const viewed = list.byId[sessionId]
+  const viewedCwd = viewed === undefined ? undefined : selectSessionDirectory(list, sessionId)
   const byAccounting = workspaces.items.find(workspace => workspace.sessionIds.includes(sessionId))
-  const byCwd = viewed?.cwd !== undefined
-    ? workspaces.items.find(workspace => workspace.path === viewed.cwd)
+  const byCwd = viewedCwd !== undefined
+    ? workspaces.items.find(workspace => workspace.path === viewedCwd)
     : undefined
   const workspace = byAccounting ?? byCwd
-  const path = workspace?.path ?? viewed?.cwd
+  const path = workspace?.path ?? viewedCwd
   if (path === undefined) return undefined
   const archived = new Set(workspaces.archivedSessionIds)
   const accounted = new Set(workspace?.sessionIds)
   const members = new Set<SessionId>()
   for (const row of Object.values(list.byId)) {
     if (archived.has(row.id)) continue
+    const rowCwd = selectSessionDirectory(list, row.id)
     if (workspace !== undefined
-      ? accounted.has(row.id) || row.cwd === workspace.path
-      : row.cwd === path) {
+      ? accounted.has(row.id) || rowCwd === workspace.path
+      : rowCwd === path) {
       members.add(row.id)
     }
   }
@@ -299,7 +303,7 @@ function byRecency(a: SessionSummary, b: SessionSummary): number {
  * @param list - the sessions-list snapshot.
  * @param scope - the resolved graph scope, or undefined for the empty state.
  * @param viewedId - the Viewed Session (kept when blank, highlighted).
- * @param statuses - unified UI status facts (pending interaction, unread completion) keyed by Session id.
+ * @param statuses - unified UI status facts keyed by Session id; unread reminders are not completion evidence.
  * @param branchOrigins - plugin-owned child-to-parent origins for ordinary forks without Host parentage.
  * @returns the derived graph.
  */
@@ -409,16 +413,15 @@ function deriveRowsGraph(
       title: row.displayTitle,
       blank: row.blank,
       displayStatus: row.running ? 'running'
-        : pending ? 'waiting-input'
-          : status?.completionUnread === true ? 'completed' : undefined,
+        : pending ? 'waiting-input' : undefined,
       viewed: row.id === viewedId,
       updatedAt: row.updatedAt,
       subagentCount: badge?.count ?? 0,
       runningSubagents: badge?.runningCount ?? 0,
       ...(badge?.sessions.length ? { subagents: [...badge.sessions].sort(byRecency).map(session => ({
         id: session.id, parentId: session.parentId!, title: session.displayTitle,
-        displayStatus: session.running ? 'running' as const : statuses.get(session.id)?.pendingInteraction !== undefined ? 'waiting-input' as const
-          : statuses.get(session.id)?.completionUnread === true ? 'completed' as const : undefined,
+        displayStatus: session.running ? 'running' as const
+          : statuses.get(session.id)?.pendingInteraction !== undefined ? 'waiting-input' as const : undefined,
       })) } : {}),
       branchFrom: branchParent.get(row.id),
       mergeSources: inheritedMerge ? [] : mergeSources,

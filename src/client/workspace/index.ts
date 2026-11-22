@@ -38,8 +38,9 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the SlotRegistry service merge (ctx.slots).
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-// Type-only: pulls the Session root standard-hook merge.
+// Type-only: pulls the Session root standard-hook merges.
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+import type {} from '@deepseek-ai/dsh-client-ui-session-status/client'
 import {
   type ArchiveSessionInjected, type BackupSessionInjected, type DirectoryFlowSlotName, type ForkSessionInjected, menuOpenStateFactory, type PinSessionInjected,
   type SessionArchiveConfirmInjected, type SessionArchiveConfirmRequest,
@@ -114,6 +115,7 @@ const NS = 'workspace'
  */
 export const inject = [
   'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'layout', 'shortcuts', 'remoteAccess',
+  'uiSession.sessionStatus',
   // Local delta vs upstream: the Workspace-folder records this package's own
   // Host service publishes (virtual per-Workspace session folders).
   'remote.sessionGraphFolders',

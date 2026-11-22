@@ -504,7 +504,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     beforeOpen?: (sessionId: SessionId) => void,
   ): void {
     signal.throwIfAborted()
-    const reference = this.sessions.retain(target, { source: 'mainView' })
+    const reference = this.sessions.retain(target, { source: 'mainView', facets: { conversation: true } })
     try {
       signal.throwIfAborted()
       beforeOpen?.(reference.sessionId)

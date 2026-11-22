@@ -21,6 +21,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 // Type-only: pulls the slot service and global Session/Workspace standard props.
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+import type {} from '@deepseek-ai/dsh-client-ui-session-status/client'
 import { createSessionMergeModule } from '../session-merge.ts'
 import { GraphView, type GraphViewInjected } from './GraphView.tsx'
 import { NS, en, zh } from './locales.ts'
@@ -46,12 +47,12 @@ import * as workspaceEntry from './workspace/index.ts'
 export type { GraphViewInjected, GraphViewProps } from './GraphView.tsx'
 
 /**
- * Required services: the conversation view slot, the sessions list, the
- * Workspace projection, and the locale service. `uiWorkspace` is deliberately
+ * Required services: the conversation view slot, the sessions list and status
+ * table, the Workspace projection, and the locale service. `uiWorkspace` is deliberately
  * absent: it is provided by this package's own workspace half, so waiting for
  * it here would deadlock the fiber.
  */
-export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session']
+export const inject = ['slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session', 'uiSession.sessionStatus']
 
 const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
   package: SESSION_DIGEST_REMOTE.package,

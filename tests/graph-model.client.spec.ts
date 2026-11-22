@@ -132,6 +132,34 @@ describe('resolveGraphScope', () => {
     expect(scope?.members.has(id('c'))).toBe(false)
   })
 
+  it('uses the projected current directory before the original header cwd for Directory Scope', () => {
+    const list = listState({
+      a: session('a', { cwd: '/original' }),
+      b: session('b', { cwd: '/current' }),
+      c: session('c', { cwd: '/original' }),
+    })
+    Object.assign(list.projectionsBySession, {
+      a: { values: { workingDirectory: '/current' } },
+      c: { values: { workingDirectory: '/elsewhere' } },
+    })
+    const scope = resolveGraphScope(id('a'), list, workspacesState([]))
+    expect(scope).toMatchObject({ kind: 'directory', path: '/current', arrangement: { key: '/current' } })
+    expect(scope?.members.has(id('a'))).toBe(true)
+    expect(scope?.members.has(id('b'))).toBe(true)
+    expect(scope?.members.has(id('c'))).toBe(false)
+  })
+
+  it('uses summary projectionValues when the full current-directory projection is absent', () => {
+    const viewed = session('a', { cwd: '/original', projectionValues: {} })
+    Object.assign(viewed.projectionValues, { workingDirectory: '/summary' })
+    const list = listState({ a: viewed, b: session('b', { cwd: '/summary' }), c: session('c', { cwd: '/original' }) })
+    const scope = resolveGraphScope(id('a'), list, workspacesState([]))
+    expect(scope).toMatchObject({ kind: 'directory', path: '/summary' })
+    expect(scope?.members.has(id('a'))).toBe(true)
+    expect(scope?.members.has(id('b'))).toBe(true)
+    expect(scope?.members.has(id('c'))).toBe(false)
+  })
+
   it('returns undefined when the viewed session has neither membership nor cwd', () => {
     const loose = { ...session('a') }
     delete (loose as Partial<SessionSummary>).cwd
@@ -358,11 +386,12 @@ describe('deriveSessionGraph visibility rules', () => {
     expect(graph.nodes.get('b')?.viewed).toBe(true)
   })
 
-  it('derives one Display Status with Running before Waiting for Input before Completed', () => {
+  it('derives Running before Waiting without treating unread or failed reminders as Completed', () => {
     const list = listState({
       running: session('running', { running: true }),
       waiting: session('waiting'),
-      completed: session('completed'),
+      unread: session('unread'),
+      failed: session('failed'),
     })
     const scope = resolveGraphScope(id('running'), list, workspacesState([]))
     const graph = deriveSessionGraph(
@@ -370,15 +399,17 @@ describe('deriveSessionGraph visibility rules', () => {
       scope,
       id('running'),
       new Map([
-        [id('running'), { running: true, pendingInteraction: {}, completionUnread: true }],
-        [id('waiting'), { running: false, pendingInteraction: {}, completionUnread: false }],
-        [id('completed'), { running: false, pendingInteraction: undefined, completionUnread: true }],
+        [id('running'), { running: true, pendingInteraction: {}, completionUnread: true, completionFailed: false }],
+        [id('waiting'), { running: false, pendingInteraction: {}, completionUnread: false, completionFailed: false }],
+        [id('unread'), { running: false, pendingInteraction: undefined, completionUnread: true, completionFailed: false }],
+        [id('failed'), { running: false, pendingInteraction: undefined, completionUnread: true, completionFailed: true }],
       ]),
     )
 
     expect(graph.nodes.get('running')?.displayStatus).toBe('running')
     expect(graph.nodes.get('waiting')?.displayStatus).toBe('waiting-input')
-    expect(graph.nodes.get('completed')?.displayStatus).toBe('completed')
+    expect(graph.nodes.get('unread')?.displayStatus).toBeUndefined()
+    expect(graph.nodes.get('failed')?.displayStatus).toBeUndefined()
   })
 })
 

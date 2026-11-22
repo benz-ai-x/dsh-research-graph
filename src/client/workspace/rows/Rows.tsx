@@ -349,12 +349,9 @@ interface SessionStatus {
   trailingLabel?: string
 }
 
-/**
- * Session status presentation; pending interaction is primary and live activity
- * outranks completion reminders.
- */
+/** Session status presentation, including independent unread reminders. */
 function sessionStatuses(
-  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'completed'>,
+  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'unread' | 'failed'>,
   t: RowTranslate,
 ): readonly [SessionStatus, ...SessionStatus[]] {
   const subagents: SessionStatus | undefined = node.runningSubagentCount === 0
@@ -395,13 +392,17 @@ function sessionStatuses(
     /* v8 ignore next -- closed PendingInteractionStatus union */
     default: return assertNever(node.pendingInteraction)
   }
-  if (pending !== undefined) return subagents === undefined ? [pending] : [pending, subagents]
+  const reminder: SessionStatus = node.failed
+    ? { state: 'error', label: t('status.failed') }
+    : { state: 'done', label: t('status.unread') }
+  const unread: SessionStatus[] = node.unread ? [reminder] : []
+  if (pending !== undefined) return subagents === undefined ? [pending, ...unread] : [pending, subagents, ...unread]
   if (node.running) {
     const primary: SessionStatus = { state: 'ongoing', label: t('status.running') }
-    return subagents === undefined ? [primary] : [primary, subagents]
+    return subagents === undefined ? [primary, ...unread] : [primary, subagents, ...unread]
   }
-  if (subagents !== undefined) return [subagents]
-  if (node.completed) return [{ state: 'done', label: t('status.completed') }]
+  if (subagents !== undefined) return [subagents, ...unread]
+  if (node.unread) return [reminder]
   return [{ state: 'idle', label: t('status.idle') }]
 }
 
@@ -428,23 +429,25 @@ function PinnedIndicator({ t }: { t: RowTranslate }) {
 }
 
 /**
- * Hover-card body: full title, relative time, the Session's own scheduled-task
+ * Hover-card body: full title, display working directory, relative time, the Session's own scheduled-task
  * section, and every relevant live status. The task section sits above the
  * status lines so they stay the card's trailing status line.
  */
-function SessionHoverContent({ node, now, renderSlot, t }: {
+function SessionHoverContent({ node, cwd, now, renderSlot, t }: {
   node: SessionNode
+  /** Display working directory; absent omits the line. */
+  cwd: string | undefined
   now: number
   renderSlot: RowRenderSlots
   t: RowTranslate
 }) {
-  // On archived rows the archived line already says the session is inactive,
-  // so resting statuses (idle/completed) drop; live activity still shows.
-  const statuses = sessionStatuses(node, t)
-    .filter(status => !(node.archived && (status.state === 'done' || status.state === 'idle')))
+  // Archived rows show live activity but suppress idle and unread reminders.
+  const statuses = sessionStatuses(node.archived ? { ...node, unread: false } : node, t)
+    .filter(status => !(node.archived && status.state === 'idle'))
   return (
     <div className={css.hoverContent}>
       <div className={css.hoverTitle}>{displayTitle(node, t)}</div>
+      {cwd !== undefined && <div className={css.hoverPath}>{cwd}</div>}
       {/* Same placeholder rule as the row's trailing cell: no timestamp
           before the first prompt. */}
       {!node.blank && <div className={css.hoverTime}>{hoverTimeLabel(node.updatedAt, now, t)}</div>}
@@ -698,10 +701,11 @@ export function SessionNodeItem({
       )}
     </div>
   )
+  // Local delta vs upstream: this older shell does not thread Host home through Session rows, so the selected path stays unabbreviated.
   return (
     <HoverCard
       anchor={ownRow}
-      content={<SessionHoverContent node={node} now={now} renderSlot={renderSlot} t={t} />}
+      content={<SessionHoverContent node={node} cwd={row.cwd} now={now} renderSlot={renderSlot} t={t} />}
       openDelayMs={800}
       grouped
       disabled={menuOpen || drag?.active === true}
