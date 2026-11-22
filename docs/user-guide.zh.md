@@ -28,7 +28,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前兼容目标 **0.2.2-rc.5** 为候选版本；最新已发布的 **0.2.2-rc.3.5** 仍通过 npm `next` 提供给 DSH `0.2.2-rc.3`，npm `latest` 仍为 `0.2.2-rc.3.4`。上方 rc.5 固定版本命令在候选发布后使用。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+当前插件 **0.2.2-rc.5** 使用 npm `next` 标签，npm `latest` 仍为 `0.2.2-rc.3.4`；上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
 
 ## 研究流程
 
@@ -59,12 +59,12 @@ flowchart LR
 
 | 插件发布 | DeepSeek Harness | Node.js | 验证方式 |
 |---|---|---|---|
-| `@benz-ai-x/dsh-research-graph@0.2.2-rc.5` | `0.2.2-rc.5` | `>=24.9.0` | 候选：真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复、打包 profile 与真实浏览器验收 |
-| `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.5` | `0.2.2-rc.3` | `>=24.9.0` | 最新已发布：真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复及打包 profile 验收 |
+| `@benz-ai-x/dsh-research-graph@0.2.2-rc.5` | `0.2.2-rc.5` | `>=24.9.0` | 当前版本：真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复、打包 profile 与真实浏览器验收 |
+| `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.5` | `0.2.2-rc.3` | `>=24.9.0` | 上一版本：真实 Host/Client 类型检查、完整 Harness、双 profile 会话备份恢复及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.2.2-rc.3.2` | `0.2.2-rc.3` | `>=24.9.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 | `@benz-ai-x/dsh-research-graph@0.2.1-rc.5.2` | `0.2.1-rc.5` | `^22.19.0 \|\| >=24.0.0` | 真实 Host/Client 类型检查、集成测试及打包 profile 验收 |
 
-当前兼容目标 **0.2.2-rc.5** 适配 **DSH 0.2.2-rc.5**。本版保持图谱与研究行为不变，通过现有通用错误路径覆盖上游 `CONTENT_REFUSED` 拒答，并接受 Host 按模型路由选择 Web 搜索提供方的新默认行为，不涉及数据迁移或部署变更。全部直接 `@deepseek-ai/dsh-*` 依赖与精确 LLM peer 钉到 DSH `0.2.2-rc.5`；Zod 保持 `4.6.6`，`dsh-error` 继续承担 LLM 类型链。宿主线要求 Node.js `>=24.9.0`；Schemastery 与 Cordis 保持 `~3.19.0`、`~4.1.0`。详见[契约分析与候选验收](reviews/dsh-0.2.2-rc.5-compatibility.md)；最新已发布验收仍为 [0.2.2-rc.3.5](reviews/release-0.2.2-rc.3.5.md)。
+当前预发布 **0.2.2-rc.5** 适配 **DSH 0.2.2-rc.5**。本版保持图谱与研究行为不变，通过现有通用错误路径覆盖上游 `CONTENT_REFUSED` 拒答，并接受 Host 按模型路由选择 Web 搜索提供方的新默认行为，不涉及数据迁移或部署变更。全部直接 `@deepseek-ai/dsh-*` 依赖与精确 LLM peer 钉到 DSH `0.2.2-rc.5`；Zod 保持 `4.6.6`，`dsh-error` 继续承担 LLM 类型链。宿主线要求 Node.js `>=24.9.0`；Schemastery 与 Cordis 保持 `~3.19.0`、`~4.1.0`。详见[契约分析](reviews/dsh-0.2.2-rc.5-compatibility.md)与[发布验收](reviews/release-0.2.2-rc.5.md)。
 
 在与 DSH 对齐的发布线上，首次适配使用目标 DSH 的完整版本；针对同一 DSH 预发布版的后续插件发布追加一个正整数修订号。例如插件 `0.1.5-rc.2.1` 适配 DSH `0.1.5-rc.2`，下一次插件修订为 `0.1.5-rc.2.2`。直接 DSH 依赖继续固定为目标 DSH 版本。旧包为 `@benz-ai-x/dsh-client-ui-session-graph`，其历史标签与归档保留原名。
 
@@ -85,7 +85,7 @@ flowchart LR
 
 </details>
 
-已发布的预发布版使用 npm `next`；npm `latest` 当前解析为 `0.2.2-rc.3.4`，rc.5 候选尚未发布。下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
+已发布的预发布版使用 npm `next`；npm `latest` 当前解析为 `0.2.2-rc.3.4`。下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
 ## 常见问题
 
@@ -217,7 +217,7 @@ DSH 持有原始会话；研图将研究主题、工作区文件夹、卡片修�
 - npm 启动：将 `dsh` 替换为 `npx @deepseek-ai/dsh@0.2.2-rc.5`。
 - 源码启动：按[上游说明](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.5/README.zh.md#从源码运行) 构建 `dsh-v0.2.2-rc.5` checkout，在该目录中将 `dsh` 替换为 `pnpm dsh`。
 
-rc.5 候选发布后，从 npm 安装该包并加入 `web` profile：
+从 npm 安装已发布的包，并将其加入 `web` profile：
 
 ```sh
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5

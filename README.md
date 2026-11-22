@@ -75,7 +75,7 @@ Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution scr
 
 | Item | Details |
 | --- | --- |
-| Compatibility target | [0.2.2-rc.5](https://github.com/benz-ai-x/dsh-research-graph/pull/104); latest published package remains [0.2.2-rc.3.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.5), npm `next` (`latest` remains `0.2.2-rc.3.4`) |
+| Plugin release | [0.2.2-rc.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.5), npm `next` (`latest` remains `0.2.2-rc.3.4`) |
 | Required Host | **DSH 0.2.2-rc.5 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, export, backup, and restore make no model call; AI generation and new discussions use models on demand |
@@ -111,7 +111,7 @@ dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
 dsh web
 ```
 
-The rc.5 command applies when the compatibility candidate is published; the current npm release remains `0.2.2-rc.3.5` for DSH `0.2.2-rc.3`.
+The rc.5 package is published on npm `next`; npm `latest` remains `0.2.2-rc.3.4`.
 
 Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
 
@@ -123,9 +123,9 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.5` | `0.2.2-rc.5` | Compatibility candidate — DSH rc.5 adaptation with provider-refusal regression coverage; requires Node.js `>=24.9.0`; publication pending |
-| `0.2.2-rc.3.5` | `0.2.2-rc.3` | Latest published release — Host-linked extraction model selection plus richer Knowledge Card filtering, badges, and grouped source reading; requires Node.js `>=24.9.0`; npm `next` (`latest` remains `0.2.2-rc.3.4`) |
-| `0.2.2-rc.3.4` | `0.2.2-rc.3` | Reviewed Selected Session extraction with exact sources; requires Node.js `>=24.9.0` |
+| `0.2.2-rc.5` | `0.2.2-rc.5` | Current release — DSH rc.5 adaptation with provider-refusal regression coverage; requires Node.js `>=24.9.0`; npm `next` |
+| `0.2.2-rc.3.5` | `0.2.2-rc.3` | Previous release — Host-linked extraction model selection plus richer Knowledge Card filtering, badges, and grouped source reading; requires Node.js `>=24.9.0` |
+| `0.2.2-rc.3.4` | `0.2.2-rc.3` | Reviewed Selected Session extraction with exact sources; requires Node.js `>=24.9.0`; npm `latest` |
 | `0.2.2-rc.3.3` | `0.2.2-rc.3` | Native Session backup and on-demand restore with Workspace-aware filenames and no overwriting; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.2` | `0.2.2-rc.3` | Restores unaccounted Sessions when re-adding the same Workspace directory; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | Restores Branch links for independent ordinary forks; requires Node.js `>=24.9.0` |
@@ -138,4 +138,4 @@ See the [full release history](https://github.com/benz-ai-x/dsh-research-graph/r
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.3.5.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.2-rc.5.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
