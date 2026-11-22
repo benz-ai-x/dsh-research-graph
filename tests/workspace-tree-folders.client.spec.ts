@@ -128,7 +128,7 @@ describe('Workspace tree folders', () => {
       list, [workspace('w1', ['unread', 'failed'])], rowState, statuses,
       { expandedGroups: ['w1'], expandedFolders: [] }, new Map(),
     )
-    expect(groups[0]?.sessions.map(node => ({ id: node.id, unread: node.completed, failed: node.failed }))).toEqual([
+    expect(groups[0]?.sessions.map(node => ({ id: node.id, unread: node.unread, failed: node.failed }))).toEqual([
       { id: 'unread', unread: true, failed: false },
       { id: 'failed', unread: true, failed: true },
     ])

@@ -351,7 +351,7 @@ interface SessionStatus {
 
 /** Session status presentation, including independent unread reminders. */
 function sessionStatuses(
-  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'completed' | 'failed'>,
+  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'unread' | 'failed'>,
   t: RowTranslate,
 ): readonly [SessionStatus, ...SessionStatus[]] {
   const subagents: SessionStatus | undefined = node.runningSubagentCount === 0
@@ -395,14 +395,14 @@ function sessionStatuses(
   const reminder: SessionStatus = node.failed
     ? { state: 'error', label: t('status.failed') }
     : { state: 'done', label: t('status.unread') }
-  const unread: SessionStatus[] = node.completed ? [reminder] : []
+  const unread: SessionStatus[] = node.unread ? [reminder] : []
   if (pending !== undefined) return subagents === undefined ? [pending, ...unread] : [pending, subagents, ...unread]
   if (node.running) {
     const primary: SessionStatus = { state: 'ongoing', label: t('status.running') }
     return subagents === undefined ? [primary, ...unread] : [primary, subagents, ...unread]
   }
   if (subagents !== undefined) return [subagents, ...unread]
-  if (node.completed) return [reminder]
+  if (node.unread) return [reminder]
   return [{ state: 'idle', label: t('status.idle') }]
 }
 
@@ -442,7 +442,7 @@ function SessionHoverContent({ node, cwd, now, renderSlot, t }: {
   t: RowTranslate
 }) {
   // Archived rows show live activity but suppress idle and unread reminders.
-  const statuses = sessionStatuses(node.archived ? { ...node, completed: false } : node, t)
+  const statuses = sessionStatuses(node.archived ? { ...node, unread: false } : node, t)
     .filter(status => !(node.archived && status.state === 'idle'))
   return (
     <div className={css.hoverContent}>
@@ -701,6 +701,7 @@ export function SessionNodeItem({
       )}
     </div>
   )
+  // Local delta vs upstream: this older shell does not thread Host home through Session rows, so the selected path stays unabbreviated.
   return (
     <HoverCard
       anchor={ownRow}

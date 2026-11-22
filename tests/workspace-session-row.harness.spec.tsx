@@ -19,7 +19,7 @@ function sessionNode(over: Partial<SessionNode> = {}): SessionNode {
     blank: false,
     running: false,
     runningSubagentCount: 0,
-    completed: false,
+    unread: false,
     failed: false,
     pinned: false,
     archived: false,
@@ -53,25 +53,25 @@ describe('Workspace Session row status presentation', () => {
   it.each([
     {
       name: 'Unread',
-      node: sessionNode({ completed: true }),
+      node: sessionNode({ unread: true }),
       present: ['status.unread'],
       absent: ['status.failed', 'status.running'],
     },
     {
       name: 'Run failed',
-      node: sessionNode({ completed: true, failed: true }),
+      node: sessionNode({ unread: true, failed: true }),
       present: ['status.failed'],
       absent: ['status.unread', 'status.running'],
     },
     {
       name: 'pending interaction, Subagent activity, and unread together',
-      node: sessionNode({ pendingInteraction: 'approval', running: true, runningSubagentCount: 1, completed: true }),
+      node: sessionNode({ pendingInteraction: 'approval', running: true, runningSubagentCount: 1, unread: true }),
       present: ['status.waitingApproval', 'status.subagentsRunning.one', 'status.unread'],
       absent: ['status.failed', 'status.running'],
     },
     {
       name: 'running and unread together',
-      node: sessionNode({ running: true, completed: true }),
+      node: sessionNode({ running: true, unread: true }),
       present: ['status.running', 'status.unread'],
       absent: ['status.failed', 'status.waitingApproval'],
     },
@@ -82,7 +82,7 @@ describe('Workspace Session row status presentation', () => {
   })
 
   it('shows the current directory and archived state while suppressing unread and idle in the hover card', async () => {
-    const { row } = renderRow(sessionNode({ archived: true, completed: true, cwd: '/current' }))
+    const { row } = renderRow(sessionNode({ archived: true, unread: true, cwd: '/current' }))
     expect(within(row).queryByText(translate('status.unread'))).toBeNull()
     fireEvent.pointerEnter(row.parentElement as Element)
     expect(await screen.findByText('/current', undefined, { timeout: 2_000 })).toBeDefined()
