@@ -153,7 +153,7 @@ creation/deletion, knowledge/source reading, and narrow-screen sidebar open/clos
 
 ### DSH 0.2.3-alpha.1 (2026-11-22): Session status and conversation retention ports
 
-The unified Session status table moved from `@deepseek-ai/dsh-client-ui-session` to `@deepseek-ai/dsh-client-ui-session-status`. The vendored workspace imports the new public type, explicitly injects `uiSession.sessionStatus`, and retains the main Session with the `conversation` facet required by the new Session Controller and Conversation composition.
+The unified Session status table moved from `@deepseek-ai/dsh-client-ui-session` to `@deepseek-ai/dsh-client-ui-session-status`. The vendored workspace imports the new public type, explicitly injects `uiSession.sessionStatus`, and retains the main Session with the `conversation` facet required by the new Session Controller and Conversation composition. Session rows and hover cards also select and display the projected current working directory before the original header cwd.
 
 Upstream `completionUnread` now covers both Host-confirmed unread completion and an explicit unread mark, while `completionFailed` distinguishes an unread failed completion. Session rows therefore present **Unread** or **Run failed**, not the old Completed label. The Research Graph canvas independently refuses to treat either unread form as confirmed completion.
 

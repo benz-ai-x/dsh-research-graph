@@ -149,6 +149,17 @@ describe('resolveGraphScope', () => {
     expect(scope?.members.has(id('c'))).toBe(false)
   })
 
+  it('uses summary projectionValues when the full current-directory projection is absent', () => {
+    const viewed = session('a', { cwd: '/original', projectionValues: {} })
+    Object.assign(viewed.projectionValues, { workingDirectory: '/summary' })
+    const list = listState({ a: viewed, b: session('b', { cwd: '/summary' }), c: session('c', { cwd: '/original' }) })
+    const scope = resolveGraphScope(id('a'), list, workspacesState([]))
+    expect(scope).toMatchObject({ kind: 'directory', path: '/summary' })
+    expect(scope?.members.has(id('a'))).toBe(true)
+    expect(scope?.members.has(id('b'))).toBe(true)
+    expect(scope?.members.has(id('c'))).toBe(false)
+  })
+
   it('returns undefined when the viewed session has neither membership nor cwd', () => {
     const loose = { ...session('a') }
     delete (loose as Partial<SessionSummary>).cwd

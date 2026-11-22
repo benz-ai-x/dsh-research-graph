@@ -134,6 +134,16 @@ describe('Workspace tree folders', () => {
     ])
   })
 
+  it('selects the current directory before the original header cwd for session rows', () => {
+    const list = listState({ s1: session('s1', { cwd: '/header' }), s2: session('s2', { cwd: '/header' }) })
+    Object.assign(list.projectionsBySession, { s1: { values: { workingDirectory: '/current' } } })
+    const groups = deriveGroups(
+      list, [workspace('w1', ['s1', 's2'])], rowState, noStatuses,
+      { expandedGroups: ['w1'], expandedFolders: [] }, new Map(),
+    )
+    expect(groups[0]?.sessions.map(node => node.cwd)).toEqual(['/current', '/header'])
+  })
+
   it('never folders the ungrouped bucket', () => {
     const groups = derive(
       listState({ s1: session('s1') }),

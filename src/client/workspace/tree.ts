@@ -13,6 +13,7 @@ import type {
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
+import { selectSessionDirectory } from '../session-directory.ts'
 // Local delta vs upstream: package-owned Workspace-folder record type.
 import type { WorkspaceFolderRecord } from '../../workspace-folder.ts'
 
@@ -58,6 +59,8 @@ export interface SessionNode {
   completed: boolean
   /** Latest unread completion ended with an execution error. */
   failed: boolean
+  /** Current working directory; absent when the Host reports none or an empty path. */
+  cwd?: string
   /** In the registry-global pin set: leads its section, reorderable only among pinned rows. */
   pinned: boolean
   /** In the registry-global archive set: shown grayed in place and not openable. */
@@ -435,6 +438,7 @@ function sessionNode(
 ): SessionNode {
   const status = statuses.get(s.id)
   const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+  const root = selectSessionDirectory(list, s.id)
   return {
     id: s.id,
     title: sessionTitle(s),
@@ -443,6 +447,7 @@ function sessionNode(
     runningSubagentCount: runningChildCount(list, s.id, statuses),
     completed: status?.completionUnread === true,
     failed: status?.completionFailed === true,
+    ...(root === undefined || root === '' ? {} : { cwd: root }),
     pinned: !archived.has(s.id) && pinned.has(s.id),
     archived: archived.has(s.id),
     updatedAt: s.updatedAt,
