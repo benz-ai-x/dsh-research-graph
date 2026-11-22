@@ -74,7 +74,7 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 兼容目标 | [0.2.2-rc.5](https://github.com/benz-ai-x/dsh-research-graph/pull/104)；最新已发布包仍为 [0.2.2-rc.3.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.5)，npm `next`（`latest` 仍为 `0.2.2-rc.3.4`） |
+| 当前插件 | [0.2.2-rc.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.5)，npm `next`（`latest` 仍为 `0.2.2-rc.3.4`） |
 | 适配宿主 | **DSH 0.2.2-rc.5 · Web**，Node.js `>=24.9.0` |
 | 数据保存 | 研究数据与工作区文件夹保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡、导出、备份与恢复不调用模型；AI 生成与新讨论按需调用 |
@@ -110,7 +110,7 @@ dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
 dsh web
 ```
 
-上述 rc.5 命令在兼容候选发布后使用；当前 npm 发布版仍为适配 DSH `0.2.2-rc.3` 的 `0.2.2-rc.3.5`。
+rc.5 包已发布到 npm `next`；npm `latest` 仍为 `0.2.2-rc.3.4`。
 
 打开终端给出的登录入口，在一个**非空会话**中选择**研图**：读原文 → 保存知识 → 继续讨论。通过 `npx` 或源码运行 DSH 时，参阅[安装方式](docs/user-guide.zh.md#安装)。
 
@@ -122,9 +122,9 @@ dsh web
 
 | 插件版本 | 要求的 DSH | 备注 |
 | --- | --- | --- |
-| `0.2.2-rc.5` | `0.2.2-rc.5` | 兼容候选——适配 DSH rc.5 并覆盖提供方拒答回归，要求 Node.js `>=24.9.0`；尚未发布 |
-| `0.2.2-rc.3.5` | `0.2.2-rc.3` | 最新已发布版本——Host 目录联动的提炼模型选择，以及更丰富的知识卡片筛选、徽章和分组来源阅读，要求 Node.js `>=24.9.0`；npm `next`（`latest` 仍为 `0.2.2-rc.3.4`） |
-| `0.2.2-rc.3.4` | `0.2.2-rc.3` | 审核选定会话的提炼结果并保留准确来源，要求 Node.js `>=24.9.0` |
+| `0.2.2-rc.5` | `0.2.2-rc.5` | 当前版本——适配 DSH rc.5 并覆盖提供方拒答回归，要求 Node.js `>=24.9.0`；npm `next` |
+| `0.2.2-rc.3.5` | `0.2.2-rc.3` | 上一版本——Host 目录联动的提炼模型选择，以及更丰富的知识卡片筛选、徽章和分组来源阅读，要求 Node.js `>=24.9.0` |
+| `0.2.2-rc.3.4` | `0.2.2-rc.3` | 审核选定会话的提炼结果并保留准确来源，要求 Node.js `>=24.9.0`；npm `latest` |
 | `0.2.2-rc.3.3` | `0.2.2-rc.3` | 原生会话备份与按需恢复，文件名包含工作区且不覆盖现有会话，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.2` | `0.2.2-rc.3` | 同目录重新添加工作区时恢复未归属会话，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | 恢复独立普通 fork 的分支连线，要求 Node.js `>=24.9.0` |
@@ -137,4 +137,4 @@ dsh web
 
 ## 文档与支持
 
-[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.2-rc.3.5.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.2-rc.5.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
