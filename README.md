@@ -75,8 +75,8 @@ Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution scr
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.2-rc.3.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.5), npm `latest` / `next` |
-| Required Host | **DSH 0.2.2-rc.3 · Web**, Node.js `>=24.9.0` |
+| Compatibility target | [0.2.2-rc.5](https://github.com/benz-ai-x/dsh-research-graph/pull/104); latest published package remains [0.2.2-rc.3.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.3.5), npm `next` (`latest` remains `0.2.2-rc.3.4`) |
+| Required Host | **DSH 0.2.2-rc.5 · Web**, Node.js `>=24.9.0` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, export, backup, and restore make no model call; AI generation and new discussions use models on demand |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
@@ -104,12 +104,14 @@ Browsing, searching, manual capture, Markdown export, and Session backup/restore
 
 ## Quick start
 
-Requires **DSH 0.2.2-rc.3** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
+Requires **DSH 0.2.2-rc.5** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.3.5
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
 dsh web
 ```
+
+The rc.5 command applies when the compatibility candidate is published; the current npm release remains `0.2.2-rc.3.5` for DSH `0.2.2-rc.3`.
 
 Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
 
@@ -121,7 +123,8 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.2-rc.3.5` | `0.2.2-rc.3` | Current release — Host-linked extraction model selection plus richer Knowledge Card filtering, badges, and grouped source reading; requires Node.js `>=24.9.0`; npm `latest` / `next` |
+| `0.2.2-rc.5` | `0.2.2-rc.5` | Compatibility candidate — DSH rc.5 adaptation with provider-refusal regression coverage; requires Node.js `>=24.9.0`; publication pending |
+| `0.2.2-rc.3.5` | `0.2.2-rc.3` | Latest published release — Host-linked extraction model selection plus richer Knowledge Card filtering, badges, and grouped source reading; requires Node.js `>=24.9.0`; npm `next` (`latest` remains `0.2.2-rc.3.4`) |
 | `0.2.2-rc.3.4` | `0.2.2-rc.3` | Reviewed Selected Session extraction with exact sources; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.3` | `0.2.2-rc.3` | Native Session backup and on-demand restore with Workspace-aware filenames and no overwriting; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.2` | `0.2.2-rc.3` | Restores unaccounted Sessions when re-adding the same Workspace directory; requires Node.js `>=24.9.0` |

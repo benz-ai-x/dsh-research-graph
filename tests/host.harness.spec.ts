@@ -6,6 +6,7 @@ import SessionStore from '@deepseek-ai/dsh-session'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import TypertGatewayService from '@deepseek-ai/dsh-api-gateway'
 import RemoteAccessService from '@deepseek-ai/dsh-api-remote-access'
+import { LlmError } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionProjectionCache from '@deepseek-ai/dsh-session-projection-cache'
@@ -255,6 +256,44 @@ describe('Session Graph Host integration', () => {
     expect(await ctx.sessionGraphDigest.generate(request, new AbortController().signal))
       .toMatchObject({ kind: 'ready', cached: true, digest: { overview: 'Complete result.' } })
     expect(calls).toHaveLength(2)
+    expect(events).toEqual(before)
+  })
+
+  it('reports provider refusal without caching a failure or changing Session events', async () => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    const events = [
+      {
+        type: 'request/context', seq: 0, time: 1,
+        data: { provider: 'provider', model: 'model' },
+      },
+      {
+        type: 'user/message', seq: 1, time: 2,
+        data: {
+          source: { kind: 'user' },
+          content: [{ type: 'text', text: 'Summarize the decision.' }],
+        },
+      },
+    ]
+    const before = structuredClone(events)
+    ctx.provide('sessionQuery', observing(async () => ({ meta: { id: 'source' }, events })))
+    let calls = 0
+    ctx.provide('llm', {
+      async *stream() {
+        calls += 1
+        throw new LlmError('DeepSeek refused the request', 'CONTENT_REFUSED')
+      },
+    })
+    await apply(ctx)
+    const request = { sessionId: 'source', refresh: false }
+    const generate = () => ctx.sessionGraphDigest.generate(request, new AbortController().signal)
+
+    const first = remoteFailureOf(await generate().catch(error => error))
+    expect(first).toMatchObject({ code: 'generation-failed', message: 'DeepSeek refused the request' })
+    expect(calls).toBe(1)
+    const second = remoteFailureOf(await generate().catch(error => error))
+    expect(second).toMatchObject({ code: 'generation-failed', message: 'DeepSeek refused the request' })
+    expect(calls).toBe(2)
     expect(events).toEqual(before)
   })
 
