@@ -1,6 +1,6 @@
 # Research Graph Handoff
 
-Updated: 2026-11-22 (Asia/Shanghai, DSH 0.2.3-alpha.1 适配 PR #107 已普通合并，main CI 已通过；未发布，真实 Directory、原生行操作与 390px 浏览器场景仍待完成；最新发布仍为 0.2.2-rc.5)
+Updated: 2026-11-22 (Asia/Shanghai, 0.2.3-alpha.1 发布准备中，候选门禁通过，尚未创建 tag 或发布 npm；真实 Directory、原生行操作与 390px 浏览器场景仍待完成；最新发布仍为 0.2.2-rc.5)
 
 根 `HANDOFF.md` 是唯一实时交接，不另维护历史快照。需求与进度以 GitHub Issues 为准，领域边界以 [CONTEXT.md](CONTEXT.md) 和 [ADR](docs/adr/) 为准；历史发布证据保留在 `docs/reviews/`。
 
@@ -20,7 +20,7 @@ Updated: 2026-11-22 (Asia/Shanghai, DSH 0.2.3-alpha.1 适配 PR #107 已普通�
 
 ## 当前工作树与证据
 
-- 主工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`，当前分支 `main`，已快进到 PR #107 合并提交。
+- 主工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`，当前分支 `release/0.2.3-alpha.1`，基于已合并并通过 main CI 的 PR #107。
 - 原型工作树及本地/远端 `prototype/research-workbench` 分支已按用户要求移除；该分支 3 个独有提交已保存为 `.artifacts/prototype-cleanup/prototype-research-workbench.bundle`（`git bundle verify` 通过），原 `.artifacts/prototype-dsh` 资料另存于 `.artifacts/prototype-cleanup/prototype-artifacts/`，均未公开。
 - rc.3.4 候选与正式 npm 验证证据分别保留在 `.artifacts/release-0.2.2-rc.3.4/candidate/` 与 `official/`，不要混用。rc.3.3 证据及预览 profile 保留在 `.artifacts/release-worktree-0.2.2-rc.3.3/`。
 - Release 已上传正式归档和 `SHA256SUMS`，服务端摘要与官方包一致；初次 Release-CDN 下载超时后，覆盖失败的下载副本并逐字节复核通过。
