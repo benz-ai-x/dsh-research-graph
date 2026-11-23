@@ -6,7 +6,7 @@ Run the following commands from the repository root.
 
 ## Develop and contribute
 
-Requirements are Node.js `>=24.9.0` (matching the DSH host line since 0.2.2) and pnpm `11.7.0`.
+Requirements are Node.js `^24.22.3 || >=26.13.1` (matching the DSH host line since 0.2.3-alpha.2) and pnpm `11.7.0`.
 
 Start with [AGENTS.md](../AGENTS.md) for contributor rules, [CONTEXT.md](../CONTEXT.md) for domain vocabulary, and root [HANDOFF.md](../HANDOFF.md) for current state and local worktrees. The [documentation map](agents/domain.md#documentation-map) distinguishes live status, durable decisions, and versioned acceptance; historical evidence lives in `docs/reviews/`.
 

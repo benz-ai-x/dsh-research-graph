@@ -6,7 +6,7 @@
 
 ## 开发与贡献
 
-环境要求为 Node.js `>=24.9.0`（自 DSH 0.2.2 起随宿主线）与 pnpm `11.7.0`。
+环境要求为 Node.js `^24.22.3 || >=26.13.1`（自 DSH 0.2.3-alpha.2 起随宿主线）与 pnpm `11.7.0`。
 
 接手时先读 [AGENTS.md](../AGENTS.md) 的开发规则、[CONTEXT.md](../CONTEXT.md) 的领域词汇，以及根 [HANDOFF.md](../HANDOFF.md) 的当前状态和本地工作树。[文档分工表](agents/domain.md#documentation-map) 区分实时状态、长期决策与版本验收；历史证据保留在 `docs/reviews/`。
 
