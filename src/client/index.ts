@@ -1,7 +1,7 @@
 /**
  * Browser session-graph plugin: contributes the Graph conversation view and
- * Session Backup restore action, and mounts the vendored sidebar + workspace
- * browsing halves that replace the official ui-sidebar / ui-workspace plugins.
+ * mounts the vendored sidebar + workspace browsing halves that replace the
+ * official ui-sidebar / ui-workspace plugins.
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -37,10 +37,6 @@ import { HISTORY_BRANCH_REMOTE } from './history-branch-remote.ts'
 import { KNOWLEDGE_REMOTE } from './knowledge-remote.ts'
 import { RESEARCH_REUSE_REMOTE } from './research-reuse-remote.ts'
 import { BRANCH_ORIGIN_REMOTE } from './branch-links-remote.ts'
-import { SESSION_BACKUP_REMOTE } from './session-backup-remote.ts'
-import { SessionBackupAction, type SessionBackupOutcome } from './SessionBackup.tsx'
-import { uploadSessionBackup } from './session-backup-upload.ts'
-import { sessionBackupEn, sessionBackupZh } from './session-backup-locales.ts'
 import * as sidebarEntry from './sidebar/index.ts'
 import * as workspaceEntry from './workspace/index.ts'
 
@@ -69,7 +65,6 @@ const SESSION_GRAPH_REMOTE: TypertRemoteContribution = {
     ...RESEARCH_REUSE_REMOTE.descriptors,
     ...HISTORY_BRANCH_REMOTE.descriptors,
     ...BRANCH_ORIGIN_REMOTE.descriptors,
-    ...SESSION_BACKUP_REMOTE.descriptors,
   ],
 }
 
@@ -81,7 +76,6 @@ async function registerUi(ctx: Context): Promise<void> {
   lifecycle.signal.throwIfAborted()
   if (!identity.ok) throw new Error(identity.error.message)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-session-graph: dictionaries')
-  ctx.effect(() => ctx.locale.register('sessionBackup', { zh: sessionBackupZh, en: sessionBackupEn }), 'ui-session-graph: backup dictionaries')
   // Registration-time text (the view tab label) reads through the bound
   // translate as a thunk, so it follows the active locale without
   // re-registration.
@@ -151,29 +145,6 @@ async function registerUi(ctx: Context): Promise<void> {
     },
     createOperationId: () => crypto.randomUUID(),
   })
-  ctx.slots.inject('sidebar.session.action', () => ctx.slots.register({
-    name: 'sidebar.session.action',
-    id: 'session-graph-backup',
-    locale: 'sessionBackup',
-    inject: () => ({
-      importArchive: async (file: File, workspaceId: WorkspaceId, onProgress: Parameters<typeof uploadSessionBackup>[2], signal: AbortSignal): Promise<SessionBackupOutcome> => {
-        try {
-          const limits = await ctx.remote.sessionGraphBackup.limits(signal)
-          if (!limits.ok) return { ok: false, reason: 'unknown', message: limits.error.message }
-          if (file.size > limits.value.maxUploadBytes) {
-            return { ok: false, reason: 'too-large', message: `the file exceeds ${limits.value.maxUploadBytes} bytes`, limit: limits.value.maxUploadBytes }
-          }
-          const answer = await uploadSessionBackup(file, workspaceId, onProgress, signal)
-          if ('transport' in answer) return { ok: false, reason: 'upload-failed', message: answer.transport }
-          if (!answer.ok) return { ok: false, reason: answer.error.reason, message: answer.error.message }
-          return { ok: true, result: answer.value }
-        } finally {
-          await ctx.sessions.refresh().catch((error: unknown) => { ctx.logger.warn('session backup: Session list refresh failed', error) })
-        }
-      },
-      openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
-    }),
-  }, SessionBackupAction))
   ctx.slots.inject('conversation.view', () => ctx.slots.register({
     name: 'conversation.view',
     id: 'graph',
@@ -449,7 +420,6 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       'remote.sessionGraphReuse',
       'remote.sessionGraphBranch',
       'remote.sessionGraphBranchOrigin',
-      'remote.sessionGraphBackup',
     ],
     registerUi,
   )

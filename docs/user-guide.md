@@ -204,7 +204,6 @@ Confirming creates an independent Session and sends the frozen preview through n
 | Reviewed AI extraction | Retains an extraction source snapshot; generated drafts become cards only after explicit reviewed Save | One request per Generate, up to 5 drafts |
 | Reuse research materials | Records frozen materials, target Session, and provenance after Host acknowledgment | The target processes the submitted question on its normal route |
 | Export Markdown | Downloads the preview's frozen saved revisions and sources; original records remain unchanged | None |
-| Back up / restore a Session | Exports complete logs, descendants, and attachments; restore preserves IDs, forbids overwriting, and attaches the root to the chosen Workspace | None; only an explicit continuation uses the normal route |
 | Compare and synthesize | Freezes 2–3 materials; only explicit Save creates a new card with reviewed citations | One auxiliary request per Generate, up to 8,192 output tokens |
 | Merge Sessions | Creates an independent target and durable snapshot provenance; sources remain unchanged | A model can be chosen explicitly; without a choice the target processes the queued instruction on its normal route |
 
@@ -284,18 +283,6 @@ Keyboard shortcuts work while the canvas is focused: `+` and `-` zoom, `0` resto
 Choose **Export Markdown** on a saved card or Research Topic, select 1–50 cards, then **Preview Markdown**. The Host reads the selected cards' latest saved revisions and freezes their content and exact source ranges. **Download Markdown** writes the same preview bytes; later edits only appear after another preview. Unsaved card edits are not exported, and opening or closing export preserves the current card/extraction editor.
 
 The standalone file contains questions, conclusions, reasons, open questions, kind/status, revision identities and times, readable discussion excerpts with Session identities/titles/times, and a source relation list. Missing/unreadable originals, incomplete ranges, and originals differing from saved sources are marked explicitly. Excerpts cover only selected ranges. Chinese text, multiline content, and embedded code fences are retained. Export calls no model and changes no source records. Files are limited to 8 MB; failures preserve the selection for retry.
-
-## Back up and restore Session storage
-
-Choose **⋯ → Download Session backup** on a sidebar Session to download one ZIP. The filename is `DSH_<workspace>_<session-title>_<UTC-time>_<short-session-id>.zip`, for example `DSH_研图开发_备份功能设计_20261115T073052Z_52a6b553.zip`; it uses the Workspace title rather than a local absolute path. The browser buffers the ZIP bytes to apply this custom filename. The native Session Header **Download Session log** action and `/export` retain their native filenames, and restore accepts either naming convention.
-
-**Conversation and context are not separate files.** The root `session.v4.jsonl` contains committed user/assistant messages together with system/developer messages, tool results, compaction, request context, and other events. `subagents/` contains each delegated Session's complete log, while `media/` and `files/` contain referenced attachment bytes. The backup retains Session IDs, parentage, inherited prefixes, and exact event boundaries so a compatible Host can rebuild context. It contains neither uncommitted tokens nor KV cache, and there is no separate “current context window” file.
-
-Choose **Restore Session backup** beside **New Session**, select the ZIP and a destination Workspace, then start the restore. Restored headers use that Workspace's path, while Session IDs, event content, and inheritance boundaries are retained; only the root Session is attached to the Workspace. If a parent is outside the archive, its included inherited prefix still restores the history. Open the restored root explicitly when finished—the current Session does not change automatically. Restore makes no model call; continuing the discussion is a separate explicit action.
-
-Restore validates the complete archive, V4 logs, and attachments before writing Sessions. Identical existing Sessions are skipped. A same-ID Session with different content rejects the import and is **never overwritten, truncated, or rolled back**. Missing attachments, corruption, and unsupported formats fail before Session writes. If I/O fails or the request is cancelled after validation, completed Sessions remain and the result is explicitly partial; retry after fixing the issue, with no automatic deletion.
-
-The defaults are a 512 MiB upload limit and a 256 MiB uncompressed entry limit, configurable through `backupMaxUploadBytes` and `backupMaxEntryBytes`. A backup covers the selected Session tree and attachments, not the whole DSH profile: credentials, model/plugin configuration, Workspace definitions and folders, Research Graph Topics/Knowledge/Branch Origin records, and Workspace files are excluded. Later requests are rebuilt by the current Host and are not guaranteed to be byte-identical across DSH, plugin, or model versions.
 
 ## Return to your working position
 
