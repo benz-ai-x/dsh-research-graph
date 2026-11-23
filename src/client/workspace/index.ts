@@ -1,4 +1,3 @@
-// Local delta vs upstream: Session backup joins the documented shipped action lists.
 /**
  * Workspace plugin, browser half. Two registrations and one Component Factory:
  * WorkspaceBrowser fills the sidebar shell's `sidebar.workspaces` hole (the whole browsing region),
@@ -8,7 +7,7 @@
  * each declares its own `single` directory-flow child hole for the composed
  * picker package's client half. WorkspaceBrowser additionally declares the two Session row
  * action lists, and this apply registers the shipped actions — pin, rename,
- * fork, backup, archive, copy ID — into them the way any client plugin would, each
+ * fork, archive, copy ID — into them the way any client plugin would, each
  * with its own behavior, plus the dialogs and the row-action notice into
  * `shell.overlay` (see the contract module doc). It also declares two
  * Session-row seats: the leading decoration a row renders only while its own
@@ -42,7 +41,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session-status/client'
 import {
-  type ArchiveSessionInjected, type BackupSessionInjected, type DirectoryFlowSlotName, type ForkSessionInjected, menuOpenStateFactory, type PinSessionInjected,
+  type ArchiveSessionInjected, type DirectoryFlowSlotName, type ForkSessionInjected, menuOpenStateFactory, type PinSessionInjected,
   type SessionArchiveConfirmInjected, type SessionArchiveConfirmRequest,
   type RenameSessionInjected, type RowToast, type RowToastInjected, type RowToastState, type SessionRenameDialogInjected,
   type SessionIdInjected, type WorkspaceBrowserInjected, type WorkspacePickerInjected,
@@ -56,9 +55,6 @@ import { createWorkspaceFolderSync } from './folder-sync.ts'
 import { createWorkspaceWithRestoredMembership } from './create-workspace.ts'
 import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
 import { ArchiveSessionMenuItem, ArchiveSessionRowButton, SessionArchiveConfirmDialog } from './session-actions/ArchiveSession.tsx'
-// Local delta vs upstream: package-owned Session backup row action and filename flow.
-import { BackupSessionMenuItem } from './session-actions/BackupSession.tsx'
-import { downloadSessionBackup, sessionBackupWorkspaceTitle } from '../session-backup-download.ts'
 import { derive } from './session-actions/derived.ts'
 import { ForkSessionMenuItem } from './session-actions/ForkSession.tsx'
 import { PinSessionMenuItem, PinSessionRowButton } from './session-actions/PinSession.tsx'
@@ -85,9 +81,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>
     /** Whether the current Peer may call `action` on one Workspace resource. */
     useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean
-    // Local delta vs upstream: the backup restore HOC checks this non-resource access.
-    /** Whether the current Peer may call one non-resource Remote action. */
-    useRemoteAccess: (action: RemoteEndpoint) => boolean
   }
 
   interface LocaleNamespaceMap {
@@ -259,25 +252,6 @@ export function apply(ctx: Context): void {
       notify({ kind: 'stoppedAndArchived', sessionId })
     },
   })
-  // Local delta vs upstream: per-Session native ZIP backup download and failure notice.
-  const backupLifecycle = new AbortController()
-  ctx.effect(() => () => { backupLifecycle.abort() }, 'workspace session backup downloads')
-  const backupInjected = (): BackupSessionInjected => ({
-    downloadBackup: (sessionId, displayTitle) => {
-      const snapshot = workspaces.list.getSnapshot()
-      const translate = ctx.locale.bind(NS)
-      void downloadSessionBackup({
-        workspaceTitle: sessionBackupWorkspaceTitle(snapshot.items, sessionId, translate('group.ungrouped')),
-        sessionTitle: displayTitle || translate('session.untitled'),
-        sessionId,
-        date: new Date(),
-        signal: backupLifecycle.signal,
-      }).catch((reason: unknown) => {
-        if (backupLifecycle.signal.aborted) return
-        notify({ kind: 'backupFailed', message: reason instanceof Error ? reason.message : String(reason) })
-      })
-    },
-  })
   const forkInjected = (): ForkSessionInjected => ({
     forkSession: (sessionId) => {
       uiWorkspace.forkSession(sessionId, (childId) => {
@@ -385,8 +359,6 @@ export function apply(ctx: Context): void {
     yield ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'pin', order: 100, locale: NS, inject: pinInjected }, PinSessionMenuItem)
     yield ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'rename', order: 200, locale: NS, inject: renameInjected }, RenameSessionMenuItem)
     yield ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'fork', order: 300, locale: NS, inject: forkInjected }, ForkSessionMenuItem)
-    // Local delta vs upstream: the Session backup action sits between Fork and Archive.
-    yield ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'session-backup', order: 350, locale: NS, inject: backupInjected }, BackupSessionMenuItem)
     yield ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'archive', order: 400, locale: NS, inject: archiveInjected }, ArchiveSessionMenuItem)
     yield ctx.slots.register({ name: 'sidebar.workspaces.session.menu.item', id: 'session-id', order: 450, locale: NS, inject: sessionIdInjected }, SessionIdMenuItem)
   })

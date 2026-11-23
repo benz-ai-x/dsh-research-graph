@@ -6,7 +6,7 @@ Run the following commands from the repository root.
 
 ## Develop and contribute
 
-Requirements are Node.js `>=24.9.0` (matching the DSH host line since 0.2.2) and pnpm `11.7.0`.
+Requirements are Node.js `^24.22.3 || >=26.13.1` (matching the DSH host line since 0.2.3-alpha.2) and pnpm `11.7.0`.
 
 Start with [AGENTS.md](../AGENTS.md) for contributor rules, [CONTEXT.md](../CONTEXT.md) for domain vocabulary, and root [HANDOFF.md](../HANDOFF.md) for current state and local worktrees. The [documentation map](agents/domain.md#documentation-map) distinguishes live status, durable decisions, and versioned acceptance; historical evidence lives in `docs/reviews/`.
 
@@ -78,8 +78,6 @@ The package exports one Node-facing entry and one lazy browser module. Every Jav
 | [`src/client/GraphCanvas.tsx`](../src/client/GraphCanvas.tsx) | Canvas rendering, ports, inspector, controls, gestures, hover state, and minimap |
 | [`src/config.ts`](../src/config.ts) | Exported Standard Schema, defaults, and normalized Host configuration |
 | [`src/index.ts`](../src/index.ts) | Host service/domain registration, configuration, lifecycle, and Remote errors |
-| [`src/session-backup-archive.ts`](../src/session-backup-archive.ts), [`src/session-backup-import.ts`](../src/session-backup-import.ts), and [`src/session-backup-host.ts`](../src/session-backup-host.ts) | Defensive native-ZIP restoration, attachment integrity, exact conflict/partial outcomes, and owner-only Host upload |
-| [`src/client/SessionBackup.tsx`](../src/client/SessionBackup.tsx), [`src/client/session-backup-download.ts`](../src/client/session-backup-download.ts), and [`src/client/session-backup-upload.ts`](../src/client/session-backup-upload.ts) | Workspace-aware backup download, restore dialog, upload progress, cancellation, and list refresh |
 | [`src/knowledge-host.ts`](../src/knowledge-host.ts), [`src/knowledge-extraction.ts`](../src/knowledge-extraction.ts), [`src/knowledge-synthesis.ts`](../src/knowledge-synthesis.ts), and [`src/knowledge-export.ts`](../src/knowledge-export.ts) | Durable card revisions and sources, reviewed generation, frozen citations, and Markdown export |
 | [`src/client/session-extraction-source.ts`](../src/client/session-extraction-source.ts), [`src/client/session-extraction.ts`](../src/client/session-extraction.ts), and [`src/client/KnowledgeExtraction.tsx`](../src/client/KnowledgeExtraction.tsx) | Backward-paginated completed-turn selection, exact Original restoration, and optional task instructions with cancellable generation-time navigation |
 | [`src/client/ExtractionModelSelect.tsx`](../src/client/ExtractionModelSelect.tsx) | Linked Host-catalog provider/model selectors, current-route retention, and generation availability |

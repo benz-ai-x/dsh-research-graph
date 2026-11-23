@@ -6,7 +6,7 @@
 
 ## 开发与贡献
 
-环境要求为 Node.js `>=24.9.0`（自 DSH 0.2.2 起随宿主线）与 pnpm `11.7.0`。
+环境要求为 Node.js `^24.22.3 || >=26.13.1`（自 DSH 0.2.3-alpha.2 起随宿主线）与 pnpm `11.7.0`。
 
 接手时先读 [AGENTS.md](../AGENTS.md) 的开发规则、[CONTEXT.md](../CONTEXT.md) 的领域词汇，以及根 [HANDOFF.md](../HANDOFF.md) 的当前状态和本地工作树。[文档分工表](agents/domain.md#documentation-map) 区分实时状态、长期决策与版本验收；历史证据保留在 `docs/reviews/`。
 
@@ -78,8 +78,6 @@ pnpm preview:dsh --stop
 | [`src/client/GraphCanvas.tsx`](../src/client/GraphCanvas.tsx) | 画布渲染、端子、检查器、控件、手势、悬停状态与 minimap |
 | [`src/config.ts`](../src/config.ts) | 对外 Standard Schema、默认值与规范化 Host 配置 |
 | [`src/index.ts`](../src/index.ts) | Host 服务与存储域注册、配置、生命周期和 Remote 错误 |
-| [`src/session-backup-archive.ts`](../src/session-backup-archive.ts)、[`src/session-backup-import.ts`](../src/session-backup-import.ts) 与 [`src/session-backup-host.ts`](../src/session-backup-host.ts) | 防御式原生 ZIP 恢复、附件完整性、精确冲突／部分结果和 owner-only Host 上传 |
-| [`src/client/SessionBackup.tsx`](../src/client/SessionBackup.tsx)、[`src/client/session-backup-download.ts`](../src/client/session-backup-download.ts) 与 [`src/client/session-backup-upload.ts`](../src/client/session-backup-upload.ts) | 带工作区命名的备份下载、恢复对话框、上传进度、取消与列表刷新 |
 | [`src/knowledge-host.ts`](../src/knowledge-host.ts)、[`src/knowledge-extraction.ts`](../src/knowledge-extraction.ts)、[`src/knowledge-synthesis.ts`](../src/knowledge-synthesis.ts)、[`src/knowledge-export.ts`](../src/knowledge-export.ts) | 持久卡片修订与来源、审阅式生成、冻结引用和 Markdown 导出 |
 | [`src/client/session-extraction-source.ts`](../src/client/session-extraction-source.ts)、[`src/client/session-extraction.ts`](../src/client/session-extraction.ts) 与 [`src/client/KnowledgeExtraction.tsx`](../src/client/KnowledgeExtraction.tsx) | 向前分页收集已完成轮次、恢复精确原文选择，以及可选任务说明与可取消的生成中导航 |
 | [`src/client/ExtractionModelSelect.tsx`](../src/client/ExtractionModelSelect.tsx) | Host 模型目录的提供方／模型联动下拉、当前路由保留与生成可用性 |

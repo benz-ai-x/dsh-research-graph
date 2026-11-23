@@ -41,9 +41,6 @@ Every intentional difference from upstream is marked with a
   `sessionGraphWorkspaces.restore` Remote to attach currently unaccounted Sessions whose
   canonical directory matches. Native creation failures short-circuit; restoration failures
   surface in the existing picker dialog and can be retried idempotently.
-- `src/client/workspace/session-actions/BackupSession.tsx`, `src/client/workspace/index.ts`, and `src/client/session-backup-download.ts` — add a **Download Session backup** row action over the native export route, with a Workspace/title/UTC/short-ID filename and existing toast failure reporting.
-- `src/client/workspace/contract/slots.ts`, `src/client/workspace/locales.ts`, and `src/client/workspace/toast/register.ts` — declare the backup action/toast contracts and bilingual strings, including the non-resource `useRemoteAccess` hook used by the restore HOC.
-- `src/client/SessionBackup.tsx`, `src/client/index.ts`, and the backup upload/Remote modules — add a **Restore Session backup** HOC beside New Session, owner-gated native-ZIP upload, Workspace selection, progress, cancellation, and explicit restored-root navigation.
 - `src/client/workspace/tree.ts` — `GroupNode` gains `folders`
   (`FolderNode`), `deriveGroups` partitions each Workspace's visible members
   between its folders and the unassigned remainder, and `TreeView` gains
@@ -157,7 +154,13 @@ The unified Session status table moved from `@deepseek-ai/dsh-client-ui-session`
 
 Upstream `completionUnread` now covers both Host-confirmed unread completion and an explicit unread mark, while `completionFailed` distinguishes an unread failed completion. Session rows therefore present **Unread** or **Run failed**, not the old Completed label; the local projection field is named `unread` rather than upstream's ambiguous `completed`. The Research Graph canvas independently refuses to treat either unread form as confirmed completion.
 
-This remains a targeted compatibility port, not a full re-vendor. Workspace Folders, backup/restore actions, restoring Workspace creation, native row slots, and all marked local deltas remain intact. Optional upstream additions are deferred: recent-view retention and its synced configuration, manual read/unread menus and shortcuts, fuzzy picker/session search, panel trailing content, shared Marquee migration, external Session drag copy, and unrelated scrollbar/style changes. The original extraction provenance above is unchanged.
+This remains a targeted compatibility port, not a full re-vendor. Workspace Folders, restoring Workspace creation, native row slots, and all marked local deltas remain intact. Optional upstream additions are deferred: recent-view retention and its synced configuration, manual read/unread menus and shortcuts, fuzzy picker/session search, panel trailing content, shared Marquee migration, external Session drag copy, and unrelated scrollbar/style changes. The original extraction provenance above is unchanged.
+
+### DSH 0.2.3-alpha.2 (2026-11-23): retired plugin-owned Session Backup/Restore
+
+The `dsh-v0.2.3-alpha.1..dsh-v0.2.3-alpha.2` diff is empty for `ui-sidebar/src`, `ui-workspace/src`, and the vendored `default-workspace.ts`; only their upstream package versions changed. No vendored source port is required.
+
+The local Session Backup row action, Workspace-aware download naming, restore HOC, and their contracts/locales/toasts were removed. Native Session Header and `/export` downloads remain Host-owned. Workspace Folders, same-directory Workspace membership restoration, native row slots, and the New Session HOC used by other plugins remain intact.
 
 ## Upstream sync checklist (per DSH adaptation round)
 

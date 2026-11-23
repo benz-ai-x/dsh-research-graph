@@ -1,8 +1,11 @@
 # ADR 0021: Restore native Session Backups without overwriting existing Sessions
 
-- Status: Accepted
+- Status: Retired
 - Date: 2026-11-15
+- Retired: 2026-11-23
 - Related: ADR 0011 (fixed Knowledge exports), ADR 0019 (vendored sidebar), ADR 0020 (Branch Origin)
+
+The plugin-owned Session Backup/Restore capability was retired during the DSH `0.2.3-alpha.2` adaptation. The native Session Header and `/export` downloads remain Host capabilities; Research Graph no longer supplies a sidebar download name, restore dialog, upload route, or archive writer. Existing Session and research records are not migrated or deleted. The decisions below remain as the historical design record.
 
 ## Context
 

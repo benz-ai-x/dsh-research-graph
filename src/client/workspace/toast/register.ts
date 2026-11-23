@@ -71,13 +71,6 @@ export function registerToasts(
         display: (notice, t) => ({ text: t('toast.createFailed', { message: notice.message }), tone: 'warning', holdMs: 6000 }),
       }),
     }, ToastEntry<PropsRuntime<'workspace.toast', 'createFailed'>>)
-    // Local delta vs upstream: native Session backup failure presentation.
-    yield ctx.slots.register({
-      name: 'workspace.toast', key: 'backupFailed', locale: 'workspace',
-      inject: (): ToastDisplayInjected<'backupFailed'> => ({
-        display: (notice, t) => ({ text: t('toast.backupFailed', { message: notice.message }), tone: 'warning', holdMs: 6000 }),
-      }),
-    }, ToastEntry<PropsRuntime<'workspace.toast', 'backupFailed'>>)
     yield ctx.slots.register({
       name: 'workspace.toast', key: 'forkRequiresOpen', locale: 'workspace',
       inject: (): ToastDisplayInjected<'forkRequiresOpen'> => ({
