@@ -74,8 +74,8 @@ Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution scr
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.3-alpha.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.1), npm `next` (`latest` remains `0.2.2-rc.3.4`) |
-| Required Host | **DSH 0.2.3-alpha.1 · Web**, Node.js `>=24.9.0` |
+| Plugin release | [0.2.3-alpha.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.2), npm `next` (`latest` remains `0.2.2-rc.3.4`) |
+| Required Host | **DSH 0.2.3-alpha.2 · Web**, Node.js `^24.22.3 \|\| >=26.13.1` |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
@@ -103,14 +103,14 @@ Browsing, searching, manual capture, and Markdown export make no model call. AI 
 
 ## Quick start
 
-Requires **DSH 0.2.3-alpha.1** (Node.js `>=24.9.0`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
+Requires **DSH 0.2.3-alpha.2** (Node.js `^24.22.3 || >=26.13.1`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.2
 dsh web
 ```
 
-The alpha.1 package is published on npm `next`; npm `latest` remains `0.2.2-rc.3.4`.
+The alpha.2 package is published on npm `next`; npm `latest` remains `0.2.2-rc.3.4`.
 
 Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
 
@@ -122,8 +122,9 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 
 | Plugin release | Required DSH | Notes |
 | --- | --- | --- |
-| `0.2.3-alpha.1` | `0.2.3-alpha.1` | Current release — new Host Session status service, current-directory projection, and factual unread/failed presentation; requires Node.js `>=24.9.0`; npm `next` |
-| `0.2.2-rc.5` | `0.2.2-rc.5` | Previous release — DSH rc.5 adaptation with provider-refusal regression coverage; requires Node.js `>=24.9.0` |
+| `0.2.3-alpha.2` | `0.2.3-alpha.2` | Current release — retires plugin-owned Session Backup/Restore and adopts the new Host runtime floor; requires Node.js `^24.22.3 \|\| >=26.13.1`; npm `next` |
+| `0.2.3-alpha.1` | `0.2.3-alpha.1` | Previous release — new Host Session status service, current-directory projection, and factual unread/failed presentation; requires Node.js `>=24.9.0` |
+| `0.2.2-rc.5` | `0.2.2-rc.5` | DSH rc.5 adaptation with provider-refusal regression coverage; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.5` | `0.2.2-rc.3` | Host-linked extraction model selection plus richer Knowledge Card filtering, badges, and grouped source reading; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.4` | `0.2.2-rc.3` | Reviewed Selected Session extraction with exact sources; requires Node.js `>=24.9.0`; npm `latest` |
 | `0.2.2-rc.3.3` | `0.2.2-rc.3` | Native Session backup and on-demand restore with Workspace-aware filenames and no overwriting; requires Node.js `>=24.9.0` |
@@ -138,4 +139,4 @@ See the [full release history](https://github.com/benz-ai-x/dsh-research-graph/r
 
 ## Docs and support
 
-[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.3-alpha.1.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[User guide](docs/user-guide.md) · [Troubleshooting](docs/user-guide.md#troubleshooting) · [Development and release](docs/development.md) · [Release acceptance](docs/reviews/release-0.2.3-alpha.2.md) · [Report an issue](https://github.com/benz-ai-x/dsh-research-graph/issues)

@@ -73,8 +73,8 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.2.3-alpha.1](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.1)，npm `next`（`latest` 仍为 `0.2.2-rc.3.4`） |
-| 适配宿主 | **DSH 0.2.3-alpha.1 · Web**，Node.js `>=24.9.0` |
+| 当前插件 | [0.2.3-alpha.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.2)，npm `next`（`latest` 仍为 `0.2.2-rc.3.4`） |
+| 适配宿主 | **DSH 0.2.3-alpha.2 · Web**，Node.js `^24.22.3 \|\| >=26.13.1` |
 | 数据保存 | 研究数据与工作区文件夹保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡与导出不调用模型；AI 生成与新讨论按需调用 |
 | Agent 能力 | 模型、工具、预设与 Agent 执行由 DSH 提供；插件不内置预设或 Agent Team 启动器。[详细说明](docs/user-guide.zh.md#dsh-与-agent-预设) |
@@ -102,14 +102,14 @@ flowchart LR
 
 ## 快速开始
 
-需要 **DSH 0.2.3-alpha.1**（Node.js `>=24.9.0`），并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
+需要 **DSH 0.2.3-alpha.2**（Node.js `^24.22.3 || >=26.13.1`），并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
 
 ```sh
-dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.1
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.2
 dsh web
 ```
 
-alpha.1 包已发布到 npm `next`；npm `latest` 仍为 `0.2.2-rc.3.4`。
+alpha.2 包已发布到 npm `next`；npm `latest` 仍为 `0.2.2-rc.3.4`。
 
 打开终端给出的登录入口，在一个**非空会话**中选择**研图**：读原文 → 保存知识 → 继续讨论。通过 `npx` 或源码运行 DSH 时，参阅[安装方式](docs/user-guide.zh.md#安装)。
 
@@ -121,8 +121,9 @@ alpha.1 包已发布到 npm `next`；npm `latest` 仍为 `0.2.2-rc.3.4`。
 
 | 插件版本 | 要求的 DSH | 备注 |
 | --- | --- | --- |
-| `0.2.3-alpha.1` | `0.2.3-alpha.1` | 当前版本——适配宿主 Session 状态服务、当前目录 projection 与更准确的未读/失败展示，要求 Node.js `>=24.9.0`；npm `next` |
-| `0.2.2-rc.5` | `0.2.2-rc.5` | 上一版本——适配 DSH rc.5 并覆盖提供方拒答回归，要求 Node.js `>=24.9.0` |
+| `0.2.3-alpha.2` | `0.2.3-alpha.2` | 当前版本——退役插件自有会话备份/恢复并跟随宿主新的运行时要求，要求 Node.js `^24.22.3 \|\| >=26.13.1`；npm `next` |
+| `0.2.3-alpha.1` | `0.2.3-alpha.1` | 上一版本——适配宿主 Session 状态服务、当前目录 projection 与更准确的未读/失败展示，要求 Node.js `>=24.9.0` |
+| `0.2.2-rc.5` | `0.2.2-rc.5` | 适配 DSH rc.5 并覆盖提供方拒答回归，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.5` | `0.2.2-rc.3` | Host 目录联动的提炼模型选择，以及更丰富的知识卡片筛选、徽章和分组来源阅读，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.4` | `0.2.2-rc.3` | 审核选定会话的提炼结果并保留准确来源，要求 Node.js `>=24.9.0`；npm `latest` |
 | `0.2.2-rc.3.3` | `0.2.2-rc.3` | 原生会话备份与按需恢复，文件名包含工作区且不覆盖现有会话，要求 Node.js `>=24.9.0` |
@@ -137,4 +138,4 @@ alpha.1 包已发布到 npm `next`；npm `latest` 仍为 `0.2.2-rc.3.4`。
 
 ## 文档与支持
 
-[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.3-alpha.1.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
+[使用指南](docs/user-guide.zh.md) · [故障排查](docs/user-guide.zh.md#故障排查) · [开发与发布](docs/development.zh.md) · [发布验收](docs/reviews/release-0.2.3-alpha.2.md) · [问题反馈](https://github.com/benz-ai-x/dsh-research-graph/issues)
