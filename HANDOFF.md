@@ -23,7 +23,7 @@ Updated: 2026-11-23 (Asia/Shanghai, 0.2.3-alpha.2 发布准备中，候选门禁
 
 ## 当前工作树与证据
 
-- 主工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`，当前分支 `release/0.2.3-alpha.2`，基于已合并并通过 main CI 的 PR #110 及交接提交 `c2799f8604ac02a49f93b1f3a31fd02c2770902e`；发布准备变更正在提交，尚未创建 alpha.2 tag 或 Release。tag `v0.2.3-alpha.1` 仍指向发布合并提交 `f5b4b36472712e04bab78f34ec7d92a57ffe498b`。
+- 主工作树：`/Users/pc2026/DSH-Space/DSH-Research-Graph-Space/dsh-research-graph`，当前分支 `release/0.2.3-alpha.2`，基于已合并并通过 main CI 的 PR #110 及交接提交 `c2799f8604ac02a49f93b1f3a31fd02c2770902e`；发布准备已提交为 `37f4ceb` 并创建 [PR #111](https://github.com/benz-ai-x/dsh-research-graph/pull/111)，等待检查后合并；尚未创建 alpha.2 tag 或 Release。tag `v0.2.3-alpha.1` 仍指向发布合并提交 `f5b4b36472712e04bab78f34ec7d92a57ffe498b`。
 - 原型工作树及本地/远端 `prototype/research-workbench` 分支已按用户要求移除；该分支 3 个独有提交已保存为 `.artifacts/prototype-cleanup/prototype-research-workbench.bundle`（`git bundle verify` 通过），原 `.artifacts/prototype-dsh` 资料另存于 `.artifacts/prototype-cleanup/prototype-artifacts/`，均未公开。
 - alpha.2 当前候选为 `.artifacts/benz-ai-x-dsh-research-graph-0.2.3-alpha.2.tgz`，仅用于本地验收，不是官方 npm 包。alpha.1 本地候选为 `.artifacts/benz-ai-x-dsh-research-graph-0.2.3-alpha.1.tgz`，正式 npm 验证证据保留在 `.artifacts/release-0.2.3-alpha.1/official/`，不要混用。rc.3.4 候选与正式 npm 验证证据分别保留在 `.artifacts/release-0.2.2-rc.3.4/candidate/` 与 `official/`；rc.3.3 证据及预览 profile 保留在 `.artifacts/release-worktree-0.2.2-rc.3.3/`。
 - Release 已上传正式归档和 `SHA256SUMS`，服务端摘要与官方包一致；初次 Release-CDN 下载超时后，覆盖失败的下载副本并逐字节复核通过。
