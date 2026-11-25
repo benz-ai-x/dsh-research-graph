@@ -1,5 +1,5 @@
 ---
-description: "Open-source DeepSeek Harness Web plugin that turns AI conversations into a visual research graph, traceable Knowledge Cards, and reusable research materials. Explore use cases, compatibility, and installation."
+description: "Open-source DeepSeek Harness (DSH) plugin for Web and Desktop that turns AI conversations into a visual research graph, traceable Knowledge Cards, and reusable research materials. Explore use cases, compatibility, and installation."
 kind: "package-bundle"
 ---
 
@@ -11,7 +11,7 @@ kind: "package-bundle"
 
 **English** | [简体中文](README.zh.md)
 
-Turn scattered AI conversations into a **visual, traceable, reusable research knowledge base**. **DSH Research Graph** is an independently maintained, open-source **AI research workbench plugin** for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness), running inside **DSH Web**. Map conversation branches and merges, connect research across Workspaces, and turn selected discussion turns into source-linked Knowledge Cards for product research, technical investigation, and ongoing knowledge management.
+Turn scattered AI conversations into a **visual, traceable, reusable research knowledge base**. **DSH Research Graph** is an independently maintained, open-source **AI research workbench plugin** for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness), running inside **DSH Web and DSH Desktop**. Map conversation branches and merges, connect research across Workspaces, and turn selected discussion turns into source-linked Knowledge Cards for product research, technical investigation, and ongoing knowledge management.
 
 ## Use cases
 
@@ -74,8 +74,8 @@ Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution scr
 
 | Item | Details |
 | --- | --- |
-| Plugin release | [0.2.3-alpha.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.2), npm `next` (`latest` remains `0.2.2-rc.3.4`) |
-| Required Host | **DSH 0.2.3-alpha.2 · Web**, Node.js `^24.22.3 \|\| >=26.13.1` |
+| Plugin release | [0.2.3-alpha.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.2) for DSH `0.2.3-alpha.2` (npm `next`) · [0.2.2-rc.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.5) for DSH `0.2.2-rc.5` (npm `latest`) |
+| Required Host | **The DSH version the installed plugin release was built for**: `0.2.3-alpha.2` with Node.js `^24.22.3 \|\| >=26.13.1`, or `0.2.2-rc.5` with Node.js `>=24.9.0` · Web and Desktop |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
@@ -89,7 +89,7 @@ It adds a visual map of Branch and Merge relations, cross-Workspace Research Top
 
 ### Does it require a separate workbench service?
 
-No. Research Graph installs as a plugin inside a compatible **DSH Web** Host; the DSH profile still owns Session execution and model services.
+No. Research Graph installs as a plugin inside a compatible **DSH Web or Desktop** Host; the DSH profile still owns Session execution and model services.
 
 ### Where are research records stored?
 
@@ -103,14 +103,23 @@ Browsing, searching, manual capture, and Markdown export make no model call. AI 
 
 ## Quick start
 
-Requires **DSH 0.2.3-alpha.2** (Node.js `^24.22.3 || >=26.13.1`), with both `dsh` and `pnpm` on your `PATH`. Stop any running `dsh web`, then run:
+Each plugin release runs only on the DSH version it was built for. Check yours with `dsh --version`, stop any running `dsh web`, then install the matching release with both `dsh` and `pnpm` on your `PATH`:
 
 ```sh
+# DSH 0.2.2-rc.5 (npm `latest`)
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
+dsh web
+```
+
+```sh
+# DSH 0.2.3-alpha.2 (npm `next`)
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.2
 dsh web
 ```
 
-The alpha.2 package is published on npm `next`; npm `latest` remains `0.2.2-rc.3.4`.
+In **DSH Desktop**, add the release that matches the application version from its **Plugins** page, or follow the [Desktop install steps](docs/user-guide.md#install-in-dsh-desktop).
+
+> **Not this package:** the unscoped npm package `dsh-research-graph` is another author's finance research plugin. This project publishes only as `@benz-ai-x/dsh-research-graph`.
 
 Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
 
@@ -124,9 +133,9 @@ Install a release that matches your DSH Host with `dsh plugin --profile web add 
 | --- | --- | --- |
 | `0.2.3-alpha.2` | `0.2.3-alpha.2` | Current release — retires plugin-owned Session Backup/Restore and adopts the new Host runtime floor; requires Node.js `^24.22.3 \|\| >=26.13.1`; npm `next` |
 | `0.2.3-alpha.1` | `0.2.3-alpha.1` | Previous release — new Host Session status service, current-directory projection, and factual unread/failed presentation; requires Node.js `>=24.9.0` |
-| `0.2.2-rc.5` | `0.2.2-rc.5` | DSH rc.5 adaptation with provider-refusal regression coverage; requires Node.js `>=24.9.0` |
+| `0.2.2-rc.5` | `0.2.2-rc.5` | DSH rc.5 adaptation with provider-refusal regression coverage; requires Node.js `>=24.9.0`; npm `latest` |
 | `0.2.2-rc.3.5` | `0.2.2-rc.3` | Host-linked extraction model selection plus richer Knowledge Card filtering, badges, and grouped source reading; requires Node.js `>=24.9.0` |
-| `0.2.2-rc.3.4` | `0.2.2-rc.3` | Reviewed Selected Session extraction with exact sources; requires Node.js `>=24.9.0`; npm `latest` |
+| `0.2.2-rc.3.4` | `0.2.2-rc.3` | Reviewed Selected Session extraction with exact sources; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.3` | `0.2.2-rc.3` | Native Session backup and on-demand restore with Workspace-aware filenames and no overwriting; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.2` | `0.2.2-rc.3` | Restores unaccounted Sessions when re-adding the same Workspace directory; requires Node.js `>=24.9.0` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | Restores Branch links for independent ordinary forks; requires Node.js `>=24.9.0` |
