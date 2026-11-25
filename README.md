@@ -1,5 +1,5 @@
 ---
-description: "Open-source DeepSeek Harness (DSH) plugin for Web and Desktop that turns AI conversations into a visual research graph, traceable Knowledge Cards, and reusable research materials. Explore use cases, compatibility, and installation."
+description: "Open-source DeepSeek Harness (DSH) plugin for Web and Desktop that puts Sessions on an interactive graph so you can find a past discussion, branch from any turn to explore directions in parallel, and merge branches into one conclusion, with Workspace folders, Research Topics, and Knowledge Cards to keep the work organized. Explore use cases, compatibility, and installation."
 kind: "package-bundle"
 ---
 
@@ -11,14 +11,15 @@ kind: "package-bundle"
 
 **English** | [简体中文](README.zh.md)
 
-Turn scattered AI conversations into a **visual, traceable, reusable research knowledge base**. **DSH Research Graph** is an independently maintained, open-source **AI research workbench plugin** for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness), running inside **DSH Web and DSH Desktop**. Map conversation branches and merges, connect research across Workspaces, and turn selected discussion turns into source-linked Knowledge Cards for product research, technical investigation, and ongoing knowledge management.
+Put your DSH Sessions on one canvas: **find the one you need, branch a discussion into parallel directions, and merge the branches back into one conclusion**. **DSH Research Graph** is an independently maintained, open-source **session graph plugin** for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness), running inside **DSH Web and DSH Desktop**. It draws each Session with its Branch and Merge relations, adds a folder level to the sidebar, and keeps what you learn as source-linked Knowledge Cards, for technical investigation, product research, and everyday planning such as a trip itinerary.
 
 ## Use cases
 
-- **Technical investigation:** compare design branches, retain the evidence behind each conclusion, and resume from a selected historical turn.
-- **Product research:** gather findings from several Workspaces into one Research Topic without moving or rewriting source Sessions.
-- **Research knowledge management:** turn completed discussions into reviewed Knowledge Cards with exact source ranges, revisions, and open questions.
-- **Follow-up research:** reuse frozen cards and discussion ranges in a new Session, compare 2–3 materials, and export results as Markdown.
+- **Find a discussion:** filter the canvas by title, preview a card on hover, or search discussion text when you remember what was said but not where.
+- **Explore directions in parallel:** branch from a completed turn to try another approach while the source Session stays intact.
+- **Converge on a conclusion:** merge 2–3 Sessions into a new one, asking the question you want answered, and keep the Merge relation visible on the canvas.
+- **Keep the sidebar tidy:** drag Sessions into Workspace folders, and gather related Sessions from several Workspaces into one Research Topic without moving them.
+- **Keep what you learned:** save conclusions as source-linked Knowledge Cards — one card per attraction when planning a trip, for example — then reuse them in a new discussion or export them as Markdown.
 
 ## Capability map
 
@@ -30,23 +31,23 @@ config:
     rankSpacing: 32
 ---
 flowchart LR
-  G["DSH Research Graph"] --> O["Organize research"] & K["Capture knowledge"] & R["Extend research"]
-  O --> O1["Cross-workspace topics"] & O2["Conversation graph<br/>Branches · Merges<br/>Subagent records"]
-  K --> K1["History search<br/>Sources · Digests"] & K2["Knowledge Cards<br/>AI extraction · Review · Revisions"]
-  R --> R1["Synthesis · Frozen materials"] & R2["Follow-up discussions<br/>Markdown export"]
+  G["DSH Research Graph"] --> S["See and find"] & B["Branch and merge"] & K["Organize and keep"]
+  S --> S1["Session graph<br/>Branch · Merge<br/>Subagent records"] & S2["Title filter · Previews<br/>Discussion search · Digests"]
+  B --> B1["Branch from any turn"] & B2["Merge 2–3 Sessions"]
+  K --> K1["Workspace folders<br/>Research Topics"] & K2["Knowledge Cards<br/>AI extraction · Synthesis<br/>Reuse · Export"]
   classDef brand fill:#2563eb,stroke:#2563eb,color:#fff
   classDef group fill:#eff6ff,stroke:#93c5fd,color:#1e3a8a
   classDef feature fill:#f8fafc,stroke:#cbd5e1,color:#0f172a
   class G brand
-  class O,K,R group
-  class O1,O2,K1,K2,R1,R2 feature
+  class S,B,K group
+  class S1,S2,B1,B2,K1,K2 feature
 ```
 
-## Workbench screenshot
+## Screenshot
 
 <p align="center">
   <a href="docs/assets/readme/research-workbench.png">
-    <img src="docs/assets/readme/research-workbench.png" alt="DSH Research Graph AI research workbench showing a Workspace conversation graph with Session cards, Branch and Merge relations, and a minimap" width="100%" />
+    <img src="docs/assets/readme/research-workbench.png" alt="DSH Research Graph session graph showing a Workspace's Sessions as cards with Branch and Merge relations, and a minimap" width="100%" />
   </a>
 </p>
 
@@ -59,13 +60,12 @@ Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution scr
 
 | Capability | What you can do |
 | --- | --- |
-| **Visual conversation graph** | See how discussions fork and merge, show verified ordinary-fork Branch links, and inspect existing Subagent work; drag, collapse, and relayout without changing source Sessions |
-| **Own sidebar with Workspace folders** | Organize Sessions in user-created folders inside each Workspace while retaining native row menus. Re-adding a removed Workspace's directory restores its currently unaccounted Sessions; uninstalling restores the official sidebar |
-| **Research Topics and source tracing** | Gather discussions across Workspaces, search discussion text, and return to the exact original turns behind a finding |
-| **Source-linked Knowledge Cards** | Save reviewed conclusions, conditions, and open questions with exact sources; filter and sort the catalog, inspect saved/verification/type badges, and read grouped source excerpts without losing revision history |
-| **AI extraction and synthesis** | Extract from Original or Session details with optional per-entity tasks and Host-linked model selection, or compare 2–3 frozen materials; inspect drafts and citations before explicitly saving |
-| **Follow-up research** | Start from a historical turn or reuse chosen card revisions and discussion ranges, retaining the exact materials used |
-| **Inspection and delivery** | Read turn counts and Session statistics, inspect existing Subagent records, and export Markdown research results |
+| **Session graph and finding** | See a Workspace's Sessions on one canvas with their Branch and Merge relations. Filter by title, search discussion text, preview a card on hover, or generate a digest to decide which one to open; drag, collapse, and relayout without changing any source Session |
+| **Branch from any turn** | Choose Branch from here on a completed turn: the new Session inherits the turns before it and continues with your new question while the source stays intact. Create another branch to take another direction |
+| **Merge Sessions** | Pick 2–3 Sessions, write a question, and choose the destination Workspace and model. Harness creates one independent Session from a snapshot of each source, and the canvas keeps the Merge relation |
+| **Sidebar with Workspace folders** | The plugin's own sidebar replaces the official one and adds a folder level: Workspace → folder → Session. Drag Sessions into folders, keep the native menu on every Session row, and uninstall to restore the official sidebar |
+| **Research Topics** | Group Sessions across Workspaces without moving them, and return to the exact original turns behind a finding |
+| **Knowledge Cards** | Save conclusions with exact sources, by hand or through reviewed AI extraction such as one card per attraction. Reuse cards in a new discussion, compare 2–3 materials, and export Markdown |
 
 <a id="compatibility"></a>
 <a id="dsh-and-agent-presets"></a>
@@ -78,6 +78,7 @@ Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution scr
 | Required Host | **The DSH version the installed plugin release was built for**: `0.2.3-alpha.2` with Node.js `^24.22.3 \|\| >=26.13.1`, or `0.2.2-rc.5` with Node.js `>=24.9.0` · Web and Desktop |
 | Data | Research records and Workspace folders live on the DSH Host; view preferences and working positions stay in the browser, and Topic arrangements require explicit saving |
 | Model calls | Browsing, manual capture, and export make no model call; AI generation and new discussions use models on demand |
+| <a id="enable-discussion-search"></a>Discussion search | Uses DSH full-text indexing, which DSH `0.2.3-alpha.2` turns off by default. If search reports that indexing is off, follow [Enable discussion search](docs/user-guide.md#enable-discussion-search) |
 | Agent capabilities | DSH provides models, tools, presets, and agent execution; this plugin includes no preset or Agent Team launcher. [Details](docs/user-guide.md#dsh-and-agent-presets) |
 | Stack and license | TypeScript · React · [MIT](LICENSE) |
 
@@ -85,9 +86,9 @@ Version 0.2.2-rc.3.5 with demo data. Click the image for the full-resolution scr
 
 ### How is DSH Research Graph different from ordinary AI chat history?
 
-It adds a visual map of Branch and Merge relations, cross-Workspace Research Topics, source-linked Knowledge Cards, and reusable frozen materials. It complements the native DSH conversation instead of replacing its original history.
+A chat history is a list: it does not show which Session branched from which, or which discussions were merged into one conclusion. Research Graph draws those relations on one canvas and lets you act on them — find a Session, branch from a turn, merge 2–3 Sessions — then keeps the work organized with Workspace folders, Research Topics, and Knowledge Cards. It complements the native DSH conversation instead of replacing its original history.
 
-### Does it require a separate workbench service?
+### Does it require a separate app or service?
 
 No. Research Graph installs as a plugin inside a compatible **DSH Web or Desktop** Host; the DSH profile still owns Session execution and model services.
 
@@ -121,7 +122,7 @@ In **DSH Desktop**, add the release that matches the application version from it
 
 > **Not this package:** the unscoped npm package `dsh-research-graph` is another author's finance research plugin. This project publishes only as `@benz-ai-x/dsh-research-graph`.
 
-Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: read a source → save knowledge → continue the discussion. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
+Open the login URL printed in the terminal, enter a **non-blank Session**, and select **Research Graph**: hover a card to preview it → open a Session and choose **Branch from here** on a completed turn → choose **Merge sessions** to bring the branches back together. See [installation options](docs/user-guide.md#install) if you run DSH through `npx` or from source.
 
 <a id="installable-versions"></a>
 
