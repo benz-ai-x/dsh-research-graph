@@ -11,13 +11,20 @@ Detailed installation, research workflows, troubleshooting, and limits for DSH R
 | Organize discussions and the canvas | [Workbench](#research-workbench) · [Graph controls](#use-the-graph) · [Research Topics](#organize-research-topics) · [Workspace folders](#organize-sessions-with-workspace-folders) |
 | Read and verify evidence | [Original discussion](#read-original-discussion) · [Body search](#search-discussion-history) · [Session Digests](#generate-a-session-digest) |
 | Capture and reuse knowledge | [Knowledge Cards](#knowledge-cards) · [AI extraction](#reviewed-ai-extraction) · [Synthesis](#compare-and-synthesize) · [Follow-up discussions](#start-a-discussion-from-selected-materials) |
-| Install, recover, or troubleshoot | [Install](#install) · [History recovery](#recover-historical-merge-sessions) · [Working position](#return-to-your-working-position) · [Troubleshooting](#troubleshooting) |
+| Install, recover, or troubleshoot | [Install](#install) · [Desktop install](#install-in-dsh-desktop) · [History recovery](#recover-historical-merge-sessions) · [Working position](#return-to-your-working-position) · [Troubleshooting](#troubleshooting) |
 
 ## Quick start
 
-Requires **DeepSeek Harness 0.2.3-alpha.2**, Node.js `^24.22.3 || >=26.13.1`, and `pnpm` on your `PATH`. Research Graph runs as a plugin inside DSH Web; check [Compatibility](#compatibility) before installing on another Host version. These commands assume `dsh` is on your `PATH`; see [Install](#install) for `npx` and source-checkout commands. Stop any running `dsh web` before installing.
+Research Graph runs as a plugin inside DSH Web and DSH Desktop, and each plugin release runs only on the DSH version it was built for. Check yours with `dsh --version` and pick the matching command below; see [Compatibility](#compatibility) for other Host versions. These commands assume `dsh` and `pnpm` are on your `PATH`; see [Install](#install) for `npx`, source-checkout, and Desktop commands. Stop any running `dsh web` before installing.
 
 ```sh
+# DSH 0.2.2-rc.5 (npm `latest`), Node.js `>=24.9.0`
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
+dsh web
+```
+
+```sh
+# DSH 0.2.3-alpha.2 (npm `next`), Node.js `^24.22.3 || >=26.13.1`
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.2
 dsh web
 ```
@@ -28,7 +35,7 @@ Open the one-time authenticated URL printed by the command; do not share its tok
 2. Select a node, read **Original**, and choose **Save as knowledge** on a completed turn.
 3. Open the saved card in **Knowledge**, inspect its sources, and choose **Continue discussion** to preview the materials for another question.
 
-Current plugin **0.2.3-alpha.2** is available through npm `next`; npm `latest` remains `0.2.2-rc.3.4`. The pinned command avoids installing an incompatible older package. See [Install and upgrade](#install) for local archives and migration from the previous package name.
+Plugin **0.2.3-alpha.2** for DSH `0.2.3-alpha.2` is available through npm `next`; npm `latest` resolves to **0.2.2-rc.5**, the release built for DSH `0.2.2-rc.5`. The pinned commands avoid installing a release built for another DSH version. See [Install and upgrade](#install) for local archives, Desktop installation, and migration from the previous package name.
 
 ## Research workflow
 
@@ -87,7 +94,7 @@ The research workflow shipped in `0.1.5-rc.1`; `0.1.5-rc.2` adds the first UI/UX
 
 </details>
 
-Published prereleases use npm `next`; npm `latest` currently resolves to `0.2.2-rc.3.4`. The commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
+Published prereleases use npm `next`; npm `latest` currently resolves to `0.2.2-rc.5`, the release built for DSH `0.2.2-rc.5`. The commands below pin the exact matching version. To install a local build, run `pnpm install --frozen-lockfile` and `pnpm pack --pack-destination .artifacts` in this repository, then use `dsh plugin --profile web add /absolute/path/plugin.tgz`.
 
 ## FAQ
 
@@ -229,6 +236,16 @@ dsh --profile web --dump-config
 ```
 
 The output should contain `name: '@benz-ai-x/dsh-research-graph'`.
+
+<a id="install-in-dsh-desktop"></a>
+### Install in DSH Desktop
+
+DSH Desktop runs the same Web application, so the same release runs when its Required DSH version equals the Desktop application's version.
+
+- In the application, open the **Plugins** page, choose **Add plugin**, and enter `@benz-ai-x/dsh-research-graph@<matching version>`.
+- Or launch Desktop once to initialize its profile, fully quit it, and run `dsh plugin --profile desktop add @benz-ai-x/dsh-research-graph@<matching version>` with the command Desktop installed under **Manage dsh Command…**. Reopen Desktop to use the change.
+
+An npm-installed `dsh` cannot change the Desktop profile. When both commands exist, a bare `dsh` runs the one earlier on `PATH`, so call the Desktop command by its full path (`/usr/local/bin/dsh` on macOS). That command follows the installed Desktop release, so check the version again after updating Desktop. The Desktop procedure follows the Host's documentation; the release acceptance recorded in this repository was performed on DSH Web. See the [Desktop reference](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.3-alpha.2/apps/desktop/README.md#bundled-command-runtime).
 
 ### Upgrade from the previous package name
 
@@ -430,6 +447,8 @@ The output cap leaves room for reasoning and the structured digest; providers ma
 | Symptom | Check first |
 |---|---|
 | **Research Graph** tab is missing | Restart `dsh web`, open a non-blank Session, and verify the package appears in `dsh --profile web --dump-config` |
+| An install is refused with `incompatible-version` | The plugin release and the running DSH version must match exactly. Check `dsh --version`, then install the release built for it from the [installable versions](../README.md#installable-versions) |
+| A Desktop command is refused or changes nothing | Only the command Desktop installed can manage the Desktop profile. Call it by its full path or use the application's **Plugins** page. See [Install in DSH Desktop](#install-in-dsh-desktop) |
 | Host startup fails around a Remote error export | Install the plugin matching DSH in the compatibility table and check the resolved profile version |
 | GitHub source install reports `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | Inspect the pinned source, add the exact key printed by dsh to that profile's `allowBuilds`, and retry |
 | Digest generation reports no model route | Use a Session with a logged route or configure the `provider` and `model` fallback pair |

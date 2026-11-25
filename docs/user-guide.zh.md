@@ -11,13 +11,20 @@
 | 整理讨论与画布 | [工作台](#研究工作台) · [图谱操作](#使用图谱) · [研究主题](#整理研究主题) · [工作区文件夹](#用工作区文件夹整理会话) |
 | 阅读和核对证据 | [原文](#阅读讨论原文) · [正文搜索](#搜索历史讨论) · [会话摘要](#生成会话摘要) |
 | 保存与复用知识 | [知识卡片](#知识卡片) · [AI 提炼](#ai-提炼与审核) · [综合](#对照与综合) · [继续讨论](#选择材料开始新讨论) |
-| 安装、恢复与排错 | [安装](#安装) · [历史恢复](#恢复旧版-merge-会话) · [工作位置](#返回上次工作位置) · [故障排查](#故障排查) |
+| 安装、恢复与排错 | [安装](#安装) · [桌面端安装](#在-dsh-desktop-中安装) · [历史恢复](#恢复旧版-merge-会话) · [工作位置](#返回上次工作位置) · [故障排查](#故障排查) |
 
 ## 快速开始
 
-需要已安装 **DeepSeek Harness 0.2.3-alpha.2**、Node.js `^24.22.3 || >=26.13.1`，以及 `PATH` 中可用的 `pnpm`。研图作为插件运行在 DSH Web 中；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 已在 `PATH` 中；使用 `npx` 或源码时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
+研图作为插件运行在 DSH Web 与 DSH Desktop 中，每个插件版本只能在它所适配的 DSH 版本上运行。先用 `dsh --version` 确认宿主版本并选择下方对应命令；其他宿主版本请先查[兼容性](#兼容性)。下方命令假定 `dsh` 与 `pnpm` 已在 `PATH` 中；使用 `npx`、源码或桌面端时参阅[安装](#安装)。安装前先停止正在运行的 `dsh web`。
 
 ```sh
+# DSH 0.2.2-rc.5（npm `latest`），Node.js `>=24.9.0`
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
+dsh web
+```
+
+```sh
+# DSH 0.2.3-alpha.2（npm `next`），Node.js `^24.22.3 || >=26.13.1`
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.2
 dsh web
 ```
@@ -28,7 +35,7 @@ dsh web
 2. 选择一个节点并阅读**原文**，从已完成轮次点击**保存为知识**。
 3. 在**知识库**打开卡片，核对来源后选择**继续讨论**，预览要带入的材料。
 
-当前插件 **0.2.3-alpha.2** 使用 npm `next` 标签，npm `latest` 仍为 `0.2.2-rc.3.4`；上方固定版本可避免装入不匹配的旧包。[安装与升级说明](#安装)包含本地归档和旧包迁移步骤。
+适配 DSH `0.2.3-alpha.2` 的插件 **0.2.3-alpha.2** 使用 npm `next` 标签；npm `latest` 解析为 **0.2.2-rc.5**，即适配 DSH `0.2.2-rc.5` 的版本。固定版本可避免装入为其他 DSH 版本构建的插件。[安装与升级说明](#安装)包含本地归档、桌面端安装和旧包迁移步骤。
 
 ## 研究流程
 
@@ -87,7 +94,7 @@ flowchart LR
 
 </details>
 
-已发布的预发布版使用 npm `next`；npm `latest` 当前解析为 `0.2.2-rc.3.4`。下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
+已发布的预发布版使用 npm `next`；npm `latest` 当前解析为 `0.2.2-rc.5`，即适配 DSH `0.2.2-rc.5` 的版本。下方命令固定到与 DSH 匹配的精确版本。如需安装本地构建，请在本仓库运行 `pnpm install --frozen-lockfile`、`pnpm pack --pack-destination .artifacts`，再用 `dsh plugin --profile web add /绝对路径/插件归档.tgz` 安装。
 
 ## 常见问题
 
@@ -231,6 +238,16 @@ dsh --profile web --dump-config
 ```
 
 输出应包含 `name: '@benz-ai-x/dsh-research-graph'`。
+
+<a id="在-dsh-desktop-中安装"></a>
+### 在 DSH Desktop 中安装
+
+DSH Desktop 运行同一套 Web 应用，因此只要插件的适配 DSH 版本与桌面应用版本一致，同一版本即可使用。
+
+- 在应用中打开**插件**页面，选择**添加插件**并输入 `@benz-ai-x/dsh-research-graph@<对应版本>`。
+- 或先启动一次 Desktop 以初始化其 profile，完全退出后，用 Desktop 通过**管理 dsh 命令…**安装的命令执行 `dsh plugin --profile desktop add @benz-ai-x/dsh-research-graph@<对应版本>`，再重新打开 Desktop。
+
+通过 npm 安装的 `dsh` 无法修改 Desktop profile。两条命令并存时，直接输入 `dsh` 会运行 `PATH` 中靠前的那一条，因此请用完整路径调用 Desktop 的命令（macOS 为 `/usr/local/bin/dsh`）。该命令的版本跟随已安装的 Desktop，升级 Desktop 后需要重新核对版本。桌面端流程遵循宿主文档的记载；本仓库记录的发布验收在 DSH Web 上完成。参见[桌面端参考](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.3-alpha.2/apps/desktop/README.zh.md#bundled-command-runtime)。
 
 ### 从旧包名升级
 
@@ -430,6 +447,8 @@ node scripts/migrate-merge-history.mjs --input /path/session.v2.jsonl.zstd --out
 | 现象 | 首先检查 |
 |---|---|
 | 找不到 **研图** 标签 | 重启 `dsh web`，打开非空 Session，并确认 `dsh --profile web --dump-config` 中存在本包 |
+| 安装被拒绝并提示 `incompatible-version` | 插件版本与运行中的 DSH 版本必须精确对应。用 `dsh --version` 确认后，按[可安装版本](../README.zh.md#可安装版本)安装为该版本构建的插件 |
+| Desktop 命令被拒绝或没有生效 | 只有 Desktop 自己安装的命令能管理 Desktop profile。请用完整路径调用它，或使用应用的**插件**页面。见[在 DSH Desktop 中安装](#在-dsh-desktop-中安装) |
 | Host 在 Remote error 导出附近启动失败 | 按兼容表安装与 DSH 匹配的插件，并确认解析后的 profile 没有保留旧包版本 |
 | GitHub 源码安装报告 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` | 检查固定版本源码，把 dsh 打印的完整键加入该 profile 的 `allowBuilds`，然后重试 |
 | 生成摘要时报告没有模型路由 | 使用日志中带路由的 Session，或配置 `provider` 与 `model` 兜底字段对 |

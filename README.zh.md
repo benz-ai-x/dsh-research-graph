@@ -1,5 +1,5 @@
 ---
-description: "开源 DeepSeek Harness Web 插件，将 AI 对话转化为可视化会话图谱、可追溯知识卡片与可复用研究材料。了解适用场景、兼容性与安装方法。"
+description: "开源 DeepSeek Harness（DSH）Web 与桌面端插件，将 AI 对话转化为可视化会话图谱、可追溯知识卡片与可复用研究材料。了解适用场景、兼容性与安装方法。"
 kind: "package-bundle"
 ---
 
@@ -11,7 +11,7 @@ kind: "package-bundle"
 
 [English](README.md) | **简体中文**
 
-把分散的 AI 对话转化为**可视化、可追溯、可持续复用的研究知识库**。**DSH Research Graph · 研图**是面向 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness)、由社区独立维护的开源 **AI 研究工作台插件**，运行于 **DSH Web**。呈现会话分支与汇聚关系，跨工作区连接研究主题，并将选定讨论轮次转化为带来源的知识卡片，适用于产品研究、技术调研与持续知识管理。
+把分散的 AI 对话转化为**可视化、可追溯、可持续复用的研究知识库**。**DSH Research Graph · 研图**是面向 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness)、由社区独立维护的开源 **AI 研究工作台插件**，运行于 **DSH Web 与 DSH Desktop**。呈现会话分支与汇聚关系，跨工作区连接研究主题，并将选定讨论轮次转化为带来源的知识卡片，适用于产品研究、技术调研与持续知识管理。
 
 ## 适用场景
 
@@ -73,8 +73,8 @@ flowchart LR
 
 | 项目 | 说明 |
 | --- | --- |
-| 当前插件 | [0.2.3-alpha.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.2)，npm `next`（`latest` 仍为 `0.2.2-rc.3.4`） |
-| 适配宿主 | **DSH 0.2.3-alpha.2 · Web**，Node.js `^24.22.3 \|\| >=26.13.1` |
+| 当前插件 | 适配 DSH `0.2.3-alpha.2` 的 [0.2.3-alpha.2](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.3-alpha.2)（npm `next`）· 适配 DSH `0.2.2-rc.5` 的 [0.2.2-rc.5](https://github.com/benz-ai-x/dsh-research-graph/releases/tag/v0.2.2-rc.5)（npm `latest`） |
+| 适配宿主 | **所用插件版本对应的 DSH 版本**：`0.2.3-alpha.2` 搭配 Node.js `^24.22.3 \|\| >=26.13.1`，或 `0.2.2-rc.5` 搭配 Node.js `>=24.9.0` · Web 与 Desktop |
 | 数据保存 | 研究数据与工作区文件夹保存在 DSH Host；视图偏好和工作位置保存在浏览器，主题排列需显式保存 |
 | 模型调用 | 浏览、手工留卡与导出不调用模型；AI 生成与新讨论按需调用 |
 | Agent 能力 | 模型、工具、预设与 Agent 执行由 DSH 提供；插件不内置预设或 Agent Team 启动器。[详细说明](docs/user-guide.zh.md#dsh-与-agent-预设) |
@@ -88,7 +88,7 @@ flowchart LR
 
 ### 需要单独部署工作台服务吗？
 
-不需要。研图作为插件安装在兼容的 **DSH Web** 宿主中，Session 执行和模型服务仍由 DSH profile 持有。
+不需要。研图作为插件安装在兼容的 **DSH Web 或 Desktop** 宿主中，Session 执行和模型服务仍由 DSH profile 持有。
 
 ### 研究数据保存在哪里？
 
@@ -102,14 +102,23 @@ flowchart LR
 
 ## 快速开始
 
-需要 **DSH 0.2.3-alpha.2**（Node.js `^24.22.3 || >=26.13.1`），并确保 `dsh`、`pnpm` 均在 `PATH` 中。如有正在运行的 `dsh web`，先停止，再执行：
+每个插件版本只能在它所适配的 DSH 版本上运行。先用 `dsh --version` 确认宿主版本，停止正在运行的 `dsh web`，再确保 `dsh`、`pnpm` 均在 `PATH` 中并安装对应版本：
 
 ```sh
+# DSH 0.2.2-rc.5（npm `latest`）
+dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.2-rc.5
+dsh web
+```
+
+```sh
+# DSH 0.2.3-alpha.2（npm `next`）
 dsh plugin --profile web add @benz-ai-x/dsh-research-graph@0.2.3-alpha.2
 dsh web
 ```
 
-alpha.2 包已发布到 npm `next`；npm `latest` 仍为 `0.2.2-rc.3.4`。
+使用 **DSH Desktop** 时，在应用的**插件**页面添加与应用版本一致的插件版本，或按[桌面端安装步骤](docs/user-guide.zh.md#在-dsh-desktop-中安装)操作。
+
+> **不是本包：**npm 上不带作用域的 `dsh-research-graph` 是另一位作者的金融研究插件。本项目只发布为 `@benz-ai-x/dsh-research-graph`。
 
 打开终端给出的登录入口，在一个**非空会话**中选择**研图**：读原文 → 保存知识 → 继续讨论。通过 `npx` 或源码运行 DSH 时，参阅[安装方式](docs/user-guide.zh.md#安装)。
 
@@ -123,9 +132,9 @@ alpha.2 包已发布到 npm `next`；npm `latest` 仍为 `0.2.2-rc.3.4`。
 | --- | --- | --- |
 | `0.2.3-alpha.2` | `0.2.3-alpha.2` | 当前版本——退役插件自有会话备份/恢复并跟随宿主新的运行时要求，要求 Node.js `^24.22.3 \|\| >=26.13.1`；npm `next` |
 | `0.2.3-alpha.1` | `0.2.3-alpha.1` | 上一版本——适配宿主 Session 状态服务、当前目录 projection 与更准确的未读/失败展示，要求 Node.js `>=24.9.0` |
-| `0.2.2-rc.5` | `0.2.2-rc.5` | 适配 DSH rc.5 并覆盖提供方拒答回归，要求 Node.js `>=24.9.0` |
+| `0.2.2-rc.5` | `0.2.2-rc.5` | 适配 DSH rc.5 并覆盖提供方拒答回归，要求 Node.js `>=24.9.0`；npm `latest` |
 | `0.2.2-rc.3.5` | `0.2.2-rc.3` | Host 目录联动的提炼模型选择，以及更丰富的知识卡片筛选、徽章和分组来源阅读，要求 Node.js `>=24.9.0` |
-| `0.2.2-rc.3.4` | `0.2.2-rc.3` | 审核选定会话的提炼结果并保留准确来源，要求 Node.js `>=24.9.0`；npm `latest` |
+| `0.2.2-rc.3.4` | `0.2.2-rc.3` | 审核选定会话的提炼结果并保留准确来源，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.3` | `0.2.2-rc.3` | 原生会话备份与按需恢复，文件名包含工作区且不覆盖现有会话，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.2` | `0.2.2-rc.3` | 同目录重新添加工作区时恢复未归属会话，要求 Node.js `>=24.9.0` |
 | `0.2.2-rc.3.1` | `0.2.2-rc.3` | 恢复独立普通 fork 的分支连线，要求 Node.js `>=24.9.0` |
